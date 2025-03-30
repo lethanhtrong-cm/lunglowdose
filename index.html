@@ -3,31 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Danh sách máy</title>
+    <title>Danh sách thiết bị</title>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center; /* Căn giữa nội dung */
+        }
+        h2 {
+            text-align: center; /* Căn giữa tiêu đề */
+        }
         table {
-            width: 100%;
+            width: 80%;
+            margin: 0 auto; /* Căn giữa bảng */
             border-collapse: collapse;
-            margin: 20px 0;
-            font-size: 18px;
-            text-align: left;
+            border: 2px solid blue; /* Viền bảng màu xanh dương */
         }
         th, td {
-            padding: 10px;
-            border: 1px solid #ddd;
+            border: 1px solid blue; /* Viền từng ô màu xanh dương */
+            padding: 8px;
+            text-align: center;
         }
         th {
-            background-color: #f4f4f4;
+            background-color: #f0f8ff; /* Màu nền nhạt cho tiêu đề */
         }
         img {
             width: 100px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <h2>Danh sách máy</h2>
-    <table id="dataTable">
+    <h2>Danh sách thiết bị</h2>
+    
+    <table>
         <thead>
             <tr>
                 <th>Hãng Máy</th>
@@ -36,36 +45,39 @@
                 <th>Hình Ảnh</th>
             </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="table-body">
+            <!-- Dữ liệu sẽ được thêm vào đây -->
+        </tbody>
     </table>
 
     <script>
-        async function fetchData() {
-            const url = "https://script.google.com/macros/s/AKfycbx5IHSFGOz6p0RDXUEgme6QQEoBR8_uvLud3ihBqdysVEYIASSAubbAFTflqeMdl9hT/exec"; // Thay YOUR_SCRIPT_ID bằng ID của Apps Script
-            const response = await fetch(url);
-            const data = await response.json();
-            const tableBody = document.querySelector("#dataTable tbody");
+        const apiUrl = "https://script.google.com/macros/s/AKfycbxdrVHpZUf8xlKkltSWV4AX45clpx-cH3IkpUnhJbvhEmVSF8vA5MamM4y7ls7Nofur/exec"; // Thay URL từ Apps Script vào đây
 
-            data.forEach(item => {
-                let row = `<tr>
-                    <td>${item.HANGMAY}</td>
-                    <td>${item.AEC}</td>
-                    <td>${item.TENMAY}</td>
-                    <td>
-  <a href="https://i.postimg.cc/593fs0LF/Lung-Cancer-Screening-CT-images-9.jpg" target="_blank">
-    <img src="https://i.postimg.cc/593fs0LF/Lung-Cancer-Screening-CT-images-9.jpg" width="100" onclick="openModal(this, event)">
-  </a>
-</td>
-                </tr>`;
-                tableBody.innerHTML += row;
-            });
-        }
+        fetch(apiUrl)
+            .then(response => response.json())
+            .then(data => {
+                let tableBody = document.getElementById("table-body");
+                tableBody.innerHTML = ""; // Xóa dữ liệu cũ nếu có
 
-        fetchData();
+                data.forEach(row => {
+                    let tr = document.createElement("tr");
+
+                    tr.innerHTML = `
+                        <td>${row.HANGMAY}</td>
+                        <td>${row.AEC}</td>
+                        <td>${row.TENMAY}</td>
+                        <td>
+                            <a href="${row.LINK}" target="_blank">
+                                <img src="${row.LINK}">
+                            </a>
+                        </td>
+                    `;
+
+                    tableBody.appendChild(tr);
+                });
+            })
+            .catch(error => console.error("Lỗi khi tải dữ liệu:", error));
     </script>
 
-<style>
-  img {
-    cursor: pointer; /* Biến con trỏ thành bàn tay */
-  }
-</style>
+</body>
+</html>
