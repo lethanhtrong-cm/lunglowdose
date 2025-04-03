@@ -1,0 +1,78 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Công cụ tính liều LDCT</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      padding: 20px;
+      text-align: center;
+    }
+    section {
+      max-width: 700px;
+      margin: auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+    label {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <section>
+    <h2>Công cụ tính liều hiệu dụng từ DLP</h2>
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: center;">
+      <div>
+        <label for="bodyRegion">Chọn vùng cơ thể:</label><br>
+        <select id="bodyRegion" onchange="updateK()" style="padding: 8px; font-size: 16px;">
+          <option value="">-- Chọn --</option>
+          <option value="0.0021">Đầu</option>
+          <option value="0.0059">Cổ</option>
+          <option value="0.014">Ngực</option>
+          <option value="0.015">Bụng</option>
+          <option value="0.019">Khung chậu</option>
+        </select>
+      </div>
+      <div>
+        <label for="kValue">Hệ số k:</label><br>
+        <input id="kValue" type="text" readonly style="padding: 8px; font-size: 16px; width: 80px;">
+      </div>
+      <div>
+        <label for="dlp">Nhập DLP (mGy·cm):</label><br>
+        <input id="dlp" type="number" placeholder="Ví dụ: 80" style="padding: 8px; font-size: 16px; width: 100px;">
+      </div>
+      <div>
+        <button onclick="calculateDose()" style="padding: 10px 20px; background: #007BFF; color: white; border: none; font-size: 16px; border-radius: 4px; cursor: pointer;">Tính</button>
+      </div>
+    </div>
+    <div id="resultDose" style="margin-top: 20px; text-align: center; font-size: 18px; font-weight: bold;"></div>
+
+    <script>
+      function updateK() {
+        const k = document.getElementById("bodyRegion").value;
+        document.getElementById("kValue").value = k;
+      }
+
+      function calculateDose() {
+        const dlp = parseFloat(document.getElementById("dlp").value);
+        const k = parseFloat(document.getElementById("kValue").value);
+        if (!isNaN(dlp) && !isNaN(k)) {
+          const effectiveDose = (dlp * k).toFixed(3);
+          document.getElementById("resultDose").textContent = `Liều hiệu dụng ước tính: ${effectiveDose} mSv`;
+        } else {
+          document.getElementById("resultDose").textContent = "Vui lòng chọn vùng cơ thể và nhập DLP hợp lệ.";
+        }
+      }
+    </script>
+  </section>
+
+</body>
+</html>
