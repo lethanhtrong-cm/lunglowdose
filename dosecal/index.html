@@ -198,9 +198,9 @@
         #print-output-container {
             display: block !important;
             visibility: visible !important;
-            width: auto !important; /* Allow natural width */
-            max-width: 180mm !important; /* Typical A4 content width */
-            margin: 20mm auto !important; /* Center horizontally, top/bottom margin */
+            width: auto !important;
+            max-width: 180mm !important;
+            margin: 20mm auto !important; /* Center content on page */
             padding: 0 !important;
             border: none !important;
             box-shadow: none !important;
@@ -213,13 +213,55 @@
         #print-patient-info div, #print-input-params div { margin-bottom: 5px; font-size: 10pt; }
         #print-patient-info span, #print-input-params span { display: inline-block; min-width: 110px; font-weight: bold; padding-right: 8px; }
 
-        #print-result-dose, #print-risk-warning { margin: 20px 0 !important; padding: 12px 15px !important; border: 1px solid #aaa !important; background-color: transparent !important; color: #000 !important; font-size: 10pt !important; border-radius: 4px !important; box-shadow: none !important; width: auto !important; display: block !important; visibility: visible !important; page-break-inside: avoid; overflow-wrap: break-word; /* Added for word wrap */ word-wrap: break-word; /* Older browsers */ }
-        #print-result-dose { font-weight: bold; text-align: center; font-size: 11pt !important; background-color: #f0f0f0 !important; border-color: #bbb !important; }
-        #print-risk-warning { text-align: left; background-color: #fafafa !important; border-color: #ddd !important; }
+        /* Style for the formula section */
+        #print-formula {
+            margin: 20px 0 10px 0 !important;
+            padding: 8px 15px !important;
+            border: 1px dashed #007BFF !important; /* <<< Blue dashed border */
+            background-color: transparent !important;
+            color: #0056b3 !important; /* <<< Blue text */
+            font-size: 10pt !important;
+            text-align: center;
+            font-style: italic;
+            border-radius: 4px !important;
+            box-shadow: none !important;
+            width: auto !important;
+            display: block !important;
+            visibility: visible !important;
+            page-break-inside: avoid;
+        }
+
+        #print-result-dose, #print-risk-warning {
+            margin: 10px 0 20px 0 !important;
+            padding: 12px 15px !important;
+            border: 1px solid #007BFF !important; /* <<< Blue border */
+            background-color: transparent !important; /* <<< Remove background */
+            color: #0056b3 !important; /* <<< Blue text */
+            font-size: 10pt !important;
+            border-radius: 4px !important;
+            box-shadow: none !important;
+            width: auto !important;
+            display: block !important;
+            visibility: visible !important;
+            page-break-inside: avoid;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+        }
+        #print-result-dose {
+            font-weight: bold;
+            text-align: center;
+            font-size: 11pt !important;
+            /* background-color: #f0f0f0 !important; */ /* Removed background */
+            margin-top: 10px !important;
+        }
+        #print-risk-warning {
+            text-align: left;
+            /* background-color: #fafafa !important; */ /* Removed background */
+        }
         #print-risk-warning p, #print-risk-warning li { margin-bottom: 0.6em; }
         #print-risk-warning p:first-child { font-weight: bold; font-size: 10.5pt; }
         #print-risk-warning ul { padding-left: 18px; margin-top: 0.4em; list-style-type: disc; list-style-position: outside; }
-        #print-risk-warning strong { font-weight: bold; }
+        #print-risk-warning strong { font-weight: bold; color: #0056b3 !important; /* Ensure bold text is also blue */ }
         #print-date-footer { text-align: right; font-size: 9pt; margin-top: 25px; border-top: 1px solid #ccc; padding-top: 8px; font-style: italic; }
 
         /* Hide elements marked specifically not for print */
@@ -416,6 +458,9 @@
           <div id="print-body-region"><span>Vùng cơ thể:</span> ---</div>
           <div id="print-dlp-value"><span>Giá trị DLP:</span> --- mGy·cm</div>
       </div>
+      <div id="print-formula">
+          Công thức: E (mSv) = DLP (mGy·cm) × k (mSv·mGy⁻¹·cm⁻¹)
+      </div>
       <div id="print-result-dose">
           Liều hiệu dụng ước tính (E): --- mSv
       </div>
@@ -462,6 +507,7 @@
     const printPatientId = document.getElementById("print-patient-id");
     const printBodyRegion = document.getElementById("print-body-region");
     const printDlpValue = document.getElementById("print-dlp-value");
+    const printFormula = document.getElementById("print-formula"); // Thêm tham chiếu
     const printResultDose = document.getElementById("print-result-dose");
     const printRiskWarning = document.getElementById("print-risk-warning");
     const printDate = document.getElementById("print-date");
@@ -478,6 +524,7 @@
         printPatientId.innerHTML = "<span>ID:</span> ---";
         printBodyRegion.innerHTML = "<span>Vùng cơ thể:</span> ---";
         printDlpValue.innerHTML = `<span>Giá trị DLP:</span> --- mGy·cm`;
+        printFormula.innerHTML = `Công thức: E (mSv) = DLP (mGy·cm) × k (mSv·mGy⁻¹·cm⁻¹)`; // Reset công thức
         printResultDose.textContent = "Liều hiệu dụng ước tính (E): --- mSv";
         printRiskWarning.innerHTML = ""; // Clear warning content
         printDate.textContent = ""; // Clear date
@@ -531,10 +578,8 @@
 
       if (additionalRisk > 0) {
           const oneInY = Math.round(1 / additionalRisk); // Calculate 1 in Y chance
-          // Format Y with thousand separators for readability
           const formattedOneInY = oneInY.toLocaleString('vi-VN');
-          // Create risk text, handle very large Y values
-          const riskText = (oneInY > 0 && oneInY < 1000000) // Set a reasonable upper limit for "1 in Y" display
+          const riskText = (oneInY > 0 && oneInY < 1000000)
                          ? `tương đương với rủi ro ước tính khoảng <strong>1</strong> trường hợp tử vong do ung thư phát sinh thêm trên <strong>${formattedOneInY}</strong> người nhận cùng mức liều này.`
                          : `là một mức tăng nguy cơ rất nhỏ về mặt thống kê.`;
 
@@ -550,7 +595,7 @@
                   <li>Thông tin này được cung cấp để nhấn mạnh tầm quan trọng của việc chỉ định chụp chiếu hợp lý và áp dụng các biện pháp tối ưu hóa liều (nguyên tắc ALARA), <strong>không</strong> nhằm mục đích dự đoán tình trạng sức khỏe cụ thể cho bất kỳ cá nhân nào.</li>
               </ul>
           `;
-          // Create HTML for the print output (can be slightly different/simpler if needed)
+          // Create HTML for the print output
           printWarningMessageHTML = `
               <p><strong>Thông tin tham khảo về Nguy cơ Bức xạ:</strong></p>
               <p>Với mức liều hiệu dụng <strong>${roundedDose} mSv</strong>, ${riskText}</p>
@@ -568,51 +613,37 @@
           printButton.style.display = "inline-block"; // Show print button
 
           // 8. Populate the hidden print output container
-          printPatientName.innerHTML = `<span>Tên:</span> ${patientName || '---'}`; // Use '---' if empty
+          printPatientName.innerHTML = `<span>Tên:</span> ${patientName || '---'}`;
           printPatientAge.innerHTML = `<span>Tuổi:</span> ${patientAge || '---'}`;
           printPatientId.innerHTML = `<span>ID:</span> ${patientId || '---'}`;
           printBodyRegion.innerHTML = `<span>Vùng cơ thể:</span> ${selectedRegionText}`;
           printDlpValue.innerHTML = `<span>Giá trị DLP:</span> ${dlpInput.value} mGy·cm`;
+          // Populate formula with actual values for print
+          printFormula.innerHTML = `Công thức: E (${roundedDose} mSv) = DLP (${dlpInput.value} mGy·cm) × k (${k})`
           printResultDose.textContent = `Liều hiệu dụng ước tính (E): ${roundedDose} mSv`;
-          printRiskWarning.innerHTML = printWarningMessageHTML; // Populate print warning section
-          // Add current date to print footer
+          printRiskWarning.innerHTML = printWarningMessageHTML;
           const today = new Date();
           printDate.textContent = today.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 
       } else {
-           // If calculated dose is 0 or less, hide print button and clear print data
            printButton.style.display = "none";
            clearPrintOutput();
       }
     }
 
     // --- Event Listeners ---
-    // Update K value when body region changes
     bodyRegionSelect.addEventListener("change", updateK);
-    // Calculate dose when button is clicked
     calculateButton.addEventListener("click", calculateDose);
-    // Calculate dose when Enter is pressed in DLP input
-    dlpInput.addEventListener("keypress", function(event) {
-        if (event.key === "Enter") { event.preventDefault(); calculateDose(); }
-    });
-    // Optional: Calculate dose when Enter is pressed in patient info fields
+    dlpInput.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); calculateDose(); } });
     patientNameInput.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); calculateDose(); }});
     patientAgeInput.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); calculateDose(); }});
     patientIdInput.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); calculateDose(); }});
-
-
-    // Print Button Listener - triggers the browser's print dialog
-    printButton.addEventListener("click", function() {
-        window.print();
-    });
+    printButton.addEventListener("click", function() { window.print(); });
     // --- END: Calculator Script ---
 
-    // Automatically update copyright year in the footer
     document.getElementById('copyright-year').textContent = new Date().getFullYear();
-
-    // Initial K value update on page load
-    updateK();
+    updateK(); // Initial K value update
 
   </script>
 
