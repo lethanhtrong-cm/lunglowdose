@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CT Dose Calculator</title>
+  <title>Công cụ tính và Thông tin về Liều bức xạ CT</title>
 
   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -126,10 +126,25 @@
     .phantom-info h4 { margin: 0 0 8px 0; font-size: 1.1em; color: #0056b3; }
     .phantom-info p { margin: 4px 0; font-size: 0.9em; text-align: center; }
     .phantom-info hr { margin: 8px 0; border-top: 1px solid #eee; }
-    .report-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.95em; }
-    .report-table th, .report-table td { border: 1px solid #ccc; padding: 6px 8px; text-align: center; vertical-align: middle; }
+
+    /* --- BEGIN: Responsive Table Wrapper --- */
+    .table-responsive-wrapper {
+        overflow-x: auto; /* Enable horizontal scroll */
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        margin-bottom: 1em; /* Add some space below the table */
+    }
+    /* --- END: Responsive Table Wrapper --- */
+
+    .report-table {
+        width: 100%;
+        min-width: 600px; /* Set a minimum width to prevent extreme squeezing */
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 0.95em;
+    }
+    .report-table th, .report-table td { border: 1px solid #ccc; padding: 6px 8px; text-align: center; vertical-align: middle; white-space: nowrap; /* Prevent text wrapping in cells initially */ }
     .report-table th { background-color: #e9ecef; color: #495057; font-weight: bold; }
-    .report-table td:first-child { text-align: left; word-break: break-word; }
+    .report-table td:first-child { text-align: left; white-space: normal; /* Allow first column to wrap */ word-break: break-word; }
     .report-note { font-size: 0.85em; font-style: italic; color: #555; margin-top: 10px; text-align: right; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     .caption-text { font-size: 0.95em; color: #333; line-height: 1.6; text-align: justify; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
 
@@ -173,6 +188,15 @@
         .main-header, .main-footer { border-radius: 0; }
         .content-section { padding: 15px 20px; }
          .calculator-section .form-item { flex-basis: calc(50% - 10px); }
+
+         /* Adjust report table font/padding on smaller screens */
+         .report-table th, .report-table td {
+             padding: 4px 6px; /* Reduce padding */
+             font-size: 0.85em; /* Reduce font size */
+         }
+         .report-table {
+             min-width: 0; /* Allow table to shrink below 600px if needed */
+         }
     }
 
     /* --- BEGIN: Print Styles --- */
@@ -217,9 +241,9 @@
         #print-formula {
             margin: 20px 0 10px 0 !important;
             padding: 8px 15px !important;
-            border: 1px dashed #007BFF !important; /* <<< Blue dashed border */
+            border: 1px dashed #007BFF !important; /* Blue dashed border */
             background-color: transparent !important;
-            color: #0056b3 !important; /* <<< Blue text */
+            color: #0056b3 !important; /* Blue text */
             font-size: 10pt !important;
             text-align: center;
             font-style: italic;
@@ -234,9 +258,9 @@
         #print-result-dose, #print-risk-warning {
             margin: 10px 0 20px 0 !important;
             padding: 12px 15px !important;
-            border: 1px solid #007BFF !important; /* <<< Blue border */
-            background-color: transparent !important; /* <<< Remove background */
-            color: #0056b3 !important; /* <<< Blue text */
+            border: 1px solid #007BFF !important; /* Blue border */
+            background-color: transparent !important; /* Remove background */
+            color: #0056b3 !important; /* Blue text */
             font-size: 10pt !important;
             border-radius: 4px !important;
             box-shadow: none !important;
@@ -280,7 +304,7 @@
   <div class="page-container">
 
       <nav class="side-nav no-print">
-          <h3>CHỦ ĐỀ</h3>
+          <h3>Điều hướng nhanh</h3>
           <ul>
               <li><a href="#calculator">Máy tính Liều</a></li>
               <li><a href="#dose-report">Minh họa Dose Report</a></li>
@@ -295,7 +319,7 @@
       <div class="main-content-area">
 
           <header class="main-header no-print">
-            <h1>Trang thông tin và công cụ tính toán Liều bức xạ trong chụp Cắt lớp vi tính - <span lang="en">CT Scan</span></h1>
+            <h1>Thông tin và Công cụ Tính toán Liều bức xạ <span lang="en">CT</span></h1>
             <p>Hướng dẫn, công cụ tính liều hiệu dụng từ $DLP$, và thông tin tham khảo về liều bức xạ trong X-quang và <span lang="en">CT</span>.</p>
           </header>
 
@@ -372,38 +396,40 @@
             </section>
 
             <section id="dose-report" class="content-section illustration-section no-print">
-                <h2>Minh họa Báo cáo Liều (<span lang="en">Dose Report trên máy CT</span>) </h2>
-                <div class="dose-report-text-container">
-                  <div class="dose-report-header">
-                      <div class="report-title-meta">
-                          <h3>DOSE REPORT</h3>
-                          <div class="meta-data">
-                              <span><strong>Tổng mAs:</strong> 2326</span>
-                              <span><strong>Tổng DLP:</strong> 738 mGy·cm</span>
+                <h2>Minh họa Báo cáo Liều (<span lang="en">Dose Report</span>) - Dạng Văn bản</h2>
+                <div class="table-responsive-wrapper">
+                    <div class="dose-report-text-container">
+                      <div class="dose-report-header">
+                          <div class="report-title-meta">
+                              <h3>DOSE REPORT</h3>
+                              <div class="meta-data">
+                                  <span><strong>Tổng mAs:</strong> 2326</span>
+                                  <span><strong>Tổng DLP:</strong> 738 mGy·cm</span>
+                              </div>
+                              <div class="general-info">
+                                  <p>- Báo cáo liều được tạo sau khi kết thúc quá trình quét.</p>
+                                  <p>- Cung cấp thông tin về kV, mAs, $CTDI_{vol}$, $DLP$.</p>
+                              </div>
                           </div>
-                          <div class="general-info">
-                              <p>- Báo cáo liều được tạo ở mỗi máy CT sau khi kết thúc quá trình quét, đây là yêu cầu bắt buộc đối với các máy CT trên thị trường hiện nay. Nó được thể hiện ở Series mang tên "Dose Report" trong danh sách các series đã chụp.</p>
-                              <p>- Cung cấp thông tin về kV, mAs, $CTDI_{vol}$, $DLP$.</p>
+                          <div class="phantom-info">
+                              <h4>LIỀU HẤP THỤ</h4>
+                              <p>Ước tính Liều hiệu dụng ($E$) dựa trên:</p>
+                              <p>$E \approx \text{Tổng } DLP \times k$</p>
+                              <hr>
+                              <p><strong>Tham chiếu Phantom:</strong></p>
+                              <p>S: $\emptyset$ 16 cm (Đầu/Nhỏ)</p>
+                              <p>L: $\emptyset$ 32 cm (Thân/Lớn)</p>
                           </div>
                       </div>
-                      <div class="phantom-info">
-                          <h4>LIỀU HẤP THỤ</h4>
-                          <p>Ước tính Liều hiệu dụng ($E$) dựa trên:</p>
-                          <p>$E \approx \text{Tổng } DLP \times k$</p>
-                          <hr>
-                          <p><strong>Tham chiếu Phantom:</strong></p>
-                          <p>S: $\emptyset$ 16 cm (Đầu/Nhỏ)</p>
-                          <p>L: $\emptyset$ 32 cm (Thân/Lớn)</p>
-                      </div>
-                  </div>
-                  <table class="report-table">
-                      <thead> <tr> <th>Scan</th> <th>kV</th> <th>mAs / ref.</th> <th>$CTDI_{vol}$* (mGy)</th> <th>$DLP$ (mGy·cm)</th> <th>TI</th> <th>cSL (mm)</th> </tr> </thead>
-                      <tbody>
-                          <tr> <td>1. Topogram</td> <td>120</td> <td>35</td> <td>0.29 (S)</td> <td>6.7</td> <td>2.4</td> <td>0.6</td> </tr>
-                          <tr> <td>2. Head</td> <td>100</td> <td>405 / 542</td> <td>39.25 (S)</td> <td>731.2</td> <td>1.0</td> <td>0.6</td> </tr>
-                      </tbody>
-                  </table>
-                  <p class="report-note">*Giá trị $CTDI_{vol}$ được tham chiếu theo phantom S ( $\emptyset$ 16 cm).</p>
+                      <table class="report-table">
+                          <thead> <tr> <th>Scan</th> <th>kV</th> <th>mAs / ref.</th> <th>$CTDI_{vol}$* (mGy)</th> <th>$DLP$ (mGy·cm)</th> <th>TI</th> <th>cSL (mm)</th> </tr> </thead>
+                          <tbody>
+                              <tr> <td>1. Topogram</td> <td>120</td> <td>35</td> <td>0.29 (S)</td> <td>6.7</td> <td>2.4</td> <td>0.6</td> </tr>
+                              <tr> <td>2. Head</td> <td>100</td> <td>405 / 542</td> <td>39.25 (S)</td> <td>731.2</td> <td>1.0</td> <td>0.6</td> </tr>
+                          </tbody>
+                      </table>
+                      <p class="report-note">*Giá trị $CTDI_{vol}$ được tham chiếu theo phantom S ( $\emptyset$ 16 cm).</p>
+                    </div>
                 </div>
                 <p class="caption-text"> Minh họa cấu trúc một bảng <span lang="en">Dose Report</span> điển hình hiển thị sau khi kết thúc quét <span lang="en">CT</span>. Các thông số quan trọng cần lưu ý bao gồm $CTDI_{vol}$ (và loại phantom tham chiếu), $DLP$, <span lang="en">mAs</span>, $kVp$. Thông tin này là cơ sở để theo dõi liều và tính toán liều hiệu dụng ước tính cho bệnh nhân. </p>
              </section>
@@ -507,7 +533,7 @@
     const printPatientId = document.getElementById("print-patient-id");
     const printBodyRegion = document.getElementById("print-body-region");
     const printDlpValue = document.getElementById("print-dlp-value");
-    const printFormula = document.getElementById("print-formula"); // Thêm tham chiếu
+    const printFormula = document.getElementById("print-formula");
     const printResultDose = document.getElementById("print-result-dose");
     const printRiskWarning = document.getElementById("print-risk-warning");
     const printDate = document.getElementById("print-date");
@@ -524,10 +550,10 @@
         printPatientId.innerHTML = "<span>ID:</span> ---";
         printBodyRegion.innerHTML = "<span>Vùng cơ thể:</span> ---";
         printDlpValue.innerHTML = `<span>Giá trị DLP:</span> --- mGy·cm`;
-        printFormula.innerHTML = `Công thức: E (mSv) = DLP (mGy·cm) × k (mSv·mGy⁻¹·cm⁻¹)`; // Reset công thức
+        printFormula.innerHTML = `Công thức: E (mSv) = DLP (mGy·cm) × k (mSv·mGy⁻¹·cm⁻¹)`;
         printResultDose.textContent = "Liều hiệu dụng ước tính (E): --- mSv";
-        printRiskWarning.innerHTML = ""; // Clear warning content
-        printDate.textContent = ""; // Clear date
+        printRiskWarning.innerHTML = "";
+        printDate.textContent = "";
     }
 
 
@@ -535,11 +561,11 @@
     function calculateDose() {
       // 1. Reset displays
       resultDiv.textContent = "";
-      resultDiv.className = "result-display"; // Reset result style
+      resultDiv.className = "result-display";
       riskWarningDiv.innerHTML = "";
-      riskWarningDiv.style.display = "none"; // Hide screen warning
-      printButton.style.display = "none"; // Hide print button
-      clearPrintOutput(); // Clear previous print data
+      riskWarningDiv.style.display = "none";
+      printButton.style.display = "none";
+      clearPrintOutput();
 
       // 2. Get input values
       const dlp = parseFloat(dlpInput.value);
@@ -548,36 +574,36 @@
       const patientAge = patientAgeInput.value.trim();
       const patientId = patientIdInput.value.trim();
       const selectedRegionOption = bodyRegionSelect.options[bodyRegionSelect.selectedIndex];
-      const selectedRegionText = selectedRegionOption.value ? selectedRegionOption.text : "---"; // Get text of selected region, handle no selection
+      const selectedRegionText = selectedRegionOption.value ? selectedRegionOption.text : "---";
 
       // 3. Validate inputs
       if (bodyRegionSelect.value === "") {
         resultDiv.textContent = "⚠️ Vui lòng chọn vùng cơ thể.";
         resultDiv.classList.add("error");
-        return; // Stop if invalid
+        return;
       }
       if (isNaN(dlp) || dlp <= 0) {
         resultDiv.textContent = `⚠️ Vui lòng nhập giá trị DLP hợp lệ (số dương). Giá trị nhập: "${dlpInput.value}"`;
         resultDiv.classList.add("error");
-        return; // Stop if invalid
+        return;
       }
 
       // 4. Perform calculation
       const dose = dlp * k;
-      const roundedDose = Math.round(dose * 100) / 100; // Round to 2 decimal places
+      const roundedDose = Math.round(dose * 100) / 100;
 
       // 5. Display result on screen
       resultDiv.textContent = `Liều hiệu dụng ước tính (E): ${roundedDose} mSv`;
       resultDiv.classList.add("success");
 
       // 6. Calculate and prepare risk warning HTML
-      const riskFactorPerMSv = 5.5e-5; // Nominal risk factor (ICRP/BEIR VII)
+      const riskFactorPerMSv = 5.5e-5;
       const additionalRisk = roundedDose * riskFactorPerMSv;
-      let warningMessageHTML = ""; // For screen display
-      let printWarningMessageHTML = ""; // For print display
+      let warningMessageHTML = "";
+      let printWarningMessageHTML = "";
 
       if (additionalRisk > 0) {
-          const oneInY = Math.round(1 / additionalRisk); // Calculate 1 in Y chance
+          const oneInY = Math.round(1 / additionalRisk);
           const formattedOneInY = oneInY.toLocaleString('vi-VN');
           const riskText = (oneInY > 0 && oneInY < 1000000)
                          ? `tương đương với rủi ro ước tính khoảng <strong>1</strong> trường hợp tử vong do ung thư phát sinh thêm trên <strong>${formattedOneInY}</strong> người nhận cùng mức liều này.`
@@ -610,7 +636,7 @@
           // 7. Display warning on screen and show print button
           riskWarningDiv.innerHTML = warningMessageHTML;
           riskWarningDiv.style.display = "block";
-          printButton.style.display = "inline-block"; // Show print button
+          printButton.style.display = "inline-block";
 
           // 8. Populate the hidden print output container
           printPatientName.innerHTML = `<span>Tên:</span> ${patientName || '---'}`;
@@ -618,8 +644,7 @@
           printPatientId.innerHTML = `<span>ID:</span> ${patientId || '---'}`;
           printBodyRegion.innerHTML = `<span>Vùng cơ thể:</span> ${selectedRegionText}`;
           printDlpValue.innerHTML = `<span>Giá trị DLP:</span> ${dlpInput.value} mGy·cm`;
-          // Populate formula with actual values for print
-          printFormula.innerHTML = `Công thức: E (${roundedDose} mSv) = DLP (${dlpInput.value} mGy·cm) × k (${k})`
+          printFormula.innerHTML = `Công thức: E (${roundedDose} mSv) = DLP (${dlpInput.value} mGy·cm) × k (${k})`;
           printResultDose.textContent = `Liều hiệu dụng ước tính (E): ${roundedDose} mSv`;
           printRiskWarning.innerHTML = printWarningMessageHTML;
           const today = new Date();
