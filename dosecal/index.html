@@ -1,736 +1,668 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CT Dose</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CT Dose</title>
 
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-  <script>
-    MathJax = {
-      tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [ ['$$', '$$'], ['\\[', '\\]'] ]
-      },
-      chtml: {
-        scale: 0.95
-      }
-    };
-  </script>
-
-  <script src="https://cdn.counter.dev/script.js" data-id="86e74dda-26a8-41de-99d1-63d0e8fec60e" data-utcoffset="7"></script>
-
-  <style>
-    /* Reset and Base Styles */
-    html {
-        scroll-padding-top: 20px;
-        scroll-behavior: smooth;
-    }
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f4f6f9;
-      margin: 0;
-      padding: 0;
-      line-height: 1.7;
-      color: #333;
-    }
-    h1, h2, h3, h4 { color: #0056b3; margin-top: 1.5em; margin-bottom: 0.8em; }
-    a { color: #007BFF; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    hr { border: none; border-top: 1px solid #ccc; margin: 2em 0; }
-    em { font-style: italic; }
-
-    /* Centered Page Layout */
-    .page-container { display: flex; max-width: 1200px; margin: 0 auto; align-items: flex-start; gap: 20px; padding: 0 10px; box-sizing: border-box; }
-
-    /* Side Navigation Bar Styles */
-    .side-nav { flex: 0 0 220px; position: sticky; top: 20px; height: calc(100vh - 40px); background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; box-sizing: border-box; overflow-y: auto; z-index: 100; }
-    .side-nav h3 { margin-top: 0; margin-bottom: 15px; font-size: 1.1em; color: #343a40; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
-    .side-nav ul { list-style: none; padding: 0; margin: 0; }
-    .side-nav li { margin-bottom: 5px; }
-    .side-nav a { display: block; padding: 8px 10px; color: #0056b3; text-decoration: none; border-radius: 4px; transition: background-color 0.2s ease, color 0.2s ease; font-size: 0.95em; }
-    .side-nav a:hover, .side-nav a.active { background-color: #007bff; color: white; text-decoration: none; }
-
-    /* Main Content Area Styles */
-    .main-content-area { flex: 1; min-width: 0; }
-
-    /* Header Styles */
-    .main-header { background-color: #007BFF; color: white; padding: 25px 20px; text-align: center; margin-bottom: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-radius: 8px; }
-    .main-header h1 { margin: 0 0 10px 0; font-size: 2em; color: white; }
-    .main-header p { font-size: 1.1em; margin: 0; opacity: 0.9; }
-
-    /* Main Content Area */
-    main { padding: 0; }
-
-    /* Section Styles */
-    .content-section { background: #fff; padding: 25px 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); margin-bottom: 30px; border: 1px solid #e0e0e0; }
-    .content-section h2, .content-section h3 { margin-top: 0; }
-
-    /* Calculator Section Specifics */
-    .calculator-section .form-group { display: flex; flex-wrap: wrap; gap: 15px 20px; align-items: baseline; margin-bottom: 20px; }
-    .calculator-section .form-item { flex: 1 1 150px; min-width: 140px; margin-bottom: 5px; }
-    .calculator-section label { font-weight: 600; display: block; margin-bottom: 6px; font-size: 0.9em; color: #555; }
-    .calculator-section input, .calculator-section select { width: 100%; padding: 8px 10px; font-size: 0.95em; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; transition: border-color 0.2s ease; }
-    .calculator-section input:focus, .calculator-section select:focus { border-color: #007BFF; outline: none; box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25); }
-    .calculator-section input[readonly] { background-color: #e9ecef; cursor: not-allowed; }
-    .calculator-section .button-container { text-align: center; flex-basis: 100%; margin-top: 15px; }
-    .calculator-section button#calculateButton { padding: 10px 25px; background: #007BFF; color: white; border: none; font-size: 1em; border-radius: 6px; cursor: pointer; transition: background-color 0.2s ease; }
-    .calculator-section button#calculateButton:hover { background: #0056b3; }
-
-    /* Patient Info Group Styles */
-    .patient-info-group { border-top: 1px dashed #ccc; margin-top: 20px; padding-top: 20px; margin-bottom: 5px; }
-    .patient-info-group h4 { margin-top: 0; margin-bottom: 15px; font-size: 1em; color: #6c757d; }
-
-    /* Result Display Styles */
-    .result-display { margin-top: 20px; padding: 15px; text-align: center; font-size: 1.2em; font-weight: bold; border-radius: 6px; }
-    #resultDose.success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; }
-    #resultDose.error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; }
-
-    /* Risk Warning Display Styles (on screen) */
-    .risk-warning-display { margin-top: 15px; padding: 15px 20px; font-size: 0.95em; border-radius: 6px; background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; text-align: left; line-height: 1.6; display: none; }
-    .risk-warning-display p { margin-top: 0; margin-bottom: 0.8em; }
-    .risk-warning-display ul { padding-left: 20px; margin-top: 0.5em; margin-bottom: 0; }
-    .risk-warning-display li { margin-bottom: 0.4em; }
-
-    /* Print Button Styles */
-     .print-button-container { text-align: center; margin-top: 25px; }
-     #printButton { padding: 10px 20px; background-color: #17a2b8; color: white; border: none; font-size: 1em; border-radius: 6px; cursor: pointer; transition: background-color 0.2s ease; display: none; }
-     #printButton:hover { background-color: #138496; }
-
-     /* === CSS Updated for Table Styling === */
-
-        /* Base Table Styles (Apply generally, can be overridden) */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            border: 1px solid #ccc; /* Default border */
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+      MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [ ['$$', '$$'], ['\\[', '\\]'] ]
+        },
+        chtml: {
+          scale: 0.95
         }
-        th, td {
-            padding: 12px 15px; /* Default padding */
-            text-align: left;
-            border: 1px solid #ddd; /* Default cell border */
-            vertical-align: middle;
+      };
+    </script>
+
+    <script src="https://cdn.counter.dev/script.js" data-id="86e74dda-26a8-41de-99d1-63d0e8fec60e" data-utcoffset="7"></script>
+
+    <style>
+        /* CSS Variables */
+        :root {
+            --primary-color: #0056b3; /* Blue */
+            --secondary-color: #007BFF; /* Lighter Blue */
+            --text-color: #212529; /* Darker text for better contrast */
+            --text-light: #495057; /* Lighter text */
+            --light-gray: #f8f9fa; /* Slightly lighter gray */
+            --white: #fff;
+            --border-color: #dee2e6; /* Default border color */
+            --cell-border-color: #ddd; /* Internal cell border color */
+            --header-bg: var(--primary-color);
+            --header-text: var(--white);
+            --link-color: var(--primary-color);
+            --link-hover-color: #003d80;
+            --table-header-bg: var(--primary-color); /* Consistent header bg */
+            --table-header-text: var(--white);
+            --danger-color: #dc3545; /* Red for emphasis/results */
+            --font-primary: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Switched primary font */
+            --font-secondary: 'Roboto', sans-serif; /* Keep Roboto for headings */
         }
-        tbody tr:hover {
-            background-color: #e9ecef; /* Default hover */
+
+        /* Base Styles */
+        html {
+            scroll-padding-top: 20px; /* Adjust based on sticky nav height if needed */
+            scroll-behavior: smooth;
         }
+        body {
+            font-family: var(--font-primary);
+            background-color: var(--light-gray);
+            margin: 0; padding: 0;
+            line-height: 1.7;
+            color: #333;
+            font-size: 17px; /* Adjusted base font size */
+             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        h1, h2, h3, h4 { color: var(--primary-color); margin-top: 1.4em; margin-bottom: 0.7em; font-family: var(--font-secondary); font-weight: 600;}
+        h1 { font-size: 1.8em; line-height: 1.3; }
+        h2 { font-size: 1.5em; text-align: center; margin-bottom: 1.2em; }
+        h3 { font-size: 1.2em; border-bottom: 2px solid var(--primary-color); padding-bottom: 5px; display: inline-block; margin-bottom: 1em; }
+        h4 { font-size: 1.0em; border-bottom: none; padding-bottom: 0; display: block;}
+
+        a { color: #007BFF; text-decoration: none; transition: color 0.2s ease;}
+        a:hover { color: #0056b3; text-decoration: underline; }
+        hr { border: none; border-top: 1px solid #ccc; margin: 1.5em 0; }
+        em { font-style: italic; }
+        strong { font-weight: 600; color: var(--primary-color); }
+
+        /* Centered Page Layout */
+        .page-container { display: flex; max-width: 1200px; margin: 20px auto; align-items: flex-start; gap: 20px; padding: 0 15px; box-sizing: border-box; }
+
+        /* Side Navigation Bar Styles */
+        .side-nav { flex: 0 0 200px; position: sticky; top: 20px; height: calc(100vh - 40px); background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; box-sizing: border-box; overflow-y: auto; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .side-nav h3 { margin-top: 0; margin-bottom: 12px; font-size: 1.0em; color: #343a40; border-bottom: 1px solid #ccc; padding-bottom: 8px; }
+        .side-nav ul { list-style: none; padding: 0; margin: 0; }
+        .side-nav li { margin-bottom: 4px; }
+        .side-nav a { display: block; padding: 7px 10px; color: #0056b3; text-decoration: none; border-radius: 4px; transition: background-color 0.2s ease, color 0.2s ease; font-size: 0.9em; }
+        .side-nav a:hover, .side-nav a.active { background-color: var(--secondary-color); color: white; text-decoration: none; }
+
+        /* Main Content Area Styles */
+        .main-content-area { flex: 1; min-width: 0; }
+
+        /* Header Styles */
+        .main-header { background-color: var(--primary-color); color: white; padding: 20px; text-align: center; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-radius: 8px; }
+        .main-header h1 { margin: 0 0 8px 0; font-size: 1.7em; color: white; }
+        .main-header p { font-size: 1.0em; margin: 0; opacity: 0.9; }
+
+        /* Main Content Area */
+        main { padding: 0; }
+
+        /* Section Styles */
+        .content-section { background: #fff; padding: 20px 25px; border-radius: 8px; box-shadow: 0 3px 8px rgba(0,0,0,0.06); margin-bottom: 25px; border: 1px solid #e0e0e0; }
+        .content-section h2 { margin-top: 0; margin-bottom: 20px; }
+        .content-section h3 { margin-top: 0; margin-bottom: 12px; font-size: 1.25em; }
+
+
+        /* Calculator Section Specifics */
+        .calculator-section .form-group { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: baseline; margin-bottom: 15px; }
+        .calculator-section .form-item { flex: 1 1 140px; min-width: 130px; margin-bottom: 5px; }
+        .calculator-section label { font-weight: 600; display: block; margin-bottom: 5px; font-size: 0.85em; color: #555; }
+        .calculator-section input, .calculator-section select { width: 100%; padding: 7px 9px; font-size: 0.9em; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; transition: border-color 0.2s ease; }
+        .calculator-section input:focus, .calculator-section select:focus { border-color: var(--secondary-color); outline: none; box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25); }
+        .calculator-section input[readonly] { background-color: #e9ecef; cursor: not-allowed; }
+        .calculator-section .button-container { text-align: center; flex-basis: 100%; margin-top: 12px; }
+        .calculator-section button#calculateButton { padding: 8px 20px; background: var(--secondary-color); color: white; border: none; font-size: 0.95em; border-radius: 6px; cursor: pointer; transition: background-color 0.2s ease; }
+        .calculator-section button#calculateButton:hover { background: var(--primary-color); }
+
+        /* Patient Info Group Styles */
+        .patient-info-group { border-top: 1px dashed #ccc; margin-top: 15px; padding-top: 15px; margin-bottom: 5px; }
+        .patient-info-group h4 { margin-top: 0; margin-bottom: 12px; font-size: 0.95em; color: #6c757d; border-bottom: none; padding-bottom: 0; display: block; }
+
+        /* Result Display Styles */
+        .result-display { margin-top: 15px; padding: 12px; text-align: center; font-size: 1.1em; font-weight: bold; border-radius: 6px; }
+        #resultDose.success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; }
+        #resultDose.error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; }
+
+        /* Risk Warning Display Styles (on screen) */
+        .risk-warning-display { margin-top: 12px; padding: 12px 18px; font-size: 0.85em; border-radius: 6px; background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; text-align: left; line-height: 1.6; display: none; }
+        .risk-warning-display p { margin-bottom: 0.7em; text-align: justify; }
+        .risk-warning-display p:first-child { font-weight: bold; text-align: left; }
+        .risk-warning-display ul { padding-left: 18px; margin-top: 0.4em; margin-bottom: 0; list-style-position: outside; }
+        .risk-warning-display li { margin-bottom: 0.3em; text-align: justify; }
+
+        /* Print Button Styles */
+         .print-button-container { text-align: center; margin-top: 20px; }
+         #printButton { padding: 8px 18px; background-color: #17a2b8; color: white; border: none; font-size: 0.95em; border-radius: 6px; cursor: pointer; transition: background-color 0.2s ease; display: none; }
+         #printButton:hover { background-color: #138496; }
+
+         /* Base Table Styles */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; border: 1px solid var(--border-color); } /* Default border color */
+        th, td { padding: 10px 12px; text-align: left; border: 1px solid var(--cell-border-color); vertical-align: middle; } /* Use cell border color */
+        tbody tr:hover { background-color: #e9ecef; }
 
         /* --- Styling for Dose Comparison Table --- */
-        .dose-table th {
-            background-color: var(--primary-color); /* Main blue background */
-            color: var(--table-header-text); /* White text */
-            font-weight: 600; /* Bold header text */
-            border-bottom: 2px solid var(--primary-color);
-            text-align: center;
-            padding: 10px 12px; /* Specific padding */
-            font-size: 1.0em; /* Slightly larger header font */
+        .dose-table { border: 2px solid var(--primary-color); } /* Thicker border */
+        .dose-table th { background-color: var(--primary-color); color: var(--table-header-text); font-weight: 600; border-bottom: 2px solid var(--primary-color); text-align: center; padding: 9px 10px; font-size: 0.95em; }
+        .dose-table tbody tr:nth-child(even) { background-color: #e7f3ff; }
+        .dose-table tbody tr:nth-child(odd) { background-color: var(--white); }
+        .dose-table tbody tr:hover { background-color: #d1e7ff; }
+        .dose-table td { padding: 9px 10px; font-size: 0.9em; }
+        .dose-table td:nth-child(2), .dose-table td:nth-child(3) { text-align: center; font-family: var(--font-secondary); }
+        .dose-table td:first-child { font-weight: 500; text-align: left; }
+
+        /* --- K-Factor Table Style --- */
+        .k-factor-table { border: 1px solid var(--border-color); } /* Keep default border */
+        .k-factor-table th { background-color: #e9ecef; color: #495057; font-weight: 600; border-bottom: 2px solid #007BFF; text-align: center; padding: 9px 10px; font-size: 0.95em; }
+        .k-factor-table tbody tr:nth-child(even) { background-color: #f8f9fa; }
+        .k-factor-table tbody tr:nth-child(odd) { background-color: var(--white); }
+        .k-factor-table tbody tr:hover { background-color: #e2e6ea; }
+        .k-factor-table td { padding: 9px 10px; font-size: 0.9em; text-align: center; }
+        .k-factor-table td:first-child { text-align: left; font-weight: normal;}
+
+        /* --- Report Table Style (Blue Border) --- */
+         .report-table {
+            width: 100%;
+            min-width: 600px;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.95em;
+            border: 2px solid var(--secondary-color); /* <<< VIỀN XANH CHO BẢNG */
         }
-        .dose-table tbody tr:nth-child(even) {
-            background-color: #e7f3ff; /* Light blue for even rows */
-        }
-        .dose-table tbody tr:nth-child(odd) {
-            background-color: var(--white); /* White for odd rows */
-        }
-        .dose-table tbody tr:hover {
-            background-color: #d1e7ff; /* Slightly darker blue hover */
-        }
-        .dose-table td {
-            padding: 10px 12px; /* Specific padding */
-            font-size: 0.95em; /* Slightly smaller font for data */
-        }
-         /* Center align dose and time equivalent columns */
-        .dose-table td:nth-child(2),
-        .dose-table td:nth-child(3) {
-            text-align: center;
-            font-family: var(--font-secondary); /* Use Roboto for numbers maybe */
-        }
-         /* Make first column slightly bolder if desired */
-         .dose-table td:first-child {
-             font-weight: 500; /* Medium weight for technique name */
-             text-align: left; /* Ensure left alignment */
-         }
-    /* Source Citation Style */
-    .source { font-size: 0.9em; color: #666; margin-top: 20px; text-align: right; }
-    .source strong { font-weight: 600; }
-    .source a { color: #0056b3; }
-
-    /* Home Button Style */
-    .home-button { display: block; width: fit-content; padding: 10px 20px; background-color: #007BFF; color: white; border: none; border-radius: 6px; text-align: center; font-size: 1em; margin: 30px auto 10px auto; cursor: pointer; text-decoration: none; transition: background-color 0.2s ease; }
-    .home-button:hover { background-color: #0056b3; color: white; text-decoration: none; }
-
-    /* Dose Report Illustration Styles */
-    .dose-report-text-container { border: 1px solid #007BFF; border-radius: 8px; padding: 20px; background-color: #f8f9fa; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; margin-bottom: 15px; }
-    .dose-report-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; border-bottom: 1px dashed #007BFF; padding-bottom: 15px; margin-bottom: 15px; }
-    .report-title-meta { flex-basis: 60%; min-width: 250px; }
-    .report-title-meta h3 { margin: 0 0 10px 0; color: #007BFF; font-size: 1.4em; }
-    .meta-data span { display: inline-block; margin-right: 20px; margin-bottom: 5px; font-weight: bold; color: #333; }
-    .general-info p { margin: 5px 0 0 0; font-size: 0.9em; color: #555; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.5; text-align: left; }
-    .phantom-info { flex-basis: 35%; min-width: 200px; border: 1px solid #ccc; padding: 10px 15px; border-radius: 5px; background-color: #fff; text-align: center; }
-    .phantom-info h4 { margin: 0 0 8px 0; font-size: 1.1em; color: #0056b3; }
-    .phantom-info p { margin: 4px 0; font-size: 0.9em; text-align: center; }
-    .phantom-info hr { margin: 8px 0; border-top: 1px solid #eee; }
-
-    /* --- BEGIN: Responsive Table Wrapper --- */
-    .table-responsive-wrapper {
-        overflow-x: auto; /* Enable horizontal scroll */
-        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-        margin-bottom: 1em; /* Add some space below the table */
-    }
-    /* --- END: Responsive Table Wrapper --- */
-
-    .report-table {
-        width: 100%;
-        min-width: 600px; /* Set a minimum width to prevent extreme squeezing */
-        border-collapse: collapse;
-        margin-top: 10px;
-        font-size: 0.95em;
-    }
-    .report-table th, .report-table td { border: 1px solid #ccc; padding: 6px 8px; text-align: center; vertical-align: middle; white-space: nowrap; /* Prevent text wrapping in cells initially */ }
-    .report-table th { background-color: #e9ecef; color: #495057; font-weight: bold; }
-    .report-table td:first-child { text-align: left; white-space: normal; /* Allow first column to wrap */ word-break: break-word; }
-    .report-note { font-size: 0.85em; font-style: italic; color: #555; margin-top: 10px; text-align: right; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .caption-text { font-size: 0.95em; color: #333; line-height: 1.6; text-align: justify; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-
-    /* Warning Section Styles */
-    .warning-section { background-color: #fef9e7; border-left: 5px solid #f1c40f; padding: 20px 25px; }
-    .warning-section h2, .warning-section h3 { color: #b7950b; }
-    .warning-section hr { border-top: 1px solid #f1c40f; }
-    .warning-section ul { padding-left: 20px; list-style-position: outside; }
-    .warning-section ul ul { margin-top: 5px; }
-    .warning-section .emphasis-message { font-weight: bold; text-align: center; margin-top: 1.5em; color: #b7950b; }
-    .warning-section .source-link { text-align: center; margin-top: 1em; font-size: 0.95em; }
-
-    /* Explanation Section Styles */
-    .formula-display { font-size: 1.1em; background-color: #e7f3ff; padding: 15px; border-radius: 6px; border: 1px solid #007BFF; color: #0056b3; text-align: center; margin: 1.5em 0; overflow-x: auto; }
-    .explanation-section h3, .explanation-section h4 { margin-bottom: 0.5em; }
-    .explanation-section p, .explanation-section ul { margin-bottom: 1em; }
-    .explanation-section ul { padding-left: 25px; list-style-position: outside; }
-
-    /* Justify Text for specific paragraphs */
-    .calculator-section > p, .warning-section > p, .explanation-section p, .dose-comparison-section > p, .caption-text { text-align: justify; }
-    /* Optional Justify Lists */
-    /* .warning-section ul li, .explanation-section ul li { text-align: justify; } */
-
-    /* Footer Styles */
-    .main-footer { background-color: #007BFF; color: #ffffff; padding: 30px 20px; margin-top: 40px; text-align: center; font-size: 0.9em; border-radius: 8px; }
-    .main-footer p { margin: 8px 0; line-height: 1.6; opacity: 0.95; text-align: center; }
-    .main-footer strong { color: #ffffff; }
-    .main-footer em { font-style: italic; opacity: 0.85; display: block; margin-top: 15px; }
-    .main-footer a { color: #cce5ff; /* Lighter blue for footer links */ }
-    .main-footer a:hover { color: #ffffff; text-decoration: underline; }
-
-    /* Responsive Styles */
-    @media (max-width: 992px) { /* Medium screens */
-        .page-container { max-width: 95%; gap: 15px; }
-        .side-nav { flex-basis: 180px; }
-    }
-    @media (max-width: 768px) { /* Small screens */
-        .page-container { display: block; max-width: 95%; padding: 0 5px; }
-        .side-nav { position: static; height: auto; width: 100%; margin-bottom: 20px; display: none; }
-        .main-content-area { margin-left: 0; }
-        .main-header, .main-footer { border-radius: 0; }
-        .content-section { padding: 15px 20px; }
-         .calculator-section .form-item { flex-basis: calc(50% - 10px); }
-
-         /* Adjust report table font/padding on smaller screens */
          .report-table th, .report-table td {
-             padding: 4px 6px; /* Reduce padding */
-             font-size: 0.85em; /* Reduce font size */
-         /* === Hide Dose Report Section on Small Screens === */
-             #dose-report {
-                 display: none;
-             }
-             /* === End Hide Dose Report Section === */
+            border: 1px solid var(--cell-border-color); /* <<< Giữ viền trong màu xám nhạt */
+            padding: 6px 8px;
+            text-align: center;
+            vertical-align: middle;
+            white-space: nowrap;
         }
-         @media (max-width: 480px) { /* Extra small screens */
-              body { font-size: 15px; }
-              .main-header h1 { font-size: 1.4em;}
-              .main-header p { font-size: 0.95em;}
-              h2 { font-size: 1.35em;}
-              h3 { font-size: 1.15em;}
-              .content-section { padding: 15px; }
-              .calculator-section .form-item { flex-basis: 100%; } /* Stack form items */
-              .formula-display { font-size: 1.0em; padding: 10px;}
-               .dose-table th, .dose-table td { font-size: 0.85em; padding: 6px 8px;}
+         .report-table th {
+            background-color: #e9ecef;
+            color: #495057;
+            font-weight: bold;
+            border-bottom: 1px solid var(--cell-border-color); /* Match cell border */
+        }
+         .report-table td:first-child {
+            text-align: left;
+            white-space: normal;
+            word-break: break-word;
+             font-weight: normal;
+        }
+         .report-table tbody tr:nth-child(even),
+         .report-table tbody tr:nth-child(odd) {
+            background-color: transparent; /* No alternating color */
+        }
+         .report-table tbody tr:hover {
+            background-color: #f0f0f0; /* Simple light gray hover */
+        }
+         /* Ensure text alignment overrides justify */
+         .report-table td { text-align: center; hyphens: none;}
+         .report-table td:first-child { text-align: left; hyphens: none;}
+
+
+        /* Source Citation Style */
+        .source { font-size: 0.85em; color: #666; margin-top: 15px; text-align: right; }
+        .source strong { font-weight: 600; }
+        .source a { color: #0056b3; }
+
+        /* Home Button Style */
+        .home-button { display: block; width: fit-content; padding: 8px 18px; background-color: #007BFF; color: white; border: none; border-radius: 6px; text-align: center; font-size: 0.95em; margin: 25px auto 10px auto; cursor: pointer; text-decoration: none; transition: background-color 0.2s ease; }
+        .home-button:hover { background-color: #0056b3; color: white; text-decoration: none; }
+
+        /* Dose Report Illustration Styles */
+        .dose-report-text-container { border: 1px solid #007BFF; border-radius: 8px; padding: 15px; background-color: #f8f9fa; font-family: 'Courier New', Courier, monospace; font-size: 0.85em; margin-bottom: 15px; }
+        .dose-report-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; border-bottom: 1px dashed #007BFF; padding-bottom: 12px; margin-bottom: 12px; }
+        .report-title-meta { flex-basis: 60%; min-width: 250px; }
+        .report-title-meta h3 { margin: 0 0 8px 0; color: #007BFF; font-size: 1.3em; border: none; padding: 0;}
+        .meta-data span { display: inline-block; margin-right: 15px; margin-bottom: 4px; font-weight: bold; color: #333; font-size: 0.95em; }
+        .general-info p { margin: 4px 0 0 0; font-size: 0.9em; color: #555; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.5; text-align: left; hyphens: none; }
+        .phantom-info { flex-basis: 35%; min-width: 180px; border: 1px solid #ccc; padding: 8px 12px; border-radius: 5px; background-color: #fff; text-align: center; }
+        .phantom-info h4 { margin: 0 0 6px 0; font-size: 1.0em; color: #0056b3; border: none; padding: 0;}
+        .phantom-info p { margin: 3px 0; font-size: 0.85em; text-align: center; hyphens: none;}
+        .phantom-info hr { margin: 6px 0; border-top: 1px solid #eee; }
+
+        /* Responsive Table Wrapper */
+        .table-responsive-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 1em; }
+
+        .report-note { font-size: 0.8em; font-style: italic; color: #555; margin-top: 8px; text-align: right; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .caption-text { font-size: 0.9em; color: #333; line-height: 1.6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: justify; }
+
+        /* Warning Section Styles */
+        .warning-section { background-color: #fef9e7; border-left: 5px solid #f1c40f; padding: 15px 20px; }
+        .warning-section h2, .warning-section h3 { color: #b7950b; border-color: #f1c40f;}
+        .warning-section hr { border-top: 1px solid #f1c40f; }
+        .warning-section ul { padding-left: 18px; list-style-position: outside; }
+        .warning-section ul ul { margin-top: 4px; }
+        .warning-section .emphasis-message { font-weight: bold; text-align: center; margin-top: 1.2em; color: #b7950b; font-size: 0.95em;}
+        .warning-section .source-link { text-align: center; margin-top: 0.8em; font-size: 0.9em; }
+
+        /* Explanation Section Styles */
+        .formula-display { font-size: 1.0em; background-color: #e7f3ff; padding: 12px; border-radius: 6px; border: 1px solid #007BFF; color: #0056b3; text-align: center; margin: 1.2em 0; overflow-x: auto; }
+        .explanation-section h3, .explanation-section h4 { margin-bottom: 0.4em; }
+        .explanation-section p, .explanation-section ul { margin-bottom: 0.9em; }
+        .explanation-section ul { padding-left: 20px; list-style-position: outside; }
+
+        /* Justify Text for specific paragraphs */
+        .calculator-section > p, .warning-section > p, .explanation-section p, .dose-comparison-section > p, .caption-text {
+            text-align: justify; hyphens: auto; -webkit-hyphens: auto; -moz-hyphens: auto;
+        }
+         /* Override justify for specific elements */
+        .warning-section .emphasis-message, .warning-section .source-link,
+        .general-info p, .phantom-info p,
+        .risk-warning-display p:first-child /* Keep first line of warning left aligned */
+         { text-align: revert; hyphens: none;}
+
+        /* Footer Styles */
+        .main-footer { background-color: #007BFF; color: #ffffff; padding: 25px 20px; margin-top: 35px; text-align: center; font-size: 0.85em; border-radius: 8px; }
+        .main-footer p { margin: 6px 0; line-height: 1.6; opacity: 0.95; text-align: center; font-size: 0.95em;}
+        .main-footer strong { color: #ffffff; }
+        .main-footer em { font-style: italic; opacity: 0.85; display: block; margin-top: 12px; font-size: 0.9em;}
+        .main-footer a { color: #cce5ff; }
+        .main-footer a:hover { color: #ffffff; text-decoration: underline; }
+
+        /* Responsive Styles */
+        @media (max-width: 992px) {
+             body { font-size: 15px; } /* Base for medium screens */
+             .page-container { max-width: 100%; gap: 15px; padding: 0 10px; }
+             .side-nav { flex-basis: 180px; font-size: 0.9em;}
+             .side-nav a { padding: 6px 10px; font-size: 0.9em; }
+             .main-header h1 { font-size: 1.5em;}
+             .main-header p { font-size: 0.95em;}
+             h2 { font-size: 1.4em;}
+             h3 { font-size: 1.15em;}
+        }
+        @media (max-width: 768px) {
+             body { font-size: 15px; } /* Keep 15px for small screens */
+             .page-container { display: block; padding: 0 5px; }
+             .side-nav { display: none; }
+             .main-content-area { margin-left: 0; }
+             .main-header, .main-footer { border-radius: 0; margin-bottom: 20px; margin-top: 0;}
+             .content-section { padding: 15px 20px; margin-bottom: 20px; }
+             .calculator-section .form-item { flex-basis: calc(50% - 10px); }
+
+             .report-table th, .report-table td { padding: 4px 6px; font-size: 0.85em; }
+             .report-table { min-width: 0; }
+             .dose-table th, .dose-table td { font-size: 0.85em; padding: 7px 8px;}
+             .k-factor-table td { font-size: 0.9em; }
+             #dose-report { display: none; }
+        }
+         @media (max-width: 480px) {
+             body { font-size: 14px; } /* Slightly smaller on extra small */
+              .page-container { padding: 0 3px; }
+              .main-header h1 { font-size: 1.3em;}
+              .main-header p { font-size: 0.85em;}
+              h2 { font-size: 1.2em;}
+              h3 { font-size: 1.05em;}
+              .content-section { padding: 12px 15px; }
+              .calculator-section .form-item { flex-basis: 100%; }
+              .formula-display { font-size: 0.9em; padding: 8px;}
+               .dose-table th, .dose-table td { font-size: 0.8em; padding: 5px 6px;}
                .k-factor-table td { font-size: 0.85em; }
-               .report-table th, .report-table td { font-size: 0.8em; }
+               .report-table th, .report-table td { font-size: 0.75em; }
          }
 
-    /* --- BEGIN: Print Styles --- */
-    /* Hide the print container by default on screen */
-    #print-output-container { display: none; }
 
-    @media print {
-        /* Hide everything that is a direct child of body EXCEPT the print container */
-        body > *:not(#print-output-container) {
-            display: none !important;
-            visibility: hidden !important;
+        /* Print Styles (Reverted) */
+        #print-output-container { display: none; }
+        @media print {
+             body > *:not(#print-output-container) { display: none !important; visibility: hidden !important; }
+             @page { size: A4; margin: 20mm 15mm 20mm 15mm; }
+             html, body { width: 100% !important; height: auto !important; background: #fff !important; margin: 0 !important; padding: 0 !important; color: #000 !important; font-size: 10.5pt !important; line-height: 1.4 !important; font-family: 'Times New Roman', Times, serif !important; }
+             #print-output-container { display: block !important; visibility: visible !important; width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; border: none !important; box-shadow: none !important; background: none !important; }
+             #print-title { text-align: center; font-size: 14pt; font-weight: bold; margin-bottom: 15mm; padding-bottom: 5mm; border-bottom: 1px solid #000; font-family: 'Arial', sans-serif; }
+             .print-section { border: 1px solid #333; padding: 3mm 5mm; margin-bottom: 8mm; page-break-inside: avoid; }
+             .print-section h4 { margin: 0 0 3mm 0; font-size: 11pt; font-weight: bold; border-bottom: 1px dotted #555; padding-bottom: 1.5mm; color: #000; font-family: 'Arial', sans-serif; }
+             .print-section p { margin: 0 0 1.5mm 0; font-size: 10.5pt; }
+             .print-label { display: inline-block; width: 100px; font-weight: normal; padding-right: 5px; box-sizing: border-box; }
+             #print-patient-info span:not(.print-label), #print-input-params span:not(.print-label) { font-weight: bold; }
+             #print-formula { margin: 5mm 0 !important; padding: 3mm 5mm !important; border: 1px dashed #555 !important; background-color: transparent !important; color: #000 !important; font-size: 10pt !important; text-align: center; font-style: italic; border-radius: 0 !important; box-shadow: none !important; page-break-inside: avoid; }
+             #print-result-dose { margin: 5mm 0 !important; padding: 4mm 5mm !important; border: 1px solid #000 !important; background-color: transparent !important; color: #000 !important; font-size: 11pt !important; border-radius: 0 !important; box-shadow: none !important; font-weight: bold; text-align: center; page-break-inside: avoid; }
+             #print-risk-warning { font-size: 10pt !important; border: 1px solid #333 !important; padding: 3mm 5mm !important; margin-bottom: 8mm !important; page-break-inside: avoid; background: none !important; color: #000 !important; }
+             #print-risk-warning p, #print-risk-warning li { margin-bottom: 1.5mm; text-align: left !important; color: #000 !important; }
+             #print-risk-warning p:first-child { font-weight: bold; font-size: 10.5pt; }
+             #print-risk-warning ul { padding-left: 5mm; margin-top: 1mm; list-style-type: disc; list-style-position: outside; }
+             #print-risk-warning strong { font-weight: bold; color: #000 !important; }
+             #print-date-footer { text-align: right; font-size: 9pt; margin-top: 15mm; border-top: none; padding-top: 0; font-style: normal; }
+             .no-print { display: none !important; }
+             a[href]:after { content: "" !important; }
+             .MathJax_Processing, .MathJax_Processed { display: none !important;}
         }
-        /* Reset body and show print container */
-        body {
-            background: #fff !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            color: #000 !important;
-            font-size: 10pt;
-            line-height: 1.4;
-            font-family: 'Times New Roman', Times, serif;
-        }
-        #print-output-container {
-            display: block !important;
-            visibility: visible !important;
-            width: auto !important;
-            max-width: 180mm !important;
-            margin: 20mm auto !important; /* Center content on page */
-            padding: 0 !important;
-            border: none !important;
-            box-shadow: none !important;
-        }
+        /* --- END: Print Styles --- */
 
-        /* Styling for elements within the print container */
-        #print-title { text-align: center; font-size: 14pt; font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid #000; padding-bottom: 10px; }
-        #print-patient-info, #print-input-params { margin-bottom: 15px; border: 1px solid #ccc; padding: 10px 15px; border-radius: 4px; }
-        #print-patient-info h4, #print-input-params h4 { margin-top: 0; margin-bottom: 10px; font-size: 11pt; border-bottom: 1px dotted #ccc; padding-bottom: 5px; font-weight: bold; }
-        #print-patient-info div, #print-input-params div { margin-bottom: 5px; font-size: 10pt; }
-        #print-patient-info span, #print-input-params span { display: inline-block; min-width: 110px; font-weight: bold; padding-right: 8px; }
-
-        /* Style for the formula section */
-        #print-formula {
-            margin: 20px 0 10px 0 !important;
-            padding: 8px 15px !important;
-            border: 1px dashed #007BFF !important; /* Blue dashed border */
-            background-color: transparent !important;
-            color: #0056b3 !important; /* Blue text */
-            font-size: 10pt !important;
-            text-align: center;
-            font-style: italic;
-            border-radius: 4px !important;
-            box-shadow: none !important;
-            width: auto !important;
-            display: block !important;
-            visibility: visible !important;
-            page-break-inside: avoid;
-        }
-
-        #print-result-dose, #print-risk-warning {
-            margin: 10px 0 20px 0 !important;
-            padding: 12px 15px !important;
-            border: 1px solid #007BFF !important; /* Blue border */
-            background-color: transparent !important; /* Remove background */
-            color: #0056b3 !important; /* Blue text */
-            font-size: 10pt !important;
-            border-radius: 4px !important;
-            box-shadow: none !important;
-            width: auto !important;
-            display: block !important;
-            visibility: visible !important;
-            page-break-inside: avoid;
-            overflow-wrap: break-word;
-            word-wrap: break-word;
-        }
-        #print-result-dose {
-            font-weight: bold;
-            text-align: center;
-            font-size: 11pt !important;
-            /* background-color: #f0f0f0 !important; */ /* Removed background */
-            margin-top: 10px !important;
-        }
-        #print-risk-warning {
-            text-align: left;
-            /* background-color: #fafafa !important; */ /* Removed background */
-        }
-        #print-risk-warning p, #print-risk-warning li { margin-bottom: 0.6em; }
-        #print-risk-warning p:first-child { font-weight: bold; font-size: 10.5pt; }
-        #print-risk-warning ul { padding-left: 18px; margin-top: 0.4em; list-style-type: disc; list-style-position: outside; }
-        #print-risk-warning strong { font-weight: bold; color: #0056b3 !important; /* Ensure bold text is also blue */ }
-        #print-date-footer { text-align: right; font-size: 9pt; margin-top: 25px; border-top: 1px solid #ccc; padding-top: 8px; font-style: italic; }
-
-        /* Hide elements marked specifically not for print */
-        .no-print { display: none !important; }
-        /* Prevent URLs from being printed after links */
-        a[href]:after { content: "" !important; }
-
-    }
-    /* --- END: Print Styles --- */
-
-  </style>
+    </style>
 
 </head>
 <body>
 
-  <div class="page-container">
+    <div class="page-container">
 
-      <nav class="side-nav no-print">
-          <h3>DANH MỤC</h3>
-          <ul>
-              <li><a href="#calculator">Máy tính Liều</a></li>
-              <li><a href="#dose-report">Minh họa Dose Report</a></li>
-              <li><a href="#jama-warning">Cảnh báo JAMA</a></li>
-              <li><a href="#dlp-explanation">Giải thích DLP</a></li>
-              <li><a href="#effective-dose-explanation">Giải thích Liều hiệu dụng</a></li>
-              <li><a href="#cancer-risk-explanation">Ước tính Nguy cơ</a></li>
-              <li><a href="#dose-comparison">So sánh Liều</a></li>
-          </ul>
-      </nav>
+        <nav class="side-nav no-print">
+            <h3>DANH MỤC</h3>
+            <ul>
+                <li><a href="#calculator" class="active">Máy tính Liều</a></li>
+                <li><a href="#dose-report">Minh họa Dose Report</a></li>
+                <li><a href="#jama-warning">Cảnh báo JAMA</a></li>
+                <li><a href="#dlp-explanation">Giải thích DLP</a></li>
+                <li><a href="#effective-dose-explanation">Giải thích Liều hiệu dụng</a></li>
+                <li><a href="#cancer-risk-explanation">Ước tính Nguy cơ</a></li>
+                <li><a href="#dose-comparison">So sánh Liều</a></li>
+            </ul>
+        </nav>
 
-      <div class="main-content-area">
+        <div class="main-content-area">
 
-          <header class="main-header no-print">
-            <h1>Thông tin và Công cụ tính toán Liều bức xạ <span lang="en">CT</span></h1>
-            <p>Hướng dẫn, công cụ tính liều hiệu dụng từ $DLP$, và thông tin tham khảo về liều bức xạ trong X-quang và <span lang="en">CT</span>.</p>
-          </header>
+            <header class="main-header no-print">
+                <h1>Thông tin và Công cụ tính toán Liều bức xạ <span lang="en">CT</span></h1>
+                <p>Hướng dẫn, công cụ tính liều hiệu dụng từ $DLP$, và thông tin tham khảo về liều bức xạ trong X-quang và <span lang="en">CT</span>.</p>
+            </header>
 
-          <main>
-            <section id="calculator" class="content-section calculator-section">
-              <h2 class="no-print">Công cụ tính Liều hiệu dụng từ $DLP$</h2>
-              <p class="no-print">Ước tính Liều hiệu dụng ($E$, <span lang="en">Effective Dose</span>) dựa trên chỉ số $DLP$ (<span lang="en">Dose-Length Product</span>) và vùng cơ thể quét <span lang="en">CT</span>.</p>
+            <main>
+                <section id="calculator" class="content-section calculator-section">
+                    <h2 class="no-print">Công cụ tính Liều hiệu dụng từ $DLP$</h2>
+                    <p class="no-print">Ước tính Liều hiệu dụng ($E$, <span lang="en">Effective Dose</span>) dựa trên chỉ số $DLP$ (<span lang="en">Dose-Length Product</span>) và vùng cơ thể quét <span lang="en">CT</span>. Kết quả bao gồm ước tính nguy cơ ung thư liên quan (dựa trên mô hình LNT) và tùy chọn in báo cáo tóm tắt.</p>
 
-              <div class="patient-info-group no-print">
-                  <h4>Thông tin bệnh nhân (không bắt buộc)</h4>
-                  <div class="form-group">
-                      <div class="form-item">
-                          <label for="patientName">Tên Bệnh nhân:</label>
-                          <input id="patientName" type="text" placeholder="Nguyễn Văn A">
-                      </div>
-                      <div class="form-item">
-                          <label for="patientAge">Tuổi:</label>
-                          <input id="patientAge" type="number" placeholder="30" min="0">
-                      </div>
-                      <div class="form-item">
-                          <label for="patientId">ID Bệnh nhân:</label>
-                          <input id="patientId" type="text" placeholder="1234567">
-                      </div>
-                  </div>
-              </div>
-
-              <div class="form-group no-print">
-                <div class="form-item">
-                  <label for="bodyRegion">Vùng cơ thể:</label>
-                  <select id="bodyRegion">
-                    <option value="">-- Chọn vùng --</option>
-                    <option value="0.0021">Đầu</option>
-                    <option value="0.0059">Cổ</option>
-                    <option value="0.014">Ngực</option>
-                    <option value="0.015">Bụng</option>
-                    <option value="0.019">Khung chậu</option>
-                  </select>
-                </div>
-                <div class="form-item">
-                  <label for="kValue">Hệ số $k$ ($mSv \cdot mGy^{-1} \cdot cm^{-1}$):</label>
-                  <input id="kValue" type="text" readonly placeholder="Tự động">
-                </div>
-                <div class="form-item">
-                  <label for="dlp">Nhập $DLP$ ($mGy \cdot cm$):</label>
-                  <input id="dlp" type="number" placeholder="Ví dụ: 80" min="0.1" step="any">
-                </div>
-              </div>
-              <div class="button-container no-print">
-                  <button id="calculateButton">Tính liều</button>
-              </div>
-
-              <div id="resultDose" class="result-display no-print"></div>
-              <div id="riskWarning" class="risk-warning-display no-print"></div>
-
-              <div class="print-button-container no-print">
-                  <button id="printButton"><span role="img" aria-label="Print icon">🖨️</span> In Báo cáo Liều</button>
-              </div>
-
-              <h3 class="no-print">Bảng hệ số $k$ (Tham khảo <span lang="en">ICRP 103</span>)</h3>
-              <table class="k-factor-table no-print">
-                <thead> <tr> <th>Bộ phận</th> <th>Hệ số $k$ ($mSv \cdot mGy^{-1} \cdot cm^{-1}$)</th> </tr> </thead>
-                <tbody>
-                    <tr><td>Đầu</td><td>0.0021</td></tr>
-                    <tr><td>Cổ</td><td>0.0059</td></tr>
-                    <tr><td>Ngực</td><td>0.014</td></tr>
-                    <tr><td>Bụng</td><td>0.015</td></tr>
-                    <tr><td>Khung chậu</td><td>0.019</td></tr>
-                </tbody>
-              </table>
-              <div class="source no-print">
-                <p><strong>Nguồn hệ số k:</strong> <a href="https://www.icrp.org/publication.asp?id=ICRP%20Publication%20103" target="_blank" rel="noopener noreferrer" lang="en">ICRP Publication 103, 2007</a></p>
-              </div>
-              <a href="https://vnrad.tech/lunglowdose/" class="home-button no-print">Trở về trang chủ</a>
-            </section>
-
-            <section id="dose-report" class="content-section illustration-section no-print">
-                <h2>Báo cáo Liều trên máy quét CT(<span lang="en">Dose Report</span>)/h2>
-                <div class="table-responsive-wrapper">
-                    <div class="dose-report-text-container">
-                      <div class="dose-report-header">
-                          <div class="report-title-meta">
-                              <h3>DOSE REPORT</h3>
-                              <div class="meta-data">
-                                  <span><strong>Tổng mAs:</strong> 2326</span>
-                                  <span><strong>Tổng DLP:</strong> 738 mGy·cm</span>
-                              </div>
-                              <div class="general-info">
-                                  <p>- Báo cáo liều được tạo sau khi kết thúc quá trình quét.</p>
-                                  <p>- Cung cấp thông tin về kV, mAs, $CTDI_{vol}$, $DLP$.</p>
-                              </div>
-                          </div>
-                          <div class="phantom-info">
-                              <h4>LIỀU HẤP THỤ</h4>
-                              <p>Ước tính Liều hiệu dụng ($E$) dựa trên:</p>
-                              <p>$E \approx \text{Tổng } DLP \times k$</p>
-                              <hr>
-                              <p><strong>Tham chiếu Phantom:</strong></p>
-                              <p>S: $\emptyset$ 16 cm (Đầu/Nhỏ)</p>
-                              <p>L: $\emptyset$ 32 cm (Thân/Lớn)</p>
-                          </div>
-                      </div>
-                      <table class="report-table">
-                          <thead> <tr> <th>Scan</th> <th>kV</th> <th>mAs / ref.</th> <th>$CTDI_{vol}$* (mGy)</th> <th>$DLP$ (mGy·cm)</th> <th>TI</th> <th>cSL (mm)</th> </tr> </thead>
-                          <tbody>
-                              <tr> <td>1. Topogram</td> <td>120</td> <td>35</td> <td>0.29 (S)</td> <td>6.7</td> <td>2.4</td> <td>0.6</td> </tr>
-                              <tr> <td>2. Head</td> <td>100</td> <td>405 / 542</td> <td>39.25 (S)</td> <td>731.2</td> <td>1.0</td> <td>0.6</td> </tr>
-                          </tbody>
-                      </table>
-                      <p class="report-note">*Giá trị $CTDI_{vol}$ được tham chiếu theo phantom S ( $\emptyset$ 16 cm).</p>
+                    <div class="patient-info-group no-print">
+                        <h4>Thông tin bệnh nhân (không bắt buộc - để in báo cáo)</h4>
+                        <div class="form-group">
+                            <div class="form-item">
+                                <label for="patientName">Tên Bệnh nhân:</label>
+                                <input id="patientName" type="text" placeholder="Nguyễn Văn A">
+                            </div>
+                            <div class="form-item">
+                                <label for="patientAge">Tuổi:</label>
+                                <input id="patientAge" type="number" placeholder="30" min="0">
+                            </div>
+                            <div class="form-item">
+                                <label for="patientId">ID Bệnh nhân:</label>
+                                <input id="patientId" type="text" placeholder="1234567">
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <p class="caption-text"> Minh họa cấu trúc một bảng <span lang="en">Dose Report</span> điển hình hiển thị sau khi kết thúc quét <span lang="en">CT</span>. Các thông số quan trọng cần lưu ý bao gồm $CTDI_{vol}$ (và loại phantom tham chiếu), $DLP$, <span lang="en">mAs</span>, $kVp$. Thông tin này là cơ sở để theo dõi liều và tính toán liều hiệu dụng ước tính cho bệnh nhân. </p>
-             </section>
 
-            <article id="jama-warning" class="content-section warning-section no-print">
-              <h2><span lang="en">CT</span> và Nguy cơ Ung thư: Thông tin từ nghiên cứu <span lang="en">JAMA</span></h2>
-              <p>Một nghiên cứu được công bố trên tạp chí <em lang="en">JAMA Internal Medicine</em> (Lưu ý: Thông tin ngày tháng 4/2025 cần kiểm chứng) đã đưa ra những ước tính về nguy cơ ung thư dài hạn liên quan đến việc sử dụng <span lang="en">CT</span> tại Hoa Kỳ:</p>
-              <ul> <li>Nghiên cứu ước tính khoảng <strong>103.000 ca ung thư trong tương lai</strong> có thể liên quan đến 93 triệu lượt chụp <span lang="en">CT</span> được thực hiện trong năm 2023 tại Hoa Kỳ (chiếm khoảng 5% tổng số ca ung thư mới hàng năm tại quốc gia này theo ước tính đó).</li> <li>Nguy cơ này được ghi nhận có thể tăng cao hơn ở các nhóm đối tượng sau: <ul> <li><strong>Trẻ em:</strong> Do các mô đang phát triển nhạy cảm hơn với bức xạ.</li> <li><strong>Bệnh nhân chụp <span lang="en">CT</span> lặp lại nhiều lần:</strong> Do sự tích lũy liều bức xạ theo thời gian.</li> <li><strong>Các khảo sát <span lang="en">CT</span> có liều chiếu cao:</strong> Ví dụ như <span lang="en">CT</span> bụng-chậu, ngực, cột sống, đặc biệt khi thực hiện nhiều pha quét (đa pha).</li> </ul> </li> </ul> <hr> <h3>Khuyến nghị Quan trọng cho Kỹ thuật viên Hình ảnh Y học</h3> <ul> <li><strong>Chỉ định hợp lý:</strong> <span lang="en">CT</span> chỉ nên được thực hiện khi có chỉ định lâm sàng rõ ràng và lợi ích chẩn đoán vượt trội nguy cơ tiềm ẩn. <span lang="en">CT</span> không phải là công cụ tầm soát ung thư đại trà cho mọi đối tượng.</li> <li><strong>Nguyên tắc ALARA:</strong> Luôn tuân thủ nghiêm ngặt nguyên tắc ALARA (<span lang="en">As Low As Reasonably Achievable</span>) – giữ liều bức xạ ở mức thấp nhất có thể mà vẫn đảm bảo chất lượng hình ảnh đủ cho chẩn đoán.</li> <li><strong>Tối ưu hóa <span lang="en">Protocol</span>:</strong> Chủ động tối ưu hóa các thông số kỹ thuật như $kVp$, <span lang="en">mAs</span> (hoặc sử dụng điều biến liều tự động - <span lang="en">AEC/mAs modulation</span>), <span lang="en">pitch</span>, và giới hạn chiều dài vùng quét (<span lang="en">scan length</span>) phù hợp với yêu cầu lâm sàng và đặc điểm bệnh nhân.</li> <li><strong>Hạn chế chụp đa pha:</strong> Chỉ thực hiện các pha quét bổ sung (ví dụ: pha động mạch, tĩnh mạch, muộn) khi thực sự cần thiết và mang lại thông tin chẩn đoán giá trị thêm.</li> <li><strong>Cân nhắc đối tượng nhạy cảm:</strong> Đặc biệt thận trọng và cân nhắc kỹ lưỡng lợi ích/nguy cơ khi chỉ định <span lang="en">CT</span> cho trẻ em, phụ nữ trong độ tuổi sinh sản, và người trẻ tuổi.</li> </ul> <hr> <p class="emphasis-message">Việc áp dụng kỹ thuật chụp <span lang="en">CT</span> tối ưu và đúng chỉ định là trách nhiệm nghề nghiệp, không chỉ đảm bảo chất lượng hình ảnh mà còn góp phần quan trọng vào việc bảo vệ bệnh nhân khỏi rủi ro bức xạ không cần thiết.</p> <p class="source-link"><a href="https://jamanetwork.com/journals/jamainternalmedicine/fullarticle/10.1001/jamainternmed.2025.0505" target="_blank" rel="noopener noreferrer">Tham khảo nghiên cứu gốc tại <span lang="en">JAMA</span></a> (Lưu ý: Link và thông tin bài báo có thể cần cập nhật)</p>
-            </article>
+                    <div class="form-group no-print">
+                        <div class="form-item">
+                            <label for="bodyRegion">Vùng cơ thể:</label>
+                            <select id="bodyRegion">
+                                <option value="">-- Chọn vùng --</option>
+                                <option value="0.0021">Đầu</option>
+                                <option value="0.0059">Cổ</option>
+                                <option value="0.014">Ngực</option>
+                                <option value="0.015">Bụng</option>
+                                <option value="0.019">Khung chậu</option>
+                            </select>
+                        </div>
+                        <div class="form-item">
+                            <label for="kValue">Hệ số $k$ ($mSv \cdot mGy^{-1} \cdot cm^{-1}$):</label>
+                            <input id="kValue" type="text" readonly placeholder="Tự động">
+                        </div>
+                        <div class="form-item">
+                            <label for="dlp">Nhập $DLP$ ($mGy \cdot cm$):</label>
+                            <input id="dlp" type="number" placeholder="Ví dụ: 80" min="0.1" step="any">
+                        </div>
+                    </div>
+                    <div class="button-container no-print">
+                        <button id="calculateButton">Tính liều & Nguy cơ</button>
+                    </div>
 
-            <article id="dlp-explanation" class="content-section explanation-section no-print">
-              <h2>Giải thích về $DLP$ (<span lang="en">Dose-Length Product</span>)</h2>
-               <p>$DLP$ là một chỉ số quan trọng trong chẩn đoán <span lang="en">CT</span>, đại diện cho tổng lượng phơi nhiễm bức xạ dọc theo chiều dài của vùng được quét. Nó được tính bằng tích của chỉ số liều <span lang="en">CT</span> thể tích ($CTDI_{vol}$) và chiều dài vùng quét (<span lang="en">Scan Length</span>). Đơn vị của $DLP$ thường là $mGy \cdot cm$.</p> <h3>Công thức tính $DLP$:</h3> <div class="formula-display">$$DLP \; (mGy \cdot cm) = CTDI_{vol} \; (mGy) \times \text{Chiều dài quét} \; (cm)$$</div> <p>Trong đó:</p> <ul> <li>$CTDI_{vol}$ (<span lang="en">Computed Tomography Dose Index Volume</span>): Ước tính liều hấp thụ trung bình trong thể tích được chiếu xạ của một lát cắt đại diện, đã hiệu chỉnh cho <span lang="en">pitch</span>. Đơn vị là <span lang="en">miliGray</span> ($mGy$).</li> <li>Chiều dài quét (<span lang="en">Scan Length</span>): Là tổng chiều dài của vùng cơ thể được bao phủ bởi chùm tia <span lang="en">X</span> trong quá trình quét, đơn vị <span lang="en">centimet</span> ($cm$).</li> </ul> <h3>Ý nghĩa và Ứng dụng:</h3> <p>$DLP$ phản ánh tổng năng lượng bức xạ được truyền cho bệnh nhân trong toàn bộ cuộc quét. Nó là một chỉ số hữu ích để:</p> <ul> <li>So sánh mức liều giữa các cuộc quét khác nhau trên cùng một bệnh nhân hoặc giữa các bệnh nhân.</li> <li>Theo dõi và quản lý liều bức xạ tại cơ sở y tế.</li> <li>Là đầu vào quan trọng để ước tính Liều hiệu dụng ($E$), giúp đánh giá nguy cơ sinh học tổng thể.</li> </ul> <h4>Ví dụ tính $DLP$:</h4> <p>Nếu một cuộc quét <span lang="en">CT</span> bụng có $CTDI_{vol} = 10 \, mGy$ và chiều dài quét là $35 \, cm$, thì:</p> <div class="formula-display">$$DLP = 10 \, mGy \times 35 \, cm = 350 \, mGy \cdot cm$$</div>
-            </article>
+                    <div id="resultDose" class="result-display no-print"></div>
+                    <div id="riskWarning" class="risk-warning-display no-print"></div>
 
-            <article id="effective-dose-explanation" class="content-section explanation-section no-print">
-                <h2>Giải thích về Liều hiệu dụng ($E$)</h2>
-                <p>Liều hiệu dụng (<span lang="en">Effective Dose</span>, ký hiệu $E$) là một đại lượng được định nghĩa bởi Ủy ban Quốc tế về An toàn Bức xạ (<span lang="en">ICRP</span>) để ước tính nguy cơ ngẫu nhiên dài hạn (chủ yếu là nguy cơ gây ung thư và di truyền) đối với sức khỏe con người từ việc phơi nhiễm bức xạ ion hóa. Nó tính đến:</p> <ul> <li>Lượng liều hấp thụ bởi các cơ quan và mô khác nhau.</li> <li>Loại bức xạ ion hóa (thông qua hệ số trọng số bức xạ, $W_R$, đối với tia X trong CT thì $W_R=1$).</li> <li>Độ nhạy cảm khác nhau của các cơ quan và mô đối với tác động có hại của bức xạ (thông qua hệ số trọng số mô, $W_T$).</li> </ul> <p>Đơn vị của Liều hiệu dụng là <span lang="en">Sievert</span> ($Sv$), nhưng trong chẩn đoán y tế thường dùng <span lang="en">miliSievert</span> ($mSv$), với $1 \, Sv = 1000 \, mSv$.</p> <h3>Công thức tổng quát (theo <span lang="en">ICRP</span>):</h3> <div class="formula-display">$$E = \sum_T W_T \times H_T = \sum_T W_T \times \sum_R (W_R \times D_{T,R})$$</div> <p>Trong đó:</p> <ul> <li>$H_T$: Liều tương đương ở mô hoặc cơ quan $T$.</li> <li>$W_T$: Hệ số trọng số mô cho mô $T$.</li> <li>$D_{T,R}$: Liều hấp thụ trung bình từ bức xạ $R$ trong mô $T$.</li> <li>$W_R$: Hệ số trọng số bức xạ cho loại bức xạ $R$.</li> </ul> <h3>Ước tính Liều hiệu dụng từ $DLP$ trong <span lang="en">CT</span>:</h3> <p>Trong thực hành lâm sàng, việc tính $E$ theo công thức đầy đủ là phức tạp. Do đó, người ta thường sử dụng phương pháp ước tính dựa trên $DLP$ và một hệ số chuyển đổi $k$ (<span lang="en">k-factor</span>) đặc trưng cho vùng cơ thể được quét. Hệ số $k$ này được tính toán dựa trên các mô hình <span lang="en">phantom</span> và phân bố liều điển hình.</p> <div class="formula-display">$$E \; (mSv) \approx DLP \; (mGy \cdot cm) \times k \; (mSv \cdot mGy^{-1} \cdot cm^{-1})$$</div> <p>Hệ số $k$ có giá trị khác nhau cho các vùng cơ thể (ví dụ: đầu, ngực, bụng, chậu) và có thể khác nhau một chút giữa các tài liệu tham khảo hoặc chuẩn quốc gia.</p> <h3>Ý nghĩa trong thực hành lâm sàng:</h3> <p>Liều hiệu dụng $E$ cho phép:</p> <ul> <li>Đánh giá và so sánh nguy cơ bức xạ tiềm ẩn từ các loại xét nghiệm hình ảnh khác nhau (ví dụ: so sánh <span lang="en">CT</span> ngực với X-quang ngực).</li> <li>Hỗ trợ việc cân bằng giữa lợi ích chẩn đoán và nguy cơ bức xạ khi lựa chọn hoặc tối ưu hóa quy trình chụp.</li> <li>Theo dõi liều tích lũy cho bệnh nhân, đặc biệt là những người cần chụp chiếu nhiều lần.</li> <li>Thiết lập và kiểm tra các mức tham chiếu chẩn đoán quốc gia hoặc địa phương (<span lang="en">Diagnostic Reference Levels - DRLs</span>).</li> </ul> <h4>Ví dụ tính $E$:</h4> <p>Sử dụng ví dụ $DLP = 350 \, mGy \cdot cm$ cho <span lang="en">CT</span> bụng. Giả sử hệ số $k$ cho vùng bụng là $0.015 \, mSv \cdot mGy^{-1} \cdot cm^{-1}$:</p> <div class="formula-display">$$E \approx 350 \, mGy \cdot cm \times 0.015 \, mSv \cdot mGy^{-1} \cdot cm^{-1} = 5.25 \, mSv$$</div>
-            </article>
+                    <div class="print-button-container no-print">
+                        <button id="printButton"><span role="img" aria-label="Print icon">🖨️</span> In Báo cáo Liều</button>
+                    </div>
 
-            <article id="cancer-risk-explanation" class="content-section explanation-section no-print">
-                <h2>Ước tính Nguy cơ Ung thư từ Liều hiệu dụng</h2>
-                <p>Liều hiệu dụng ($E$) cung cấp một phương tiện để ước tính nguy cơ ung thư gây ra bởi bức xạ (<span lang="en">Radiation-Induced Cancer Risk</span>) ở mức độ quần thể, dựa trên mô hình đáp ứng liều. Mô hình phổ biến nhất được chấp nhận cho mục đích bảo vệ bức xạ là mô hình Tuyến tính không ngưỡng (<span lang="en">Linear No-Threshold - LNT</span>). Mô hình này giả định rằng:</p> <ul> <li>Nguy cơ ung thư tăng tuyến tính với liều bức xạ.</li> <li>Không có ngưỡng liều nào được coi là hoàn toàn an toàn (bất kỳ liều nào, dù nhỏ, cũng có thể làm tăng nguy cơ).</li> </ul> <p>Dựa trên các báo cáo khoa học uy tín như BEIR VII (<span lang="en">Biological Effects of Ionizing Radiation VII</span>) và các ấn phẩm của <span lang="en">ICRP</span>, nguy cơ tử vong do ung thư trong suốt cuộc đời được ước tính tăng thêm khoảng <strong>5.5% cho mỗi <span lang="en">Sievert</span></strong> (tức là $0.0055$ cho mỗi $Sv$, hay <strong>$5.5 \times 10^{-5}$ cho mỗi $mSv$</strong>) đối với một quần thể hỗn hợp về độ tuổi và giới tính.</p> <p><strong>Những điểm cần lưu ý khi diễn giải nguy cơ này:</strong></p> <ul> <li><strong>Tính không chắc chắn:</strong> Các ước tính này có độ không chắc chắn đáng kể, đặc biệt là ở mức liều thấp thường gặp trong chẩn đoán y tế. Chúng được ngoại suy từ dữ liệu liều cao (như những người sống sót sau bom nguyên tử).</li> <li><strong>Nguy cơ cá nhân vs. Quần thể:</strong> Các hệ số nguy cơ này áp dụng tốt nhất cho đánh giá rủi ro ở cấp độ quần thể. Nguy cơ thực tế cho một cá nhân cụ thể bị ảnh hưởng bởi nhiều yếu tố như tuổi tại thời điểm phơi nhiễm (trẻ em và người trẻ nhạy cảm hơn), giới tính (phụ nữ thường có nguy cơ cao hơn một chút đối với một số loại ung thư), tiền sử gia đình, lối sống (hút thuốc), và cơ quan nào nhận liều cao nhất.</li> <li><strong>Mục đích chính:</strong> Việc ước tính nguy cơ này chủ yếu phục vụ cho việc thiết lập các tiêu chuẩn an toàn bức xạ, tối ưu hóa quy trình (nguyên tắc ALARA), và truyền thông nguy cơ một cách cân bằng, chứ không phải để dự đoán chính xác liệu một cá nhân có bị ung thư do một cuộc chụp <span lang="en">CT</span> hay không.</li> </ul> <h3>Ví dụ ước tính nguy cơ:</h3> <p>Sử dụng liều hiệu dụng từ ví dụ <span lang="en">CT</span> bụng $E = 5.25 \, mSv$:</p> <div class="formula-display">$$\text{Ước tính nguy cơ tử vong do ung thư tăng thêm} \approx 5.25 \, mSv \times (5.5 \times 10^{-5} / mSv) \approx 2.89 \times 10^{-4}$$</div> <p>Con số này tương đương với khoảng <strong>1 trường hợp tử vong do ung thư tăng thêm trên khoảng 3460 người</strong> nhận cùng mức liều này. Đây là một mức tăng nguy cơ rất nhỏ so với nguy cơ ung thư nền tự nhiên trong suốt cuộc đời (khoảng 20-25% dân số tử vong do ung thư từ mọi nguyên nhân cộng lại).</p> <p><strong>Kết luận:</strong> Mặc dù nguy cơ từ một lần chụp <span lang="en">CT</span> đơn lẻ là thấp, việc hiểu và định lượng nguy cơ này giúp nhấn mạnh tầm quan trọng của việc chỉ định hợp lý và tối ưu hóa liều trong thực hành lâm sàng hàng ngày để giảm thiểu phơi nhiễm bức xạ không cần thiết cho bệnh nhân.</p>
-            </article>
+                    <h3 class="no-print" style="margin-top: 30px; border: none; display: block; text-align: center;">Bảng hệ số $k$ (Tham khảo <span lang="en">ICRP 103</span>)</h3>
+                    <table class="k-factor-table no-print" style="max-width: 400px; margin: 10px auto 20px auto;">
+                         <thead> <tr> <th>Bộ phận</th> <th>Hệ số $k$ ($mSv \cdot mGy^{-1} \cdot cm^{-1}$)</th> </tr> </thead>
+                         <tbody>
+                             <tr><td>Đầu</td><td>0.0021</td></tr>
+                             <tr><td>Cổ</td><td>0.0059</td></tr>
+                             <tr><td>Ngực</td><td>0.014</td></tr>
+                             <tr><td>Bụng</td><td>0.015</td></tr>
+                             <tr><td>Khung chậu</td><td>0.019</td></tr>
+                         </tbody>
+                    </table>
+                    <div class="source no-print">
+                        <p><strong>Nguồn hệ số k:</strong> <a href="https://www.icrp.org/publication.asp?id=ICRP%20Publication%20103" target="_blank" rel="noopener noreferrer" lang="en">ICRP Publication 103, 2007</a></p>
+                    </div>
+                    <a href="https://vnrad.tech/lunglowdose/" class="home-button no-print">Trở về trang Tầm soát UTP</a>
+                </section>
 
-            <section id="dose-comparison" class="content-section dose-comparison-section no-print">
-              <h2>Liều hiệu dụng trung bình từ các kỹ thuật X-quang và <span lang="en">CT</span></h2>
-              <p>Bảng dưới đây cung cấp các giá trị liều hiệu dụng ($E$) trung bình tham khảo cho một số kỹ thuật chẩn đoán hình ảnh sử dụng bức xạ ion hóa phổ biến. Nó cũng so sánh mức liều này với thời gian tương đương nhận liều từ bức xạ nền tự nhiên (giả định mức nền trung bình khoảng 3 mSv/năm).</p>
-              <table class="dose-table"> <thead> <tr> <th>Kỹ thuật (<span lang="en">Technique</span>)</th> <th>Liều hiệu dụng ($E$) ($mSv$)</th> <th>Tương đương bức xạ nền</th> </tr> </thead> <tbody> <tr><td>X-quang Ngực (PA)</td><td>0.02 - 0.1</td><td>~ Vài ngày - 10 ngày</td></tr> <tr><td>X-quang Bụng (KUB)</td><td>0.7</td><td>~ 3 tháng</td></tr> <tr><td>X-quang Cột sống thắt lưng</td><td>1.4</td><td>~ 6 tháng</td></tr> <tr><td>X-quang Chi (tay, chân)</td><td>&lt; 0.01</td><td>&lt; 1 ngày</td></tr> <tr><td>X-quang Răng (Trong miệng)</td><td>0.005</td><td>~ 1 ngày</td></tr> <tr><td>X-quang Toàn cảnh Răng (Panoramic)</td><td>0.025</td><td>~ 3 ngày</td></tr> <tr><td>Chụp X-quang Vú KTS (Mammography)</td><td>0.21</td><td>~ 26 ngày</td></tr> <tr><td>Chụp X-quang Vú Tomosynthesis (3D)</td><td>0.27</td><td>~ 33 ngày</td></tr> <tr><td>Chụp <span lang="en">CT</span> Đầu (Không cản quang)</td><td>1.6 - 2.0</td><td>~ 7-8 tháng</td></tr> <tr><td>Chụp <span lang="en">CT</span> Đầu (Có và không cản quang)</td><td>3.2 - 4.0</td><td>~ 13-16 tháng</td></tr> <tr><td>Chụp <span lang="en">CT</span> Ngực (Liều chuẩn)</td><td>6.1 - 8.0</td><td>~ 2 - 2.7 năm</td></tr> <tr><td>Chụp <span lang="en">CT</span> Ngực (Tầm soát ung thư phổi liều thấp - LDCT)</td><td>1.0 - 1.5</td><td>~ 4-6 tháng</td></tr> <tr><td>Chụp <span lang="en">CT</span> Bụng</td><td>5.0 - 7.0</td><td>~ 1.7 - 2.3 năm</td></tr> <tr><td>Chụp <span lang="en">CT</span> Bụng và Chậu</td><td>7.7 - 10.0</td><td>~ 2.6 - 3.3 năm</td></tr> <tr><td>Chụp <span lang="en">CT</span> Bụng và Chậu (đa pha)</td><td>15 - 20+</td><td>~ 5 - 7+ năm</td></tr> <tr><td>Chụp <span lang="en">CT</span> Cột sống</td><td>8.0 - 10.0</td><td>~ 2.7 - 3.3 năm</td></tr> <tr><td>Chụp <span lang="en">CT</span> Mạch vành (<span lang="en">Coronary CTA</span>)</td><td>5.0 - 15.0 (thay đổi nhiều)</td><td>~ 1.7 - 5 năm</td></tr> <tr><td>Chụp <span lang="en">CT</span> Đánh giá vôi hóa mạch vành (<span lang="en">Calcium Scoring</span>)</td><td>1.0 - 3.0</td><td>~ 4 tháng - 1 năm</td></tr> <tr><td>Chụp <span lang="en">PET/CT</span> (Toàn thân, dùng $^{18}$F-FDG)</td><td>15.0 - 25.0</td><td>~ 5 - 8.3 năm</td></tr> <tr><td>Đo mật độ xương (<span lang="en">DEXA</span>)</td><td>~ 0.001</td><td>~ Vài giờ</td></tr> </tbody> </table> <div class="source"> <p><strong>Nguồn tham khảo:</strong> Dữ liệu tổng hợp từ <span lang="en">ACR</span>, <span lang="en">RadiologyInfo.org</span>, <span lang="en">ICRP</span>, và các nghiên cứu. <strong>Lưu ý:</strong> Các giá trị này là trung bình và liều thực tế cho mỗi bệnh nhân có thể thay đổi đáng kể tùy thuộc vào thiết bị, kỹ thuật chụp, kích thước bệnh nhân và cơ sở y tế.</p> </div>
-            </section>
+                <section id="dose-report" class="content-section illustration-section no-print">
+                    <h2>Minh họa Báo cáo Liều (<span lang="en">Dose Report</span>) - Dạng Văn bản</h2>
+                    <div class="table-responsive-wrapper">
+                        <div class="dose-report-text-container">
+                            <div class="dose-report-header">
+                                <div class="report-title-meta">
+                                    <h3>DOSE REPORT</h3>
+                                    <div class="meta-data">
+                                        <span><strong>Tổng mAs:</strong> 2326</span>
+                                        <span><strong>Tổng DLP:</strong> 738 mGy·cm</span>
+                                    </div>
+                                    <div class="general-info">
+                                        <p>- Báo cáo liều được tạo sau khi kết thúc quá trình quét.</p>
+                                        <p>- Cung cấp thông tin về kV, mAs, $CTDI_{vol}$, $DLP$.</p>
+                                    </div>
+                                </div>
+                                <div class="phantom-info">
+                                    <h4>LIỀU HẤP THỤ</h4>
+                                    <p>Ước tính Liều hiệu dụng ($E$) dựa trên:</p>
+                                    <p>$E \approx \text{Tổng } DLP \times k$</p>
+                                    <hr>
+                                    <p><strong>Tham chiếu Phantom:</strong></p>
+                                    <p>S: $\emptyset$ 16 cm (Đầu/Nhỏ)</p>
+                                    <p>L: $\emptyset$ 32 cm (Thân/Lớn)</p>
+                                </div>
+                            </div>
+                            <table class="report-table">
+                                <thead> <tr> <th>Scan</th> <th>kV</th> <th>mAs / ref.</th> <th>$CTDI_{vol}$* (mGy)</th> <th>$DLP$ (mGy·cm)</th> <th>TI</th> <th>cSL (mm)</th> </tr> </thead>
+                                <tbody>
+                                    <tr> <td>1. Topogram</td> <td>120</td> <td>35</td> <td>0.29 (S)</td> <td>6.7</td> <td>2.4</td> <td>0.6</td> </tr>
+                                    <tr> <td>2. Head</td> <td>100</td> <td>405 / 542</td> <td>39.25 (S)</td> <td>731.2</td> <td>1.0</td> <td>0.6</td> </tr>
+                                </tbody>
+                            </table>
+                            <p class="report-note">*Giá trị $CTDI_{vol}$ được tham chiếu theo phantom S ( $\emptyset$ 16 cm).</p>
+                        </div>
+                    </div>
+                    <p class="caption-text"> Minh họa cấu trúc một bảng <span lang="en">Dose Report</span> điển hình hiển thị sau khi kết thúc quét <span lang="en">CT</span>. Các thông số quan trọng cần lưu ý bao gồm $CTDI_{vol}$ (và loại phantom tham chiếu), $DLP$, <span lang="en">mAs</span>, $kVp$. Thông tin này là cơ sở để theo dõi liều và tính toán liều hiệu dụng ước tính cho bệnh nhân. </p>
+                </section>
 
-          </main>
+                <article id="jama-warning" class="content-section warning-section no-print">
+                    <h2><span lang="en">CT</span> và Nguy cơ Ung thư: Thông tin từ nghiên cứu <span lang="en">JAMA</span></h2>
+                    <p>Một nghiên cứu được công bố trên tạp chí <em lang="en">JAMA Internal Medicine</em> (Lưu ý: Thông tin ngày tháng 4/2025 cần kiểm chứng) đã đưa ra những ước tính về nguy cơ ung thư dài hạn liên quan đến việc sử dụng <span lang="en">CT</span> tại Hoa Kỳ:</p> <ul> <li>Nghiên cứu ước tính khoảng <strong>103.000 ca ung thư trong tương lai</strong> có thể liên quan đến 93 triệu lượt chụp <span lang="en">CT</span> được thực hiện trong năm 2023 tại Hoa Kỳ (chiếm khoảng 5% tổng số ca ung thư mới hàng năm tại quốc gia này theo ước tính đó).</li> <li>Nguy cơ này được ghi nhận có thể tăng cao hơn ở các nhóm đối tượng sau: <ul> <li><strong>Trẻ em:</strong> Do các mô đang phát triển nhạy cảm hơn với bức xạ.</li> <li><strong>Bệnh nhân chụp <span lang="en">CT</span> lặp lại nhiều lần:</strong> Do sự tích lũy liều bức xạ theo thời gian.</li> <li><strong>Các khảo sát <span lang="en">CT</span> có liều chiếu cao:</strong> Ví dụ như <span lang="en">CT</span> bụng-chậu, ngực, cột sống, đặc biệt khi thực hiện nhiều pha quét (đa pha).</li> </ul> </li> </ul> <hr> <h3>Khuyến nghị Quan trọng cho Kỹ thuật viên Hình ảnh Y học</h3> <ul> <li><strong>Chỉ định hợp lý:</strong> <span lang="en">CT</span> chỉ nên được thực hiện khi có chỉ định lâm sàng rõ ràng và lợi ích chẩn đoán vượt trội nguy cơ tiềm ẩn. <span lang="en">CT</span> không phải là công cụ tầm soát ung thư đại trà cho mọi đối tượng.</li> <li><strong>Nguyên tắc ALARA:</strong> Luôn tuân thủ nghiêm ngặt nguyên tắc ALARA (<span lang="en">As Low As Reasonably Achievable</span>) – giữ liều bức xạ ở mức thấp nhất có thể mà vẫn đảm bảo chất lượng hình ảnh đủ cho chẩn đoán.</li> <li><strong>Tối ưu hóa <span lang="en">Protocol</span>:</strong> Chủ động tối ưu hóa các thông số kỹ thuật như $kVp$, <span lang="en">mAs</span> (hoặc sử dụng điều biến liều tự động - <span lang="en">AEC/mAs modulation</span>), <span lang="en">pitch</span>, và giới hạn chiều dài vùng quét (<span lang="en">scan length</span>) phù hợp với yêu cầu lâm sàng và đặc điểm bệnh nhân.</li> <li><strong>Hạn chế chụp đa pha:</strong> Chỉ thực hiện các pha quét bổ sung (ví dụ: pha động mạch, tĩnh mạch, muộn) khi thực sự cần thiết và mang lại thông tin chẩn đoán giá trị thêm.</li> <li><strong>Cân nhắc đối tượng nhạy cảm:</strong> Đặc biệt thận trọng và cân nhắc kỹ lưỡng lợi ích/nguy cơ khi chỉ định <span lang="en">CT</span> cho trẻ em, phụ nữ trong độ tuổi sinh sản, và người trẻ tuổi.</li> </ul> <hr> <p class="emphasis-message">Việc áp dụng kỹ thuật chụp <span lang="en">CT</span> tối ưu và đúng chỉ định là trách nhiệm nghề nghiệp, không chỉ đảm bảo chất lượng hình ảnh mà còn góp phần quan trọng vào việc bảo vệ bệnh nhân khỏi rủi ro bức xạ không cần thiết.</p> <p class="source-link"><a href="https://jamanetwork.com/journals/jamainternalmedicine/fullarticle/10.1001/jamainternmed.2025.0505" target="_blank" rel="noopener noreferrer">Tham khảo nghiên cứu gốc tại <span lang="en">JAMA</span></a> (Lưu ý: Link và thông tin bài báo có thể cần cập nhật)</p>
+                </article>
 
-          <footer class="main-footer no-print">
-           <div>
-             <p>© <span id="copyright-year">2025</span> <strong>Cộng đồng Kỹ thuật viên hình ảnh y học Việt Nam</strong> – Vì mục đích an toàn bức xạ trong y tế</span></p>
-             <p>Biên soạn bởi nhóm <strong>KTV 3 Miền</strong> | Mục đích: Đào tạo & Tham khảo y khoa</p>
-           <p><em>Tuyên bố miễn trừ trách nhiệm: Thông tin trên trang web này chỉ mang tính tham khảo, không thay thế cho chẩn đoán, chỉ định hoặc tư vấn y tế chuyên nghiệp từ bác sĩ hoặc chuyên gia y tế có trình độ.</em></p>
-            <p>Chịu trách nhiệm nội dung và thiết kế:<strong>Lê Thanh Trọng - 0944406507</strong>
-           </div>
-          </footer>
+                <article id="dlp-explanation" class="content-section explanation-section no-print">
+                    <h2>Giải thích về $DLP$ (<span lang="en">Dose-Length Product</span>)</h2>
+                     <p>$DLP$ là một chỉ số quan trọng trong chẩn đoán <span lang="en">CT</span>, đại diện cho tổng lượng phơi nhiễm bức xạ dọc theo chiều dài của vùng được quét. Nó được tính bằng tích của chỉ số liều <span lang="en">CT</span> thể tích ($CTDI_{vol}$) và chiều dài vùng quét (<span lang="en">Scan Length</span>). Đơn vị của $DLP$ thường là $mGy \cdot cm$.</p> <h3>Công thức tính $DLP$:</h3> <div class="formula-display">$$DLP \; (mGy \cdot cm) = CTDI_{vol} \; (mGy) \times \text{Chiều dài quét} \; (cm)$$</div> <p>Trong đó:</p> <ul> <li>$CTDI_{vol}$ (<span lang="en">Computed Tomography Dose Index Volume</span>): Ước tính liều hấp thụ trung bình trong thể tích được chiếu xạ của một lát cắt đại diện, đã hiệu chỉnh cho <span lang="en">pitch</span>. Đơn vị là <span lang="en">miliGray</span> ($mGy$).</li> <li>Chiều dài quét (<span lang="en">Scan Length</span>): Là tổng chiều dài của vùng cơ thể được bao phủ bởi chùm tia <span lang="en">X</span> trong quá trình quét, đơn vị <span lang="en">centimet</span> ($cm$).</li> </ul> <h3>Ý nghĩa và Ứng dụng:</h3> <p>$DLP$ phản ánh tổng năng lượng bức xạ được truyền cho bệnh nhân trong toàn bộ cuộc quét. Nó là một chỉ số hữu ích để:</p> <ul> <li>So sánh mức liều giữa các cuộc quét khác nhau trên cùng một bệnh nhân hoặc giữa các bệnh nhân.</li> <li>Theo dõi và quản lý liều bức xạ tại cơ sở y tế.</li> <li>Là đầu vào quan trọng để ước tính Liều hiệu dụng ($E$), giúp đánh giá nguy cơ sinh học tổng thể.</li> </ul> <h4>Ví dụ tính $DLP$:</h4> <p>Nếu một cuộc quét <span lang="en">CT</span> bụng có $CTDI_{vol} = 10 \, mGy$ và chiều dài quét là $35 \, cm$, thì:</p> <div class="formula-display">$$DLP = 10 \, mGy \times 35 \, cm = 350 \, mGy \cdot cm$$</div>
+                </article>
 
-      </div> </div> <div id="print-output-container">
-      <div id="print-title">BÁO CÁO LIỀU HIỆU DỤNG CT ƯỚC TÍNH</div>
-      <div id="print-patient-info">
-          <h4>Thông tin Bệnh nhân</h4>
-          <div id="print-patient-name"><span>Tên:</span> ---</div>
-          <div id="print-patient-age"><span>Tuổi:</span> ---</div>
-          <div id="print-patient-id"><span>ID:</span> ---</div>
-      </div>
-      <div id="print-input-params">
-          <h4>Thông số Quét</h4>
-          <div id="print-body-region"><span>Vùng cơ thể:</span> ---</div>
-          <div id="print-dlp-value"><span>Giá trị DLP:</span> --- mGy·cm</div>
-      </div>
-      <div id="print-formula">
-          Công thức: E (mSv) = DLP (mGy·cm) × k (mSv·mGy⁻¹·cm⁻¹)
-      </div>
-      <div id="print-result-dose">
-          Liều hiệu dụng ước tính (E): --- mSv
-      </div>
-      <div id="print-risk-warning">
-          </div>
-      <div id="print-date-footer">
-          Ngày tạo báo cáo: <span id="print-date"></span>
-      </div>
-  </div>
-  <script>
-    // --- BEGIN: Smooth Scrolling Script ---
-    document.querySelectorAll('.side-nav a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const targetId = this.getAttribute('href');
-            try {
-                const targetElement = document.querySelector(targetId);
-                if (targetElement) {
-                    document.querySelectorAll('.side-nav a').forEach(link => link.classList.remove('active'));
-                    this.classList.add('active');
-                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else { console.warn(`Smooth scroll target not found: ${targetId}`); }
-            } catch (error) { console.error(`Error scrolling to target: ${targetId}`, error); }
+                <article id="effective-dose-explanation" class="content-section explanation-section no-print">
+                    <h2>Giải thích về Liều hiệu dụng ($E$)</h2>
+                    <p>Liều hiệu dụng (<span lang="en">Effective Dose</span>, ký hiệu $E$) là một đại lượng được định nghĩa bởi Ủy ban Quốc tế về An toàn Bức xạ (<span lang="en">ICRP</span>) để ước tính nguy cơ ngẫu nhiên dài hạn (chủ yếu là nguy cơ gây ung thư và di truyền) đối với sức khỏe con người từ việc phơi nhiễm bức xạ ion hóa. Nó tính đến:</p> <ul> <li>Lượng liều hấp thụ bởi các cơ quan và mô khác nhau.</li> <li>Loại bức xạ ion hóa (thông qua hệ số trọng số bức xạ, $W_R$, đối với tia X trong CT thì $W_R=1$).</li> <li>Độ nhạy cảm khác nhau của các cơ quan và mô đối với tác động có hại của bức xạ (thông qua hệ số trọng số mô, $W_T$).</li> </ul> <p>Đơn vị của Liều hiệu dụng là <span lang="en">Sievert</span> ($Sv$), nhưng trong chẩn đoán y tế thường dùng <span lang="en">miliSievert</span> ($mSv$), với $1 \, Sv = 1000 \, mSv$.</p> <h3>Công thức tổng quát (theo <span lang="en">ICRP</span>):</h3> <div class="formula-display">$$E = \sum_T W_T \times H_T = \sum_T W_T \times \sum_R (W_R \times D_{T,R})$$</div> <p>Trong đó:</p> <ul> <li>$H_T$: Liều tương đương ở mô hoặc cơ quan $T$.</li> <li>$W_T$: Hệ số trọng số mô cho mô $T$.</li> <li>$D_{T,R}$: Liều hấp thụ trung bình từ bức xạ $R$ trong mô $T$.</li> <li>$W_R$: Hệ số trọng số bức xạ cho loại bức xạ $R$.</li> </ul> <h3>Ước tính Liều hiệu dụng từ $DLP$ trong <span lang="en">CT</span>:</h3> <p>Trong thực hành lâm sàng, việc tính $E$ theo công thức đầy đủ là phức tạp. Do đó, người ta thường sử dụng phương pháp ước tính dựa trên $DLP$ và một hệ số chuyển đổi $k$ (<span lang="en">k-factor</span>) đặc trưng cho vùng cơ thể được quét. Hệ số $k$ này được tính toán dựa trên các mô hình <span lang="en">phantom</span> và phân bố liều điển hình.</p> <div class="formula-display">$$E \; (mSv) \approx DLP \; (mGy \cdot cm) \times k \; (mSv \cdot mGy^{-1} \cdot cm^{-1})$$</div> <p>Hệ số $k$ có giá trị khác nhau cho các vùng cơ thể (ví dụ: đầu, ngực, bụng, chậu) và có thể khác nhau một chút giữa các tài liệu tham khảo hoặc chuẩn quốc gia.</p> <h3>Ý nghĩa trong thực hành lâm sàng:</h3> <p>Liều hiệu dụng $E$ cho phép:</p> <ul> <li>Đánh giá và so sánh nguy cơ bức xạ tiềm ẩn từ các loại xét nghiệm hình ảnh khác nhau (ví dụ: so sánh <span lang="en">CT</span> ngực với X-quang ngực).</li> <li>Hỗ trợ việc cân bằng giữa lợi ích chẩn đoán và nguy cơ bức xạ khi lựa chọn hoặc tối ưu hóa quy trình chụp.</li> <li>Theo dõi liều tích lũy cho bệnh nhân, đặc biệt là những người cần chụp chiếu nhiều lần.</li> <li>Thiết lập và kiểm tra các mức tham chiếu chẩn đoán quốc gia hoặc địa phương (<span lang="en">Diagnostic Reference Levels - DRLs</span>).</li> </ul> <h4>Ví dụ tính $E$:</h4> <p>Sử dụng ví dụ $DLP = 350 \, mGy \cdot cm$ cho <span lang="en">CT</span> bụng. Giả sử hệ số $k$ cho vùng bụng là $0.015 \, mSv \cdot mGy^{-1} \cdot cm^{-1}$:</p> <div class="formula-display">$$E \approx 350 \, mGy \cdot cm \times 0.015 \, mSv \cdot mGy^{-1} \cdot cm^{-1} = 5.25 \, mSv$$</div>
+                </article>
+
+                <article id="cancer-risk-explanation" class="content-section explanation-section no-print">
+                    <h2>Ước tính Nguy cơ Ung thư từ Liều hiệu dụng</h2>
+                    <p>Liều hiệu dụng ($E$) cung cấp một phương tiện để ước tính nguy cơ ung thư gây ra bởi bức xạ (<span lang="en">Radiation-Induced Cancer Risk</span>) ở mức độ quần thể, dựa trên mô hình đáp ứng liều. Mô hình phổ biến nhất được chấp nhận cho mục đích bảo vệ bức xạ là mô hình Tuyến tính không ngưỡng (<span lang="en">Linear No-Threshold - LNT</span>). Mô hình này giả định rằng:</p> <ul> <li>Nguy cơ ung thư tăng tuyến tính với liều bức xạ.</li> <li>Không có ngưỡng liều nào được coi là hoàn toàn an toàn (bất kỳ liều nào, dù nhỏ, cũng có thể làm tăng nguy cơ).</li> </ul> <p>Dựa trên các báo cáo khoa học uy tín như BEIR VII (<span lang="en">Biological Effects of Ionizing Radiation VII</span>) và các ấn phẩm của <span lang="en">ICRP</span>, nguy cơ tử vong do ung thư trong suốt cuộc đời được ước tính tăng thêm khoảng <strong>5.5% cho mỗi <span lang="en">Sievert</span></strong> (tức là $0.0055$ cho mỗi $Sv$, hay <strong>$5.5 \times 10^{-5}$ cho mỗi $mSv$</strong>) đối với một quần thể hỗn hợp về độ tuổi và giới tính.</p> <p><strong>Những điểm cần lưu ý khi diễn giải nguy cơ này:</strong></p> <ul> <li><strong>Tính không chắc chắn:</strong> Các ước tính này có độ không chắc chắn đáng kể, đặc biệt là ở mức liều thấp thường gặp trong chẩn đoán y tế. Chúng được ngoại suy từ dữ liệu liều cao (như những người sống sót sau bom nguyên tử).</li> <li><strong>Nguy cơ cá nhân vs. Quần thể:</strong> Các hệ số nguy cơ này áp dụng tốt nhất cho đánh giá rủi ro ở cấp độ quần thể. Nguy cơ thực tế cho một cá nhân cụ thể bị ảnh hưởng bởi nhiều yếu tố như tuổi tại thời điểm phơi nhiễm (trẻ em và người trẻ nhạy cảm hơn), giới tính (phụ nữ thường có nguy cơ cao hơn một chút đối với một số loại ung thư), tiền sử gia đình, lối sống (hút thuốc), và cơ quan nào nhận liều cao nhất.</li> <li><strong>Mục đích chính:</strong> Việc ước tính nguy cơ này chủ yếu phục vụ cho việc thiết lập các tiêu chuẩn an toàn bức xạ, tối ưu hóa quy trình (nguyên tắc ALARA), và truyền thông nguy cơ một cách cân bằng, chứ không phải để dự đoán chính xác liệu một cá nhân có bị ung thư do một cuộc chụp <span lang="en">CT</span> hay không.</li> </ul> <h3>Ví dụ ước tính nguy cơ:</h3> <p>Sử dụng liều hiệu dụng từ ví dụ <span lang="en">CT</span> bụng $E = 5.25 \, mSv$:</p> <div class="formula-display">$$\text{Ước tính nguy cơ tử vong do ung thư tăng thêm} \approx 5.25 \, mSv \times (5.5 \times 10^{-5} / mSv) \approx 2.89 \times 10^{-4}$$</div> <p>Con số này tương đương với khoảng <strong>1 trường hợp tử vong do ung thư tăng thêm trên khoảng 3460 người</strong> nhận cùng mức liều này. Đây là một mức tăng nguy cơ rất nhỏ so với nguy cơ ung thư nền tự nhiên trong suốt cuộc đời (khoảng 20-25% dân số tử vong do ung thư từ mọi nguyên nhân cộng lại).</p> <p><strong>Kết luận:</strong> Mặc dù nguy cơ từ một lần chụp <span lang="en">CT</span> đơn lẻ là thấp, việc hiểu và định lượng nguy cơ này giúp nhấn mạnh tầm quan trọng của việc chỉ định hợp lý và tối ưu hóa liều trong thực hành lâm sàng hàng ngày để giảm thiểu phơi nhiễm bức xạ không cần thiết cho bệnh nhân.</p>
+                </article>
+
+                <section id="dose-comparison" class="content-section dose-comparison-section no-print">
+                    <h2>Liều hiệu dụng trung bình từ các kỹ thuật X-quang và <span lang="en">CT</span></h2>
+                    <p>Bảng dưới đây cung cấp các giá trị liều hiệu dụng ($E$) trung bình tham khảo cho một số kỹ thuật chẩn đoán hình ảnh sử dụng bức xạ ion hóa phổ biến. Nó cũng so sánh mức liều này với thời gian tương đương nhận liều từ bức xạ nền tự nhiên (giả định mức nền trung bình khoảng 3 mSv/năm).</p>
+                    <table class="dose-table"> <thead> <tr> <th>Kỹ thuật (<span lang="en">Technique</span>)</th> <th>Liều hiệu dụng ($E$) ($mSv$)</th> <th>Tương đương bức xạ nền</th> </tr> </thead> <tbody> <tr><td>X-quang Ngực (PA)</td><td>0.02 - 0.1</td><td>~ Vài ngày - 10 ngày</td></tr> <tr><td>X-quang Bụng (KUB)</td><td>0.7</td><td>~ 3 tháng</td></tr> <tr><td>X-quang Cột sống thắt lưng</td><td>1.4</td><td>~ 6 tháng</td></tr> <tr><td>X-quang Chi (tay, chân)</td><td>&lt; 0.01</td><td>&lt; 1 ngày</td></tr> <tr><td>X-quang Răng (Trong miệng)</td><td>0.005</td><td>~ 1 ngày</td></tr> <tr><td>X-quang Toàn cảnh Răng (Panoramic)</td><td>0.025</td><td>~ 3 ngày</td></tr> <tr><td>Chụp X-quang Vú KTS (Mammography)</td><td>0.21</td><td>~ 26 ngày</td></tr> <tr><td>Chụp X-quang Vú Tomosynthesis (3D)</td><td>0.27</td><td>~ 33 ngày</td></tr> <tr><td>Chụp <span lang="en">CT</span> Đầu (Không cản quang)</td><td>1.6 - 2.0</td><td>~ 7-8 tháng</td></tr> <tr><td>Chụp <span lang="en">CT</span> Đầu (Có và không cản quang)</td><td>3.2 - 4.0</td><td>~ 13-16 tháng</td></tr> <tr><td>Chụp <span lang="en">CT</span> Ngực (Liều chuẩn)</td><td>6.1 - 8.0</td><td>~ 2 - 2.7 năm</td></tr> <tr><td>Chụp <span lang="en">CT</span> Ngực (Tầm soát ung thư phổi liều thấp - LDCT)</td><td>1.0 - 1.5</td><td>~ 4-6 tháng</td></tr> <tr><td>Chụp <span lang="en">CT</span> Bụng</td><td>5.0 - 7.0</td><td>~ 1.7 - 2.3 năm</td></tr> <tr><td>Chụp <span lang="en">CT</span> Bụng và Chậu</td><td>7.7 - 10.0</td><td>~ 2.6 - 3.3 năm</td></tr> <tr><td>Chụp <span lang="en">CT</span> Bụng và Chậu (đa pha)</td><td>15 - 20+</td><td>~ 5 - 7+ năm</td></tr> <tr><td>Chụp <span lang="en">CT</span> Cột sống</td><td>8.0 - 10.0</td><td>~ 2.7 - 3.3 năm</td></tr> <tr><td>Chụp <span lang="en">CT</span> Mạch vành (<span lang="en">Coronary CTA</span>)</td><td>5.0 - 15.0 (thay đổi nhiều)</td><td>~ 1.7 - 5 năm</td></tr> <tr><td>Chụp <span lang="en">CT</span> Đánh giá vôi hóa mạch vành (<span lang="en">Calcium Scoring</span>)</td><td>1.0 - 3.0</td><td>~ 4 tháng - 1 năm</td></tr> <tr><td>Chụp <span lang="en">PET/CT</span> (Toàn thân, dùng $^{18}$F-FDG)</td><td>15.0 - 25.0</td><td>~ 5 - 8.3 năm</td></tr> <tr><td>Đo mật độ xương (<span lang="en">DEXA</span>)</td><td>~ 0.001</td><td>~ Vài giờ</td></tr> </tbody> </table> <div class="source"> <p><strong>Nguồn tham khảo:</strong> Dữ liệu tổng hợp từ <span lang="en">ACR</span>, <span lang="en">RadiologyInfo.org</span>, <span lang="en">ICRP</span>, và các nghiên cứu. <strong>Lưu ý:</strong> Các giá trị này là trung bình và liều thực tế cho mỗi bệnh nhân có thể thay đổi đáng kể tùy thuộc vào thiết bị, kỹ thuật chụp, kích thước bệnh nhân và cơ sở y tế.</p> </div>
+                </section>
+
+            </main>
+
+            <footer class="main-footer no-print">
+               <div>
+                 <p>© <span id="copyright-year"></span> <strong>Cộng đồng Kỹ thuật viên hình ảnh y học Việt Nam</strong> – Vì mục đích an toàn bức xạ trong y tế</span></p>
+                 <p>Biên soạn bởi nhóm <strong>KTV 3 Miền</strong> | Mục đích: Đào tạo & Tham khảo y khoa</p>
+               <p><em>Tuyên bố miễn trừ trách nhiệm: Thông tin trên trang web này chỉ mang tính tham khảo, không thay thế cho chẩn đoán, chỉ định hoặc tư vấn y tế chuyên nghiệp từ bác sĩ hoặc chuyên gia y tế có trình độ.</em></p>
+                 <p>Chịu trách nhiệm nội dung và thiết kế:<strong>Lê Thanh Trọng - 0944406507</strong>
+               </div>
+            </footer>
+
+        </div> </div> <div id="print-output-container">
+        <div id="print-title">BÁO CÁO LIỀU HIỆU DỤNG CT ƯỚC TÍNH</div>
+
+        <div class="print-section" id="print-patient-info">
+            <h4>Thông tin Bệnh nhân</h4>
+            <p><span class="print-label">Tên:</span><span id="print-patient-name-data">---</span></p>
+            <p><span class="print-label">Tuổi:</span><span id="print-patient-age-data">---</span></p>
+            <p><span class="print-label">ID:</span><span id="print-patient-id-data">---</span></p>
+        </div>
+
+        <div class="print-section" id="print-input-params">
+            <h4>Thông số Quét</h4>
+            <p><span class="print-label">Vùng cơ thể:</span><span id="print-body-region-data">---</span></p>
+            <p><span class="print-label">Giá trị DLP:</span><span id="print-dlp-value-data">--- mGy·cm</span></p>
+        </div>
+
+        <div id="print-formula">
+            Công thức: E (mSv) = DLP (mGy·cm) × k (mSv·mGy⁻¹·cm⁻¹)
+        </div>
+
+        <div id="print-result-dose">
+            Liều hiệu dụng ước tính (E): --- mSv
+        </div>
+
+        <div class="print-section" id="print-risk-warning">
+             </div>
+
+        <div id="print-date-footer">
+            Ngày tạo báo cáo: <span id="print-date"></span>
+        </div>
+    </div>
+
+    <script>
+        // --- BEGIN: Smooth Scrolling & Active Nav Link Script ---
+        const navLinks = document.querySelectorAll('.side-nav a[href^="#"]');
+        const sections = document.querySelectorAll('section[id], article[id]');
+
+        function changeActiveLink() {
+            let index = sections.length;
+            let currentScroll = window.scrollY;
+            while(--index && sections[index].offsetTop > currentScroll + 50) {}
+            navLinks.forEach((link) => link.classList.remove('active'));
+            if(index >= 0 && navLinks[index]) { navLinks[index].classList.add('active'); }
+            else if (currentScroll < (sections.length > 0 ? sections[0].offsetTop - 50 : 0)) { if(navLinks[0]) navLinks[0].classList.add('active'); }
+        }
+        let isScrolling = false; let scrollTimeout;
+        if (sections.length > 0) changeActiveLink(); // Initial check only if sections exist
+        window.addEventListener('scroll', () => { if (!isScrolling) { changeActiveLink(); } });
+        navLinks.forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault(); isScrolling = true; const targetId = this.getAttribute('href');
+                try {
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                         navLinks.forEach(link => link.classList.remove('active')); this.classList.add('active');
+                        const offsetTop = targetElement.offsetTop - 15;
+                        window.scrollTo({ top: offsetTop, behavior: 'smooth' });
+                         clearTimeout(scrollTimeout); scrollTimeout = setTimeout(() => { isScrolling = false; }, 800);
+                    } else { console.warn(`Smooth scroll target not found: ${targetId}`); isScrolling = false; }
+                } catch (error) { console.error(`Error scrolling to target: ${targetId}`, error); isScrolling = false; }
+            });
         });
-    });
-    // --- END: Smooth Scrolling Script ---
+        // --- END: Smooth Scrolling & Active Nav Link Script ---
 
+        // --- BEGIN: Calculator Script ---
+        const bodyRegionSelect = document.getElementById("bodyRegion");
+        const kValueInput = document.getElementById("kValue");
+        const dlpInput = document.getElementById("dlp");
+        const patientNameInput = document.getElementById("patientName");
+        const patientAgeInput = document.getElementById("patientAge");
+        const patientIdInput = document.getElementById("patientId");
+        const resultDiv = document.getElementById("resultDose");
+        const riskWarningDiv = document.getElementById("riskWarning");
+        const calculateButton = document.getElementById("calculateButton");
+        const printButton = document.getElementById("printButton");
+        // Print Output References
+        const printPatientNameData = document.getElementById("print-patient-name-data");
+        const printPatientAgeData = document.getElementById("print-patient-age-data");
+        const printPatientIdData = document.getElementById("print-patient-id-data");
+        const printBodyRegionData = document.getElementById("print-body-region-data");
+        const printDlpValueData = document.getElementById("print-dlp-value-data");
+        const printFormula = document.getElementById("print-formula");
+        const printResultDose = document.getElementById("print-result-dose");
+        const printRiskWarning = document.getElementById("print-risk-warning");
+        const printDate = document.getElementById("print-date");
 
-    // --- BEGIN: Calculator Script ---
-    // DOM References
-    const bodyRegionSelect = document.getElementById("bodyRegion");
-    const kValueInput = document.getElementById("kValue");
-    const dlpInput = document.getElementById("dlp");
-    const patientNameInput = document.getElementById("patientName");
-    const patientAgeInput = document.getElementById("patientAge");
-    const patientIdInput = document.getElementById("patientId");
-    const resultDiv = document.getElementById("resultDose");
-    const riskWarningDiv = document.getElementById("riskWarning");
-    const calculateButton = document.getElementById("calculateButton");
-    const printButton = document.getElementById("printButton");
-    // Print Output References
-    const printPatientName = document.getElementById("print-patient-name");
-    const printPatientAge = document.getElementById("print-patient-age");
-    const printPatientId = document.getElementById("print-patient-id");
-    const printBodyRegion = document.getElementById("print-body-region");
-    const printDlpValue = document.getElementById("print-dlp-value");
-    const printFormula = document.getElementById("print-formula");
-    const printResultDose = document.getElementById("print-result-dose");
-    const printRiskWarning = document.getElementById("print-risk-warning");
-    const printDate = document.getElementById("print-date");
+        function updateK() { if(bodyRegionSelect) kValueInput.value = bodyRegionSelect.value; }
 
-    // Function to update K value based on selection
-    function updateK() {
-      kValueInput.value = bodyRegionSelect.value;
-    }
+        function clearPrintOutput() {
+             if(printPatientNameData) printPatientNameData.textContent = "---";
+             if(printPatientAgeData) printPatientAgeData.textContent = "---";
+             if(printPatientIdData) printPatientIdData.textContent = "---";
+             if(printBodyRegionData) printBodyRegionData.textContent = "---";
+             if(printDlpValueData) printDlpValueData.textContent = "--- mGy·cm";
+             if(printFormula) printFormula.textContent = `Công thức: E (mSv) = DLP (mGy·cm) × k (mSv·mGy⁻¹·cm⁻¹)`;
+             if(printResultDose) printResultDose.textContent = "Liều hiệu dụng ước tính (E): --- mSv";
+             if(printRiskWarning) printRiskWarning.innerHTML = "";
+             if(printDate) printDate.textContent = "";
+        }
 
-    // Function to clear print output area
-    function clearPrintOutput() {
-        printPatientName.innerHTML = "<span>Tên:</span> ---";
-        printPatientAge.innerHTML = "<span>Tuổi:</span> ---";
-        printPatientId.innerHTML = "<span>ID:</span> ---";
-        printBodyRegion.innerHTML = "<span>Vùng cơ thể:</span> ---";
-        printDlpValue.innerHTML = `<span>Giá trị DLP:</span> --- mGy·cm`;
-        printFormula.innerHTML = `Công thức: E (mSv) = DLP (mGy·cm) × k (mSv·mGy⁻¹·cm⁻¹)`;
-        printResultDose.textContent = "Liều hiệu dụng ước tính (E): --- mSv";
-        printRiskWarning.innerHTML = "";
-        printDate.textContent = "";
-    }
+        function calculateDose() {
+          if (!resultDiv || !riskWarningDiv || !printButton) return; // Exit if essential elements missing
 
+          resultDiv.textContent = ""; resultDiv.className = "result-display no-print";
+          riskWarningDiv.innerHTML = ""; riskWarningDiv.style.display = "none";
+          printButton.style.display = "none"; clearPrintOutput();
 
-    // Main calculation function
-    function calculateDose() {
-      // 1. Reset displays
-      resultDiv.textContent = "";
-      resultDiv.className = "result-display";
-      riskWarningDiv.innerHTML = "";
-      riskWarningDiv.style.display = "none";
-      printButton.style.display = "none";
-      clearPrintOutput();
+          if (!bodyRegionSelect || !dlpInput || !kValueInput || !patientNameInput || !patientAgeInput || !patientIdInput ) return; // Exit if input elements missing
 
-      // 2. Get input values
-      const dlp = parseFloat(dlpInput.value);
-      const k = parseFloat(kValueInput.value);
-      const patientName = patientNameInput.value.trim();
-      const patientAge = patientAgeInput.value.trim();
-      const patientId = patientIdInput.value.trim();
-      const selectedRegionOption = bodyRegionSelect.options[bodyRegionSelect.selectedIndex];
-      const selectedRegionText = selectedRegionOption.value ? selectedRegionOption.text : "---";
+          const dlp = parseFloat(dlpInput.value); const k = parseFloat(kValueInput.value);
+          const patientName = patientNameInput.value.trim(); const patientAge = patientAgeInput.value.trim();
+          const patientId = patientIdInput.value.trim();
+          const selectedRegionOption = bodyRegionSelect.options[bodyRegionSelect.selectedIndex];
+          const selectedRegionText = selectedRegionOption.value ? selectedRegionOption.text : "---";
 
-      // 3. Validate inputs
-      if (bodyRegionSelect.value === "") {
-        resultDiv.textContent = "⚠️ Vui lòng chọn vùng cơ thể.";
-        resultDiv.classList.add("error");
-        return;
-      }
-      if (isNaN(dlp) || dlp <= 0) {
-        resultDiv.textContent = `⚠️ Vui lòng nhập giá trị DLP hợp lệ (số dương). Giá trị nhập: "${dlpInput.value}"`;
-        resultDiv.classList.add("error");
-        return;
-      }
+          if (bodyRegionSelect.value === "") { resultDiv.textContent = "⚠️ Vui lòng chọn vùng cơ thể."; resultDiv.classList.add("error"); return; }
+          if (isNaN(dlp) || dlp <= 0) { resultDiv.textContent = `⚠️ Vui lòng nhập giá trị DLP hợp lệ (số dương). Giá trị nhập: "${dlpInput.value}"`; resultDiv.classList.add("error"); return; }
 
-      // 4. Perform calculation
-      const dose = dlp * k;
-      const roundedDose = Math.round(dose * 100) / 100;
+          const dose = dlp * k; const roundedDose = Math.round(dose * 100) / 100;
+          resultDiv.textContent = `Liều hiệu dụng ước tính (E): ${roundedDose} mSv`; resultDiv.classList.add("success");
 
-      // 5. Display result on screen
-      resultDiv.textContent = `Liều hiệu dụng ước tính (E): ${roundedDose} mSv`;
-      resultDiv.classList.add("success");
+          const riskFactorPerMSv = 5.5e-5; const additionalRisk = roundedDose * riskFactorPerMSv;
+          let warningMessageHTML = ""; let printWarningMessageHTML = "";
 
-      // 6. Calculate and prepare risk warning HTML
-      const riskFactorPerMSv = 5.5e-5;
-      const additionalRisk = roundedDose * riskFactorPerMSv;
-      let warningMessageHTML = "";
-      let printWarningMessageHTML = "";
+          if (additionalRisk > 0) {
+              const oneInY = Math.round(1 / additionalRisk); const formattedOneInY = oneInY.toLocaleString('vi-VN');
+              const riskText = (oneInY > 0 && oneInY < 1000000) ? `tương đương với rủi ro ước tính khoảng <strong>1</strong> trường hợp tử vong do ung thư phát sinh thêm trên <strong>${formattedOneInY}</strong> người nhận cùng mức liều này.` : `là một mức tăng nguy cơ rất nhỏ về mặt thống kê.`;
+               warningMessageHTML = `<p><strong>Thông tin tham khảo về Nguy cơ Bức xạ (Dựa trên mô hình LNT):</strong></p><p>Mức liều hiệu dụng <strong>${roundedDose} mSv</strong> ${riskText}</p><p><em>Điều quan trọng cần lưu ý:</em></p><ul><li>Đây là <strong>ước tính nguy cơ dựa trên thống kê</strong> cho cả cộng đồng và có độ không chắc chắn đáng kể, đặc biệt ở mức liều thấp.</li><li>Nguy cơ <strong>thực tế cho mỗi cá nhân</strong> phụ thuộc vào nhiều yếu tố: tuổi, giới tính, di truyền, lối sống, cơ quan nhận liều, v.v.</li><li>Mức tăng nguy cơ <strong>cộng thêm</strong> này rất nhỏ so với nguy cơ ung thư nền tự nhiên (~20-25%).</li><li>Thông tin này nhấn mạnh tầm quan trọng của việc chỉ định hợp lý và tối ưu hóa liều (ALARA), <strong>không</strong> phải là dự đoán sức khỏe cá nhân.</li></ul>`;
+               printWarningMessageHTML = `<p>Với mức liều hiệu dụng <strong>${roundedDose} mSv</strong>, ${riskText.replace(/<strong>/g,'').replace(/<\/strong>/g,'')}</p><p><strong>Lưu ý quan trọng:</strong> Ước tính này dựa trên thống kê quần thể và có độ không chắc chắn đáng kể ở liều thấp. Nguy cơ thực tế cho cá nhân phụ thuộc vào nhiều yếu tố và mức tăng này rất nhỏ so với nguy cơ ung thư nền. Luôn cân nhắc lợi ích chẩn đoán và áp dụng nguyên tắc ALARA.</p>`;
 
-      if (additionalRisk > 0) {
-          const oneInY = Math.round(1 / additionalRisk);
-          const formattedOneInY = oneInY.toLocaleString('vi-VN');
-          const riskText = (oneInY > 0 && oneInY < 1000000)
-                         ? `tương đương với rủi ro ước tính khoảng <strong>1</strong> trường hợp tử vong do ung thư phát sinh thêm trên <strong>${formattedOneInY}</strong> người nhận cùng mức liều này.`
-                         : `là một mức tăng nguy cơ rất nhỏ về mặt thống kê.`;
+              riskWarningDiv.innerHTML = warningMessageHTML; riskWarningDiv.style.display = "block";
+              printButton.style.display = "inline-block";
 
-          // Create HTML for the on-screen warning display
-          warningMessageHTML = `
-              <p><strong>Thông tin tham khảo về Nguy cơ Bức xạ:</strong></p>
-              <p>Mức liều hiệu dụng <strong>${roundedDose} mSv</strong> ${riskText}</p>
-              <p><em>Điều quan trọng cần lưu ý:</em></p>
-              <ul>
-                  <li>Đây là <strong>ước tính nguy cơ dựa trên thống kê</strong> cho cả cộng đồng, sử dụng mô hình Tuyến tính không ngưỡng (LNT). Mô hình này có những giới hạn và độ không chắc chắn, đặc biệt ở mức liều thấp.</li>
-                  <li>Nguy cơ <strong>thực tế cho mỗi cá nhân</strong> có thể cao hơn hoặc thấp hơn đáng kể, phụ thuộc vào nhiều yếu tố như: tuổi tại thời điểm phơi nhiễm (trẻ em và người trẻ nhạy cảm hơn), giới tính, yếu tố di truyền, lối sống (ví dụ: hút thuốc), và cơ quan nào của cơ thể nhận liều bức xạ.</li>
-                  <li>Mức tăng nguy cơ <strong>cộng thêm</strong> này cần được xem xét trong bối cảnh nguy cơ ung thư nền tự nhiên mà mọi người đều đối mặt (nguy cơ tử vong do ung thư từ mọi nguyên nhân trong suốt cuộc đời vào khoảng 20-25% ở nhiều quốc gia).</li>
-                  <li>Thông tin này được cung cấp để nhấn mạnh tầm quan trọng của việc chỉ định chụp chiếu hợp lý và áp dụng các biện pháp tối ưu hóa liều (nguyên tắc ALARA), <strong>không</strong> nhằm mục đích dự đoán tình trạng sức khỏe cụ thể cho bất kỳ cá nhân nào.</li>
-              </ul>
-          `;
-          // Create HTML for the print output
-          printWarningMessageHTML = `
-              <p><strong>Thông tin tham khảo về Nguy cơ Bức xạ:</strong></p>
-              <p>Với mức liều hiệu dụng <strong>${roundedDose} mSv</strong>, ${riskText}</p>
-              <p><strong>Lưu ý quan trọng:</strong></p>
-              <ul>
-                  <li>Đây là ước tính nguy cơ thống kê, không phải dự đoán cá nhân. Nguy cơ thực tế phụ thuộc vào tuổi, giới tính, di truyền, lối sống, v.v.</li>
-                  <li>Mức tăng nguy cơ này rất nhỏ so với nguy cơ ung thư nền tự nhiên.</li>
-                  <li>Luôn cần cân nhắc lợi ích chẩn đoán và áp dụng nguyên tắc ALARA.</li>
-              </ul>
-          `;
+              // Populate print area (check if elements exist first)
+              if(printPatientNameData) printPatientNameData.textContent = patientName || '---';
+              if(printPatientAgeData) printPatientAgeData.textContent = patientAge || '---';
+              if(printPatientIdData) printPatientIdData.textContent = patientId || '---';
+              if(printBodyRegionData) printBodyRegionData.textContent = selectedRegionText;
+              if(printDlpValueData) printDlpValueData.textContent = `${dlpInput.value} mGy·cm`;
+              if(printFormula) printFormula.textContent = `Công thức: E (${roundedDose.toFixed(2)} mSv) = DLP (${dlpInput.value} mGy·cm) × k (${k})`;
+              if(printResultDose) printResultDose.textContent = `Liều hiệu dụng ước tính (E): ${roundedDose} mSv`;
+              if(printRiskWarning) printRiskWarning.innerHTML = printWarningMessageHTML;
+              const today = new Date();
+              if(printDate) printDate.textContent = today.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-          // 7. Display warning on screen and show print button
-          riskWarningDiv.innerHTML = warningMessageHTML;
-          riskWarningDiv.style.display = "block";
-          printButton.style.display = "inline-block";
+          } else { printButton.style.display = "none"; clearPrintOutput(); }
+        }
 
-          // 8. Populate the hidden print output container
-          printPatientName.innerHTML = `<span>Tên:</span> ${patientName || '---'}`;
-          printPatientAge.innerHTML = `<span>Tuổi:</span> ${patientAge || '---'}`;
-          printPatientId.innerHTML = `<span>ID:</span> ${patientId || '---'}`;
-          printBodyRegion.innerHTML = `<span>Vùng cơ thể:</span> ${selectedRegionText}`;
-          printDlpValue.innerHTML = `<span>Giá trị DLP:</span> ${dlpInput.value} mGy·cm`;
-          printFormula.innerHTML = `Công thức: E (${roundedDose} mSv) = DLP (${dlpInput.value} mGy·cm) × k (${k})`;
-          printResultDose.textContent = `Liều hiệu dụng ước tính (E): ${roundedDose} mSv`;
-          printRiskWarning.innerHTML = printWarningMessageHTML;
-          const today = new Date();
-          printDate.textContent = today.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        // --- Event Listeners ---
+        if(bodyRegionSelect) bodyRegionSelect.addEventListener("change", updateK);
+        if(calculateButton) calculateButton.addEventListener("click", calculateDose);
+        if(dlpInput) dlpInput.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); calculateDose(); } });
+        if(patientNameInput) patientNameInput.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); calculateDose(); }});
+        if(patientAgeInput) patientAgeInput.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); calculateDose(); }});
+        if(patientIdInput) patientIdInput.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); calculateDose(); }});
+        if(printButton) printButton.addEventListener("click", function() { window.print(); });
+        // --- END: Calculator Script ---
 
+        // Set copyright year dynamically
+        const copyrightYearSpan = document.getElementById('copyright-year');
+        if(copyrightYearSpan) { copyrightYearSpan.textContent = new Date().getFullYear(); }
+        // Initial K value update on page load
+        if(bodyRegionSelect) updateK();
 
-      } else {
-           printButton.style.display = "none";
-           clearPrintOutput();
-      }
-    }
-
-    // --- Event Listeners ---
-    bodyRegionSelect.addEventListener("change", updateK);
-    calculateButton.addEventListener("click", calculateDose);
-    dlpInput.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); calculateDose(); } });
-    patientNameInput.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); calculateDose(); }});
-    patientAgeInput.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); calculateDose(); }});
-    patientIdInput.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); calculateDose(); }});
-    printButton.addEventListener("click", function() { window.print(); });
-    // --- END: Calculator Script ---
-
-    document.getElementById('copyright-year').textContent = new Date().getFullYear();
-    updateK(); // Initial K value update
-
-  </script>
+    </script>
 
 </body>
 </html>
