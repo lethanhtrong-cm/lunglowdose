@@ -22,7 +22,7 @@
         
         /* Chiều cao động cho các thành phần chính */
         #sidebar, #content-container {
-            height: calc(100vh - 96px - 40px);
+            /* Height is now set by JavaScript to be dynamic */
             overflow-y: auto;
         }
         #sidebar { scrollbar-width: none; }
@@ -128,20 +128,28 @@
 <body class="flex flex-col min-h-screen">
 
     <!-- HEADER -->
-    <header class="h-24 bg-blue-700 text-white shadow-2xl fixed top-0 w-full z-20 flex items-center px-6">
-        <img src="https://i.postimg.cc/zv9XfQWz/81dc535f2325f27bab34.jpg" alt="Logo" class="h-16 w-16 mr-4 rounded-full object-cover border-2 border-white flex-shrink-0">
-        <div class="flex flex-col flex-grow">
-            <div class="text-3xl font-extrabold leading-tight">Tài liệu Kỹ thuật CLVT</div>
-            <div class="text-base opacity-80 mt-0.5">Quy trình từ 179 đến 232 </div>
+    <header class="h-auto md:h-24 bg-blue-700 text-white shadow-2xl fixed top-0 w-full z-20 flex flex-col md:flex-row md:items-center p-4 md:px-6">
+        <div class="flex items-center w-full">
+            <img src="https://i.postimg.cc/zv9XfQWz/81dc535f2325f27bab34.jpg" alt="Logo" class="h-12 w-12 md:h-16 md:w-16 mr-4 rounded-full object-cover border-2 border-white flex-shrink-0">
+            <div class="flex flex-col flex-grow">
+                <div class="text-base md:text-2xl font-extrabold leading-tight uppercase">Tài liệu Qui trình Kỹ thuật CLVT</div>
+                <div class="text-xs md:text-sm opacity-80 mt-0.5">Quy trình từ 179 đến 232 (Phiên bản Cộng đồng)</div>
+            </div>
         </div>
-        <div class="ml-auto flex space-x-3 items-center flex-shrink-0">
-            <a href="https://vnrad.tech/trangchu/" target="_blank" class="bg-blue-900 hover:bg-blue-800 text-white text-sm font-medium py-2 px-4 rounded-lg transition duration-150 shadow-lg whitespace-nowrap">Trang Chủ</a>
-            <a href="#" onclick="alert('Tính năng tải PDF đang được phát triển.'); return false;" class="border border-white text-white hover:bg-white hover:text-blue-700 text-sm font-medium py-2 px-4 rounded-lg transition duration-150 shadow-md whitespace-nowrap">Tải PDF</a>
+        <div class="w-full mt-4 md:mt-0 md:w-auto md:ml-auto flex flex-col md:flex-row items-center md:space-x-6">
+            <div class="text-center md:text-right">
+                <div class="text-xs md:text-sm font-semibold opacity-90 whitespace-nowrap">Cộng đồng Kỹ thuật viên hình ảnh y học - 3 Miền</div>
+                <div class="text-[11px] md:text-xs opacity-80 mt-1 whitespace-nowrap">Qui trình ban hành theo Quyết định số 2775 - QĐ/BYT, ban hành 29/08/2025</div>
+            </div>
+            <div class="flex space-x-3 items-center flex-shrink-0 mt-4 md:mt-0">
+                <a href="https://vnrad.tech/trangchu/" target="_blank" class="bg-blue-900 hover:bg-blue-800 text-white text-xs md:text-sm font-medium py-2 px-3 md:px-4 rounded-lg transition duration-150 shadow-lg whitespace-nowrap">Trang Chủ</a>
+                <a href="#" onclick="alert('Tính năng tải PDF đang được phát triển.'); return false;" class="border border-white text-white hover:bg-white hover:text-blue-700 text-xs md:text-sm font-medium py-2 px-3 md:px-4 rounded-lg transition duration-150 shadow-md whitespace-nowrap">Tải PDF</a>
+            </div>
         </div>
     </header>
 
     <!-- MAIN CONTENT -->
-    <div id="main-content-area" class="flex flex-col lg:flex-row flex-grow mt-24 mb-10">
+    <div id="main-content-area" class="flex flex-col lg:flex-row flex-grow mb-10">
 
         <!-- SIDEBAR -->
         <aside id="sidebar" class="w-full lg:w-96 bg-white border-r-4 border-blue-500 shadow-xl flex-shrink-0 z-10">
@@ -1068,6 +1076,8 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             populateMenu();
+            adjustLayout();
+            window.addEventListener('resize', adjustLayout);
         });
 
         // To keep track of the currently active link
@@ -1194,6 +1204,26 @@
             }
         }
         
+        function adjustLayout() {
+            const header = document.querySelector('header');
+            const footer = document.querySelector('footer');
+            const mainContent = document.getElementById('main-content-area');
+            const sidebar = document.getElementById('sidebar');
+            const contentContainer = document.getElementById('content-container');
+
+            if (header && footer && mainContent && sidebar && contentContainer) {
+                const headerHeight = header.offsetHeight;
+                const footerHeight = footer.offsetHeight;
+
+                mainContent.style.marginTop = `${headerHeight}px`;
+
+                const mainAreaHeight = window.innerHeight - headerHeight - footerHeight;
+
+                sidebar.style.height = `${mainAreaHeight}px`;
+                contentContainer.style.height = `${mainAreaHeight}px`;
+            }
+        }
+
         // Add smooth scrolling for anchor links within the content
         document.getElementById('content-display').addEventListener('click', function (e) {
             // Check if the clicked element is an anchor tag with an href starting with '#'
@@ -1210,6 +1240,14 @@
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
 
 
 
