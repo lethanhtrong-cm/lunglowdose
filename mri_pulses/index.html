@@ -1,1 +1,824 @@
 
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sổ tay Chuỗi Xung MRI</title>
+    <!-- Tải Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Sử dụng font Inter làm font chữ mặc định */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Cuộn mượt khi nhấp vào anchor link */
+        html {
+            scroll-behavior: smooth;
+        }
+        /* Style cho bảng để đẹp hơn */
+        .vendor-table th, .vendor-table td {
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+        }
+        .vendor-table th {
+            background-color: #f8fafc;
+        }
+        /* Đảm bảo thẻ ẩn không chiếm không gian */
+        .hidden {
+            display: none !important;
+        }
+        /* Làm cho sidebar dính lại khi cuộn trên màn hình lớn */
+        .sidebar-sticky {
+            position: sticky;
+            top: 2rem; /* 2rem = 32px */
+            align-self: flex-start; /* Ngăn không cho nó kéo dài */
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Header -->
+    <header class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <h1 class="text-3xl font-bold text-blue-800">Sổ tay Chuỗi Xung MRI</h1>
+            <p class="mt-1 text-gray-600">Dành cho Kỹ thuật viên Hình ảnh Y học</p>
+        </div>
+    </header>
+
+    <!-- Main Content - Bố cục Flex mới -->
+    <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 md:flex md:space-x-8">
+        
+        <!-- Sidebar (Menu bên trái) -->
+        <nav id="sidebar-nav" class="w-full md:w-64 lg:w-72 md:flex-shrink-0 mb-8 md:mb-0">
+            <!-- Nội dung sidebar sẽ được chèn bằng JavaScript -->
+        </nav>
+
+        <!-- Khu vực nội dung chính -->
+        <div id="main-content" class="flex-1">
+            
+            <!-- Thanh tìm kiếm -->
+            <div class="mb-8">
+                <input 
+                    type="text" 
+                    id="searchInput"
+                    placeholder="Tìm kiếm theo tên chuỗi xung, tên hãng, ứng dụng..."
+                    class="w-full p-4 text-lg border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+            </div>
+
+            <!-- Lưới chứa các thẻ thông tin chuỗi xung -->
+            <div id="sequence-container">
+                <!-- Các nhóm và thẻ chuỗi xung sẽ được chèn vào đây bằng JavaScript -->
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center p-6 text-gray-500 text-sm mt-12">
+        © 2025 Sổ tay MRI KTV. Tài liệu chỉ mang tính chất tham khảo.
+    </footer>
+
+    <!-- Khối JavaScript -->
+    <script>
+        // Cấu hình style cho các nhóm (MỚI - Dễ quản lý)
+        const groupStyles = {
+            'spin-echo': {
+                title: 'Nhóm Spin Echo (SE)',
+                bg: 'bg-blue-700',
+                text: 'text-blue-700',
+                textDark: 'text-blue-800',
+                border: 'border-blue-200',
+                hover: 'hover:bg-blue-100'
+            },
+            'gradient-echo': {
+                title: 'Nhóm Gradient Echo (GRE)',
+                bg: 'bg-red-700',
+                text: 'text-red-700',
+                textDark: 'text-red-800',
+                border: 'border-red-200',
+                hover: 'hover:bg-red-100'
+            },
+            'fat-suppression': {
+                title: 'Nhóm Kỹ Thuật Xóa Mỡ',
+                bg: 'bg-green-700',
+                text: 'text-green-700',
+                textDark: 'text-green-800',
+                border: 'border-green-200',
+                hover: 'hover:bg-green-100'
+            },
+            'non-contrast-mra': {
+                title: 'Nhóm Mạch Máu (Không Thuốc)',
+                bg: 'bg-indigo-700',
+                text: 'text-indigo-700',
+                textDark: 'text-indigo-800',
+                border: 'border-indigo-200',
+                hover: 'hover:bg-indigo-100'
+            },
+            'advanced-maps': {
+                title: 'Nhóm Kỹ Thuật Nâng Cao & Bản Đồ',
+                bg: 'bg-orange-600',
+                text: 'text-orange-600',
+                textDark: 'text-orange-700',
+                border: 'border-orange-200',
+                hover: 'hover:bg-orange-100'
+            }
+        };
+
+        // Cơ sở dữ liệu (Database) các chuỗi xung
+        const sequenceData = [
+            // ========= NHÓM SPIN ECHO ==========
+            {
+                id: 't1w',
+                group: 'spin-echo',
+                genericName: 'T1-weighted (T1W)',
+                vendors: {
+                    Siemens: 'T1, SE, TSE (Turbo Spin Echo)',
+                    GE: 'T1, SE, FSE (Fast Spin Echo)',
+                    Philips: 'T1, SE, TSE',
+                    Hitachi: 'SE, FSE',
+                    Canon: 'SE, FSE'
+                },
+                physics: 'Sử dụng TR ngắn (300-600ms) và TE ngắn (10-20ms). Độ tương phản chủ yếu dựa trên thời gian hồi phục T1 của mô. Mỡ (T1 ngắn) sẽ sáng, Nước/Dịch (T1 dài) sẽ tối.',
+                applications: [
+                    { priority: 1, use: 'Đánh giá giải phẫu (anatomical detail) cho não, cột sống, khớp.' },
+                    { priority: 2, use: 'Chuỗi xung nền (pre-contrast) để so sánh với ảnh sau tiêm thuốc (post-contrast).' },
+                    { priority: 3, use: 'Phát hiện các tổn thương có T1 ngắn: mỡ (u mỡ), máu bán cấp (methemoglobin), hắc tố (melanin).' }
+                ]
+            },
+            {
+                id: 't2w',
+                group: 'spin-echo',
+                genericName: 'T2-weighted (T2W)',
+                vendors: {
+                    Siemens: 'T2, TSE',
+                    GE: 'T2, FSE',
+                    Philips: 'T2, TSE',
+                    Hitachi: 'FSE',
+                    Canon: 'FSE'
+                },
+                physics: 'Sử dụng TR dài (2000-6000ms) và TE dài (80-120ms). Độ tương phản dựa trên thời gian thư duỗi T2. Nước/dịch (T2 dài) sẽ sáng. Mỡ cũng sáng (nhưng có thể xóa bằng Fat-Sat).',
+                applications: [
+                    { priority: 1, use: 'Phát hiện bệnh lý (pathology-weighted): phù, viêm, u, nhồi máu, xuất huyết cấp.' },
+                    { priority: 2, use: 'Đánh giá dịch (nang, dịch não tủy, dịch khớp, đường mật, dịch trong ổ bụng).' },
+                    { priority: 3, use: 'Đánh giá sụn khớp (độ dày, tín hiệu).' },
+                    { priority: 4, use: 'Đánh giá chất xám và chất trắng trong não.'}
+                ]
+            },
+            {
+                id: 't2w_fs',
+                group: 'spin-echo',
+                genericName: 'T2-weighted Fat-Sat (T2W-FS)',
+                vendors: {
+                    Siemens: 'T2 TSE FS',
+                    GE: 'T2 FSE FS (CHESS)',
+                    Philips: 'T2 TSE SPIR / SPAIR',
+                    Hitachi: 'T2 FSE Fat-Sat',
+                    Canon: 'T2 FSE Fat-Sat'
+                },
+                physics: 'Là chuỗi xung T2-weighted tiêu chuẩn, được thêm vào một mô-đun xóa mỡ (thường là Fat-Sat/CHESS) trước khi bắt đầu chuỗi xung. Mục đích là làm mất tín hiệu của mỡ (vốn sáng trên T2) để làm nổi bật tín hiệu của dịch/phù (vẫn sáng).',
+                applications: [
+                    { priority: 1, use: 'Đánh giá phù tủy xương, rách/viêm cơ, dây chằng trong chấn thương cơ-xương-khớp.' },
+                    { priority: 2, use: 'Phát hiện tổn thương viêm, u ở các vùng có nhiều mỡ (ví dụ: hốc mắt, cổ, phần mềm).' },
+                    { priority: 3, use: 'Đánh giá vú (phát hiện nang, tổn thương).'}
+                ]
+            },
+            {
+                id: 'pd',
+                group: 'spin-echo',
+                genericName: 'Proton Density (PD)',
+                vendors: {
+                    Siemens: 'PD, TSE',
+                    GE: 'PD, FSE',
+                    Philips: 'PD, TSE',
+                    Hitachi: 'PD, FSE',
+                    Canon: 'PD, FSE'
+                },
+                physics: 'Sử dụng TR dài (2000-4000ms) và TE ngắn (10-30ms). Chuỗi xung này giảm thiểu ảnh hưởng của T1 và T2, làm cho độ tương phản chủ yếu phụ thuộc vào mật độ proton. Mô có nhiều proton (sụn, dịch não tủy) sẽ sáng.',
+                applications: [
+                    { priority: 1, use: 'Đánh giá sụn khớp (đặc biệt là khớp gối): phát hiện rách sụn chêm, tổn thương sụn khớp.' },
+                    { priority: 2, use: 'Đánh giá não: phân biệt chất xám - chất trắng, phát hiện mảng xơ cứng (MS) gần não thất.' },
+                    { priority: 3, use: 'Đánh giá dây chằng, gân (ví dụ: chóp xoay ở vai).'}
+                ]
+            },
+            {
+                id: 'pd_fs',
+                group: 'spin-echo',
+                genericName: 'PD Fat-Sat (PD-FS)',
+                vendors: {
+                    Siemens: 'PD TSE FS',
+                    GE: 'PD FSE FS (CHESS)',
+                    Philips: 'PD TSE SPIR / SPAIR',
+                    Hitachi: 'PD FSE Fat-Sat',
+                    Canon: 'PD FSE Fat-Sat'
+                },
+                physics: 'Là chuỗi xung PD-weighted kết hợp với kỹ thuật xóa mỡ (Fat-Sat/CHESS). Xóa tín hiệu mỡ (sáng) để làm nổi bật các cấu trúc có mật độ proton cao và T2 ngắn/trung bình (như sụn) và dịch/phù (sáng).',
+                applications: [
+                    { priority: 1, use: 'Chuỗi xung "vàng" (gold standard) để đánh giá sụn khớp và tủy xương dưới sụn.' },
+                    { priority: 2, use: 'Phát hiện rách sụn chêm, rách dây chằng, phù tủy xương trong chấn thương khớp.' },
+                    { priority: 3, use: 'Đánh giá tốt các cấu trúc nhỏ trong khớp (ví dụ: phức hợp sụn sợi tam giác ở cổ tay).'}
+                ]
+            },
+            {
+                id: 'flair',
+                group: 'spin-echo',
+                genericName: 'FLAIR (Fluid-Attenuated Inversion Recovery)',
+                vendors: {
+                    Siemens: 'FLAIR, T2-FLAIR',
+                    GE: 'FLAIR, T2-FLAIR',
+                    Philips: 'FLAIR',
+                    Hitachi: 'FLAIR',
+                    Canon: 'FLAIR'
+                },
+                physics: 'Là chuỗi xung T2W được thêm một xung đảo nghịch 180 độ và thời gian TI (Inversion Time) dài (khoảng 2000-2500ms) để xóa tín hiệu của dịch tự do (dịch não tủy, dịch nang). Tín hiệu bệnh lý (phù) vẫn sáng.',
+                applications: [
+                    { priority: 1, use: 'Phát hiện tổn thương chất trắng quanh não thất (ví dụ: MS, bệnh lý chất trắng, đột quỵ).' },
+                    { priority: 2, use: 'Phát hiện nhồi máu não giai đoạn sớm (phát hiện phù độc tế bào).' },
+                    { priority: 3, use: 'Phát hiện viêm màng não, xuất huyết dưới nhện (bán cấp/mạn tính - dịch não tủy bẩn).'}
+                ]
+            },
+            {
+                id: 'mrcp',
+                group: 'spin-echo',
+                genericName: 'MRCP (T2-weighted 3D/Single-Shot)',
+                vendors: {
+                    Siemens: 'TSE T2 (3D), HASTE (2D SSFSE)',
+                    GE: 'FSE T2 (3D), SSFSE (Single-Shot FSE)',
+                    Philips: 'TSE T2 (3D), SSh-TSE (2D)',
+                    Hitachi: 'FSE T2 (3D), SS-FSE (2D)',
+                    Canon: 'FSE T2 (3D), SS-FSE (2D)'
+                },
+                physics: 'Là chuỗi xung T2W có thời gian TE rất dài (>>200ms) (chuỗi xung "siêu T2"). Ở TE dài, hầu hết các mô tĩnh đều mất tín hiệu, chỉ có dịch (T2 rất dài) như mật, dịch tụy, dịch não tủy là còn tín hiệu và sáng rực. Thường chụp 3D (để tái tạo) hoặc 2D lát dày (Single-Shot).',
+                applications: [
+                    { priority: 1, use: 'Đánh giá sỏi đường mật, sỏi túi mật (không xâm lấn, thay thế ERCP chẩn đoán).' },
+                    { priority: 2, use: 'Phát hiện hẹp, giãn đường mật (do u, chít hẹp sau phẫu thuật).' },
+                    { priority: 3, use: 'Đánh giá bệnh lý tụy (nang tụy, MRCP tụy, u tụy).'},
+                    { priority: 4, use: 'Chụp hệ niệu (MR Urography - MRU) đánh giá giãn đài bể thận, niệu quản.'}
+                ]
+            },
+            {
+                id: 'ssfse',
+                group: 'spin-echo',
+                genericName: 'SSFSE (HASTE / Single-Shot)',
+                vendors: {
+                    Siemens: 'HASTE (Half-Fourier Acq. TSE)',
+                    GE: 'SSFSE (Single-Shot FSE)',
+                    Philips: 'SSh-TSE (Single-Shot TSE)',
+                    Hitachi: 'SS-FSE',
+                    Canon: 'SS-FSE'
+                },
+                physics: 'Là một chuỗi xung Turbo Spin Echo (TSE/FSE) siêu nhanh, trong đó toàn bộ k-space của một lát cắt được điền đầy chỉ sau một lần kích thích (TR). Thường kết hợp với kỹ thuật half-scan (HASTE) để rút ngắn thời gian hơn nữa. Ảnh thu được (thường là T2W) rất nhanh (dưới 1 giây/lát) nhưng có độ phân giải thấp hơn TSE thông thường.',
+                applications: [
+                    { priority: 1, use: 'Chụp bụng (Abdomen): Chụp T2W khi bệnh nhân nín thở, giảm artifact chuyển động.' },
+                    { priority: 2, use: 'Chụp thai nhi (Fetal MRI): Giảm artifact do thai nhi chuyển động.' },
+                    { priority: 3, use: 'Chụp MRCP 2D (như đã mô tả ở thẻ MRCP).' },
+                    { priority: 4, use: 'Chụp bệnh nhân không hợp tác, trẻ em (chụp nhanh não, cột sống).'}
+                ]
+            },
+            {
+                id: 't1_post_no_fs',
+                group: 'spin-echo',
+                genericName: 'T1W + Contrast (Không xóa mỡ)',
+                vendors: {
+                    Siemens: 'T1 SE/TSE +C',
+                    GE: 'T1 SE/FSE +C',
+                    Philips: 'T1 SE/TSE +C',
+                    Hitachi: 'T1 SE/FSE +C',
+                    Canon: 'T1 SE/FSE +C'
+                },
+                physics: 'Là chuỗi xung T1W (thường là Spin Echo hoặc TSE/FSE) được thực hiện sau khi tiêm thuốc đối quang từ (Gadolinium) mà KHÔNG xóa mỡ. Dùng để so sánh trực tiếp với ảnh T1W pre-contrast.',
+                applications: [
+                    { priority: 1, use: 'Chụp não (Brain): Chuỗi xung tiêu chuẩn để đánh giá ngấm thuốc của u não, viêm màng não, tổn thương mất myelin... (Mỡ trong não ít, không cần xóa).' },
+                    { priority: 2, use: 'Chụp cột sống (Spine): Đánh giá u tủy, viêm tủy, ngấm thuốc màng cứng, thoát vị đĩa đệm tái phát (sẹo ngấm thuốc).' },
+                    { priority: 3, use: 'Chụp khớp (MSK): Đánh giá viêm bao hoạt dịch, u phần mềm khi không cần xóa mỡ.'}
+                ]
+            },
+            {
+                id: 'tse_3d_variable_flip',
+                group: 'spin-echo',
+                genericName: '3D TSE (Variable Flip Angle)',
+                vendors: {
+                    Siemens: 'SPACE (Sampling Perfection...Optimization)',
+                    GE: 'CUBE',
+                    Philips: 'VISTA (Volume ISotropic TSE Acq.)',
+                    Hitachi: 'isoFSE',
+                    Canon: 'FSE 3D'
+                },
+                physics: 'Là chuỗi xung Turbo Spin Echo (TSE/FSE) 3D, đẳng hướng (isotropic), cho phép tái tạo đa mặt phẳng (MPR). Sử dụng chuỗi góc lật thay đổi (variable flip angle) để duy trì tín hiệu qua chuỗi echo train dài, cho phép chụp 3D T2W, FLAIR hoặc PDW với độ phân giải cao, tương phản tốt.',
+                applications: [
+                    { priority: 1, use: 'Đánh giá tai trong, dây thần kinh sọ (ví dụ: dây VII, VIII).' },
+                    { priority: 2, use: 'Đánh giá khớp (MSK): Chụp khớp gối, vai, háng... thay thế cho các chuỗi 2D ở 3 mặt phẳng, cho phép tái tạo các mặt phẳng chéo (ví dụ: đánh giá dây chằng chéo trước).' },
+                    { priority: 3, use: 'Chụp đám rối thần kinh cánh tay (Brachial Plexus).' },
+                    { priority: 4, use: 'Chụp T2W/FLAIR 3D cho não (đặc biệt là hố sau, nơi artifact ít hơn GRE 3D).'}
+                ]
+            },
+
+            // ========= NHÓM GRADIENT ECHO ==========
+            {
+                id: 'gre_t2star',
+                group: 'gradient-echo',
+                genericName: 'T2* GRE (T2 Star)',
+                vendors: {
+                    Siemens: 'GRE, FLASH (Fast Low Angle Shot)',
+                    GE: 'GRE',
+                    Philips: 'FFE (Fast Field Echo)',
+                    Hitachi: 'GE (Gradient Echo)',
+                    Canon: 'FE (Field Echo)'
+                },
+                physics: 'Chuỗi xung Gradient Echo sử dụng TR dài và TE trung bình/dài. Không dùng xung 180 độ nên rất nhạy với sự không đồng nhất từ trường (artifact T2*). Các chất gây nhiễu từ (máu giáng hóa, vôi hóa, sắt) sẽ gây mất tín hiệu (màu đen).',
+                applications: [
+                    { priority: 1, use: 'Phát hiện xuất huyết, vi xuất huyết (hemorrhage, microbleeds) trong não (đột quỵ, chấn thương, amyloidosis).' },
+                    { priority: 2, use: 'Đánh giá vôi hóa (calcification) trong u não, bệnh lý nhiễm trùng.' },
+                    { priority: 3, 'use': 'Phát hiện lắng đọng sắt (iron deposition) trong các bệnh lý thoái hóa thần kinh (Parkinson).' },
+                    { priority: 4, 'use': 'Chụp sụn khớp (dạng 3D GRE).' }
+                ]
+            },
+            {
+                id: 'swi',
+                group: 'gradient-echo',
+                genericName: 'SWI (Susceptibility Weighted Imaging)',
+                vendors: {
+                    Siemens: 'SWI',
+                    GE: 'SWAN (Susceptibility Weighted ANgiography)',
+                    Philips: 'SWIp',
+                    Hitachi: 'BSI (Blood SEnsitive Imaging)',
+                    Canon: 'FSBB (Flow Sensitive Black Blood)'
+                },
+                physics: 'Là một chuỗi xung GRE 3D T2* được xử lý đặc biệt (sử dụng cả thông tin biên độ và thông tin pha) để làm nổi bật sự khác biệt về độ nhạy từ (magnetic susceptibility) giữa các mô. Rất nhạy với máu khử oxy, canxi và sắt. Nhạy hơn T2* GRE tiêu chuẩn.',
+                applications: [
+                    { priority: 1, use: 'Phát hiện vi xuất huyết não (microbleeds) (nhạy nhất).' },
+                    { priority: 2, use: 'Đánh giá tĩnh mạch (DVA - developmental venous anomaly), dị dạng mạch thể hang (cavernoma).' },
+                    { priority: 3, use: 'Đánh giá lắng đọng sắt, vôi hóa trong u não.' },
+                    { priority: 4, use: 'Chẩn đoán chấn thương sọ não (Traumatic Brain Injury) - phát hiện tổn thương trục lan tỏa (DAI).'}
+                ]
+            },
+            {
+                id: 't1_3d_mprage',
+                group: 'gradient-echo',
+                genericName: 'T1W 3D GRE (e.g., MPRAGE)',
+                vendors: {
+                    Siemens: 'MPRAGE (Magnetization Prepared Rapid GRE)',
+                    GE: 'BRAVO (Brain Volume Imaging), FSPGR',
+                    Philips: 'TFE (Turbo Field Echo)',
+                    Hitachi: '3D-GE',
+                    Canon: '3D T1-FE'
+                },
+                physics: 'Chuỗi xung GRE 3D, thường có xung chuẩn bị đảo nghịch (MPRAGE) để tối ưu hóa tương phản T1. Thu được một khối dữ liệu (volume) 3D, độ phân giải cao, đẳng hướng (isotropic), cho phép tái tạo đa mặt phẳng (MPR).',
+                applications: [
+                    { priority: 1, use: 'Đánh giá giải phẫu não chi tiết (vỏ não, chất xám sâu), phát hiện dị dạng vỏ não.' },
+                    { priority: 2, use: 'Định vị phẫu thuật (neuronavigation).' },
+                    { priority: 3, use: 'Đo lường thể tích (volumetry) (ví dụ: teo não, teo hồi hải mã trong Alzheimer).' },
+                    { priority: 4, use: 'Dùng làm chuỗi xung sau tiêm thuốc (Post-contrast) để phát hiện các tổn thương nhỏ (di căn não).'}
+                ]
+            },
+            {
+                id: 't1_3d_dynamic',
+                group: 'gradient-echo',
+                genericName: 'T1W 3D GRE (Dynamic/VIBE/LAVA)',
+                vendors: {
+                    Siemens: 'VIBE (Volumetric Interpolated BH Exam)',
+                    GE: 'LAVA, LAVA-Flex, VIBRANT (vú)',
+                    Philips: 'e-THRIVE, TFE',
+                    Hitachi: '3D-GE Fat-Sat',
+                    Canon: 'Quick 3D'
+                },
+                physics: 'Là chuỗi xung T1W 3D GRE siêu nhanh, thường kết hợp xóa mỡ (Fat-Sat hoặc Dixon) và được tối ưu hóa để chụp trong một lần nín thở (breath-hold). Cho phép chụp nhiều pha (multi-phasic) trước và sau khi tiêm thuốc (dynamic contrast enhancement - DCE).',
+                applications: [
+                    { priority: 1, use: 'Chụp bụng (Gan, Tụy, Thận): Đánh giá tổn thương ngấm thuốc ở các pha động mạch, tĩnh mạch cửa, và pha muộn.' },
+                    { priority: 2, use: 'Chụp vú (Breast MRI): Chụp dynamic để đánh giá u vú (vẽ biểu đồ ngấm thuốc - time-intensity curve).' },
+                    { priority: 3, use: 'Chụp mạch MRA có thuốc (CE-MRA): Chụp các pha động mạch, tĩnh mạch.' },
+                    { priority: 4, use: 'Chụp tuyến yên (Pituitary) dynamic.'}
+                ]
+            },
+            {
+                id: 'bssfpmra',
+                group: 'gradient-echo',
+                genericName: 'b-SSFP (TrueFISP / FIESTA)',
+                vendors: {
+                    Siemens: 'TrueFISP (True Fast Img. w Steady-State Prec.)',
+                    GE: 'FIESTA (Fast Imaging Employing STeady-state Acq.)',
+                    Philips: 'b-FFE (balanced-Fast Field Echo)',
+                    Hitachi: 'TrueSSFP',
+                    Canon: 'True-SSFP'
+                },
+                physics: 'Chuỗi xung Gradient Echo ở trạng thái cân bằng (Balanced SSFP). Cung cấp tín hiệu rất cao từ các mô có tỷ lệ T2/T1 cao (như máu, dịch não tủy, dịch khớp) so với các mô nền. Tương phản là "lai" giữa T1 và T2. Rất nhanh nhưng nhạy với artifact (banding artifact).',
+                applications: [
+                    { priority: 1, use: 'Chụp tim (Cardiac MRI): Chuỗi xung "cine" tiêu chuẩn để đánh giá co bóp của tim, chức năng van tim (máu sáng).' },
+                    { priority: 2, use: 'Chụp mạch máu không tiêm thuốc (Non-contrast MRA) (ví dụ: FBI ở ngoại vi, mạch vành).' },
+                    { priority: 3, use: 'Chụp tai trong, hố sau (đánh giá dịch và dây thần kinh).' },
+                    { priority: 4, use: 'Chụp khớp (ví dụ: MR Arthrography - chụp khớp có tiêm thuốc nội khớp).'}
+                ]
+            },
+
+            // ========= NHÓM XÓA MỠ ==========
+            {
+                id: 'stir',
+                group: 'fat-suppression',
+                genericName: 'STIR (Short-Tau Inversion Recovery)',
+                vendors: {
+                    Siemens: 'STIR, TIR',
+                    GE: 'STIR, FSE-IR',
+                    Philips: 'STIR',
+                    Hitachi: 'STIR, FIR',
+                    Canon: 'STIR'
+                },
+                physics: 'Là chuỗi xung Inversion Recovery với TI ngắn (khoảng 140-160ms tại 1.5T) để xóa tín hiệu của mỡ. Đây là kỹ thuật xóa mỡ không nhạy với sự không đồng nhất từ trường (khác với Fat-Sat/CHESS). Tín hiệu có tính cộng hưởng T1+T2+PD (tổn thương có T1, T2 dài sẽ sáng).',
+                applications: [
+                    { priority: 1, use: 'Đánh giá tủy xương (phù, u, di căn), đặc biệt là cột sống và khớp. Rất nhạy với phù.' },
+                    { priority: 2, use: 'Phát hiện tổn thương trong chấn thương cơ-xương-khớp (phù, rách cơ, dây chằng).' },
+                    { priority: 3, use: 'Xóa mỡ ở các vùng dễ bị artifact (ví dụ: cổ, vai, chi dưới) nơi Fat-Sat thất bại.' },
+                    { priority: 4, use: 'Lưu ý: Không dùng STIR sau tiêm thuốc Gadolinium (vì Gadolinium làm ngắn T1, có thể bị xóa luôn).'}
+                ]
+            },
+            {
+                id: 'fatsat',
+                group: 'fat-suppression',
+                genericName: 'Fat-Sat (CHESS / SPIR / SPAIR)',
+                vendors: {
+                    Siemens: 'Fat-Sat, FS',
+                    GE: 'CHESS (CHEmical Shift Selective)',
+                    Philips: 'SPIR (Spectral Pre-saturation IR), SPAIR (Spectral Attenuated IR)',
+                    Hitachi: 'Fat-Sat, CHESS',
+                    Canon: 'Fat-Sat'
+                },
+                physics: 'Kỹ thuật xóa mỡ dựa trên sự chênh lệch tần số cộng hưởng (chemical shift) giữa mỡ và nước. Một xung RF chọn lọc tần số (chỉ tác động lên mỡ) được phát ra, sau đó một gradient "spoiler" sẽ phá hủy tín hiệu của mỡ trước khi chuỗi xung chính (ví dụ: T1W, T2W) bắt đầu. Nhạy với sự không đồng nhất của từ trường (dễ bị xóa không đều).',
+                applications: [
+                    { priority: 1, use: 'Kỹ thuật xóa mỡ phổ biến nhất khi chụp T1W sau tiêm (T1W-FS+C) để làm nổi bật tổn thương ngấm thuốc.' },
+                    { priority: 2, use: 'Chụp T2W-FS hoặc PD-FS ở các vùng có từ trường đồng nhất (não, khớp, cột sống).' },
+                    { priority: 3, use: 'SPAIR/SPIR là các biến thể mạnh mẽ hơn, ít nhạy với B1-inhomogeneity hơn CHESS.'}
+                ]
+            },
+            {
+                id: 'dixon',
+                group: 'fat-suppression',
+                genericName: 'Dixon (In/Out-of-Phase)',
+                vendors: {
+                    Siemens: 'Dixon, VIBE Dixon, TGSE Dixon',
+                    GE: 'IDEAL, LAVA-Flex, Flex-T2',
+                    Philips: 'mDixon, FFE Dixon',
+                    Hitachi: 'Fat-Water Separation',
+                    Canon: 'Dixon'
+                },
+                physics: 'Dựa trên chuỗi xung GRE (hoặc TSE) thu tín hiệu ở (ít nhất) hai thời điểm TE khác nhau: khi mỡ và nước cùng pha (In-Phase) và khi chúng đối pha (Out-of-Phase). Từ hai ảnh này, máy tính có thể tái tạo ra 4 ảnh: In-Phase, Out-of-Phase, Chỉ Nước (Water-Only) và Chỉ Mỡ (Fat-Only). Kỹ thuật này xóa mỡ rất đồng đều, ít nhạy với artifact.',
+                applications: [
+                    { priority: 1, use: 'Xóa mỡ đồng đều toàn thân (whole-body MRI), đặc biệt là vùng cổ, bụng, và chi (nơi Fat-Sat dễ thất bại).' },
+                    { priority: 2, use: 'Định lượng mỡ (quantitative fat) (ví dụ: gan nhiễm mỡ, mỡ cơ).' },
+                    { priority: 3, use: 'Phát hiện mỡ vi thể (microscopic fat) trong u (ví dụ: adenoma tuyến thượng thận - tín hiệu giảm trên Out-of-Phase).'}
+                ]
+            },
+
+            // ========= NHÓM MẠCH MÁU (KHÔNG THUỐC) ==========
+            {
+                id: 'tof_mra',
+                group: 'non-contrast-mra',
+                genericName: 'MRA - TOF (Time of Flight)',
+                vendors: {
+                    Siemens: '3D TOF',
+                    GE: '3D TOF',
+                    Philips: '3D TOF',
+                    Hitachi: '3D TOF',
+                    Canon: '3D TOF'
+                },
+                physics: 'Kỹ thuật chụp mạch không tiêm thuốc. Làm bão hòa (saturate) tín hiệu của các mô tĩnh. Dòng máu tươi (chưa bị bão hòa) chảy vào lát cắt sẽ có tín hiệu sáng (hiệu ứng "flow-related enhancement"). Rất nhạy với dòng chảy nhanh, vuông góc với mặt phẳng cắt.',
+                applications: [
+                    { priority: 1, use: 'Đánh giá phình mạch, dị dạng mạch máu não (AVM, Aneurysm) - (Đa giác Willis).' },
+                    { priority: 2, use: 'Đánh giá hẹp/tắc động mạch cảnh, động mạch đốt sống (đoạn trong sọ và ngoài sọ).' },
+                    { priority: 3, use: 'Đánh giá động mạch thận (ít dùng hơn CTA/MRA có thuốc).' }
+                ]
+            },
+            {
+                id: 'pc_mra',
+                group: 'non-contrast-mra',
+                genericName: 'MRA - PC (Phase Contrast)',
+                vendors: {
+                    Siemens: 'PC-MRA, 2D/3D PC',
+                    GE: 'Phase Contrast, PC-MRA, Cine PC',
+                    Philips: 'PCA (Phase Contrast Angio), TFE-PCA',
+                    Hitachi: 'PC-MRA',
+                    Canon: 'PC-MRA'
+                },
+                physics: 'Kỹ thuật MRA dựa trên sự thay đổi pha (phase shift) của proton di chuyển trong một gradient từ. Bằng cách thiết lập VENC (Encoding Velocity), máy có thể mã hóa vận tốc dòng chảy. Có thể tạo ảnh 2D, 3D (giải phẫu) hoặc 2D Cine (đo lường lưu lượng, vận tốc).',
+                applications: [
+                    { priority: 1, use: 'Chụp hệ thống tĩnh mạch (MR Venography - MRV) - ví dụ: xoang tĩnh mạch não (nhạy với dòng chảy chậm).' },
+                    { priority: 2, use: 'Đánh giá dòng chảy dịch não tủy (CSF flow study) - chẩn đoán hẹp cống não, não úng thủy.' },
+                    { priority: 3, use: 'Đo lường vận tốc và lưu lượng máu qua van tim, động mạch chủ (Cardiac MRI).' }
+                ]
+            },
+
+            // ========= NHÓM NÂNG CAO & BẢN ĐỒ ==========
+            {
+                id: 'dwi',
+                group: 'advanced-maps',
+                genericName: 'DWI (Diffusion-Weighted Imaging)',
+                vendors: {
+                    Siemens: 'DWI, DWEPI, RESOLVE, ZOOMIT',
+                    GE: 'DWI, EPI, PROPELLER DWI, FOCUS',
+                    Philips: 'DWI, SSh-EPI',
+                    Hitachi: 'DWI-EPI',
+                    Canon: 'DWI'
+                },
+                physics: 'Đo lường sự khuếch tán (chuyển động Brown) của các phân tử nước. Thường dựa trên chuỗi xung EPI (Echo-Planar Imaging). Sử dụng hai xung gradient đối xứng (diffusion gradients) với giá trị b-value. Vùng hạn chế khuếch tán (ví dụ: nhồi máu cấp, u tế bào dày đặc) sẽ sáng trên DWI (b-value cao) và tối trên bản đồ ADC. RESOLVE/FOCUS là các kỹ thuật DWI giảm artifact, tăng độ phân giải.',
+                applications: [
+                    { priority: 1, use: 'Chẩn đoán nhồi máu não cấp (siêu sớm, < 30 phút).' },
+                    { priority: 2, use: 'Phát hiện và đặc tính hóa u (ví dụ: u não, u gan, u tiền liệt tuyến, u vú).' },
+                    { priority: 3, use: 'Phát hiện áp xe (ổ mủ hạn chế khuếch tán) - phân biệt với nang hoại tử.' },
+                    { priority: 4, use: 'Đánh giá bệnh lý Creutzfeldt-Jakob (CJD).'}
+                ]
+            },
+            {
+                id: 'adc',
+                group: 'advanced-maps',
+                genericName: 'ADC Map (Apparent Diffusion Coefficient)',
+                vendors: {
+                    Siemens: 'ADC Map',
+                    GE: 'ADC Map',
+                    Philips: 'ADC Map',
+                    Hitachi: 'ADC Map',
+                    Canon: 'ADC Map'
+                },
+                physics: 'Đây không phải là chuỗi xung mà là bản đồ định lượng, được máy tính tự động tính toán từ ít nhất 2 ảnh DWI với b-value khác nhau (ví dụ: b=0 và b=1000). Giá trị ADC (đơn vị mm²/s) phản ánh mức độ khuếch tán thực sự. Vùng hạn chế khuếch tán (DWI sáng) sẽ có tín hiệu tối trên ADC.',
+                applications: [
+                    { priority: 1, use: 'Xác nhận tổn thương hạn chế khuếch tán thực sự (nhồi máu cấp: DWI sáng, ADC tối).' },
+                    { priority: 2, use: 'Phân biệt "T2 Shine-Through" (DWI sáng, ADC cũng sáng - do T2 rất dài, ví dụ: nang) với hạn chế khuếch tán thực sự.' },
+                    { priority: 3, use: 'Định lượng mức độ ác tính của u (u càng ác tính, tế bào càng dày đặc, ADC càng thấp).' }
+                ]
+            },
+            {
+                id: 'asl_mra',
+                group: 'advanced-maps',
+                genericName: 'ASL (Arterial Spin Labeling)',
+                vendors: {
+                    Siemens: 'ASL, pCASL, FAIR',
+                    GE: '3D ASL, pCASL',
+                    Philips: 'ASL, pCASL',
+                    Hitachi: 'ASL',
+                    Canon: 'ASL'
+                },
+                physics: 'Kỹ thuật tưới máu (perfusion) không tiêm thuốc. Máy sẽ "đánh dấu" (labeling) các proton máu ở động mạch cổ bằng xung RF. Sau một thời gian trễ (Post-Labeling Delay), các proton này đi lên não. Máy chụp ảnh não (ảnh label) và trừ nó đi từ một ảnh nền (ảnh control, không label). Kết quả là ảnh chỉ chứa tín hiệu của máu đã đi lên não, phản ánh tưới máu (CBF).',
+                applications: [
+                    { priority: 1, use: 'Đánh giá tưới máu não (CBF) trong đột quỵ, thiếu máu mạn tính (Moya Moya, hẹp cảnh).' },
+                    { priority: 2, use: 'Đánh giá mức độ tưới máu của u não (phân biệt u, giả u).' },
+                    { priority: 3, use: 'Nghiên cứu chức năng não (fMRI) hoặc bệnh lý sa sút trí tuệ (Alzheimer).' }
+                ]
+            },
+            {
+                id: 'psir',
+                group: 'advanced-maps',
+                genericName: 'PSIR (Phase-Sensitive IR)',
+                vendors: {
+                    Siemens: 'PSIR (Phase-Sensitive IR)',
+                    GE: 'PS-IR',
+                    Philips: 'PSIR',
+                    Hitachi: 'PS-IR',
+                    Canon: 'PSIR'
+                },
+                physics: 'Là một chuỗi xung Inversion Recovery (IR) được tái tạo dựa trên thông tin pha (phase-sensitive) thay vì chỉ biên độ. Điều này giúp giữ lại thông tin âm/dương của tín hiệu, tạo ra ảnh "true inversion" với độ tương phản T1 rất cao và không có hiện tượng tín hiệu bằng 0 ở điểm null point (khác với STIR/FLAIR thông thường).',
+                applications: [
+                    { priority: 1, use: 'Đánh giá ngấm thuốc muộn (Late Gadolinium Enhancement - LGE) trong cơ tim (chẩn đoán sẹo nhồi máu cơ tim).' },
+                    { priority: 2, use: 'Đánh giá sụn khớp (MSK): Tương phản tuyệt vời giữa sụn và xương/dịch.' },
+                    { priority: 3, use: 'Đánh giá não: Tăng cường độ tương phản giữa chất xám và chất trắng, phát hiện tổn thương vỏ não (MS).'}
+                ]
+            },
+            {
+                id: 't2star_map',
+                group: 'advanced-maps',
+                genericName: 'T2* Mapping (mGRE / ME-DATA)',
+                vendors: {
+                    Siemens: 'mGRE (multi-GRE), T2* Map',
+                    GE: 'IDEAL-IQ, T2* Map',
+                    Philips: 'mDixon, T2* Map',
+                    Hitachi: 'T2* Map',
+                    Canon: 'T2* Map'
+                },
+                physics: 'Là chuỗi xung Multi-Echo Gradient Echo (mGRE), thu tín hiệu ở nhiều thời điểm TE khác nhau. Từ dữ liệu đa echo này, máy tính có thể tính toán và tạo ra bản đồ định lượng T2* (hoặc R2* = 1/T2*). Giá trị T2* giảm khi có sự hiện diện của sắt.',
+                applications: [
+                    { priority: 1, use: 'Định lượng sắt trong gan (chẩn đoán bệnh ứ sắt - hemochromatosis).' },
+                    { priority: 2, use: 'Định lượng sắt trong tim (cho bệnh nhân Thalassemia).' },
+                    { priority: 3, use: 'Nghiên cứu lắng đọng sắt trong não (bệnh lý thoái hóa thần kinh).'}
+                ]
+            },
+            {
+                id: 'bolus_trak',
+                group: 'advanced-maps',
+                genericName: 'Bolus Trak / Test Bolus',
+                vendors: {
+                    Siemens: 'Care Bolus, Test Bolus',
+                    GE: 'SmartPrep, Fluoro-Trigger',
+                    Philips: 'BolusTrak, Test-Bolus',
+                    Hitachi: 'TRAQ, Test Bolus',
+                    Canon: 'Bolus Trak'
+                },
+                physics: 'Không phải là chuỗi xung chẩn đoán, mà là một kỹ thuật theo dõi (monitoring) sự di chuyển của bolus thuốc đối quang từ. Máy sẽ chụp liên tục một lát cắt (thường là 2D FLASH/GRE) qua động mạch chủ, và hiển thị biểu đồ tín hiệu theo thời gian thực. KTV sẽ dựa vào biểu đồ này để bắt đầu (trigger) chuỗi xung MRA 3D chính (ví dụ: VIBE) ngay khi thuốc đạt đỉnh ở động mạch.',
+                applications: [
+                    { priority: 1, use: 'Canh thời gian (timing) chính xác cho Chụp mạch MRA có thuốc (CE-MRA) (động mạch chủ, động mạch thận, động mạch ngoại vi).' },
+                    { priority: 2, use: 'Đảm bảo chụp đúng pha động mạch, tránh bị nhiễm tĩnh mạch sớm.'}
+                ]
+            },
+            {
+                id: 'ti_scout',
+                group: 'advanced-maps',
+                genericName: 'TI Scout (Look-Locker)',
+                vendors: {
+                    Siemens: 'TI Scout, Look-Locker',
+                    GE: 'Look-Locker, TI Finder',
+                    Philips: 'TI Scout',
+                    Hitachi: 'Look-Locker',
+                    Canon: 'TI Scout'
+                },
+                physics: 'Là một chuỗi xung Inversion Recovery (IR) đặc biệt, thu nhiều ảnh ở các thời điểm TI (Inversion Time) khác nhau sau một xung đảo nghịch. Mục đích là để KTV nhìn thấy tín hiệu của một mô cụ thể (ví dụ: cơ tim, mỡ) thay đổi theo thời gian và chọn ra thời điểm TI mà mô đó bị xóa (tín hiệu bằng 0).',
+                applications: [
+                    { priority: 1, use: 'Xác định TI chính xác để xóa tín hiệu cơ tim bình thường trong chuỗi xung LGE (ngấm thuốc muộn) ở tim.' },
+                    { priority: 2, use: 'Xác định TI chính xác để xóa tín hiệu mỡ (STIR) hoặc dịch (FLAIR) ở các từ trường khác nhau (ví dụ: 3T) hoặc ở các bệnh nhân khác nhau.'}
+                ]
+            }
+        ];
+
+        // Lấy các phần tử DOM
+        const sidebarNav = document.getElementById('sidebar-nav');
+        const container = document.getElementById('sequence-container');
+        const searchInput = document.getElementById('searchInput');
+
+        // Hàm HỖ TRỢ: Tạo HTML cho một thẻ chuỗi xung (ĐÃ CẬP NHẬT)
+        function generateCardHtml(seq) {
+            // Lấy style của nhóm
+            const style = groupStyles[seq.group] || groupStyles['spin-echo']; // Mặc định là style của spin-echo
+
+            // Tạo bảng tên hãng
+            let vendorHtml = '<table class="w-full text-sm my-3 vendor-table"><thead><tr><th class="text-left">Hãng</th><th class="text-left">Tên gọi</th></tr></thead><tbody>';
+            for (const [vendor, name] of Object.entries(seq.vendors)) {
+                vendorHtml += `<tr><td class="font-medium">${vendor}</td><td>${name}</td></tr>`;
+            }
+            vendorHtml += '</tbody></table>';
+
+            // Tạo danh sách ứng dụng
+            let appHtml = '<ol class="list-decimal list-inside space-y-2 mt-2 text-sm">';
+            seq.applications.sort((a, b) => a.priority - b.priority).forEach(app => {
+                appHtml += `<li><span class="font-medium">${app.use}</span></li>`;
+            });
+            appHtml += '</ol>';
+
+            // Trả về thẻ HTML hoàn chỉnh
+            return `
+                <div class="sequence-card bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 transform hover:scale-102" id="${seq.id}">
+                    <!-- Header thẻ (ĐÃ CẬP NHẬT: màu tự động theo nhóm) -->
+                    <div class="p-5 ${style.bg} text-white">
+                        <h2 class="text-2xl font-bold">${seq.genericName}</h2>
+                    </div>
+                    
+                    <!-- Nội dung thẻ -->
+                    <div class="p-5 space-y-4">
+                        <!-- Tên Hãng -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Tên gọi theo hãng</h3>
+                            ${vendorHtml}
+                        </div>
+
+                        <!-- Bản chất vật lý -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Bản chất vật lý</h3>
+                            <p class="text-gray-700 text-sm mt-2 leading-relaxed">${seq.physics}</p>
+                        </div>
+
+                        <!-- Ứng dụng lâm sàng -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Ứng dụng lâm sàng (Ưu tiên)</h3>
+                            ${appHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+
+        // Hàm để hiển thị các chuỗi xung (ĐÃ CẬP NHẬT: Hỗ trợ 5 nhóm)
+        function renderSequences(sequences) {
+            sidebarNav.innerHTML = ''; // Xóa nội dung cũ
+            container.innerHTML = ''; // Xóa nội dung cũ
+
+            // Phân loại chuỗi xung
+            const groupedSequences = {};
+            for (const groupId in groupStyles) {
+                groupedSequences[groupId] = sequences.filter(s => s.group === groupId);
+            }
+            
+            // Sắp xếp nhóm xóa mỡ (STIR, FatSat, Dixon) - nếu có
+            if (groupedSequences['fat-suppression']) {
+                groupedSequences['fat-suppression'].sort((a, b) => {
+                    const order = ['stir', 'fatsat', 'dixon'];
+                    return order.indexOf(a.id) - order.indexOf(b.id);
+                });
+            }
+
+            let sidebarHtml = '<div class="sidebar-sticky space-y-4">'; // Bọc sidebar để làm sticky
+            let contentHtml = '';
+
+            // ---- Xử lý TẤT CẢ CÁC NHÓM một cách tự động ----
+            for (const groupId in groupStyles) {
+                const sequencesInGroup = groupedSequences[groupId];
+                const style = groupStyles[groupId];
+                
+                if (sequencesInGroup && sequencesInGroup.length > 0) {
+                    // Thêm vào Sidebar
+                    sidebarHtml += `<div id="sidebar-${groupId}-group" class="sidebar-group mt-6">
+                                        <h3 class="text-xl font-semibold mb-3 ${style.text}">${style.title}</h3>
+                                        <div class="space-y-1 pl-2 border-l-2 ${style.border}">`;
+                    sequencesInGroup.forEach(seq => {
+                        sidebarHtml += `<a href="#${seq.id}" class="sidebar-link block p-2 rounded-md text-sm text-gray-700 ${style.hover} hover:${style.text}">${seq.genericName}</a>`;
+                    });
+                    sidebarHtml += `</div></div>`;
+
+                    // Thêm vào Nội dung chính
+                    contentHtml += `<h2 id="${groupId}-group" class="group-heading text-3xl font-bold mt-12 mb-6 ${style.textDark} pt-5">${style.title}</h2>`;
+                    contentHtml += `<div id="${groupId}-grid" class="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6">`;
+                    sequencesInGroup.forEach(seq => {
+                        contentHtml += generateCardHtml(seq);
+                    });
+                    contentHtml += `</div>`;
+                }
+            }
+            
+            sidebarHtml += '</div>'; // Đóng thẻ sticky wrapper
+
+            // Hiển thị nếu không có dữ liệu
+            if (sequences.length === 0) {
+                container.innerHTML = '<p class="text-gray-600 text-lg col-span-full text-center">Không tìm thấy chuỗi xung.</p>';
+                sidebarNav.innerHTML = '<p class="text-gray-600 text-sm">Không có dữ liệu.</p>';
+                return;
+            }
+
+            // Sửa lỗi sidebar group đầu tiên không có margin-top
+            sidebarNav.innerHTML = sidebarHtml.replace('mt-6', ''); // Xóa margin-top của nhóm đầu tiên
+            container.innerHTML = contentHtml.replace('mt-12', ''); // Xóa margin-top của nhóm đầu tiên
+        }
+
+        // Hàm lọc chuỗi xung (Không thay đổi, vẫn hoạt động tốt)
+        function filterSequences() {
+            const searchTerm = searchInput.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Chuẩn hóa, bỏ dấu tiếng Việt
+            
+            const allCards = document.querySelectorAll('.sequence-card');
+            const allSidebarLinks = document.querySelectorAll('.sidebar-link');
+            const visibleCardIds = new Set();
+
+            // 1. Lọc các thẻ Card (Nội dung chính)
+            allCards.forEach(card => {
+                const cardText = card.textContent.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                if (cardText.includes(searchTerm)) {
+                    card.classList.remove('hidden');
+                    visibleCardIds.add(card.id);
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+
+            // 2. Lọc các link ở Sidebar
+            allSidebarLinks.forEach(link => {
+                const targetId = link.hash.substring(1); // hash là '#t1w', substring(1) là 't1w'
+                if (visibleCardIds.has(targetId)) {
+                    link.classList.remove('hidden');
+                } else {
+                    link.classList.add('hidden');
+                }
+            });
+
+            // 3. Ẩn/Hiện các tiêu đề nhóm (cả ở Sidebar và Nội dung chính)
+            document.querySelectorAll('.group-heading').forEach(heading => {
+                const gridId = heading.id.replace('-group', '-grid'); // 'spin-echo-group' -> 'spin-echo-grid'
+                const grid = document.getElementById(gridId);
+                if (grid) {
+                    const visibleCardsInGroup = grid.querySelectorAll('.sequence-card:not(.hidden)');
+                    if (visibleCardsInGroup.length === 0) {
+                        heading.classList.add('hidden');
+                    } else {
+                        heading.classList.remove('hidden');
+                    }
+                }
+            });
+
+            document.querySelectorAll('.sidebar-group').forEach(group => {
+                const visibleLinksInGroup = group.querySelectorAll('.sidebar-link:not(.hidden)');
+                if (visibleLinksInGroup.length === 0) {
+                    group.classList.add('hidden');
+                } else {
+                    group.classList.add('hidden');
+                }
+            });
+        }
+
+        // Gắn sự kiện
+        // 1. Hiển thị tất cả khi tải trang
+        document.addEventListener('DOMContentLoaded', () => {
+            renderSequences(sequenceData);
+        });
+
+        // 2. Lọc khi người dùng gõ
+        searchInput.addEventListener('keyup', filterSequences);
+
+    </script>
+
+</body>
+</html>
+
+
