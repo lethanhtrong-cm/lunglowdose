@@ -24,6 +24,11 @@
         }
 
         /* --- CSS Reset & Basic Styling --- */
+        /* ADDED: Smooth scroll behavior for the whole page */
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
             font-family: 'Roboto', sans-serif;
             margin: 0;
@@ -254,6 +259,7 @@
         /* --- Content Sections Styling --- */
         main {
             background-color: var(--white);
+            position: relative; /* Added for z-index context if needed */
         }
 
         .content-section {
@@ -298,6 +304,42 @@
             margin: 8px 0;
         }
 
+        /* --- NEW: Back to Top Button Styling --- */
+        #back-to-top-btn {
+            display: none; /* Hidden by default */
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 100;
+            border: none;
+            outline: none;
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            padding: 0; /* Remove padding for precise icon centering */
+            border-radius: 50%; /* Make it circular */
+            width: 50px;
+            height: 50px;
+            font-size: 20px; /* Icon size */
+            box-shadow: 0 4px 10px var(--shadow-color);
+            transition: all 0.3s ease;
+            /* Flex centering for the icon */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+
+        #back-to-top-btn.active {
+            display: flex; /* Show the button when active */
+        }
+
+        #back-to-top-btn:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-5px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+        }
+
         /* --- Responsive adjustments --- */
         @media (max-width: 992px) {
             .nav-buttons a { width: 160px; height: 110px; }
@@ -323,6 +365,15 @@
             .nav-group-title {
                 font-size: 1em;
                 margin-top: 15px;
+            }
+
+            /* --- NEW: Adjust Back to Top button for smaller screens --- */
+            #back-to-top-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+                bottom: 20px;
+                right: 20px;
             }
         }
 
@@ -351,7 +402,7 @@
 </head>
 <body>
 
-    <section class="hero-section">
+    <section class="hero-section" id="top"> <!-- ADDED ID for back-to-top link -->
         <div class="hero-background-layer active"></div>
         <div class="hero-background-layer"></div>
 
@@ -396,7 +447,7 @@
                     <span>CT Phổi Liều Thấp</span>
                 </a>
                 <!-- Tính Toán Liều Bức Xạ -->
-                <a href="https://vnrad.tech/ctdose">
+                <a href="https://vnrad.tech/ctdose/">
                     <i class="fa-solid fa-calculator"></i>
                     <span>Tính Toán Liều Bức Xạ</span>
                 </a>
@@ -468,6 +519,11 @@
         </section>
     </main>
 
+    <!-- NEW: Back to Top Button HTML -->
+    <a href="#top" id="back-to-top-btn" aria-label="Lên đầu trang" title="Lên đầu trang">
+        <i class="fa-solid fa-arrow-up"></i>
+    </a>
+
     <footer>
         <p>&copy; 2025 vnrad.tech. Trang thông tin dành cho Kỹ thuật viên Hình ảnh Y học.</p>
         <p>Nhóm KTV 3 Miền.</p>
@@ -476,17 +532,51 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Smooth scrolling for anchor links
+            // --- NEW: Back to Top Button Logic ---
+            const backToTopButton = document.getElementById('back-to-top-btn');
+
+            if (backToTopButton) {
+                // Function to show/hide the button
+                const scrollFunction = () => {
+                    if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
+                        backToTopButton.classList.add('active');
+                    } else {
+                        backToTopButton.classList.remove('active');
+                    }
+                };
+
+                // Add scroll event listener
+                window.onscroll = scrollFunction;
+
+                // Add click event listener for smooth scroll
+                backToTopButton.addEventListener('click', function(e) {
+                    e.preventDefault(); // Prevent default anchor jump
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                });
+            }
+
+            // --- Original Smooth scrolling for in-page anchor links ---
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', function (e) {
                     const hrefAttribute = this.getAttribute('href');
-                    // Chỉ xử lý nếu href là một anchor link hợp lệ (ví dụ: #gioi-thieu)
-                    if (hrefAttribute && hrefAttribute.length > 1 && hrefAttribute.startsWith('#')) {
+                    
+                    // Only process local anchors, skip the #top button as it has its own logic
+                    if (hrefAttribute && hrefAttribute.length > 1 && hrefAttribute.startsWith('#') && hrefAttribute !== '#top') {
                         const targetElement = document.querySelector(hrefAttribute);
                         if (targetElement) {
                             e.preventDefault();
+                            
+                            // Calculate offset (e.g., if you have a sticky header)
+                            // const headerOffset = 0; 
+                            // const elementPosition = targetElement.offsetTop;
+                            // const offsetPosition = elementPosition - headerOffset;
+
                             window.scrollTo({
-                                top: targetElement.offsetTop,
+                                // top: offsetPosition,
+                                top: targetElement.offsetTop, // Simple version
                                 behavior: 'smooth'
                             });
                         }
@@ -494,7 +584,7 @@
                 });
             });
 
-            // Background image slider
+            // --- Original Background image slider ---
             const heroSection = document.querySelector('.hero-section');
             const backgroundImages = [
                 'https://skagitradiology.com/wp-content/uploads/2020/08/dr-reading-image.png',
@@ -502,15 +592,15 @@
                 'https://drjathinsveincenter.com/wp-content/uploads/2022/03/What-Is-Interventional-Radiology-And-How-Does-It-Work-1.jpg',
                 'https://eu-images.contentstack.com/v3/assets/blt485767b4a9c4cef5/blt7a7f7d5fec2a6561/673c9078893ca9428953872c/Radiology_trends_(1).png'
             ];
-            
+           
             // Xử lý lỗi nếu không tìm thấy heroSection hoặc không có ảnh
             if (!heroSection || backgroundImages.length === 0) {
                 console.warn('Hero section or background images not found.');
                 return; 
             }
-            
+           
             const bgLayers = Array.from(document.querySelectorAll('.hero-background-layer'));
-            
+           
             // Xử lý lỗi nếu không tìm thấy các lớp background
             if (bgLayers.length < 2) {
                 console.warn('Hero background layers not found (requires at least 2).');
@@ -556,9 +646,4 @@
 
 </body>
 </html>
-
-
-
-
-
 
