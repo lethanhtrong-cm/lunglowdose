@@ -14,20 +14,23 @@
     <script src="https://cdn.counter.dev/script.js" data-id="86e74dda-26a8-41de-99d1-63d0e8fec60e" data-utcoffset="7"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Thêm font Montserrat để tiêu đề trông hiện đại hơn -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
     <!-- Thêm thư viện icon Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* --- CSS Variables for the new blue color scheme --- */
+        /* --- CSS Variables: DARK TECH THEME --- */
         :root {
-            --primary-color: #0056b3; /* A strong, classic blue */
-            --secondary-color: #007bff; /* A brighter, standard blue */
-            --accent-color: #3da9fc; /* Lighter blue for hover effects */
-            --light-grey: #f8f9fa; /* A slightly warmer light background */
-            --dark-grey: #343a40;
-            --medium-grey: #5c6c7d; /* Softer text color */
-            --white: #ffffff;
-            --shadow-color: rgba(0, 0, 0, 0.1);
+            --bg-dark: #0b1120; /* Very dark blue/black */
+            --bg-panel: #1e293b; /* Dark slate */
+            --primary-color: #06b6d4; /* Cyan - High Tech feel */
+            --primary-glow: rgba(6, 182, 212, 0.5);
+            --secondary-color: #3b82f6; /* Royal Blue */
+            --text-main: #f1f5f9; /* White-ish */
+            --text-muted: #94a3b8; /* Grey-ish */
+            --card-bg: rgba(30, 41, 59, 0.6);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --gradient-text: linear-gradient(to right, #22d3ee, #3b82f6);
         }
 
         /* --- CSS Reset & Basic Styling --- */
@@ -39,9 +42,13 @@
             font-family: 'Roboto', sans-serif;
             margin: 0;
             line-height: 1.6;
-            color: var(--dark-grey);
-            background-color: var(--light-grey);
-            /* Thêm class lang-vi làm mặc định */
+            color: var(--text-main);
+            background-color: var(--bg-dark);
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Montserrat', sans-serif; /* Tiêu đề dùng font cứng cáp hơn */
         }
 
         /* --- Hero Section Styling --- */
@@ -53,10 +60,11 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 80px 20px;
+            padding: 100px 20px 60px; /* Thêm padding top để tránh nút lang */
             box-sizing: border-box;
             text-align: center;
             z-index: 1;
+            background: #000; /* Fallback */
         }
 
         /* === Background Image Layer === */
@@ -68,161 +76,143 @@
             height: 100%;
             background-size: cover;
             background-position: center center;
-            filter: blur(5px) brightness(0.6);
-            background-color: rgba(0, 86, 179, 0.7);
-            background-blend-mode: multiply;
-            z-index: -1;
+            filter: blur(8px) brightness(0.4) grayscale(30%); /* Darker and moodier */
+            z-index: -2;
             opacity: 0;
-            transition: opacity 1.5s ease-in-out;
+            transition: opacity 2s ease-in-out;
+        }
+
+        /* Lớp phủ gradient để làm nền tối hơn và hòa trộn */
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(11, 17, 32, 0.5) 0%, var(--bg-dark) 100%);
+            z-index: -1;
         }
 
         .hero-background-layer.active {
             opacity: 1;
         }
         
-        /* --- NEW: Language Switcher --- */
+        /* --- NEW: Language Switcher (Tech Style) --- */
         .lang-switcher {
             position: absolute;
             top: 25px;
             right: 30px;
             z-index: 10;
-            background: rgba(0, 0, 0, 0.25);
-            padding: 5px 10px;
-            border-radius: 8px;
-            backdrop-filter: blur(5px);
+            background: rgba(15, 23, 42, 0.8);
+            padding: 4px;
+            border-radius: 20px;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
         }
         .lang-switcher .lang-btn {
-            color: #ffffff;
+            color: var(--text-muted);
             text-decoration: none;
-            font-weight: 500;
-            font-size: 0.9em;
-            opacity: 0.7;
-            transition: opacity 0.3s ease;
+            font-weight: 600;
+            font-size: 0.85em;
+            padding: 6px 14px;
+            border-radius: 16px;
             cursor: pointer;
+            transition: all 0.3s ease;
         }
         .lang-switcher .lang-btn:hover {
-            opacity: 1;
+            color: var(--text-main);
         }
         .lang-switcher .lang-btn.active {
-            font-weight: 700;
-            opacity: 1;
-            text-decoration: underline;
+            color: #000;
+            background: var(--primary-color);
+            box-shadow: 0 0 10px var(--primary-glow);
         }
         .lang-switcher .lang-separator {
-            color: #ffffff;
-            opacity: 0.7;
-            margin: 0 5px;
-            font-size: 0.9em;
+            display: none; /* Ẩn dấu gạch đứng, dùng style nút */
         }
 
         /* === Logo Styling === */
         .hero-logo {
-            max-height: 120px;
+            max-height: 130px;
             width: auto;
-            margin-bottom: 20px;
-            filter: drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.5));
+            margin-bottom: 25px;
+            filter: drop-shadow(0 0 15px rgba(6, 182, 212, 0.3)); /* Cyan glow */
             z-index: 2;
+            transition: transform 0.3s ease;
+        }
+        .hero-logo:hover {
+            transform: scale(1.05);
+            filter: drop-shadow(0 0 25px rgba(6, 182, 212, 0.6));
         }
 
         /* === Hero Text Content === */
-        .hero-section h1,
-        .hero-section .tagline,
-        .hero-section .subtitle {
-            z-index: 2;
-            position: relative;
-            color: var(--white);
-            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
-        }
-
         .hero-section h1 {
-            font-size: clamp(3em, 8vw, 5.5em);
-            margin-bottom: 0;
-            font-weight: 700;
+            font-size: clamp(3.5em, 8vw, 6em);
+            margin-bottom: 10px;
+            font-weight: 800;
             line-height: 1.1;
-            text-shadow: 0 3px 9px rgba(0, 0, 0, 0.75);
+            letter-spacing: -2px;
+            color: var(--text-main);
+            text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        .hero-section h1 .part-right {
+            background: var(--gradient-text);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: none; /* Text gradient không dùng shadow thường */
+            filter: drop-shadow(0 0 5px rgba(34, 211, 238, 0.5));
         }
 
         /* --- Animation for vnrad.tech --- */
         .hero-section h1 span {
             display: inline-block;
             opacity: 0;
-            position: relative;
         }
+        .hero-section h1 .part-left { animation: slide-in-left 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s forwards; }
+        .hero-section h1 .part-right { animation: slide-in-right 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s forwards; }
 
-        .hero-section h1 .part-left {
-            animation: slide-in-left 1.2s cubic-bezier(0.23, 1, 0.32, 1) 0.3s forwards;
-        }
-
-        .hero-section h1 .part-right {
-            animation: slide-in-right 1.2s cubic-bezier(0.23, 1, 0.32, 1) 0.3s forwards;
-        }
-
-        @keyframes slide-in-left {
-            from {
-                transform: translateX(-40%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes slide-in-right {
-            from {
-                transform: translateX(40%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-        /* --- End Animation --- */
+        @keyframes slide-in-left { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slide-in-right { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
         .hero-section .tagline {
-            font-size: clamp(1.1em, 2.5vw, 1.5em);
-            font-weight: 300;
-            margin-top: 5px;
-            margin-bottom: 25px;
-            letter-spacing: normal;
+            font-family: 'Montserrat', sans-serif;
+            font-size: clamp(1em, 2.5vw, 1.3em);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--primary-color);
+            margin-bottom: 20px;
             opacity: 0;
-            animation: fade-in-up 1s ease-out 1.0s forwards;
+            animation: fade-in-up 1s ease-out 0.8s forwards;
+            text-shadow: 0 0 10px var(--primary-glow);
         }
 
         .hero-section .subtitle {
-            font-size: clamp(1.2em, 2.5vw, 1.6em);
+            font-size: clamp(1em, 2vw, 1.2em);
             font-weight: 300;
-            margin-bottom: 30px;
-            max-width: 90vw;
-            margin-left: auto;
-            margin-right: auto;
-            white-space: nowrap;
+            color: var(--text-muted);
+            margin-bottom: 50px;
+            max-width: 800px;
             opacity: 0;
-            animation: fade-in-up 1s ease-out 1.2s forwards;
+            animation: fade-in-up 1s ease-out 1s forwards;
         }
 
-        @keyframes fade-in-up {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+        @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* === Navigation Buttons - NEW DESIGN === */
+        /* === Navigation Buttons - CYBERPUNK/TECH STYLE === */
         .nav-buttons {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 15px;
+            gap: 25px;
             max-width: 1400px;
             margin: 0 auto;
             z-index: 2;
-            position: relative;
+            width: 100%;
         }
 
         .button-row {
@@ -230,251 +220,269 @@
             flex-wrap: wrap;
             justify-content: center;
             gap: 20px;
+            perspective: 1000px; /* Cho hiệu ứng 3D */
         }
 
         .nav-buttons a {
+            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 12px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--secondary-color);
-            color: var(--white);
-            text-decoration: none;
-            border-radius: 10px;
-            font-size: clamp(0.9em, 2vw, 1em);
-            font-weight: 500;
+            gap: 15px;
             width: 180px;
-            height: 120px;
-            padding: 15px 10px;
+            height: 130px;
+            padding: 15px;
+            text-decoration: none;
             text-align: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            
+            /* Glassmorphism Dark */
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Hiệu ứng viền sáng khi hover */
+        .nav-buttons a::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 16px;
+            padding: 2px;
+            background: linear-gradient(45deg, transparent, rgba(6, 182, 212, 0.3), transparent);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
         }
 
         .nav-buttons a i {
-            font-size: 2.2em;
-            margin-bottom: 5px;
-            opacity: 0.9;
-            transition: color 0.3s ease;
+            font-size: 2.5em;
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
         }
 
         .nav-buttons a span {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.95em;
+            font-weight: 600;
+            color: var(--text-main);
             line-height: 1.3;
+            z-index: 1;
         }
 
+        /* Hover Effects */
         .nav-buttons a:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-8px);
-            border-color: var(--accent-color);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            transform: translateY(-10px) scale(1.02);
+            background: rgba(30, 41, 59, 0.9);
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.4), inset 0 0 20px rgba(6, 182, 212, 0.1);
+            border-color: rgba(6, 182, 212, 0.5);
         }
 
         .nav-buttons a:hover i {
-            color: var(--accent-color);
+            color: var(--primary-color);
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 8px var(--primary-color));
+        }
+        
+        .nav-buttons a:hover::before {
+            opacity: 1;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
         }
 
         /* --- NEW: Group Title Styling --- */
         .nav-group-title {
-            color: var(--white);
-            font-size: 1.1em;
-            font-weight: 500;
-            margin-bottom: 0;
-            margin-top: 10px;
-            text-align: center;
-            width: 100%;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-            letter-spacing: 0.5px;
+            color: var(--primary-color);
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 700;
+            margin-top: 15px;
+            position: relative;
+            display: inline-block;
+            padding: 5px 20px;
+            background: rgba(6, 182, 212, 0.1);
+            border-radius: 20px;
+            border: 1px solid rgba(6, 182, 212, 0.2);
             opacity: 0;
             animation: fade-in-up 1s ease-out 1.4s forwards;
         }
-        .nav-buttons .nav-group-title:first-of-type {
-            margin-top: 0;
-        }
+        .nav-buttons .nav-group-title:first-of-type { margin-top: 0; }
 
         /* --- Content Sections Styling --- */
         main {
-            background-color: var(--white);
+            background-color: var(--bg-dark);
             position: relative;
+            /* Họa tiết lưới công nghệ */
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
         }
 
         .content-section {
-            padding: 80px 30px;
-            max-width: 960px;
+            padding: 100px 30px;
+            max-width: 1000px;
             margin: 0 auto;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .content-section:nth-child(odd) { background-color: var(--white); }
-        .content-section:nth-child(even) { background-color: var(--light-grey); }
-        .content-section:last-of-type {
-            border-bottom: none;
+        .content-section:nth-child(even) { 
+            background: linear-gradient(180deg, transparent, rgba(30, 41, 59, 0.3), transparent);
         }
 
+        .content-section:last-of-type { border-bottom: none; }
 
         .content-section h2 {
             text-align: center;
-            font-size: 2.2em;
-            margin-bottom: 40px;
-            color: var(--primary-color);
+            font-size: 2.5em;
+            margin-bottom: 50px;
+            background: var(--gradient-text);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             font-weight: 700;
+            position: relative;
+            display: inline-block;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        /* Gạch chân dưới tiêu đề */
+        .content-section h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: var(--primary-color);
+            border-radius: 2px;
+            box-shadow: 0 0 10px var(--primary-color);
         }
 
         .content-section p {
-            font-size: 1.1em;
-            color: var(--medium-grey);
-            line-height: 1.8;
+            font-size: 1.15em;
+            color: var(--text-muted); /* Màu chữ xám nhạt dễ đọc trên nền tối */
+            line-height: 1.9;
             text-align: justify;
+        }
+        
+        /* Highlight text inside paragraph if needed */
+        .content-section p strong {
+            color: var(--text-main);
         }
 
         /* --- Footer Styling --- */
         footer {
             text-align: center;
-            padding: 40px 25px;
-            background-color: var(--primary-color);
-            color: #bdc3c7;
+            padding: 50px 25px;
+            background-color: #020617;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            color: var(--text-muted);
         }
 
-        footer p {
-            margin: 8px 0;
+        footer p { margin: 10px 0; font-size: 0.95em; }
+        footer strong { color: var(--primary-color); }
+        
+        /* Style cho liên kết trong footer */
+        footer a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        footer a:hover {
+            color: var(--primary-color);
+            text-shadow: 0 0 10px var(--primary-glow);
         }
 
         /* --- NEW: Back to Top Button Styling --- */
         #back-to-top-btn {
-            display: none; /* Hidden by default */
+            display: none;
             position: fixed;
             bottom: 30px;
             right: 30px;
             z-index: 100;
             border: none;
             outline: none;
-            background-color: var(--primary-color);
-            color: white;
+            background: rgba(30, 41, 59, 0.8);
+            color: var(--primary-color);
             cursor: pointer;
-            padding: 0;
             border-radius: 50%;
             width: 50px;
             height: 50px;
             font-size: 20px;
-            box-shadow: 0 4px 10px var(--shadow-color);
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(5px);
             transition: all 0.3s ease;
-            display: flex;
             align-items: center;
             justify-content: center;
             text-decoration: none;
         }
 
-        #back-to-top-btn.active {
-            display: flex;
-        }
+        #back-to-top-btn.active { display: flex; }
 
         #back-to-top-btn:hover {
-            background-color: var(--secondary-color);
+            background: var(--primary-color);
+            color: #000;
+            box-shadow: 0 0 20px var(--primary-glow);
             transform: translateY(-5px);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
         }
         
-        /* --- NEW: Language Visibility CSS --- */
-        /* Logic: 
-          CSS rules are now *exclusively* based on the body class.
-          This prevents default rules from causing conflicts.
-        */
-
-        /* Trạng thái Tiếng Việt (mặc định):
-          - Hiển thị .lang-vi
-          - Ẩn .lang-en
-        */
-        body.lang-vi .lang-vi {
-            display: inline;
-        }
-        body.lang-vi .lang-en {
-            display: none;
-        }
-
-        /* Trạng thái Tiếng Anh:
-          - Ẩn .lang-vi
-          - Hiển thị .lang-en
-        */
-        body.lang-en .lang-vi {
-            display: none;
-        }
-        body.lang-en .lang-en {
-            display: inline;
-        }
+        /* --- Language Visibility CSS --- */
+        body.lang-vi .lang-vi { display: inline; }
+        body.lang-vi .lang-en { display: none; }
+        body.lang-en .lang-vi { display: none; }
+        body.lang-en .lang-en { display: inline; }
 
 
         /* --- Responsive adjustments --- */
         @media (max-width: 992px) {
-            .nav-buttons a { width: 160px; height: 110px; }
+            .nav-buttons a { width: 160px; height: 120px; }
         }
 
         @media (max-width: 768px) {
-            .hero-section { }
-            .button-row {
-                max-width: 500px;
-            }
-            .nav-buttons a { width: 140px; height: 110px; font-size: 0.9em; }
-            .nav-buttons a i { font-size: 1.8em; }
+            .hero-section h1 { font-size: 3em; }
+            .button-row { max-width: 500px; gap: 15px; }
+            .nav-buttons a { width: 140px; height: 120px; font-size: 0.85em; }
+            .nav-buttons a i { font-size: 2em; }
             .content-section { padding: 60px 20px; }
-            .content-section h2 { font-size: 2em; }
-            .nav-group-title {
-                font-size: 1em;
-                margin-top: 15px;
-            }
-            #back-to-top-btn {
-                width: 45px;
-                height: 45px;
-                font-size: 18px;
-                bottom: 20px;
-                right: 20px;
-            }
-            /* Chỉnh vị trí nút ngôn ngữ trên di động */
-            .lang-switcher {
-                top: 20px;
-                right: 20px;
-            }
+            .content-section h2 { font-size: 1.8em; }
+            #back-to-top-btn { width: 45px; height: 45px; font-size: 18px; bottom: 20px; right: 20px; }
+            .lang-switcher { top: 20px; right: 20px; }
         }
 
         @media (max-width: 480px) {
-            .nav-buttons a {
-                width: calc(50% - 10px);
-                max-width: 300px;
-                height: auto;
-                padding: 15px 10px;
-            }
-            .button-row {
-                gap: 15px;
-                width: 100%;
-            }
+            .nav-buttons a { width: calc(50% - 10px); max-width: none; }
+            .button-row { gap: 15px; width: 100%; padding: 0 10px; box-sizing: border-box; }
+            .hero-section h1 { font-size: 2.5em; letter-spacing: -1px; }
+            .hero-section .tagline { font-size: 0.9em; letter-spacing: 1px; }
             .hero-logo { max-height: 100px; }
-            .hero-section h1 { font-size: 2.2em; }
-            .hero-section .tagline { font-size: 1.1em; }
-            .hero-section .subtitle {
-                font-size: 1.3em;
-                margin-bottom: 30px;
-                white-space: normal;
-            }
         }
 
     </style>
 </head>
-<!-- 
-  Thêm class lang-vi vào body làm mặc định
-  JavaScript sẽ đổi class này thành lang-en khi cần
--->
 <body class="lang-vi">
 
     <section class="hero-section" id="top">
+        <div class="hero-overlay"></div> <!-- Lớp phủ tối -->
         <div class="hero-background-layer active"></div>
         <div class="hero-background-layer"></div>
 
-        <!-- NEW: Language Switcher HTML -->
+        <!-- Language Switcher -->
         <div class="lang-switcher">
             <a class="lang-btn active" data-lang="vi">VI</a>
-            <span class="lang-separator">|</span>
             <a class="lang-btn" data-lang="en">EN</a>
         </div>
 
@@ -482,7 +490,6 @@
 
         <h1><span class="part-left">vnrad.</span><span class="part-right">tech</span></h1>
         
-        <!-- Tagline đã là tiếng Anh -->
         <p class="tagline">Vietnam Radiology Technologist</p>
         
         <p class="subtitle">
@@ -491,7 +498,39 @@
         </p>
 
         <nav class="nav-buttons">
-            <!-- Group 1: MRI -->
+            <!-- Group 1: AI Q&A -->
+            <h3 class="nav-group-title">
+                <span class="lang-vi">Nhóm AI hỏi - đáp</span>
+                <span class="lang-en">AI Q&A Group</span>
+            </h3>
+            <div class="button-row">
+                 <!-- AI Photon Counting CT -->
+                 <a href="https://gemini.google.com/gem/1TgcAFzzPCUG5WcGgdqaC7GS0khuq-M1U?usp=sharing" target="_blank">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>
+                        <span class="lang-vi">AI Hỏi đáp Photon Counting CT</span>
+                        <span class="lang-en">Photon Counting CT AI Q&A</span>
+                    </span>
+                </a>
+                 <!-- AI CCHN & CME -->
+                 <a href="https://gemini.google.com/gem/1Kbzv_16us4UuH7c5yycu51dPpw6jPF9x?usp=sharing" target="_blank">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>
+                        <span class="lang-vi">AI Hỏi đáp Giấy phép hành nghề & Đào tạo liên tục</span>
+                        <span class="lang-en">Practice License & CME AI Q&A</span>
+                    </span>
+                </a>
+                <!-- AI General Radiology Knowledge -->
+                <a href="https://chatgpt.com/g/g-67af5d98301881918ec64046fd67e804-radiology-technologist-assistant-ktv-3-mien" target="_blank">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>
+                        <span class="lang-vi">AI hỏi đáp kiến thức tổng quát về X quang, CT, MRI</span>
+                        <span class="lang-en">General Knowledge AI Q&A on X-ray, CT, MRI</span>
+                    </span>
+                </a>
+            </div>
+
+            <!-- Group 2: MRI -->
             <h3 class="nav-group-title">
                 <span class="lang-vi">Nhóm MRI</span>
                 <span class="lang-en">MRI Group</span>
@@ -517,7 +556,7 @@
                 </a>
             </div>
 
-            <!-- Group 2: CT -->
+            <!-- Group 3: CT -->
             <h3 class="nav-group-title">
                 <span class="lang-vi">Nhóm CT</span>
                 <span class="lang-en">CT Group</span>
@@ -549,7 +588,7 @@
                 </a>
             </div>
 
-            <!-- Group 3: Others -->
+            <!-- Group 4: Others -->
             <h3 class="nav-group-title">
                 <span class="lang-vi">Khác</span>
                 <span class="lang-en">Others</span>
@@ -655,10 +694,6 @@
         </section>
     </main>
 
-    <!-- 
-      Thêm thuộc tính data-vi-title và data-en-title 
-      để JavaScript có thể cập nhật
-    -->
     <a href="#top" id="back-to-top-btn" 
        aria-label="Lên đầu trang" 
        title="Lên đầu trang"
@@ -673,27 +708,26 @@
             <span class="lang-en">&copy; 2025 vnrad.tech. Information page for Medical Imaging Technologists.</span>
         </p>
         <p>
-            <span class="lang-vi">Nhóm KTV 3 Miền.</span>
-            <span class="lang-en">Technologist Group 3 Regions.</span>
+            <!-- Thêm thẻ a bao quanh văn bản -->
+            <a href="https://www.facebook.com/share/g/17kttW7LQG/" target="_blank">
+                <span class="lang-vi">Nhóm KTV 3 Miền.</span>
+                <span class="lang-en">Technologist Group 3 Regions.</span>
+            </a>
         </p>
         <p>
-            <span class="lang-vi">Biên soạn và trình bày: Lê Thanh Trọng 0944406507</span>
-            <span class="lang-en">Compiled and presented by: Le Thanh Trong 0944406507</span>
+            <span class="lang-vi">Biên soạn và trình bày: <strong>Lê Thanh Trọng 0944406507</strong></span>
+            <span class="lang-en">Compiled and presented by: <strong>Le Thanh Trong 0944406507</strong></span>
         </p>
     </footer>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             
-            // --- NEW: Language Switcher Logic ---
+            // --- Language Switcher Logic ---
             const langButtons = document.querySelectorAll('.lang-btn');
             const titleElement = document.querySelector('title');
             const backToTopButton = document.getElementById('back-to-top-btn');
 
-            /**
-             * Đặt ngôn ngữ cho trang
-             * @param {string} lang - Ngôn ngữ để đặt ('vi' hoặc 'en')
-             */
             function setLanguage(lang) {
                 if (lang === 'en') {
                     document.body.className = 'lang-en';
@@ -701,44 +735,35 @@
                 } else {
                     document.body.className = 'lang-vi';
                     document.documentElement.lang = 'vi';
-                    lang = 'vi'; // Đảm bảo giá trị là 'vi'
+                    lang = 'vi';
                 }
 
-                // Cập nhật nút active
-                document.querySelector('.lang-btn[data-lang="vi"]').classList.toggle('active', lang === 'vi');
-                document.querySelector('.lang-btn[data-lang="en"]').classList.toggle('active', lang === 'en');
+                // Update active button state (removes old active, adds new)
+                langButtons.forEach(btn => btn.classList.remove('active'));
+                document.querySelector(`.lang-btn[data-lang="${lang}"]`).classList.add('active');
 
-                // Lưu lựa chọn vào localStorage
                 try {
                     localStorage.setItem('preferredLang', lang);
                 } catch (e) {
-                    console.warn('Could not save language preference to localStorage.', e);
+                    console.warn('Could not save language preference.', e);
                 }
 
-
-                // Cập nhật tiêu đề trang
                 if (titleElement) {
                     const titleKey = lang === 'en' ? 'data-en-title' : 'data-vi-title';
                     const titleText = titleElement.getAttribute(titleKey);
-                    if (titleText) {
-                        document.title = titleText;
-                    }
+                    if (titleText) document.title = titleText;
                 }
 
-                // Cập nhật các thuộc tính (ví dụ: nút Back to Top)
                 document.querySelectorAll('[data-vi-title]').forEach(el => {
                     const titleKey = lang === 'en' ? 'data-en-title' : 'data-vi-title';
                     const titleText = el.getAttribute(titleKey);
                     if (titleText) {
                         el.setAttribute('title', titleText);
-                        if (el.hasAttribute('aria-label')) {
-                            el.setAttribute('aria-label', titleText);
-                        }
+                        if (el.hasAttribute('aria-label')) el.setAttribute('aria-label', titleText);
                     }
                 });
             }
 
-            // Gán sự kiện click cho các nút ngôn ngữ
             langButtons.forEach(button => {
                 button.addEventListener('click', function(e) {
                     e.preventDefault();
@@ -747,19 +772,13 @@
                 });
             });
 
-            // Khi tải trang, kiểm tra localStorage
-            let preferredLang = 'vi'; // Mặc định là 'vi'
+            let preferredLang = 'vi';
             try {
                 preferredLang = localStorage.getItem('preferredLang') || 'vi';
-            } catch (e) {
-                console.warn('Could not read language preference from localStorage.', e);
-            }
+            } catch (e) {}
             setLanguage(preferredLang);
             
-            // --- End of Language Switcher Logic ---
-
-
-            // --- Original Back to Top Button Logic ---
+            // --- Back to Top Button Logic ---
             if (backToTopButton) {
                 const scrollFunction = () => {
                     if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
@@ -768,38 +787,28 @@
                         backToTopButton.classList.remove('active');
                     }
                 };
-
                 window.onscroll = scrollFunction;
-
                 backToTopButton.addEventListener('click', function(e) {
                     e.preventDefault();
-                    window.scrollTo({
-                        top: 0,
-                        behavior: 'smooth'
-                    });
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 });
             }
 
-            // --- Original Smooth scrolling for in-page anchor links ---
+            // --- Smooth scrolling for anchors ---
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', function (e) {
                     const hrefAttribute = this.getAttribute('href');
-                    
                     if (hrefAttribute && hrefAttribute.length > 1 && hrefAttribute.startsWith('#') && hrefAttribute !== '#top') {
                         const targetElement = document.querySelector(hrefAttribute);
                         if (targetElement) {
                             e.preventDefault();
-                            
-                            window.scrollTo({
-                                top: targetElement.offsetTop,
-                                behavior: 'smooth'
-                            });
+                            window.scrollTo({ top: targetElement.offsetTop, behavior: 'smooth' });
                         }
                     }
                 });
             });
 
-            // --- Original Background image slider ---
+            // --- Background image slider ---
             const heroSection = document.querySelector('.hero-section');
             const backgroundImages = [
                 'https://skagitradiology.com/wp-content/uploads/2020/08/dr-reading-image.png',
@@ -808,50 +817,32 @@
                 'https://eu-images.contentstack.com/v3/assets/blt485767b4a9c4cef5/blt7a7f7d5fec2a6561/673c9078893ca9428953872c/Radiology_trends_(1).png'
             ];
             
-            if (!heroSection || backgroundImages.length === 0) {
-                console.warn('Hero section or background images not found.');
-                return; 
-            }
-            
             const bgLayers = Array.from(document.querySelectorAll('.hero-background-layer'));
-            
-            if (bgLayers.length < 2) {
-                console.warn('Hero background layers not found (requires at least 2).');
-                if (bgLayers.length === 1) {
-                    bgLayers[0].style.backgroundImage = `url('${backgroundImages[0]}')`;
-                    bgLayers[0].classList.add('active');
+            if (bgLayers.length >= 2 && backgroundImages.length > 0) {
+                let currentImageIndex = 0;
+                let activeLayerIndex = 0;
+
+                backgroundImages.forEach(src => { const img = new Image(); img.src = src; });
+                
+                bgLayers[activeLayerIndex].style.backgroundImage = `url('${backgroundImages[currentImageIndex]}')`;
+
+                function changeBackground() {
+                    const nextLayerIndex = 1 - activeLayerIndex;
+                    const currentLayer = bgLayers[activeLayerIndex];
+                    const nextLayer = bgLayers[nextLayerIndex];
+
+                    currentImageIndex = (currentImageIndex + 1) % backgroundImages.length;
+                    nextLayer.style.backgroundImage = `url('${backgroundImages[currentImageIndex]}')`;
+
+                    setTimeout(() => {
+                        currentLayer.classList.remove('active');
+                        nextLayer.classList.add('active');
+                        activeLayerIndex = nextLayerIndex;
+                    }, 50);
                 }
-                return;
+                setInterval(changeBackground, 5000);
             }
-
-            let currentImageIndex = 0;
-            let activeLayerIndex = 0;
-
-            backgroundImages.forEach(src => {
-                const img = new Image();
-                img.src = src;
-            });
-            
-            bgLayers[activeLayerIndex].style.backgroundImage = `url('${backgroundImages[currentImageIndex]}')`;
-
-            function changeBackground() {
-                const nextLayerIndex = 1 - activeLayerIndex;
-                const currentLayer = bgLayers[activeLayerIndex];
-                const nextLayer = bgLayers[nextLayerIndex];
-
-                currentImageIndex = (currentImageIndex + 1) % backgroundImages.length;
-                nextLayer.style.backgroundImage = `url('${backgroundImages[currentImageIndex]}')`;
-
-                setTimeout(() => {
-                    currentLayer.classList.remove('active');
-                    nextLayer.classList.add('active');
-                    activeLayerIndex = nextLayerIndex;
-                }, 50);
-            }
-
-            setInterval(changeBackground, 5000);
         });
     </script>
-
 </body>
 </html>
