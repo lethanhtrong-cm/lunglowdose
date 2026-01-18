@@ -1,237 +1,234 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCTA Calculator </title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('cctaCalc', () => ({
+                weight: 68,
+                concentration: 370,
+                wbIdr: 0.022,
+                injectionTime: 10,
+                scannerType: 'dual',
+                
+                // Cấu hình theo từng loại máy CT
+                scanners: {
+                    'dual': { name: 'Dual Source (Force/Drive)', time: 10, desc: 'Tốc độ cực nhanh. Duy trì thuốc 10s là tối ưu.' },
+                    'high': { name: '256 - 640 Dãy', time: 12, desc: 'Quét nhanh trong 1-2 nhịp tim. Cần 11-12s tiêm.' },
+                    'std': { name: '64 - 128 Dãy', time: 14, desc: 'Thời gian quét lâu hơn. Cần 13-15s để giữ đỉnh thuốc.' }
+                },
 
-import React, { useState, useEffect } from 'react';
-import { Calculator, Activity, AlertTriangle, Thermometer, Info, Heart, Layers } from 'lucide-react';
-
-const App = () => {
-  const [weight, setWeight] = useState(60);
-  const [concentration, setConcentration] = useState(370); // mgI/mL
-  const [wbIdr, setWbIdr] = useState(0.022); // gI/s/kg
-  const [scannerType, setScannerType] = useState('dual-source'); // Default based on Gia An 115 Force
-  const [injectionTime, setInjectionTime] = useState(10); // seconds
-  const [results, setResults] = useState({
-    flowRate: 0,
-    totalVolume: 0,
-    iodineGrams: 0
-  });
-
-  // Scanner presets
-  const scannerPresets = {
-    'dual-source': { name: 'Dual Source (Force/Drive)', defaultTime: 10, description: 'Tốc độ quét cực nhanh, thời gian thuốc đỉnh ngắn (10s là tối ưu).' },
-    'high-end': { name: '256 - 640 Dãy', defaultTime: 11, description: 'Quét trong 1-2 nhịp tim, thời gian thuốc cần duy trì khoảng 11s.' },
-    'standard': { name: '64 - 128 Dãy', defaultTime: 13, description: 'Thời gian quét lâu hơn, cần thời gian tiêm dài hơn (12-14s) để giữ đỉnh thuốc.' }
-  };
-
-  // Update injection time when scanner type changes
-  useEffect(() => {
-    setInjectionTime(scannerPresets[scannerType].defaultTime);
-  }, [scannerType]);
-
-  // Calculate results whenever inputs change
-  useEffect(() => {
-    const concGrams = concentration / 1000; 
-    const flowRate = (weight * wbIdr) / concGrams;
-    const totalVolume = flowRate * injectionTime;
-    const iodineGrams = flowRate * concGrams * injectionTime;
-
-    setResults({
-      flowRate: flowRate.toFixed(1),
-      totalVolume: Math.round(totalVolume),
-      iodineGrams: iodineGrams.toFixed(1)
-    });
-  }, [weight, concentration, wbIdr, injectionTime]);
-
-  const getClinicalNote = () => {
-    if (weight > 110) {
-      return {
-        type: 'warning',
-        title: 'Bệnh nhân > 110kg (Béo phì)',
-        content: 'Khuyến cáo phác đồ Triphasic. Tốc độ tiêm thực tế có thể bị giới hạn bởi áp lực ven. Cân nhắc tăng thời gian tiêm thêm 2-3s và dùng Dual Flow.'
-      };
-    }
-    return null;
-  };
-
-  const note = getClinicalNote();
-
-  return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <header className="bg-indigo-700 text-white p-6 rounded-t-2xl shadow-lg flex items-center justify-between">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-              <Activity className="w-8 h-8" />
-              CÁ NHÂN HÓA IDR THEO DÒNG MÁY CT
-            </h1>
-            <p className="text-indigo-100 text-sm mt-1">Hệ thống tính toán đa nền tảng - BV Gia An 115</p>
-          </div>
-          <div className="hidden md:block text-right">
-            <span className="text-xs bg-indigo-600 px-3 py-1 rounded-full border border-indigo-400">Ver 2.0 - Multi-Scanner</span>
-          </div>
+                init() {
+                    // Tự động cập nhật thời gian tiêm khi đổi loại máy
+                    this.$watch('scannerType', value => {
+                        this.injectionTime = this.scanners[value].time;
+                    });
+                },
+                
+                get flowRate() {
+                    let concGrams = this.concentration / 1000;
+                    if (!concGrams || concGrams === 0) return "0.0";
+                    let fr = (this.weight * this.wbIdr) / concGrams;
+                    return fr.toFixed(1);
+                },
+                
+                get totalVolume() {
+                    return Math.round(parseFloat(this.flowRate) * this.injectionTime);
+                }
+            }))
+        })
+    </script>
+    
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        [x-cloak] { display: none !important; }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            background: #4f46e5;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen pb-12" x-data="cctaCalc" x-cloak>
+    <div class="max-w-4xl mx-auto px-4 pt-8">
+        <!-- Header -->
+        <header class="bg-indigo-700 text-white p-6 rounded-t-2xl shadow-lg flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-white/20 p-2 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-indigo-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-extrabold tracking-tight italic">CCTA CONTRAST CALCULATION</h1>
+                    <p class="text-indigo-100 text-xs mt-0.5 opacity-90 uppercase tracking-[0.1em] font-medium">Tính toán liều lượng thuốc tương phản trong CT mạch vành</p>
+                </div>
+            </div>
+            <div class="hidden sm:block text-right">
+                <span class="text-[10px] bg-indigo-600 px-3 py-1 rounded-full border border-indigo-400 font-bold uppercase tracking-widest">Ver 2.0 - Cá nhân hóa dòng máy</span>
+            </div>
         </header>
 
-        <div className="bg-white shadow-xl rounded-b-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12">
-          
-          {/* Inputs Section */}
-          <div className="md:col-span-5 p-6 border-r border-slate-100 bg-slate-50/50">
-            <h2 className="text-lg font-semibold mb-6 flex items-center gap-2 text-indigo-800">
-              <Layers className="w-5 h-5" /> Cấu hình thiết bị & BN
-            </h2>
-
-            <div className="space-y-6">
-              {/* Scanner Selection */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Loại máy CLVT (Số dãy)</label>
-                <select 
-                  value={scannerType}
-                  onChange={(e) => setScannerType(e.target.value)}
-                  className="w-full p-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                >
-                  {Object.entries(scannerPresets).map(([key, value]) => (
-                    <option key={key} value={key}>{value.name}</option>
-                  ))}
-                </select>
-                <p className="text-[11px] text-slate-500 mt-2 leading-tight">
-                  <Info className="w-3 h-3 inline mr-1" />
-                  {scannerPresets[scannerType].description}
-                </p>
-              </div>
-
-              {/* Weight Input */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Cân nặng bệnh nhân: <span className="text-indigo-600 font-bold">{weight} kg</span>
-                </label>
-                <input 
-                  type="range" min="35" max="150" value={weight} 
-                  onChange={(e) => setWeight(parseInt(e.target.value))}
-                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                />
-              </div>
-
-              {/* Concentration */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Nồng độ (mgI/mL)</label>
-                  <select 
-                    value={concentration}
-                    onChange={(e) => setConcentration(parseInt(e.target.value))}
-                    className="w-full p-2 bg-white border border-slate-200 rounded-lg text-sm"
-                  >
-                    <option value={300}>300</option>
-                    <option value={350}>350</option>
-                    <option value={370}>370</option>
-                    <option value={400}>400</option>
-                  </select>
+        <div class="bg-white shadow-xl rounded-b-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 border-x border-b border-slate-200">
+            
+            <!-- Left: Inputs -->
+            <div class="md:col-span-5 p-6 bg-slate-50/50 border-r border-slate-100">
+                <div class="flex items-center gap-2 mb-6 text-indigo-900">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                    <h2 class="font-bold uppercase text-xs tracking-widest">Cấu hình thiết bị & BN</h2>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">IDR (gI/s/kg)</label>
-                  <select 
-                    value={wbIdr}
-                    onChange={(e) => setWbIdr(parseFloat(e.target.value))}
-                    className="w-full p-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-indigo-600"
-                  >
-                    <option value={0.021}>0.021</option>
-                    <option value={0.022}>0.022</option>
-                    <option value={0.025}>0.025 (High)</option>
-                  </select>
+
+                <div class="space-y-6">
+                    <!-- Scanner Type -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-tighter">Loại máy CT (Số dãy)</label>
+                        <select x-model="scannerType" class="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500 text-sm appearance-none cursor-pointer shadow-sm">
+                            <option value="dual">Dual Source (Siemens Force/Drive)</option>
+                            <option value="high">256 - 640 Dãy (Revolution/Aquilion)</option>
+                            <option value="std">64 - 128 Dãy (Standard)</option>
+                        </select>
+                        <div class="mt-2 p-2 bg-indigo-50/50 rounded-lg border border-indigo-100">
+                             <p class="text-[10px] text-indigo-600 leading-tight italic" x-text="scanners[scannerType].desc"></p>
+                        </div>
+                    </div>
+
+                    <!-- Weight -->
+                    <div>
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="text-sm font-semibold text-slate-700">Cân nặng bệnh nhân</label>
+                            <span class="text-2xl font-black text-indigo-600" x-text="weight + ' kg'"></span>
+                        </div>
+                        <input type="range" min="35" max="150" x-model.number="weight" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                    </div>
+
+                    <!-- Concentration & IDR Grid -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-2 uppercase">Nồng độ thuốc</label>
+                            <select x-model.number="concentration" class="w-full p-2 bg-white border border-slate-200 rounded-lg font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="300">300</option>
+                                <option value="350">350</option>
+                                <option value="370">370</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-2 uppercase">Chỉ số IDR</label>
+                            <select x-model.number="wbIdr" class="w-full p-2 bg-white border border-slate-200 rounded-lg font-bold text-sm text-indigo-600 outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="0.021">0.021</option>
+                                <option value="0.022">0.022</option>
+                                <option value="0.025">0.025 (Cao)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Time Manual Override -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-tighter">Thời gian tiêm thực tế (s)</label>
+                        <div class="relative">
+                            <input type="number" x-model.number="injectionTime" class="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-[10px] font-black uppercase">Giây</span>
+                        </div>
+                    </div>
                 </div>
-              </div>
-
-              {/* Time Adjustment */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Thời gian tiêm: <span className="text-indigo-600 font-bold">{injectionTime}s</span>
-                </label>
-                <input 
-                  type="range" min="8" max="20" value={injectionTime} 
-                  onChange={(e) => setInjectionTime(parseInt(e.target.value))}
-                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-400"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Results Section */}
-          <div className="md:col-span-7 p-6 space-y-6 bg-white">
-            <h2 className="text-lg font-semibold mb-2 flex items-center gap-2 text-emerald-700">
-              <Calculator className="w-5 h-5" /> Kết quả thực thi
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 shadow-sm flex flex-col items-center justify-center text-center">
-                <span className="text-xs text-emerald-600 uppercase font-black tracking-widest mb-1">Tốc độ tiêm</span>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-5xl font-black text-emerald-700">{results.flowRate}</span>
-                  <span className="text-xl font-bold text-emerald-600">mL/s</span>
-                </div>
-              </div>
-
-              <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100 shadow-sm flex flex-col items-center justify-center text-center">
-                <span className="text-xs text-indigo-600 uppercase font-black tracking-widest mb-1">Tổng thuốc</span>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-5xl font-black text-indigo-700">{results.totalVolume}</span>
-                  <span className="text-xl font-bold text-indigo-600">mL</span>
-                </div>
-              </div>
             </div>
 
-            {/* Practical Protocol Display */}
-            <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-xl relative overflow-hidden">
-               <div className="absolute top-0 right-0 p-3 opacity-10">
-                  <Activity className="w-20 h-20" />
-               </div>
-               <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                 <Info className="w-4 h-4" /> Gợi ý thông số máy bơm
-               </h3>
-               <div className="space-y-4 relative z-10">
-                  <div className="flex items-center justify-between border-b border-slate-700 pb-2">
-                    <span className="text-slate-400">Pha 1 (Thuốc cản quang)</span>
-                    <span className="text-xl font-mono text-emerald-400 font-bold">{results.totalVolume} mL @ {results.flowRate} mL/s</span>
-                  </div>
-                  <div className="flex items-center justify-between border-b border-slate-700 pb-2">
-                    <span className="text-slate-400">Pha 2 (Muối đẩy)</span>
-                    <span className="text-xl font-mono text-blue-400 font-bold">40 mL @ {results.flowRate} mL/s</span>
-                  </div>
-                  <div className="pt-2">
-                    <span className="text-[10px] text-slate-500 block mb-1 uppercase tracking-tighter">Tổng lượng Iod đưa vào:</span>
-                    <span className="text-lg font-semibold text-slate-300">{results.iodineGrams} gI</span>
-                  </div>
-               </div>
-            </div>
-
-            {/* Contextual Warning */}
-            {note && (
-              <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl">
-                <div className="flex items-center gap-2 text-amber-800 font-bold mb-1 uppercase text-xs">
-                  <AlertTriangle className="w-4 h-4" /> {note.title}
+            <!-- Right: Results -->
+            <div class="md:col-span-7 p-6 space-y-6">
+                <div class="flex items-center gap-2 mb-2 text-emerald-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12" y1="8" y2="8"/></svg>
+                    <h2 class="font-bold uppercase text-xs tracking-widest">Kết quả thực thi phác đồ</h2>
                 </div>
-                <p className="text-xs text-amber-700 leading-relaxed italic">
-                  {note.content}
-                </p>
-              </div>
-            )}
 
-            {/* Guidelines */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-2">
-                <Thermometer className="w-4 h-4 text-red-500 mt-0.5" />
-                <span className="text-[10px] leading-tight text-slate-600">Luôn làm ấm thuốc lên 37°C để đảm bảo Flow Rate cao mà không báo lỗi Pressure.</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-2">
-                <Heart className="w-4 h-4 text-indigo-500 mt-0.5" />
-                <span className="text-[10px] leading-tight text-slate-600">Với Stent/Vôi hóa, ưu tiên dùng kVp cao hơn (100-120) để giảm nhiễu ảnh.</span>
-              </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Flow Rate -->
+                    <div class="bg-emerald-50 p-5 rounded-2xl border border-emerald-100 text-center relative overflow-hidden group transition-all hover:bg-emerald-100/50">
+                        <div class="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16 text-emerald-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                        </div>
+                        <span class="text-[10px] text-emerald-600 uppercase font-black tracking-widest">Tốc độ tiêm</span>
+                        <div class="flex items-baseline justify-center gap-1 mt-1">
+                            <span class="text-6xl font-black text-emerald-700 tracking-tighter" x-text="flowRate"></span>
+                            <span class="text-sm font-bold text-emerald-600/70 ml-1 italic">mL/s</span>
+                        </div>
+                    </div>
+
+                    <!-- Volume -->
+                    <div class="bg-indigo-50 p-5 rounded-2xl border border-indigo-100 text-center relative overflow-hidden group transition-all hover:bg-indigo-100/50">
+                        <div class="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16 text-indigo-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg>
+                        </div>
+                        <span class="text-[10px] text-indigo-600 uppercase font-black tracking-widest">Thể tích thuốc</span>
+                        <div class="flex items-baseline justify-center gap-1 mt-1">
+                            <span class="text-6xl font-black text-indigo-700 tracking-tighter" x-text="totalVolume"></span>
+                            <span class="text-sm font-bold text-indigo-600/70 ml-1 italic">mL</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Protocol Card -->
+                <div class="bg-slate-900 text-slate-100 p-6 rounded-2xl shadow-xl border border-slate-800 relative">
+                    <div class="absolute top-0 right-0 p-4 opacity-10">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-4.5c1.62-1.63 5-2.5 5-2.5"></path><path d="M12 15v5s3.03-.55 4.5-2c1.63-1.62 2.5-5 2.5-5"></path></svg>
+                    </div>
+                    <h3 class="text-[10px] font-black flex items-center gap-2 mb-5 text-indigo-400 uppercase tracking-[0.2em]">
+                        <span class="w-1 h-3 bg-indigo-500 rounded-full"></span> Cài đặt máy bơm tiêm
+                    </h3>
+                    <div class="space-y-5">
+                        <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                            <span class="text-sm font-medium text-slate-400">Pha 1 (Thuốc cản quang)</span>
+                            <span class="font-mono text-xl font-bold text-emerald-400" x-text="`${totalVolume} mL @ ${flowRate} mL/s`"></span>
+                        </div>
+                        <div class="flex items-center justify-between opacity-80 border-b border-white/5 pb-3">
+                            <span class="text-sm font-medium text-slate-400">Pha 2 (Muối đẩy)</span>
+                            <span class="font-mono text-xl font-bold text-blue-400" x-text="`40 mL @ ${flowRate} mL/s`"></span>
+                        </div>
+                        <div class="flex items-center justify-between italic text-[11px] text-slate-500">
+                             <span>Khuyến nghị áp suất: 300 - 325 PSI</span>
+                             <span x-text="`Tổng thời gian: ${injectionTime + 8} giây`"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Warnings -->
+                <div class="grid grid-cols-1 gap-3">
+                    <template x-if="weight > 110">
+                        <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl flex gap-3 shadow-sm animate-pulse">
+                            <div class="text-amber-600 font-bold">!</div>
+                            <div>
+                                <h4 class="text-xs font-bold text-amber-900 uppercase">BN Béo phì - Thách thức áp lực</h4>
+                                <p class="text-[10px] text-amber-700 leading-tight mt-1">Áp lực ven sẽ rất lớn. Ưu tiên dùng kim 18G, làm ấm thuốc 37°C và cân nhắc phác đồ Triphasic (Dual Flow).</p>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl grid grid-cols-2 gap-4">
+                        <div class="flex gap-2">
+                             <div class="w-1 h-full bg-red-400 rounded-full"></div>
+                             <p class="text-[10px] text-slate-600 leading-snug"><strong>Nhiệt độ:</strong> Thuốc 37°C giúp đạt Flow Rate cao mà không lỗi áp suất máy bơm.</p>
+                        </div>
+                        <div class="flex gap-2">
+                             <div class="w-1 h-full bg-indigo-400 rounded-full"></div>
+                             <p class="text-[10px] text-slate-600 leading-snug"><strong>kVp/ATVS:</strong> BN vôi hóa nặng hãy chỉnh kVp thủ công 120 để chống noise ảnh.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
 
-        <footer className="mt-6 text-center text-slate-400 text-[10px] uppercase tracking-widest">
-          Phòng CT-MRI | Khoa Chẩn Đoán Hình Ảnh | BV Gia An 115
+        <footer class="mt-8 text-center space-y-2">
+            <p class="text-slate-400 text-[10px] font-bold tracking-widest uppercase">Phòng CT-MRI | BV Gia An 115</p>
         </footer>
-      </div>
     </div>
-  );
-};
-
-export default App;
+</body>
+</html>
