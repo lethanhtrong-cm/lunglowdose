@@ -33,6 +33,11 @@
             background: #cbd5e1;
             border-radius: 10px;
         }
+        .kvp-active {
+            border-color: #4f46e5;
+            background-color: #eef2ff;
+            color: #4f46e5;
+        }
     </style>
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 leading-relaxed scroll-smooth">
@@ -85,6 +90,22 @@
                     </div>
                     <div class="grid grid-cols-1 gap-3" id="scanner-presets">
                         <!-- Buttons injected by JS -->
+                    </div>
+                </section>
+
+                <!-- 1.1 KVP OPTIONS (VISIBLE ONLY FOR DUAL SOURCE) -->
+                <section id="kvp-section" class="hidden space-y-6 pt-8 border-t border-slate-200/50">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="zap" class="w-5 h-5 text-amber-500"></i>
+                            <h2 class="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">Cài đặt kVp (DS Only)</h2>
+                        </div>
+                        <span id="kvp-impact-badge" class="text-[9px] px-2 py-1 rounded-lg font-black uppercase tracking-widest bg-emerald-100 text-emerald-600">
+                            Giảm liều: 0%
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-5 gap-2" id="kvp-options">
+                        <!-- KVP Buttons injected by JS -->
                     </div>
                 </section>
 
@@ -291,12 +312,12 @@
                     <div class="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
                         <i data-lucide="gauge" class="w-5 h-5 text-indigo-600"></i>
                     </div>
-                    <h3 class="text-base font-black text-slate-800 uppercase tracking-tight">3. Temporal Resolution</h3>
+                    <h3 class="text-base font-black text-slate-800 uppercase tracking-tight">3. Hiệu ứng kVp</h3>
                     <p class="text-[12px] text-slate-600 leading-relaxed font-medium">
-                        Phân biệt khả năng thu hình của từng hệ thống máy để điều chỉnh thời gian tiêm.
+                        kVp thấp tối ưu hiệu ứng K-edge của Iod, cho phép giảm liều tiêm đáng kể.
                     </p>
                     <div class="bg-slate-900 p-4 rounded-2xl text-indigo-200 font-mono shadow-inner text-center">
-                        <div class="text-[11px] font-bold">Adjusted for Hardware Capability</div>
+                        <div class="text-[11px] font-bold">IDR ∝ kVp^2 relationship</div>
                     </div>
                 </div>
             </div>
@@ -324,14 +345,14 @@
     </main>
 
     <footer class="mt-6 text-center pb-10 border-t border-slate-200 pt-8">
-        <p class="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em]">CCTA OPTIMIZER | Intl Standard Protocol v3.1</p>
+        <p class="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em]">CCTA OPTIMIZER | Intl Standard Protocol v3.2</p>
     </footer>
 
     <script>
         const scannerPresets = {
             'dual-source': { 
                 name: 'Dual Source (Siemens Force/Drive)', 
-                defaultTime: 10, // Cập nhật thời gian cơ sở về 10s
+                defaultTime: 10,
                 desc: 'Độ phân giải thời gian cao. Chế độ quét xoắn ốc/chuỗi xung tiêu chuẩn (Standard DS).',
                 badge: 'Standard DS',
                 availableIdr: [0.021, 0.022, 0.025],
@@ -355,13 +376,22 @@
             }
         };
 
+        const kvpPresets = [
+            { val: 70, factor: 0.70, label: '70kV (-30%)' },
+            { val: 80, factor: 0.80, label: '80kV (-20%)' },
+            { val: 90, factor: 0.90, label: '90kV (-10%)' },
+            { val: 100, factor: 1.00, label: '100kV (Baseline)' },
+            { val: 120, factor: 1.10, label: '120kV (+10%)' }
+        ];
+
         let state = {
             weight: 70,
             heartRate: 65,
             concentration: 370,
             scannerType: 'dual-source',
             wbIdr: 0.022,
-            injectionTime: 10 // Khởi tạo 10s để khớp với preset mặc định
+            injectionTime: 10,
+            kvp: 100
         };
 
         const scannerContainer = document.getElementById('scanner-presets');
@@ -374,6 +404,9 @@
         const hrWarning = document.getElementById('hr-warning');
         const concentrationInput = document.getElementById('input-concentration');
         const displayInjectionTime = document.getElementById('display-injection-time');
+        const kvpSection = document.getElementById('kvp-section');
+        const kvpContainer = document.getElementById('kvp-options');
+        const kvpImpactBadge = document.getElementById('kvp-impact-badge');
         
         const resFlowRate = document.getElementById('res-flowRate');
         const resTotalVolume = document.getElementById('res-totalVolume');
@@ -387,6 +420,7 @@
         function init() {
             renderScanners();
             renderIdrOptions();
+            renderKvpOptions();
             calculate();
             lucide.createIcons();
         }
@@ -402,8 +436,11 @@
                 btn.onclick = () => {
                     state.scannerType = key;
                     state.wbIdr = value.availableIdr[1] || value.availableIdr[0];
+                    // Reset KVP when switching scanner
+                    state.kvp = 100;
                     renderScanners();
                     renderIdrOptions();
+                    renderKvpOptions();
                     calculate();
                 };
 
@@ -426,6 +463,31 @@
                 scannerContainer.appendChild(btn);
             });
             lucide.createIcons();
+        }
+
+        function renderKvpOptions() {
+            if (state.scannerType === 'dual-source') {
+                kvpSection.classList.remove('hidden');
+            } else {
+                kvpSection.classList.add('hidden');
+                return;
+            }
+
+            kvpContainer.innerHTML = '';
+            kvpPresets.forEach(preset => {
+                const isActive = state.kvp === preset.val;
+                const btn = document.createElement('button');
+                btn.className = `py-2 rounded-xl border-2 text-[10px] font-black transition-all ${
+                    isActive ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white border-slate-100 text-slate-400 hover:border-indigo-200'
+                }`;
+                btn.innerText = preset.val + 'kV';
+                btn.onclick = () => {
+                    state.kvp = preset.val;
+                    renderKvpOptions();
+                    calculate();
+                };
+                kvpContainer.appendChild(btn);
+            });
         }
 
         function renderIdrOptions() {
@@ -463,33 +525,40 @@
             const baseTime = preset.defaultTime;
             let timeModifier = 0;
             
+            // HEART RATE LOGIC
             if (preset.type === 'ds-standard') {
-                // Dual Source Standard Mode
                 if (state.heartRate > 85) timeModifier = 0; 
                 else if (state.heartRate < 55) timeModifier = 1;
-                
                 hrWarning.innerText = "Dual Source (Standard): Duy trì Bolus ổn định cho quét xoắn ốc.";
                 hrWarning.className = "bg-indigo-100/50 p-2 rounded-lg text-[9px] text-indigo-800 font-bold border border-indigo-200";
             } else if (preset.type === 'advanced') {
-                // Wide Detector
                 if (state.heartRate > 85) timeModifier = -2;
                 else if (state.heartRate > 75) timeModifier = -1;
-                
                 hrWarning.innerText = "Máy Wide Detector: Nhịp tim cao giúp rút ngắn thời gian tiêm.";
                 hrWarning.className = "bg-emerald-100/50 p-2 rounded-lg text-[9px] text-emerald-800 font-bold border border-emerald-200";
             } else {
-                // Standard 64-128
                 if (state.heartRate > 80) timeModifier = 3;
                 else if (state.heartRate > 70) timeModifier = 1.5;
-                
                 hrWarning.innerText = "Máy 64-128: Nhịp tim cao cần kéo dài Bolus để bao phủ nhiều nhịp.";
                 hrWarning.className = "bg-amber-100/50 p-2 rounded-lg text-[9px] text-amber-800 font-bold border border-amber-200";
             }
 
             state.injectionTime = baseTime + timeModifier;
 
+            // KVP LOGIC (Applied to Dual Source only)
+            let kvpFactor = 1.0;
+            if (state.scannerType === 'dual-source') {
+                const kvpObj = kvpPresets.find(p => p.val === state.kvp);
+                kvpFactor = kvpObj ? kvpObj.factor : 1.0;
+                
+                const percentage = Math.round((kvpFactor - 1) * 100);
+                kvpImpactBadge.innerText = percentage < 0 ? `Giảm liều: ${Math.abs(percentage)}%` : percentage > 0 ? `Tăng liều: ${percentage}%` : 'Liều chuẩn: 100%';
+                kvpImpactBadge.className = percentage < 0 ? "text-[9px] px-2 py-1 rounded-lg font-black uppercase tracking-widest bg-emerald-100 text-emerald-600" : percentage > 0 ? "text-[9px] px-2 py-1 rounded-lg font-black uppercase tracking-widest bg-red-100 text-red-600" : "text-[9px] px-2 py-1 rounded-lg font-black uppercase tracking-widest bg-slate-100 text-slate-400";
+            }
+
             const concGrams = state.concentration / 1000;
-            const flowRate = (state.weight * state.wbIdr) / concGrams;
+            // Formula updated with kvpFactor
+            const flowRate = ((state.weight * state.wbIdr) / concGrams) * kvpFactor;
             const totalVolume = flowRate * state.injectionTime;
             const totalIodine = flowRate * concGrams * state.injectionTime;
 
