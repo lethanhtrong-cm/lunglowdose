@@ -190,7 +190,7 @@
                             <div class="flex justify-between items-end">
                                 <div>
                                     <label class="text-sm font-bold text-slate-700">WB - IDR</label>
-                                    <p class="text-xs text-slate-400 font-medium mt-0.5">Hệ số thuốc (gI/kg)</p>
+                                    <p class="text-xs text-slate-400 font-medium mt-0.5">Hệ số thuốc (gI/kg/s)</p>
                                 </div>
                                 <div class="bg-white border-2 border-pink-100 rounded-xl px-3 py-1.5 w-28 text-right flex items-center justify-between group focus-within:border-pink-400 focus-within:ring-4 focus-within:ring-pink-500/10 transition-all shadow-sm">
                                     <input type="number" id="idr-input" value="0.021" step="0.0005"
@@ -362,6 +362,34 @@
 
                         </div>
 
+                        <!-- Calculation Formula Breakdown (New) -->
+                        <div class="mt-6 bg-white/60 backdrop-blur rounded-2xl p-6 border border-slate-200/60 shadow-sm">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <i class="fa-solid fa-calculator"></i> Chi tiết công thức
+                            </h4>
+                            <div class="space-y-3 font-mono text-sm text-slate-600">
+                                <!-- Flow Formula -->
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between bg-blue-50/50 p-3 rounded-lg border border-blue-100/50 gap-2">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-blue-500 font-bold bg-blue-100 px-2 py-0.5 rounded text-xs">FLOW</span>
+                                        <span class="text-slate-400 text-xs">=</span>
+                                        <span class="text-slate-500">(<span class="font-bold text-slate-700" id="calc-weight">--</span>kg × <span class="font-bold text-pink-500" id="calc-idr">--</span>) ÷ <span class="font-bold text-slate-700" id="calc-conc">--</span>g/ml</span>
+                                    </div>
+                                    <span class="font-bold text-blue-600 text-right">= <span id="calc-flow-res">--</span> ml/s</span>
+                                </div>
+                                
+                                <!-- Volume Formula -->
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between bg-emerald-50/50 p-3 rounded-lg border border-emerald-100/50 gap-2">
+                                     <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-emerald-600 font-bold bg-emerald-100 px-2 py-0.5 rounded text-xs">VOLUME</span>
+                                        <span class="text-slate-400 text-xs">=</span>
+                                        <span class="text-slate-500"><span class="font-bold text-blue-500" id="calc-flow-in">--</span> ml/s × <span class="font-bold text-slate-700" id="calc-time">--</span>s</span>
+                                    </div>
+                                    <span class="font-bold text-emerald-600 text-right">= <span id="calc-vol-res">--</span> ml</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Alert Box -->
                         <div id="alert-box" class="mt-8 hidden animate-bounce-in">
                             <div class="bg-amber-50/80 backdrop-blur border border-amber-200 p-4 rounded-2xl flex items-center gap-4 shadow-sm">
@@ -472,6 +500,16 @@
             // Update Text
             flowEl.textContent = flow.toFixed(1);
             volEl.textContent = volume;
+
+            // Update Formula Breakdown
+            document.getElementById('calc-weight').textContent = weight;
+            document.getElementById('calc-idr').textContent = idr;
+            document.getElementById('calc-conc').textContent = concG.toFixed(3); // e.g., 0.350
+            document.getElementById('calc-flow-res').textContent = flow.toFixed(1);
+
+            document.getElementById('calc-flow-in').textContent = flow.toFixed(1);
+            document.getElementById('calc-time').textContent = time;
+            document.getElementById('calc-vol-res').textContent = volume;
 
             // Update Bars
             const flowPercent = Math.min((flow / 8) * 100, 100); 
