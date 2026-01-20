@@ -1,1 +1,564 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CT Coronary Radiant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        
+        /* Custom Gradient Range Slider */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 22px;
+            width: 22px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #22d3ee, #3b82f6); /* Cyan to Blue */
+            cursor: pointer;
+            margin-top: -9px; 
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+            border: 2px solid white;
+            transition: all 0.2s;
+        }
 
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.2);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 99px;
+        }
+
+        /* Specific Color Sliders */
+        #idr-slider::-webkit-slider-thumb {
+            background: linear-gradient(135deg, #f472b6, #db2777); /* Pink for IDR */
+            box-shadow: 0 4px 6px -1px rgba(219, 39, 119, 0.3);
+        }
+        #idr-slider:hover::-webkit-slider-thumb {
+            box-shadow: 0 0 0 4px rgba(244, 114, 182, 0.2);
+        }
+
+        .gradient-text {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #2563eb, #06b6d4);
+        }
+        
+        .gradient-text-emerald {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #059669, #34d399);
+        }
+
+        .gradient-text-pink {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #db2777, #f472b6);
+        }
+
+        .card-hover-effect {
+            transition: all 0.3s ease;
+        }
+        .card-hover-effect:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .preset-btn.active {
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);
+        }
+
+        .kv-badge {
+            transition: all 0.3s ease;
+        }
+        
+        .recommendation-pill {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .recommendation-pill:hover {
+            transform: scale(1.02);
+            filter: brightness(0.95);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 min-h-screen flex flex-col antialiased text-slate-600">
+
+    <!-- Navbar -->
+    <nav class="bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 shadow-lg shadow-blue-500/20 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-18 py-3">
+                <div class="flex items-center gap-4">
+                    <div class="bg-white/20 backdrop-blur-md p-2.5 rounded-xl border border-white/30 shadow-inner">
+                        <i class="fa-solid fa-heart-pulse text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-white text-xl leading-none drop-shadow-sm tracking-tight">CT Coronary</h1>
+                        <p class="text-xs text-cyan-100 font-medium tracking-widest uppercase mt-1 opacity-90">Smart Protocol</p>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="hidden md:flex flex-col items-end mr-4 text-white/90 text-xs">
+                        <span class="font-semibold">KTV Hình ảnh y học 3 Miền</span>
+                        <span class="opacity-75">Contrast Calculation</span>
+                    </div>
+                    <span class="bg-white text-blue-600 text-xs font-bold px-3 py-1.5 rounded-full shadow-lg transform hover:scale-105 transition-transform cursor-default">
+                        v3.2 Radiant
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow p-4 md:p-8 max-w-7xl mx-auto w-full">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- LEFT COLUMN: CONTROLS -->
+            <div class="lg:col-span-4 space-y-6">
+                
+                <!-- Input Card -->
+                <div class="bg-white rounded-3xl shadow-xl shadow-blue-900/5 border border-white overflow-hidden card-hover-effect">
+                    <!-- Header -->
+                    <div class="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100/50">
+                        <h2 class="text-sm font-bold text-blue-600 uppercase tracking-wider flex items-center">
+                            <span class="bg-blue-100 p-1.5 rounded-lg mr-2"><i class="fa-solid fa-sliders text-blue-600"></i></span> 
+                            Thông số đầu vào
+                        </h2>
+                    </div>
+
+                    <div class="p-6 space-y-8">
+                        
+                        <!-- Weight Control -->
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-end">
+                                <label class="text-sm font-bold text-slate-700">Cân nặng (kg)</label>
+                                <div class="bg-white border-2 border-blue-100 rounded-xl px-4 py-1.5 w-28 text-right flex items-center justify-between group focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all shadow-sm">
+                                    <input type="number" id="weight-input" value="60" 
+                                        class="bg-transparent border-none w-full text-right font-extrabold text-2xl gradient-text focus:outline-none p-0"
+                                        oninput="syncInput('weight', this.value)">
+                                </div>
+                            </div>
+                            <input type="range" id="weight-slider" min="20" max="150" value="60" class="w-full"
+                                oninput="syncSlider('weight', this.value)">
+                            <div class="flex justify-between text-xs text-slate-400 font-semibold">
+                                <span>20</span>
+                                <span>150</span>
+                            </div>
+                        </div>
+
+                        <!-- kV Alert / Recommendation Box -->
+                        <div id="kv-alert-box" class="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3 relative overflow-hidden transition-colors duration-300">
+                            <div id="kv-icon-bg" class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 flex-shrink-0">
+                                <i class="fa-solid fa-bolt"></i>
+                            </div>
+                            <div>
+                                <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Khuyến nghị mức kV</p>
+                                <div class="flex items-baseline gap-2">
+                                    <h3 id="kv-recommendation" class="text-xl font-black text-amber-600">-- kV</h3>
+                                    <span class="text-xs text-slate-500 font-medium">Auto-suggest</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-dashed border-slate-200"></div>
+
+                        <!-- WB-IDR Control (New) -->
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <label class="text-sm font-bold text-slate-700">WB - IDR</label>
+                                    <p class="text-xs text-slate-400 font-medium mt-0.5">Hệ số thuốc (gI/kg)</p>
+                                </div>
+                                <div class="bg-white border-2 border-pink-100 rounded-xl px-3 py-1.5 w-28 text-right flex items-center justify-between group focus-within:border-pink-400 focus-within:ring-4 focus-within:ring-pink-500/10 transition-all shadow-sm">
+                                    <input type="number" id="idr-input" value="0.021" step="0.0005"
+                                        class="bg-transparent border-none w-full text-right font-extrabold text-lg gradient-text-pink focus:outline-none p-0"
+                                        oninput="syncInput('idr', this.value)">
+                                </div>
+                            </div>
+                            
+                            <input type="range" id="idr-slider" min="0.010" max="0.030" step="0.0005" value="0.021" class="w-full accent-pink-500"
+                                oninput="syncSlider('idr', this.value)">
+                            
+                            <div class="flex justify-between text-xs text-slate-400 font-semibold">
+                                <span>0.010</span>
+                                <span>0.021 (Std)</span>
+                                <span>0.030</span>
+                            </div>
+
+                            <!-- IDR Recommendation Box (New) -->
+                            <div onclick="applyIdrRecommendation()" id="idr-rec-box" class="recommendation-pill bg-pink-50 border border-pink-200 rounded-xl p-3 flex justify-between items-center group relative overflow-hidden">
+                                <div class="flex items-center gap-3 relative z-10">
+                                    <div class="w-8 h-8 rounded-full bg-pink-100 text-pink-500 flex items-center justify-center text-xs font-bold">
+                                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] uppercase font-bold text-pink-400 tracking-wider">Gợi ý IDR</p>
+                                        <div class="flex items-baseline gap-1">
+                                            <span id="idr-rec-val" class="font-bold text-pink-700">0.021</span>
+                                            <span id="idr-rec-label" class="text-xs text-pink-500">(Standard)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-xs font-bold text-pink-500 bg-white px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0">
+                                    Áp dụng <i class="fa-solid fa-arrow-up ml-1"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-dashed border-slate-200"></div>
+
+                        <!-- Concentration Control -->
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-end">
+                                <label class="text-sm font-bold text-slate-700">Nồng độ (mgI/ml)</label>
+                                <div class="bg-white border-2 border-blue-100 rounded-xl px-4 py-1.5 w-28 text-right flex items-center justify-between group focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all shadow-sm">
+                                    <input type="number" id="conc-input" value="350" 
+                                        class="bg-transparent border-none w-full text-right font-extrabold text-2xl gradient-text focus:outline-none p-0"
+                                        oninput="syncInput('conc', this.value)">
+                                </div>
+                            </div>
+                            
+                            <input type="range" id="conc-slider" min="270" max="400" step="10" value="350" class="w-full"
+                                oninput="syncSlider('conc', this.value)">
+                            
+                            <!-- Chips -->
+                            <div class="grid grid-cols-4 gap-2 pt-2">
+                                <button onclick="setPreset(300)" class="preset-btn py-2 rounded-xl text-xs font-bold bg-slate-50 text-slate-500 hover:bg-slate-100 transition-all" data-val="300">300</button>
+                                <button onclick="setPreset(320)" class="preset-btn py-2 rounded-xl text-xs font-bold bg-slate-50 text-slate-500 hover:bg-slate-100 transition-all" data-val="320">320</button>
+                                <button onclick="setPreset(350)" class="preset-btn py-2 rounded-xl text-xs font-bold bg-blue-50 text-blue-600 active shadow-sm transition-all" data-val="350">350</button>
+                                <button onclick="setPreset(370)" class="preset-btn py-2 rounded-xl text-xs font-bold bg-slate-50 text-slate-500 hover:bg-slate-100 transition-all" data-val="370">370</button>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-dashed border-slate-200"></div>
+
+                        <!-- Time Control -->
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-end">
+                                <label class="text-sm font-bold text-slate-700">Thời gian tiêm (s)</label>
+                                <div class="bg-white border-2 border-blue-100 rounded-xl px-4 py-1.5 w-28 text-right flex items-center justify-between group focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all shadow-sm">
+                                    <input type="number" id="time-input" value="13" 
+                                        class="bg-transparent border-none w-full text-right font-extrabold text-2xl gradient-text focus:outline-none p-0"
+                                        oninput="syncInput('time', this.value)">
+                                </div>
+                            </div>
+                            
+                            <input type="range" id="time-slider" min="10" max="15" step="0.5" value="13" class="w-full"
+                                oninput="syncSlider('time', this.value)">
+                            
+                            <div class="flex justify-between text-xs text-slate-400 font-semibold">
+                                <span>10s</span>
+                                <span>15s</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN: DASHBOARD -->
+            <div class="lg:col-span-8">
+                
+                <div class="bg-white rounded-3xl shadow-xl shadow-blue-900/5 border border-white h-full flex flex-col overflow-hidden relative">
+                    
+                    <!-- Dashboard Header -->
+                    <div class="bg-gradient-to-r from-blue-600 to-cyan-500 p-8 text-white relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-16 -mt-32 blur-3xl"></div>
+                        
+                        <div class="flex justify-between items-center relative z-10">
+                            <div class="flex items-center gap-5">
+                                <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg">
+                                    <i class="fa-solid fa-layer-group text-3xl text-white"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-2xl font-extrabold tracking-tight">Thông số bơm thuốc</h2>
+                                    <div class="flex items-center mt-1 space-x-2">
+                                        <span class="bg-blue-800/30 px-2 py-0.5 rounded text-xs font-semibold border border-blue-400/30">Standard Protocol</span>
+                                        <span class="text-blue-100 text-sm">| Coronary CTA</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="hidden sm:block text-right">
+                                <div class="text-4xl font-black text-white drop-shadow-md"><span id="display-time">13</span><span class="text-lg font-medium text-blue-100 ml-1">s</span></div>
+                                <div class="text-xs font-bold text-blue-100 uppercase tracking-widest opacity-80">Injection Time</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Body -->
+                    <div class="p-8 md:p-10 flex-grow flex flex-col justify-center bg-gradient-to-b from-slate-50/50 to-white">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            
+                            <!-- Flow Rate Card -->
+                            <div class="bg-white rounded-3xl p-8 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(37,99,235,0.1)] transition-all duration-300 relative group overflow-hidden">
+                                <div class="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-500 to-cyan-400"></div>
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Tốc độ tiêm</p>
+                                        <h3 class="text-slate-700 font-bold text-lg">Flow Rate</h3>
+                                    </div>
+                                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+                                        <i class="fa-solid fa-gauge-high"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-baseline gap-2 mt-2">
+                                    <span id="res-flow" class="text-7xl font-black gradient-text tracking-tighter">--</span>
+                                    <span class="text-xl font-bold text-slate-400">ml/s</span>
+                                </div>
+
+                                <div class="mt-6 w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div id="flow-bar" class="h-full bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(34,211,238,0.5)]" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Volume Card -->
+                            <div class="bg-white rounded-3xl p-8 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(5,150,105,0.1)] transition-all duration-300 relative group overflow-hidden">
+                                <div class="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-emerald-500 to-teal-400"></div>
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Tổng thể tích</p>
+                                        <h3 class="text-slate-700 font-bold text-lg">Total Volume</h3>
+                                    </div>
+                                    <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">
+                                        <i class="fa-solid fa-flask"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-baseline gap-2 mt-2">
+                                    <span id="res-vol" class="text-7xl font-black gradient-text-emerald tracking-tighter">--</span>
+                                    <span class="text-xl font-bold text-slate-400">ml</span>
+                                </div>
+
+                                <div class="mt-6 w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div id="vol-bar" class="h-full bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(52,211,153,0.5)]" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Alert Box -->
+                        <div id="alert-box" class="mt-8 hidden animate-bounce-in">
+                            <div class="bg-amber-50/80 backdrop-blur border border-amber-200 p-4 rounded-2xl flex items-center gap-4 shadow-sm">
+                                <div class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 text-amber-600">
+                                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-amber-800">High Flow Alert</h4>
+                                    <p class="text-sm text-amber-700/80 font-medium">
+                                        Flow <span id="alert-flow-val" class="font-extrabold"></span> ml/s yêu cầu kim luồn kích thước lớn (18G) để đảm bảo an toàn.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        
+        <footer class="mt-12 text-center pb-6">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Designed for Clinical Excellence</p>
+        </footer>
+
+    </main>
+
+    <script>
+        // Global var to store current recommendation
+        let currentIdrRec = 0.021;
+
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            calculate(); // Calc on load
+        });
+
+        // --- Input Synchronization Logic ---
+        function syncInput(type, val) {
+            const slider = document.getElementById(`${type}-slider`);
+            if (slider) slider.value = val;
+            calculate();
+        }
+
+        function syncSlider(type, val) {
+            const input = document.getElementById(`${type}-input`);
+            if (input) input.value = val;
+            calculate();
+        }
+
+        function setPreset(val) {
+            document.getElementById('conc-input').value = val;
+            document.getElementById('conc-slider').value = val;
+            
+            // Visual feedback for buttons
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('bg-slate-50', 'text-slate-500'); // inactive style
+                
+                if(btn.dataset.val == val) {
+                    btn.classList.add('active');
+                    btn.classList.remove('bg-slate-50', 'text-slate-500');
+                }
+            });
+
+            calculate();
+        }
+
+        function applyIdrRecommendation() {
+            document.getElementById('idr-input').value = currentIdrRec;
+            document.getElementById('idr-slider').value = currentIdrRec;
+            calculate();
+        }
+
+        // --- Core Calculation ---
+        function calculate() {
+            // Get Values
+            const weight = parseFloat(document.getElementById('weight-input').value) || 0;
+            const concMg = parseFloat(document.getElementById('conc-input').value) || 0;
+            const time = parseFloat(document.getElementById('time-input').value) || 13;
+            const idr = parseFloat(document.getElementById('idr-input').value) || 0.0215;
+
+            const flowEl = document.getElementById('res-flow');
+            const volEl = document.getElementById('res-vol');
+            const timeDisplayEl = document.getElementById('display-time');
+            const alertBox = document.getElementById('alert-box');
+            
+            // Update Time Display in Header
+            timeDisplayEl.textContent = time;
+
+            // --- Update Recommendations ---
+            updateKvRecommendation(weight);
+            updateIdrRecommendation(weight);
+
+            if (weight <= 0 || concMg <= 0 || time <= 0) {
+                flowEl.textContent = "--";
+                volEl.textContent = "--";
+                return;
+            }
+
+            // Logic
+            const concG = concMg / 1000;
+            
+            // Flow = (Weight * IDR) / Concentration(g)
+            let flow = (weight * idr) / concG;
+            flow = Math.round(flow * 10) / 10;
+            let volume = Math.round(flow * time);
+
+            // Update Text
+            flowEl.textContent = flow.toFixed(1);
+            volEl.textContent = volume;
+
+            // Update Bars
+            const flowPercent = Math.min((flow / 8) * 100, 100); 
+            const volPercent = Math.min((volume / 120) * 100, 100);
+            
+            document.getElementById('flow-bar').style.width = `${flowPercent}%`;
+            document.getElementById('vol-bar').style.width = `${volPercent}%`;
+
+            // Warnings
+            if (flow > 6.5) {
+                alertBox.classList.remove('hidden');
+                document.getElementById('alert-flow-val').textContent = flow.toFixed(1);
+            } else {
+                alertBox.classList.add('hidden');
+            }
+        }
+
+        // --- kV Recommendation Logic ---
+        function updateKvRecommendation(weight) {
+            const kvEl = document.getElementById('kv-recommendation');
+            const kvBox = document.getElementById('kv-alert-box');
+            const kvIcon = document.getElementById('kv-icon-bg');
+            let kvText = "";
+            let colorClass = "";
+            let bgClass = "";
+            let iconBgClass = "";
+            let iconTextClass = "";
+
+            if (weight <= 0) {
+                kvText = "-- kV";
+                bgClass = "bg-slate-50 border-slate-200";
+                iconBgClass = "bg-slate-100";
+                iconTextClass = "text-slate-400";
+                colorClass = "text-slate-500";
+            } else if (weight < 65) {
+                kvText = "80 kV";
+                bgClass = "bg-emerald-50 border-emerald-200";
+                iconBgClass = "bg-emerald-100";
+                iconTextClass = "text-emerald-600";
+                colorClass = "text-emerald-600";
+            } else if (weight < 85) {
+                kvText = "100 kV";
+                bgClass = "bg-blue-50 border-blue-200";
+                iconBgClass = "bg-blue-100";
+                iconTextClass = "text-blue-600";
+                colorClass = "text-blue-600";
+            } else {
+                kvText = "120 kV";
+                bgClass = "bg-amber-50 border-amber-200";
+                iconBgClass = "bg-amber-100";
+                iconTextClass = "text-amber-600";
+                colorClass = "text-amber-600";
+            }
+
+            kvEl.textContent = kvText;
+            kvEl.className = `text-xl font-black ${colorClass}`;
+            kvBox.className = `${bgClass} border rounded-2xl p-4 flex items-center gap-3 relative overflow-hidden transition-colors duration-300`;
+            kvIcon.className = `w-10 h-10 rounded-full ${iconBgClass} flex items-center justify-center ${iconTextClass} flex-shrink-0 transition-colors duration-300`;
+        }
+
+        // --- IDR Recommendation Logic (New) ---
+        function updateIdrRecommendation(weight) {
+            const idrValEl = document.getElementById('idr-rec-val');
+            const idrLabelEl = document.getElementById('idr-rec-label');
+            
+            let recIdr = 0.021;
+            let label = "(Standard)";
+
+            if(weight <= 0) {
+                recIdr = 0.021;
+                label = "";
+            }
+            else if (weight < 60) {
+                recIdr = 0.015;
+                label = "(Nhẹ cân)";
+            } else if (weight <= 85) {
+                recIdr = 0.021;
+                label = "(Trung bình)";
+            } else {
+                recIdr = 0.026;
+                label = "(Nặng cân)";
+            }
+
+            currentIdrRec = recIdr;
+            idrValEl.textContent = recIdr;
+            idrLabelEl.textContent = label;
+        }
+    </script>
+</body>
+</html>
