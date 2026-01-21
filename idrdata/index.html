@@ -440,7 +440,30 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, getDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = JSON.parse(__firebase_config);
+        // --- CẤU HÌNH FIREBASE ---
+        // 1. Mặc định: Dùng cấu hình hệ thống (nếu có) để chạy trong môi trường Preview
+        // 2. Fallback: Dùng cấu hình cá nhân của bạn (wb-idr) khi Deploy
+        
+        // Config cá nhân của bạn (đã comment, hãy BỎ comment đoạn này khi đưa lên GitHub)
+        const myFirebaseConfig = {
+            apiKey: "AIzaSyAtQdmDbA1BgOrvwevrG6gwuFzlUmBTbfY",
+            authDomain: "wb-idr.firebaseapp.com",
+            projectId: "wb-idr",
+            storageBucket: "wb-idr.firebasestorage.app",
+            messagingSenderId: "716649486328",
+            appId: "1:716649486328:web:843862394aab4078e0680d",
+            measurementId: "G-0P68ZRQ1HX"
+        };
+        
+        let firebaseConfig;
+        if (typeof __firebase_config !== 'undefined') {
+            // Ưu tiên môi trường Canvas
+            firebaseConfig = JSON.parse(__firebase_config);
+        } else {
+            // Dùng config cá nhân khi chạy bên ngoài
+            firebaseConfig = myFirebaseConfig;
+        }
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -450,10 +473,21 @@
         let unsubscribeSnapshot = null;
 
         const initAuth = async () => {
-             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                 await signInWithCustomToken(auth, __initial_auth_token);
-             } else {
-                 await signInAnonymously(auth);
+             try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                     await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                     await signInAnonymously(auth);
+                }
+             } catch (error) {
+                console.error("Lỗi đăng nhập:", error);
+                
+                // Bắt lỗi cụ thể nếu bạn dùng config cá nhân mà chưa bật Anonymous
+                if (error.code === 'auth/configuration-not-found' || error.code === 'auth/admin-restricted-operation') {
+                    alert("⚠️ LỖI CẤU HÌNH FIREBASE:\n\nDự án Firebase của bạn chưa bật tính năng đăng nhập 'Anonymous' (Ẩn danh).\n\nVui lòng truy cập Firebase Console -> Build -> Authentication -> Sign-in method -> Bật 'Anonymous'.");
+                } else {
+                    alert("Lỗi kết nối Firebase: " + error.message);
+                }
              }
         };
         initAuth();
