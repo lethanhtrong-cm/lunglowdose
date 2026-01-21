@@ -1,1 +1,984 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nghiên Cứu IDR/HU Mạch Vành - Pro</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- SheetJS (Excel Export) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- JStat for Statistical Calculations (T-Test) -->
+    <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.6/dist/jstat.min.js"></script>
+
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-group label { 
+            font-size: 0.8rem; 
+            font-weight: 600; 
+            color: #475569; 
+            margin-bottom: 0.25rem;
+            display: block;
+        }
+        
+        .input-group input { 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: #f8fafc;
+        }
+        
+        .input-group input:focus { 
+            background-color: #fff;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); 
+            border-color: #3b82f6; 
+            outline: none; 
+        }
+
+        /* Warning style for outliers */
+        .input-warning {
+            border-color: #f59e0b !important;
+            background-color: #fffbeb !important;
+        }
+
+        .btn-gradient-primary { background-image: linear-gradient(to right, #2563eb, #4f46e5); }
+        .btn-gradient-primary:hover { background-image: linear-gradient(to right, #1d4ed8, #4338ca); }
+        .btn-gradient-success { background-image: linear-gradient(to right, #059669, #047857); }
+        .btn-gradient-danger { background-image: linear-gradient(to right, #dc2626, #b91c1c); }
+        .btn-gradient-warning { background-image: linear-gradient(to right, #d97706, #b45309); }
+        .btn-gradient-cloud { background-image: linear-gradient(to right, #0891b2, #06b6d4); }
+
+        .radio-box { transition: all 0.2s ease; }
+        input:checked + .radio-box {
+            background-image: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-color: #3b82f6;
+            color: #1e40af;
+            box-shadow: 0 2px 5px rgba(59, 130, 246, 0.1);
+        }
+        input:checked + .radio-box.control-group {
+            background-image: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border-color: #4b5563;
+            color: #1f2937;
+            box-shadow: 0 2px 5px rgba(75, 85, 99, 0.1);
+        }
+        
+        .spinner {
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 2px solid #fff;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="pb-10 text-slate-800">
+
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col xl:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                    <i class="fa-solid fa-heart-pulse text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-800 leading-tight">Nghiên Cứu HU Mạch Vành</h1>
+                    <p class="text-xs text-slate-500 font-medium">Cloud Database & Thống kê Y khoa</p>
+                </div>
+            </div>
+            
+            <!-- Cloud Sync Section -->
+            <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-lg border border-slate-200">
+                <div class="relative">
+                    <i class="fa-solid fa-cloud absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                    <input type="text" id="cloudCode" placeholder="Mã Dự Án (VD: IDR_001)" 
+                           class="pl-8 pr-3 py-1.5 text-sm bg-white border border-slate-200 rounded-md focus:ring-2 focus:ring-cyan-500 outline-none w-40 md:w-56 font-semibold text-slate-700">
+                </div>
+                <button onclick="connectToCloud()" id="btnConnect" class="btn-gradient-cloud text-white px-3 py-1.5 rounded-md text-sm font-semibold shadow-md hover:shadow-cyan-500/30 transition-all flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-link"></i> Kết Nối
+                </button>
+                <div id="cloudStatus" class="px-2 text-xs font-bold text-slate-400">Offline</div>
+            </div>
+
+            <div class="flex flex-wrap gap-2 justify-center">
+                <div class="w-px h-8 bg-gray-300 mx-1"></div>
+                <button onclick="exportToExcel()" class="btn-gradient-success text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-lg hover:shadow-green-500/30 transition-all flex items-center">
+                    <i class="fa-solid fa-file-excel mr-2"></i> Excel
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+        
+        <!-- Left Column: Input Form -->
+        <div class="lg:col-span-4 glass-card rounded-2xl p-6 h-fit sticky top-24">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <span class="w-1 h-6 bg-blue-600 rounded-full"></span>
+                    <span id="formTitle">Nhập Số Liệu Mới</span>
+                </h2>
+                <button onclick="resetFormState()" id="btnCancelEdit" class="hidden text-xs text-red-500 font-semibold hover:underline">Hủy Sửa</button>
+                <div class="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-1 rounded" id="saveStatus">Ready</div>
+            </div>
+            
+            <form id="dataForm" onsubmit="handleAddData(event)">
+                <input type="hidden" name="editIndex" id="editIndex" value="-1">
+                <input type="hidden" name="editGroup" id="editGroup" value="">
+
+                <!-- Group Selection -->
+                <div class="mb-5 bg-slate-50 p-1 rounded-xl border border-slate-200" id="groupSelectionContainer">
+                    <div class="grid grid-cols-2 gap-1">
+                        <label class="cursor-pointer relative">
+                            <input type="radio" name="group" value="study" class="peer sr-only" checked onchange="handleGroupChange()">
+                            <div class="radio-box text-center py-2.5 rounded-lg text-sm font-semibold text-slate-500 hover:text-slate-700">
+                                <i class="fa-solid fa-flask mr-1"></i> Nghiên Cứu
+                            </div>
+                        </label>
+                        <label class="cursor-pointer relative">
+                            <input type="radio" name="group" value="control" class="peer sr-only" onchange="handleGroupChange()">
+                            <div class="radio-box control-group text-center py-2.5 rounded-lg text-sm font-semibold text-slate-500 hover:text-slate-700">
+                                <i class="fa-solid fa-users mr-1"></i> Đối Chứng
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Patient Info -->
+                <div class="grid grid-cols-4 gap-3 mb-5">
+                    <div class="col-span-4">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5 ml-1">Mã BN</label>
+                        <input type="text" id="patientId" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 text-slate-700 font-semibold text-sm" placeholder="VD: BN01">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5 ml-1">Tuổi</label>
+                        <input type="number" name="age" required class="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-center" placeholder="65">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5 ml-1">Giới</label>
+                        <select name="gender" class="w-full px-1 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+                            <option value="Nam">Nam</option>
+                            <option value="Nữ">Nữ</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5 ml-1">Cân nặng (kg)</label>
+                        <input type="number" name="weight" required step="0.1" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-center font-semibold" placeholder="60.5">
+                    </div>
+                </div>
+
+                <!-- Anatomical Inputs -->
+                <div class="space-y-4">
+                    <!-- Section 1 -->
+                    <div class="bg-slate-50/50 rounded-xl p-3 border border-slate-100">
+                        <h3 class="text-xs font-bold text-blue-600 uppercase mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-1"></i> Động mạch chủ & LM
+                        </h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="input-group">
+                                <label>ĐMC Ngang</label>
+                                <input type="number" step="0.1" name="ao_rca" required oninput="validateInput(this)" class="w-full p-2 border border-slate-200 rounded-lg text-sm">
+                            </div>
+                            <div class="input-group">
+                                <label>Left Main</label>
+                                <input type="number" step="0.1" name="lm" required oninput="validateInput(this)" class="w-full p-2 border border-slate-200 rounded-lg text-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2 -->
+                    <div class="bg-slate-50/50 rounded-xl p-3 border border-slate-100">
+                        <h3 class="text-xs font-bold text-indigo-600 uppercase mb-2">
+                            <i class="fa-solid fa-2"></i> LAD
+                        </h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="input-group">
+                                <label>Giữa LAD</label>
+                                <input type="number" step="0.1" name="lad_mid" required oninput="validateInput(this)" class="w-full p-2 border border-slate-200 rounded-lg text-sm">
+                            </div>
+                            <div class="input-group">
+                                <label>Cuối LAD</label>
+                                <input type="number" step="0.1" name="lad_dist" required oninput="validateInput(this)" class="w-full p-2 border border-slate-200 rounded-lg text-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3 -->
+                    <div class="bg-slate-50/50 rounded-xl p-3 border border-slate-100">
+                        <h3 class="text-xs font-bold text-purple-600 uppercase mb-2">
+                            <i class="fa-solid fa-3"></i> CX
+                        </h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="input-group">
+                                <label>Giữa CX</label>
+                                <input type="number" step="0.1" name="cx_mid" required oninput="validateInput(this)" class="w-full p-2 border border-slate-200 rounded-lg text-sm">
+                            </div>
+                            <div class="input-group">
+                                <label>Cuối CX</label>
+                                <input type="number" step="0.1" name="cx_dist" required oninput="validateInput(this)" class="w-full p-2 border border-slate-200 rounded-lg text-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 4 -->
+                    <div class="bg-slate-50/50 rounded-xl p-3 border border-slate-100">
+                        <h3 class="text-xs font-bold text-rose-600 uppercase mb-2">
+                            <i class="fa-solid fa-4"></i> RCA
+                        </h3>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="input-group">
+                                <label>Đầu</label>
+                                <input type="number" step="0.1" name="rca_prox" required oninput="validateInput(this)" class="w-full p-2 border border-slate-200 rounded-lg text-sm">
+                            </div>
+                            <div class="input-group">
+                                <label>Giữa</label>
+                                <input type="number" step="0.1" name="rca_mid" required oninput="validateInput(this)" class="w-full p-2 border border-slate-200 rounded-lg text-sm">
+                            </div>
+                            <div class="input-group">
+                                <label>Cuối</label>
+                                <input type="number" step="0.1" name="rca_dist" required oninput="validateInput(this)" class="w-full p-2 border border-slate-200 rounded-lg text-sm">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" id="btnSubmit" class="w-full mt-6 btn-gradient-primary text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition transform active:scale-95 flex justify-center items-center gap-2 group">
+                    <i class="fa-solid fa-plus transition-transform group-hover:rotate-90"></i> Lưu Dữ Liệu
+                </button>
+            </form>
+        </div>
+
+        <!-- Right Column: Charts and Overview -->
+        <div class="lg:col-span-8 space-y-6">
+            
+            <!-- Table 1 Stats -->
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Study Group Card -->
+                <div class="glass-card p-4 rounded-xl bg-blue-50/50 border border-blue-100">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs text-blue-600 font-bold uppercase tracking-wider">Nhóm Nghiên Cứu</p>
+                            <p class="text-3xl font-bold text-slate-800 mt-1" id="countStudy">0</p>
+                            <p class="text-xs text-slate-400 mb-3">bệnh nhân</p>
+                        </div>
+                        <div class="p-2 bg-blue-100 rounded-lg text-blue-600">
+                            <i class="fa-solid fa-flask text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="pt-3 border-t border-blue-100 grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                            <p class="text-[10px] text-slate-500 uppercase">Tuổi TB</p>
+                            <p class="font-semibold text-slate-700" id="ageStudy">--</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-500 uppercase">Cân nặng TB</p>
+                            <p class="font-semibold text-blue-700" id="weightStudy">--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Group Card -->
+                <div class="glass-card p-4 rounded-xl bg-slate-50/50 border border-slate-200">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">Nhóm Đối Chứng</p>
+                            <p class="text-3xl font-bold text-slate-800 mt-1" id="countControl">0</p>
+                            <p class="text-xs text-slate-400 mb-3">bệnh nhân</p>
+                        </div>
+                        <div class="p-2 bg-slate-200 rounded-lg text-slate-600">
+                            <i class="fa-solid fa-users text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="pt-3 border-t border-slate-200 grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                            <p class="text-[10px] text-slate-500 uppercase">Tuổi TB</p>
+                            <p class="font-semibold text-slate-700" id="ageControl">--</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-500 uppercase">Cân nặng TB</p>
+                            <p class="font-semibold text-slate-700" id="weightControl">--</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis Section -->
+            <div class="glass-card p-6 rounded-2xl">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line text-blue-600"></i> Phân Tích Thống Kê
+                        </h3>
+                        <p class="text-xs text-slate-500">So sánh đối đầu & Kiểm định thống kê (T-test)</p>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <div class="relative min-w-[200px]">
+                            <select id="chartFieldSelector" onchange="updateIndividualChart()" class="w-full pl-3 pr-8 py-2 bg-white border border-slate-200 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm font-semibold text-slate-700 appearance-none cursor-pointer">
+                                <!-- Options by JS -->
+                            </select>
+                            <i class="fa-solid fa-chevron-down absolute right-3 top-3 text-xs text-slate-400 pointer-events-none"></i>
+                        </div>
+                        <button onclick="saveChartImage()" class="px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg shadow-sm text-sm transition" title="Lưu ảnh">
+                            <i class="fa-solid fa-camera"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Advanced Stats Panel -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <!-- Study Stats -->
+                    <div class="p-4 rounded-xl bg-blue-50 border border-blue-100">
+                        <div class="text-xs font-bold text-blue-600 uppercase mb-1">Nghiên Cứu (Mean ± SD)</div>
+                        <div class="text-xl font-bold text-blue-800" id="statStudy">--</div>
+                    </div>
+                    
+                    <!-- Control Stats -->
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                        <div class="text-xs font-bold text-slate-500 uppercase mb-1">Đối Chứng (Mean ± SD)</div>
+                        <div class="text-xl font-bold text-slate-700" id="statControl">--</div>
+                    </div>
+
+                    <!-- T-Test Result -->
+                    <div class="p-4 rounded-xl bg-purple-50 border border-purple-100 relative overflow-hidden">
+                        <div class="absolute -right-2 -top-2 opacity-10">
+                            <i class="fa-solid fa-calculator text-5xl"></i>
+                        </div>
+                        <div class="text-xs font-bold text-purple-600 uppercase mb-1">Kiểm định T-Test</div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-sm text-purple-800">p = </span>
+                            <span class="text-2xl font-bold" id="pValueResult">--</span>
+                        </div>
+                        <div class="text-[10px] text-purple-500 mt-1" id="pSignificance"></div>
+                    </div>
+                </div>
+                
+                <div class="relative h-80 w-full bg-white rounded-xl border border-slate-100 p-2">
+                    <canvas id="individualChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Data Tables -->
+            <div class="glass-card rounded-2xl overflow-hidden">
+                <div class="flex flex-col md:flex-row border-b border-slate-100">
+                    <div class="flex flex-1">
+                        <button onclick="switchTab('study')" id="tabStudy" class="flex-1 py-4 font-bold text-sm text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 transition-colors">
+                            Danh Sách Nghiên Cứu
+                        </button>
+                        <button onclick="switchTab('control')" id="tabControl" class="flex-1 py-4 font-bold text-sm text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors">
+                            Danh Sách Đối Chứng
+                        </button>
+                    </div>
+                    <div class="p-2 bg-slate-50 flex items-center">
+                        <div class="relative w-full md:w-48">
+                            <i class="fa-solid fa-search absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                            <input type="text" id="tableSearch" onkeyup="renderTable()" placeholder="Tìm Mã BN..." class="w-full pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg outline-none focus:border-blue-500">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-0 overflow-x-auto">
+                    <table class="w-full text-sm text-left text-slate-600">
+                        <thead class="text-xs text-slate-400 uppercase bg-slate-50/80 font-semibold">
+                            <tr>
+                                <th class="px-4 py-3 pl-6">ID</th>
+                                <th class="px-2 py-3">Tuổi | Kg</th>
+                                <th class="px-2 py-3">Giới</th>
+                                <th class="px-2 py-3">AO</th>
+                                <th class="px-2 py-3">LM</th>
+                                <th class="px-2 py-3">LADm</th>
+                                <th class="px-2 py-3">LADd</th>
+                                <th class="px-2 py-3">CXm</th>
+                                <th class="px-2 py-3">CXd</th>
+                                <th class="px-2 py-3">RCAp</th>
+                                <th class="px-2 py-3">RCAm</th>
+                                <th class="px-2 py-3">RCAd</th>
+                                <th class="px-2 py-3 text-center">Tác vụ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody" class="divide-y divide-slate-100">
+                            <!-- Rows generated by JS -->
+                        </tbody>
+                    </table>
+                    <div id="emptyMessage" class="text-center py-12 hidden">
+                        <div class="bg-slate-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                            <i class="fa-solid fa-folder-open text-2xl text-slate-300"></i>
+                        </div>
+                        <p class="text-slate-400 font-medium">Chưa có dữ liệu nào</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- FIREBASE MODULES -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, getDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        let currentUser = null;
+        let unsubscribeSnapshot = null;
+
+        const initAuth = async () => {
+             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                 await signInWithCustomToken(auth, __initial_auth_token);
+             } else {
+                 await signInAnonymously(auth);
+             }
+        };
+        initAuth();
+
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (user) {
+                const lastCode = localStorage.getItem('last_project_code');
+                if(lastCode) {
+                    document.getElementById('cloudCode').value = lastCode;
+                    window.connectToCloud(true);
+                }
+            }
+        });
+
+        window.connectToCloud = async (silent = false) => {
+            if (!currentUser) return;
+            const code = document.getElementById('cloudCode').value.trim();
+            const statusEl = document.getElementById('cloudStatus');
+            const btn = document.getElementById('btnConnect');
+
+            if(!code) {
+                if(!silent) alert("Vui lòng nhập Mã Dự Án!");
+                return;
+            }
+
+            if(!silent) {
+                btn.innerHTML = '<div class="spinner"></div>';
+                btn.disabled = true;
+            }
+
+            if (unsubscribeSnapshot) unsubscribeSnapshot();
+
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'research_projects', code);
+
+            unsubscribeSnapshot = onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const cloudData = docSnap.data().data;
+                    if(cloudData) {
+                         window.appData = cloudData;
+                         window.saveLocal();
+                         window.refreshUI();
+                         statusEl.innerHTML = '<span class="text-green-600 flex items-center gap-1"><i class="fa-solid fa-check-circle"></i> Đã đồng bộ</span>';
+                    }
+                } else {
+                    if(!silent) {
+                         setDoc(docRef, { data: window.appData, created: new Date().toISOString() });
+                         statusEl.innerHTML = '<span class="text-blue-600 flex items-center gap-1"><i class="fa-solid fa-plus-circle"></i> Tạo mới</span>';
+                    } else {
+                        statusEl.innerText = "Chưa có dữ liệu";
+                    }
+                }
+                
+                if(!silent) {
+                    btn.innerHTML = '<i class="fa-solid fa-link"></i> Kết Nối';
+                    btn.disabled = false;
+                }
+                localStorage.setItem('last_project_code', code);
+            }, (error) => {
+                console.error("Firebase Error:", error);
+                statusEl.innerText = "Lỗi kết nối";
+                if(!silent) {
+                    btn.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Thử lại';
+                    btn.disabled = false;
+                }
+            });
+        };
+
+        window.saveToCloud = async () => {
+            if (!currentUser) return;
+            const code = document.getElementById('cloudCode').value.trim();
+            if (!code) return;
+
+            const saveStatus = document.getElementById('saveStatus');
+            saveStatus.innerText = "Saving...";
+
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'research_projects', code);
+                await setDoc(docRef, { 
+                    data: window.appData, 
+                    lastUpdated: new Date().toISOString() 
+                });
+                saveStatus.innerText = "Đã lưu Cloud";
+                setTimeout(() => saveStatus.innerText = "Auto-save", 2000);
+            } catch (e) {
+                console.error("Save failed", e);
+                saveStatus.innerText = "Lỗi lưu Cloud";
+            }
+        };
+
+        const STORAGE_KEY = 'cardio_research_hu_data_v4'; // Upgraded to V4 for weight field
+        const FIELDS = [
+            { key: 'ao_rca', label: 'AO RCA (ĐMC)' },
+            { key: 'lm', label: 'Left Main (LM)' },
+            { key: 'lad_mid', label: 'Giữa LAD' },
+            { key: 'lad_dist', label: 'Cuối LAD' },
+            { key: 'cx_mid', label: 'Giữa CX' },
+            { key: 'cx_dist', label: 'Cuối CX' },
+            { key: 'rca_prox', label: 'Đầu RCA' },
+            { key: 'rca_mid', label: 'Giữa RCA' },
+            { key: 'rca_dist', label: 'Cuối RCA' }
+        ];
+
+        window.appData = { study: [], control: [] };
+        window.currentTab = 'study';
+        window.individualChart = null;
+
+        window.onload = function() {
+            window.loadLocal();
+            window.initSelector();
+            window.initIndividualChart();
+            window.refreshUI();
+        };
+
+        window.saveLocal = function() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(window.appData));
+        }
+
+        window.loadLocal = function() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                window.appData = JSON.parse(stored);
+            } else {
+                // Compatibility chain V3 -> V2
+                const oldV3 = localStorage.getItem('cardio_research_hu_data_v3');
+                if(oldV3) window.appData = JSON.parse(oldV3);
+                else {
+                    const oldV2 = localStorage.getItem('cardio_research_hu_data_v2');
+                    if(oldV2) window.appData = JSON.parse(oldV2);
+                }
+            }
+        }
+
+        window.refreshUI = function() {
+            window.updateStats();
+            window.updateIndividualChart();
+            window.renderTable();
+        }
+
+        window.handleSave = function() {
+            window.saveLocal();
+            window.saveToCloud();
+            window.refreshUI();
+        }
+
+        window.initSelector = function() {
+            const select = document.getElementById('chartFieldSelector');
+            select.innerHTML = '';
+            FIELDS.forEach(f => {
+                const option = document.createElement('option');
+                option.value = f.key;
+                option.text = f.label;
+                select.appendChild(option);
+            });
+        }
+
+        // --- NEW: EDIT & VALIDATION LOGIC ---
+        window.validateInput = function(input) {
+            const val = parseFloat(input.value);
+            // Soft warning for unusual HU values for coronary arteries
+            if (val > 2000 || val < -200) {
+                input.classList.add('input-warning');
+            } else {
+                input.classList.remove('input-warning');
+            }
+        }
+
+        window.handleAddData = function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const group = formData.get('group');
+            const editIndex = parseInt(document.getElementById('editIndex').value);
+            const editGroup = document.getElementById('editGroup').value;
+
+            const patientData = {
+                id: document.getElementById('patientId').value,
+                age: parseInt(formData.get('age')) || 0,
+                gender: formData.get('gender'),
+                weight: parseFloat(formData.get('weight')) || 0, // NEW
+                timestamp: new Date().toISOString(),
+                measurements: {}
+            };
+
+            FIELDS.forEach(field => {
+                const val = parseFloat(formData.get(field.key));
+                patientData.measurements[field.key] = isNaN(val) ? 0 : val;
+            });
+
+            if (editIndex > -1 && editGroup) {
+                // Update existing
+                window.appData[editGroup][editIndex] = patientData;
+                window.resetFormState();
+            } else {
+                // Add new
+                window.appData[group].push(patientData);
+                // Reset form but keep group
+                const currentGroup = form.group.value;
+                form.reset();
+                const radios = document.getElementsByName('group');
+                for(let r of radios) { if(r.value === currentGroup) r.checked = true; }
+                document.getElementById('patientId').focus();
+            }
+
+            window.handleSave();
+        }
+
+        window.editPatient = function(group, index) {
+            const p = window.appData[group][index];
+            
+            // Populate form
+            document.getElementById('patientId').value = p.id;
+            document.querySelector('input[name="age"]').value = p.age || '';
+            document.querySelector('select[name="gender"]').value = p.gender || 'Nam';
+            document.querySelector('input[name="weight"]').value = p.weight || ''; // NEW
+            
+            FIELDS.forEach(field => {
+                document.querySelector(`input[name="${field.key}"]`).value = p.measurements[field.key];
+            });
+
+            // Set State
+            document.getElementById('editIndex').value = index;
+            document.getElementById('editGroup').value = group;
+            
+            // UI Updates
+            document.getElementById('formTitle').innerText = `Đang Sửa: ${p.id}`;
+            document.getElementById('formTitle').className = "text-orange-600";
+            document.getElementById('btnSubmit').innerHTML = '<i class="fa-solid fa-save mr-2"></i> Cập Nhật';
+            document.getElementById('btnSubmit').className = "w-full mt-6 btn-gradient-warning text-white font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-95 flex justify-center items-center gap-2";
+            document.getElementById('btnCancelEdit').classList.remove('hidden');
+
+            const radios = document.getElementsByName('group');
+            for(let r of radios) { 
+                if(r.value === group) r.checked = true; 
+                r.disabled = true;
+            }
+
+            window.scrollTo({ top: 100, behavior: 'smooth' });
+        }
+
+        window.resetFormState = function() {
+            document.getElementById('dataForm').reset();
+            document.getElementById('editIndex').value = "-1";
+            document.getElementById('editGroup').value = "";
+            
+            document.getElementById('formTitle').innerText = "Nhập Số Liệu Mới";
+            document.getElementById('formTitle').className = "";
+            document.getElementById('btnSubmit').innerHTML = '<i class="fa-solid fa-plus transition-transform group-hover:rotate-90"></i> Lưu Dữ Liệu';
+            document.getElementById('btnSubmit').className = "w-full mt-6 btn-gradient-primary text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition transform active:scale-95 flex justify-center items-center gap-2 group";
+            document.getElementById('btnCancelEdit').classList.add('hidden');
+
+            const radios = document.getElementsByName('group');
+            for(let r of radios) { r.disabled = false; }
+        }
+
+        window.deletePatient = function(group, index) {
+            if(confirm('Xóa bệnh nhân này?')) {
+                window.appData[group].splice(index, 1);
+                window.handleSave();
+                if(document.getElementById('editIndex').value == index && document.getElementById('editGroup').value == group) {
+                    window.resetFormState();
+                }
+            }
+        }
+
+        window.confirmClearData = function() {
+            if(confirm('CẢNH BÁO: Xóa toàn bộ dữ liệu?')) {
+                window.appData = { study: [], control: [] };
+                window.handleSave();
+                window.resetFormState();
+            }
+        }
+
+        // --- STATS & CHART ---
+        window.getStats = function(dataArray, key) {
+            if (!dataArray || dataArray.length === 0) return { mean: 0, sd: 0, values: [] };
+            const values = dataArray.map(p => p.measurements[key]).filter(v => typeof v === 'number' && !isNaN(v));
+            if (values.length === 0) return { mean: 0, sd: 0, values: [] };
+            const n = values.length;
+            const mean = values.reduce((a, b) => a + b, 0) / n;
+            const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n > 1 ? n - 1 : 1);
+            return { mean, sd: Math.sqrt(variance), values };
+        }
+        
+        // Helper for Demographics & Weight
+        window.getDemographicsStats = function(dataArray) {
+             if (!dataArray || dataArray.length === 0) return { age: "--", weight: "--" };
+             
+             let ageSum = 0, weightSum = 0;
+             let validAges = 0, validWeights = 0;
+             
+             dataArray.forEach(p => {
+                 if(p.age) { ageSum += p.age; validAges++; }
+                 if(p.weight) { weightSum += p.weight; validWeights++; }
+             });
+             
+             const avgAge = validAges ? (ageSum/validAges).toFixed(1) : "--";
+             const avgWeight = validWeights ? (weightSum/validWeights).toFixed(1) : "--";
+             
+             return { 
+                 age: `${avgAge} tuổi`, 
+                 weight: `${avgWeight} kg` 
+             };
+        }
+
+        const whiteBackgroundPlugin = {
+            id: 'customCanvasBackgroundColor',
+            beforeDraw: (chart, args, options) => {
+                const {ctx} = chart;
+                ctx.save();
+                ctx.globalCompositeOperation = 'destination-over';
+                ctx.fillStyle = options.color || '#ffffff';
+                ctx.fillRect(0, 0, chart.width, chart.height);
+                ctx.restore();
+            }
+        };
+
+        window.initIndividualChart = function() {
+            const ctx = document.getElementById('individualChart').getContext('2d');
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            
+            window.individualChart = new Chart(ctx, {
+                type: 'line', 
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'top', align: 'end' },
+                        tooltip: { 
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            callbacks: { title: (items) => `Ca thứ: ${items[0].label}` }
+                        },
+                        customCanvasBackgroundColor: { color: 'white' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [5, 5] }, border: { display: false } },
+                        x: { grid: { display: false }, border: { display: false } }
+                    }
+                },
+                plugins: [whiteBackgroundPlugin]
+            });
+            window.updateIndividualChart();
+        }
+
+        window.updateIndividualChart = function() {
+            if (!window.individualChart) return;
+            const selectedKey = document.getElementById('chartFieldSelector').value;
+            
+            const sStats = window.getStats(window.appData.study, selectedKey);
+            const cStats = window.getStats(window.appData.control, selectedKey);
+
+            document.getElementById('statStudy').innerText = `${sStats.mean.toFixed(1)} ± ${sStats.sd.toFixed(1)}`;
+            document.getElementById('statControl').innerText = `${cStats.mean.toFixed(1)} ± ${cStats.sd.toFixed(1)}`;
+
+            const pValEl = document.getElementById('pValueResult');
+            const pSigEl = document.getElementById('pSignificance');
+            
+            if (sStats.values.length > 1 && cStats.values.length > 1) {
+                const pValue = jStat.ttest(sStats.values, cStats.values, 2, 2);
+                if (pValue < 0.001) {
+                    pValEl.innerText = "< 0.001";
+                    pValEl.className = "text-2xl font-bold text-red-600";
+                    pSigEl.innerText = "Khác biệt rất có ý nghĩa";
+                } else {
+                    pValEl.innerText = pValue.toFixed(3);
+                    if (pValue < 0.05) {
+                        pValEl.className = "text-2xl font-bold text-red-600";
+                        pSigEl.innerText = "Khác biệt có ý nghĩa (p < 0.05)";
+                    } else {
+                        pValEl.className = "text-2xl font-bold text-slate-500";
+                        pSigEl.innerText = "Khác biệt không ý nghĩa";
+                    }
+                }
+            } else {
+                pValEl.innerText = "--";
+                pSigEl.innerText = "Cần thêm dữ liệu";
+            }
+
+            const count = Math.max(window.appData.study.length, window.appData.control.length);
+            const displayCount = count > 0 ? count : 0;
+            const labels = [], dataStudy = [], dataControl = [];
+
+            for (let i = 0; i < displayCount; i++) {
+                labels.push(`${i + 1}`);
+                dataStudy.push(i < window.appData.study.length ? window.appData.study[i].measurements[selectedKey] : null);
+                dataControl.push(i < window.appData.control.length ? window.appData.control[i].measurements[selectedKey] : null);
+            }
+
+            window.individualChart.data.labels = labels;
+            window.individualChart.data.datasets = [
+                {
+                    label: 'Nghiên Cứu',
+                    data: dataStudy,
+                    borderColor: '#2563eb', backgroundColor: '#2563eb',
+                    borderWidth: 2, pointRadius: 4, pointHoverRadius: 6,
+                    pointBackgroundColor: '#fff', tension: 0.1
+                },
+                {
+                    label: 'Đối Chứng',
+                    data: dataControl,
+                    borderColor: '#64748b', backgroundColor: '#64748b',
+                    borderWidth: 2, pointRadius: 4, pointHoverRadius: 6,
+                    pointBackgroundColor: '#fff', tension: 0.1
+                }
+            ];
+            window.individualChart.update();
+        }
+
+        window.updateStats = function() {
+            document.getElementById('countStudy').innerText = window.appData.study.length;
+            document.getElementById('countControl').innerText = window.appData.control.length;
+            
+            // Update Demo & Weight
+            const statsStudy = window.getDemographicsStats(window.appData.study);
+            const statsControl = window.getDemographicsStats(window.appData.control);
+            
+            document.getElementById('ageStudy').innerText = statsStudy.age;
+            document.getElementById('weightStudy').innerText = statsStudy.weight;
+            
+            document.getElementById('ageControl').innerText = statsControl.age;
+            document.getElementById('weightControl').innerText = statsControl.weight;
+        }
+
+        window.switchTab = function(group) {
+            window.currentTab = group;
+            const tabStudy = document.getElementById('tabStudy');
+            const tabControl = document.getElementById('tabControl');
+            
+            if (group === 'study') {
+                tabStudy.className = "flex-1 py-4 font-bold text-sm text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 transition-colors";
+                tabControl.className = "flex-1 py-4 font-bold text-sm text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors";
+            } else {
+                tabControl.className = "flex-1 py-4 font-bold text-sm text-slate-600 border-b-2 border-slate-600 bg-slate-50/50 transition-colors";
+                tabStudy.className = "flex-1 py-4 font-bold text-sm text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors";
+            }
+            window.renderTable();
+        }
+
+        window.renderTable = function() {
+            const tbody = document.getElementById('dataTableBody');
+            const emptyMsg = document.getElementById('emptyMessage');
+            const searchTerm = document.getElementById('tableSearch').value.toLowerCase();
+            
+            tbody.innerHTML = '';
+            const data = window.appData[window.currentTab];
+
+            // Filter
+            const filteredData = data.filter(p => p.id.toLowerCase().includes(searchTerm));
+
+            if (filteredData.length === 0) {
+                if(data.length > 0) {
+                     emptyMsg.innerText = "Không tìm thấy kết quả";
+                     emptyMsg.classList.remove('hidden');
+                } else {
+                     emptyMsg.innerText = "Chưa có dữ liệu nào";
+                     emptyMsg.classList.remove('hidden');
+                }
+                return;
+            } else {
+                emptyMsg.classList.add('hidden');
+            }
+            
+            const indexedData = data.map((item, index) => ({...item, originalIndex: index}));
+            const filteredIndexed = indexedData.filter(p => p.id.toLowerCase().includes(searchTerm));
+
+            for (let i = filteredIndexed.length - 1; i >= 0; i--) {
+                const p = filteredIndexed[i];
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors group";
+                
+                let cells = `<td class="px-4 py-3 pl-6 font-semibold text-slate-700">${p.id}</td>`;
+                // Combine Age & Weight in one cell
+                cells += `<td class="px-2 py-3 text-xs text-slate-500 font-medium">${p.age || '-'}t <span class="text-slate-300">|</span> ${p.weight || '-'}kg</td>`;
+                cells += `<td class="px-2 py-3 text-xs text-slate-500">${p.gender || '-'}</td>`;
+                
+                FIELDS.forEach(f => {
+                    cells += `<td class="px-2 py-3 text-slate-500">${p.measurements[f.key]}</td>`;
+                });
+                
+                cells += `
+                    <td class="px-2 py-3 text-center">
+                        <div class="flex justify-center gap-2">
+                            <button onclick="editPatient('${window.currentTab}', ${p.originalIndex})" class="text-slate-400 hover:text-blue-500 transition-colors p-1" title="Sửa">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deletePatient('${window.currentTab}', ${p.originalIndex})" class="text-slate-300 hover:text-red-500 transition-colors p-1" title="Xóa">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tr.innerHTML = cells;
+                tbody.appendChild(tr);
+            }
+        }
+        
+        window.saveChartImage = function() {
+            const link = document.createElement('a');
+            link.download = 'BieuDo_HU_Statistics.png';
+            link.href = document.getElementById('individualChart').toDataURL('image/png', 1.0);
+            link.click();
+        }
+
+        window.exportToExcel = function() {
+            const wb = XLSX.utils.book_new();
+            const formatData = (groupName, dataArr) => dataArr.map(p => {
+                const row = { 
+                    Nhom: groupName === 'study' ? 'NghienCuu' : 'DoiChung', 
+                    Patient_ID: p.id,
+                    Tuoi: p.age || 0,
+                    Gioi: p.gender || '',
+                    CanNang_Kg: p.weight || 0 // NEW
+                };
+                FIELDS.forEach(f => row[f.label] = p.measurements[f.key]);
+                return row;
+            });
+            const allData = [...formatData('study', window.appData.study), ...formatData('control', window.appData.control)];
+            if(allData.length === 0) { alert("Chưa có dữ liệu!"); return; }
+            const ws = XLSX.utils.json_to_sheet(allData);
+            ws['!cols'] = Object.keys(allData[0]).map(k => ({wch: 15}));
+            XLSX.utils.book_append_sheet(wb, ws, "DuLieu_HU");
+            XLSX.writeFile(wb, "NghienCuu_HU_Stats.xlsx");
+        }
+    </script>
+</body>
+</html>
