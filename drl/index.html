@@ -63,7 +63,7 @@
 
     <!-- AUTH MODAL (Login/Register) -->
     <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 transform transition-all scale-100">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 transform transition-all scale-100 max-h-[90vh] overflow-y-auto">
             <div class="text-center mb-6">
                 <div class="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600">
                     <i data-lucide="shield-check" class="w-8 h-8"></i>
@@ -81,9 +81,19 @@
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Mật khẩu</label>
                     <input type="password" id="authPassword" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••">
                 </div>
+
+                <!-- Admin Login Option (Button) -->
+                <div class="pt-2 border-t border-slate-100">
+                    <button type="button" id="authAdminToggleBtn" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 text-sm">
+                        <i data-lucide="shield"></i> Đăng nhập quyền Quản trị (Admin)
+                    </button>
+                    <div id="authAdminPinContainer" class="hidden mt-3 animate-in fade-in slide-in-from-top-1">
+                        <input type="password" id="authAdminPin" class="w-full px-4 py-3 border-2 border-amber-200 bg-amber-50 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-center font-bold tracking-widest placeholder:font-normal" placeholder="Nhập mã PIN Admin">
+                    </div>
+                </div>
                 
                 <button type="submit" id="authSubmitBtn" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2">
-                    <span>Đăng Nhập với Email</span>
+                    <span>Đăng Nhập</span>
                 </button>
             </form>
 
@@ -344,13 +354,7 @@
                                     class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-indigo-500">
                             </div>
                             
-                            <!-- Phantom Type -->
-                            <div>
-                                <select id="phantom" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 focus:ring-1 focus:ring-amber-500 outline-none">
-                                    <option value="32cm">Phantom Thân (32cm)</option>
-                                    <option value="16cm">Phantom Đầu (16cm)</option>
-                                </select>
-                            </div>
+                            <!-- Phantom Type: REMOVED -->
 
                             <!-- CTDI/DLP moved down and highlighted -->
                             <div class="grid grid-cols-2 gap-4">
@@ -703,7 +707,7 @@
             ctdiMax: null
         };
 
-        // --- CHART FUNCTIONS (Restored) ---
+        // --- CHART FUNCTIONS ---
         function getChartData(viewMode, metric) {
             const groups = {};
             // Use filteredEntries to reflect current filter state in charts
@@ -824,9 +828,6 @@
                 } else if (!auth.currentUser) {
                      await signInAnonymously(auth).catch(err => {
                          console.error("Anon auth failed", err);
-                         if (err.code === 'auth/unauthorized-domain') {
-                             showToast("Lỗi: Tên miền này chưa được phép truy cập Firebase. Vui lòng thêm vào Console.", 'error');
-                         }
                      });
                 }
 
@@ -888,9 +889,13 @@
             const btn = document.getElementById('authSubmitBtn').querySelector('span');
             const switchText = document.getElementById('authSwitchText');
             
+            // Reset Admin UI when switching modes
+            document.getElementById('authAdminPinContainer').classList.add('hidden');
+            document.getElementById('authAdminToggleBtn').classList.remove('hidden');
+            
             if (isLoginMode) {
                 title.textContent = "Đăng Nhập";
-                btn.textContent = "Đăng Nhập với Email";
+                btn.textContent = "Đăng Nhập";
                 switchText.innerHTML = 'Chưa có tài khoản? <a href="#" id="authSwitchBtn" class="text-indigo-600 font-bold hover:underline">Đăng ký ngay</a>';
             } else {
                 title.textContent = "Đăng Ký";
@@ -912,6 +917,20 @@
             const btn = document.getElementById('authSubmitBtn');
             const originalText = btn.innerHTML;
 
+            // --- ADMIN PIN CHECK LOGIC ---
+            const pinContainer = document.getElementById('authAdminPinContainer');
+            const isTryingAdmin = !pinContainer.classList.contains('hidden');
+            
+            if (isTryingAdmin) {
+                const pin = document.getElementById('authAdminPin').value;
+                if (pin !== "123456") { // Hardcoded PIN
+                     showToast('Sai mã PIN Admin!', 'error');
+                     document.getElementById('authAdminPin').focus();
+                     return;
+                }
+            }
+            // -----------------------------
+
             btn.disabled = true;
             btn.innerHTML = `<div class="loader w-4 h-4 border-white border-t-transparent"></div>`;
 
@@ -923,6 +942,17 @@
                     await createUserWithEmailAndPassword(auth, email, pass);
                     showToast('Đăng ký thành công!', 'success');
                 }
+                
+                // If login successful and wanted admin
+                if (isTryingAdmin) {
+                    isAdminMode = true;
+                    // Reset UI
+                    pinContainer.classList.add('hidden');
+                    document.getElementById('authAdminToggleBtn').classList.remove('hidden');
+                    document.getElementById('authAdminPin').value = '';
+                    updateAdminBtnState();
+                }
+
             } catch (error) {
                 let msg = error.message;
                 if (error.code === 'auth/wrong-password') msg = 'Sai mật khẩu.';
@@ -939,6 +969,10 @@
             try {
                 await signInWithPopup(auth, googleProvider);
                 showToast('Đăng nhập Google thành công!', 'success');
+                
+                // Check Admin PIN if checked for Google too
+                // For simplified UI, Google login doesn't directly support the PIN toggle in one step
+                // User can toggle admin after login via menu
             } catch (error) {
                 console.error(error);
                 showToast('Lỗi Google: ' + error.message, 'error');
@@ -1144,6 +1178,34 @@
 
         // --- EVENT LISTENERS ---
         function setupEventListeners() {
+            // ... existing listeners ...
+
+            document.getElementById('authForm').addEventListener('submit', handleAuth);
+            
+            document.getElementById('authSwitchBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleAuthMode();
+            });
+            
+            // New Admin Toggle Button Listener
+            document.getElementById('authAdminToggleBtn').addEventListener('click', (e) => {
+                const pinContainer = document.getElementById('authAdminPinContainer');
+                const pinInput = document.getElementById('authAdminPin');
+                const submitBtnSpan = document.getElementById('authSubmitBtn').querySelector('span');
+                
+                pinContainer.classList.remove('hidden');
+                e.target.classList.add('hidden'); // Hide the toggle button itself
+                pinInput.focus();
+                
+                // Update submit button text
+                if (isLoginMode) {
+                    submitBtnSpan.textContent = "Đăng Nhập Admin";
+                } else {
+                    submitBtnSpan.textContent = "Đăng Ký Admin";
+                }
+                lucide.createIcons();
+            });
+
             // Chart view mode listeners
             document.getElementById('ctdiViewMode').addEventListener('change', updateCharts);
             document.getElementById('dlpViewMode').addEventListener('change', updateCharts);
@@ -1179,14 +1241,7 @@
                     document.getElementById('authModal').classList.add('hidden');
                 }
             });
-
-            document.getElementById('authForm').addEventListener('submit', handleAuth);
             
-            document.getElementById('authSwitchBtn').addEventListener('click', (e) => {
-                e.preventDefault();
-                toggleAuthMode();
-            });
-
             document.getElementById('googleLoginBtn').addEventListener('click', handleGoogleLogin);
 
             // Logout
@@ -1493,7 +1548,7 @@
         function renderHospitalOptions() {
             const select = document.getElementById('hospitalSelect');
             const first = select.firstElementChild; const last = select.lastElementChild;
-            select.innerHTML = ''; select.appendChild(first);
+            select.innerHTML = '<option value="" disabled selected>-- Chọn Bệnh viện --</option>';
             availableHospitals.forEach(h => {
                 const opt = document.createElement('option'); opt.value = h; opt.textContent = h; select.appendChild(opt);
             });
