@@ -11,6 +11,9 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
+    <!-- SheetJS (Excel Export) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -31,9 +34,86 @@
             animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Highlight editing mode */
+        .editing-mode {
+            border: 2px solid #f59e0b;
+            background-color: #fffbeb;
+        }
+        
+        /* Modal Backdrop */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen pb-12">
+
+    <!-- AUTH MODAL (Login/Register) -->
+    <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 transform transition-all scale-100">
+            <div class="text-center mb-6">
+                <div class="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600">
+                    <i data-lucide="shield-check" class="w-8 h-8"></i>
+                </div>
+                <h2 id="authTitle" class="text-2xl font-bold text-slate-800">Đăng Nhập</h2>
+                <p id="authSubtitle" class="text-sm text-slate-500 mt-1">Truy cập hệ thống DRL Miền Bắc</p>
+            </div>
+
+            <form id="authForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
+                    <input type="email" id="authEmail" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="name@hospital.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Mật khẩu</label>
+                    <input type="password" id="authPassword" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••">
+                </div>
+                
+                <button type="submit" id="authSubmitBtn" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2">
+                    <span>Đăng Nhập với Email</span>
+                </button>
+            </form>
+
+            <div class="my-6 flex items-center gap-4">
+                <div class="h-px bg-slate-200 flex-1"></div>
+                <span class="text-xs text-slate-400 font-bold uppercase">Hoặc</span>
+                <div class="h-px bg-slate-200 flex-1"></div>
+            </div>
+
+            <button id="googleLoginBtn" class="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-medium transition-all flex items-center justify-center gap-3 shadow-sm group">
+                <svg class="w-5 h-5 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                <span>Đăng nhập bằng Google</span>
+            </button>
+
+            <div class="mt-6 text-center text-sm border-t border-slate-100 pt-4">
+                <p id="authSwitchText">Chưa có tài khoản? <a href="#" id="authSwitchBtn" class="text-indigo-600 font-bold hover:underline">Đăng ký ngay</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHANGE PASSWORD MODAL -->
+    <div id="changePassModal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 relative">
+            <button id="closePassModal" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Đổi Mật Khẩu</h3>
+            <form id="changePassForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Mật khẩu mới</label>
+                    <input type="password" id="newPassword" class="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-indigo-500" required minlength="6">
+                </div>
+                <button type="submit" class="w-full py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700">Lưu thay đổi</button>
+            </form>
+        </div>
+    </div>
 
     <!-- Navbar -->
     <nav class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm bg-opacity-90 backdrop-blur">
@@ -48,11 +128,43 @@
                         <p class="text-xs text-slate-500 font-medium mt-0.5">Northern Region Study</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-4">
-                    <div id="connectionStatus" class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full text-xs font-medium text-slate-600 transition-colors">
-                        <i data-lucide="wifi" class="w-3 h-3 text-amber-500"></i>
-                        <span>Đang kết nối...</span>
+                
+                <div class="flex items-center gap-3">
+                    <!-- User Menu (Hidden by default) -->
+                    <div id="userMenu" class="hidden flex items-center gap-3">
+                        <div class="text-right hidden md:block">
+                            <p id="userEmailDisplay" class="text-xs font-bold text-slate-700">user@example.com</p>
+                            <p id="userRoleDisplay" class="text-[10px] text-slate-500">Thành viên</p>
+                        </div>
+                        
+                        <!-- CLICKABLE DROPDOWN WRAPPER -->
+                        <div class="relative">
+                            <button id="userMenuBtn" class="bg-slate-100 p-2 rounded-full hover:bg-slate-200 transition-colors focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <i data-lucide="user" class="w-5 h-5 text-slate-600"></i>
+                            </button>
+                            
+                            <!-- Dropdown -->
+                            <div id="userDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden hidden z-50">
+                                <a href="#" id="toggleAdminBtn" class="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 border-b border-slate-50">
+                                    <i data-lucide="lock" class="w-4 h-4 text-amber-500"></i>
+                                    <span id="adminBtnText">Bật Quyền Admin</span>
+                                </a>
+                                <a href="#" id="openChangePassBtn" class="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                                    <i data-lucide="key" class="w-4 h-4"></i>
+                                    Đổi mật khẩu
+                                </a>
+                                <a href="#" id="logoutBtn" class="block px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                                    Đăng xuất
+                                </a>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Login Button (Visible when logged out) -->
+                    <button id="navLoginBtn" class="hidden px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition-colors">
+                        Đăng nhập
+                    </button>
                 </div>
             </div>
         </div>
@@ -71,24 +183,42 @@
             
             <!-- LEFT COLUMN: INPUT FORM -->
             <div class="col-span-12 lg:col-span-4 space-y-6">
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden sticky top-24">
+                <div id="formContainer" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden sticky top-24 transition-all duration-300">
                     <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                        <h2 class="font-semibold text-slate-800 flex items-center gap-2">
+                        <h2 id="formTitle" class="font-semibold text-slate-800 flex items-center gap-2">
                             <i data-lucide="plus-circle" class="text-indigo-600 w-5 h-5"></i>
                             Nhập Dữ Liệu Mới
                         </h2>
                         <span class="text-xs font-mono text-slate-400">#ENTRY</span>
                     </div>
                     
-                    <form id="drlForm" class="p-6 space-y-5">
+                    <form id="drlForm" class="p-6 space-y-5 relative">
+                        <!-- Lock overlay if not logged in -->
+                        <div id="formLockOverlay" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center text-center p-6 hidden">
+                            <i data-lucide="lock" class="w-10 h-10 text-slate-400 mb-2"></i>
+                            <p class="text-sm font-medium text-slate-600">Vui lòng đăng nhập để nhập liệu</p>
+                        </div>
+
+                        <!-- Hidden field to store editing ID -->
+                        <input type="hidden" id="editEntryId" value="">
+
                         <!-- Facility Info -->
                         <div class="space-y-4">
                             <label class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                                 <i data-lucide="hospital" class="w-3 h-3"></i> Cơ sở Y tế
                             </label>
                             <div class="grid grid-cols-1 gap-4">
-                                <input type="text" id="hospitalName" placeholder="Tên bệnh viện (VD: BV Bạch Mai)" required
-                                    class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-400">
+                                <!-- Hospital Selection Logic -->
+                                <div class="flex flex-col gap-2">
+                                    <select id="hospitalSelect" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+                                        <option value="" disabled selected>-- Chọn Bệnh viện --</option>
+                                        <!-- Options populated by JS -->
+                                        <option value="other" class="font-bold text-indigo-600">➕ Bệnh viện khác (Nhập mới)</option>
+                                    </select>
+                                    <input type="text" id="customHospitalName" placeholder="Nhập tên bệnh viện mới..." 
+                                        class="hidden w-full px-4 py-2.5 bg-white border-2 border-indigo-100 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-400 animate-in fade-in slide-in-from-top-1">
+                                </div>
+
                                 <div class="grid grid-cols-2 gap-3">
                                     <select id="province" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                                         <!-- Options populated by JS -->
@@ -163,11 +293,16 @@
                             </div>
                         </div>
 
-                        <button type="submit" id="submitBtn"
-                            class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-lg shadow-indigo-200 active:transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
-                            <i data-lucide="save" class="w-4 h-4"></i>
-                            <span>Lưu vào Database</span>
-                        </button>
+                        <div class="flex gap-2">
+                             <button type="button" id="cancelEditBtn" class="hidden w-1/3 py-3.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-semibold transition-all">
+                                Hủy
+                            </button>
+                            <button type="submit" id="submitBtn"
+                                class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-lg shadow-indigo-200 active:transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                                <i data-lucide="save" class="w-4 h-4"></i>
+                                <span>Lưu vào Database</span>
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -175,24 +310,49 @@
             <!-- RIGHT COLUMN: DASHBOARD -->
             <div class="col-span-12 lg:col-span-8 space-y-6">
                 
-                <!-- Header & Filter -->
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-                            <i data-lucide="calculator" class="text-indigo-600 w-6 h-6"></i>
-                            DRL Calculator
-                        </h3>
-                        <p class="text-sm text-slate-500">Tính toán Real-time: Median (50th) & DRL (75th)</p>
-                    </div>
-
-                    <div class="bg-white p-1 rounded-lg border border-slate-200 flex items-center shadow-sm">
-                        <div class="px-3 text-slate-400">
+                <!-- FILTER PANEL -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="bg-indigo-50 p-1.5 rounded text-indigo-600">
                             <i data-lucide="filter" class="w-4 h-4"></i>
                         </div>
-                        <select id="protocolFilter" class="bg-transparent border-none text-sm font-medium text-slate-700 focus:ring-0 cursor-pointer py-1.5 pr-8 outline-none">
-                            <option value="all">Tất cả Protocols</option>
-                            <!-- Options populated by JS -->
-                        </select>
+                        <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wide">Bộ Lọc Dữ Liệu</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Filter Hospital -->
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-slate-500">Bệnh viện</label>
+                            <select id="filterHospital" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="all">Tất cả Bệnh viện</option>
+                                <!-- Populated via JS -->
+                            </select>
+                        </div>
+
+                        <!-- Filter Protocol -->
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-slate-500">Bộ phận / Protocol</label>
+                            <select id="filterProtocol" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="all">Tất cả Protocol</option>
+                                <!-- Populated via JS -->
+                            </select>
+                        </div>
+
+                        <!-- Filter CTDI Range -->
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-slate-500">Khoảng CTDI (mGy)</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="filterCtdiMin" placeholder="Min" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <span class="text-slate-300">-</span>
+                                <input type="number" id="filterCtdiMax" placeholder="Max" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end mt-4 pt-3 border-t border-slate-50">
+                        <button id="resetFilters" class="text-xs text-slate-400 hover:text-indigo-600 font-medium flex items-center gap-1 transition-colors">
+                            <i data-lucide="refresh-ccw" class="w-3 h-3"></i> Xóa bộ lọc
+                        </button>
                     </div>
                 </div>
 
@@ -201,12 +361,12 @@
                     <!-- Total Card -->
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between h-36 relative overflow-hidden">
                         <div class="relative z-10">
-                            <p class="text-slate-500 text-sm font-medium">Tổng mẫu</p>
+                            <p class="text-slate-500 text-sm font-medium">Tổng mẫu (Sau lọc)</p>
                             <h3 id="statTotal" class="text-4xl font-bold text-slate-800 mt-2">...</h3>
                         </div>
                         <div class="relative z-10 flex items-center gap-1 text-xs text-indigo-600 font-medium bg-indigo-50 w-fit px-2 py-1 rounded-full">
                             <i data-lucide="database" class="w-3 h-3"></i>
-                            <span id="statLabel">Mixed Data</span>
+                            <span id="statLabel">Showing All</span>
                         </div>
                     </div>
 
@@ -251,7 +411,7 @@
                     </div>
                 </div>
 
-                <!-- Table -->
+                <!-- Table & Export -->
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[500px] overflow-hidden">
                     <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-20">
                         <div class="flex items-center gap-3">
@@ -260,13 +420,19 @@
                             </div>
                             <div>
                                 <h3 class="font-semibold text-slate-800">Dữ liệu trực tuyến</h3>
-                                <p class="text-xs text-slate-400 hidden sm:block">Cập nhật thời gian thực từ các bệnh viện</p>
+                                <p class="text-xs text-slate-400 hidden sm:block">Kết quả lọc & tính toán</p>
                             </div>
                         </div>
-                        <button id="exportBtn" disabled class="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                            <i data-lucide="file-down" class="w-4 h-4"></i>
-                            <span class="hidden sm:inline">Xuất CSV</span>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button id="btnExportCsv" disabled class="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                                CSV
+                            </button>
+                            <button id="btnExportExcel" disabled class="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                                <i data-lucide="table" class="w-3.5 h-3.5"></i>
+                                Excel (.xlsx)
+                            </button>
+                        </div>
                     </div>
 
                     <div class="flex-1 overflow-auto bg-slate-50/30 relative">
@@ -277,8 +443,8 @@
                         
                         <!-- Empty State -->
                         <div id="emptyState" class="hidden flex flex-col items-center justify-center h-full text-slate-400">
-                            <i data-lucide="database" class="w-12 h-12 opacity-20 mb-3"></i>
-                            <p>Chưa có dữ liệu.</p>
+                            <i data-lucide="filter-x" class="w-12 h-12 opacity-20 mb-3"></i>
+                            <p>Không tìm thấy dữ liệu phù hợp.</p>
                         </div>
 
                         <table class="w-full text-left border-collapse">
@@ -306,8 +472,8 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updatePassword, GoogleAuthProvider, signInWithPopup, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // --- CONSTANTS ---
         const NORTHERN_PROVINCES = [
@@ -315,6 +481,15 @@
             "Hưng Yên", "Thái Bình", "Nam Định", "Ninh Bình", "Vĩnh Phúc", 
             "Phú Thọ", "Thái Nguyên", "Bắc Giang", "Lạng Sơn", "Lào Cai"
         ];
+
+        const INITIAL_HOSPITALS = [
+            "Bệnh viện đa khoa tỉnh Quảng Ninh",
+            "Bệnh viện đa khoa tỉnh Bắc Ninh",
+            "Bệnh viện hữu nghị Việt Tiệp",
+            "Bệnh viện 30 - 04, Bộ Công An"
+        ];
+        
+        let availableHospitals = [...INITIAL_HOSPITALS];
 
         const ACR_PROTOCOLS = [
             { id: 'ct_head', name: 'CT Head (Sọ não)', modality: 'CT' },
@@ -331,13 +506,11 @@
         let customToken = null;
 
         try {
-            // Kiểm tra nếu đang chạy trong môi trường Preview của Canvas (thì dùng biến môi trường)
             if (typeof __firebase_config !== 'undefined') {
                 firebaseConfig = JSON.parse(__firebase_config);
                 appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                 customToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
             } else {
-                 // SỬ DỤNG CẤU HÌNH CỦA BẠN (WB-IDR) KHI CHẠY LOCAL HOẶC DEPLOY
                  firebaseConfig = {
                     apiKey: "AIzaSyAtQdmDbA1BgOrvwevrG6gwuFzlUmBTbfY",
                     authDomain: "wb-idr.firebaseapp.com",
@@ -354,8 +527,19 @@
 
         // --- APP STATE ---
         let db, auth, currentUser;
+        const googleProvider = new GoogleAuthProvider();
+        
         let entries = [];
-        let currentFilter = 'all';
+        let filteredEntries = []; 
+        let isAdminMode = false; // "Super User" mode
+        let isLoginMode = true; // For auth modal (Login vs Register)
+        
+        let filters = {
+            hospital: 'all',
+            protocol: 'all',
+            ctdiMin: null,
+            ctdiMax: null
+        };
 
         // --- INIT FUNCTION ---
         async function initApp() {
@@ -364,46 +548,47 @@
                 auth = getAuth(app);
                 db = getFirestore(app);
 
-                // Setup Select Options
                 setupDropdowns();
-
-                // Setup Date
+                renderHospitalOptions();
                 document.getElementById('scanDate').value = new Date().toISOString().split('T')[0];
 
-                // Setup Listeners
                 setupEventListeners();
 
-                // Auth Logic
+                // Custom Token Auth (For Environment) OR Check User Status
                 if (customToken) {
                     await signInWithCustomToken(auth, customToken);
-                } else {
-                    await signInAnonymously(auth);
                 }
 
-                // Auth Listener
                 onAuthStateChanged(auth, (user) => {
                     currentUser = user;
-                    const statusEl = document.getElementById('connectionStatus');
-                    // FIX: Query the first child (icon) instead of 'i' tag, 
-                    // because Lucide replaces <i> with <svg>
-                    const iconEl = statusEl.firstElementChild; 
-                    const textEl = statusEl.querySelector('span');
+                    const userMenu = document.getElementById('userMenu');
+                    const navLoginBtn = document.getElementById('navLoginBtn');
+                    const formOverlay = document.getElementById('formLockOverlay');
+                    const submitBtn = document.getElementById('submitBtn');
 
                     if (user) {
-                        statusEl.classList.remove('bg-slate-100', 'text-slate-600');
-                        statusEl.classList.add('bg-emerald-50', 'text-emerald-600', 'border', 'border-emerald-200');
+                        // Logged In
+                        userMenu.classList.remove('hidden');
+                        navLoginBtn.classList.add('hidden');
+                        document.getElementById('userEmailDisplay').textContent = user.email || "Người dùng Google";
+                        document.getElementById('authModal').classList.add('hidden');
+                        formOverlay.classList.add('hidden');
+                        submitBtn.disabled = false;
                         
-                        if (iconEl) {
-                            iconEl.classList.remove('text-amber-500');
-                            iconEl.classList.add('text-emerald-500');
-                        }
-                        
-                        textEl.textContent = 'Đã kết nối';
-                        
-                        // Start Syncing Data
                         startDataSync();
                     } else {
-                        textEl.textContent = 'Chưa kết nối';
+                        // Logged Out
+                        userMenu.classList.add('hidden');
+                        navLoginBtn.classList.remove('hidden');
+                        formOverlay.classList.remove('hidden');
+                        submitBtn.disabled = true;
+                        
+                        // Clear private view
+                        isAdminMode = false; 
+                        updateAdminBtnState();
+                        
+                        // Still sync public data for viewing
+                        startDataSync();
                     }
                 });
 
@@ -413,7 +598,108 @@
             }
         }
 
-        // --- DATA SYNC ---
+        // --- AUTH FUNCTIONS ---
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            const title = document.getElementById('authTitle');
+            const btn = document.getElementById('authSubmitBtn').querySelector('span');
+            const switchText = document.getElementById('authSwitchText');
+            
+            if (isLoginMode) {
+                title.textContent = "Đăng Nhập";
+                btn.textContent = "Đăng Nhập với Email";
+                switchText.innerHTML = 'Chưa có tài khoản? <a href="#" id="authSwitchBtn" class="text-indigo-600 font-bold hover:underline">Đăng ký ngay</a>';
+            } else {
+                title.textContent = "Đăng Ký";
+                btn.textContent = "Đăng Ký Mới";
+                switchText.innerHTML = 'Đã có tài khoản? <a href="#" id="authSwitchBtn" class="text-indigo-600 font-bold hover:underline">Đăng nhập</a>';
+            }
+            
+            // Re-bind switch button listener
+            document.getElementById('authSwitchBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleAuthMode();
+            });
+        }
+
+        async function handleAuth(e) {
+            e.preventDefault();
+            const email = document.getElementById('authEmail').value;
+            const pass = document.getElementById('authPassword').value;
+            const btn = document.getElementById('authSubmitBtn');
+            const originalText = btn.innerHTML;
+
+            btn.disabled = true;
+            btn.innerHTML = `<div class="loader w-4 h-4 border-white border-t-transparent"></div>`;
+
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                    showToast('Đăng nhập thành công!', 'success');
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, pass);
+                    showToast('Đăng ký thành công!', 'success');
+                }
+            } catch (error) {
+                let msg = error.message;
+                if (error.code === 'auth/wrong-password') msg = 'Sai mật khẩu.';
+                if (error.code === 'auth/user-not-found') msg = 'Tài khoản không tồn tại.';
+                if (error.code === 'auth/email-already-in-use') msg = 'Email này đã được đăng ký.';
+                if (error.code === 'auth/weak-password') msg = 'Mật khẩu quá yếu (tối thiểu 6 ký tự).';
+                showToast(msg, 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        async function handleGoogleLogin() {
+            try {
+                await signInWithPopup(auth, googleProvider);
+                showToast('Đăng nhập Google thành công!', 'success');
+            } catch (error) {
+                console.error(error);
+                showToast('Lỗi Google: ' + error.message, 'error');
+            }
+        }
+
+        async function handleChangePassword(e) {
+            e.preventDefault();
+            const newPass = document.getElementById('newPassword').value;
+            try {
+                await updatePassword(currentUser, newPass);
+                showToast('Đổi mật khẩu thành công!', 'success');
+                document.getElementById('changePassModal').classList.add('hidden');
+                document.getElementById('newPassword').value = '';
+            } catch (error) {
+                showToast('Lỗi: ' + error.message, 'error');
+                if (error.code === 'auth/requires-recent-login') {
+                    showToast('Vui lòng đăng nhập lại để đổi mật khẩu.', 'error');
+                }
+            }
+        }
+
+        function updateAdminBtnState() {
+            const btnText = document.getElementById('adminBtnText');
+            const userRole = document.getElementById('userRoleDisplay');
+            const icon = document.getElementById('toggleAdminBtn').querySelector('i');
+            
+            if (isAdminMode) {
+                btnText.textContent = "Tắt Quyền Admin";
+                userRole.textContent = "Quản trị viên (Admin)";
+                userRole.classList.add('text-amber-600', 'font-bold');
+                icon.classList.remove('text-slate-400');
+                icon.classList.add('text-amber-500');
+            } else {
+                btnText.textContent = "Bật Quyền Admin";
+                userRole.textContent = "Thành viên";
+                userRole.classList.remove('text-amber-600', 'font-bold');
+                icon.classList.add('text-slate-400');
+                icon.classList.remove('text-amber-500');
+            }
+            renderApp(); // Re-render to show/hide edit buttons
+        }
+
+        // --- DATA FUNCTIONS ---
         function startDataSync() {
             const q = collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries');
             
@@ -423,70 +709,82 @@
                     ...doc.data()
                 }));
                 
-                // Sort descending by timestamp
                 data.sort((a, b) => b.timestamp - a.timestamp);
                 entries = data;
                 
+                updateHospitalFilters(data);
                 renderApp();
                 document.getElementById('tableLoader').classList.add('hidden');
             }, (error) => {
                 console.error("Sync Error:", error);
-                showToast("Lỗi đồng bộ dữ liệu", 'error');
             });
         }
 
-        // --- CALCULATION LOGIC ---
-        function getPercentile(data, q) {
-            if (!data || data.length === 0) return 0;
-            const sorted = [...data].sort((a, b) => a - b);
-            const pos = (sorted.length - 1) * q;
-            const base = Math.floor(pos);
-            const rest = pos - base;
-            
-            if (sorted[base + 1] !== undefined) {
-                return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
-            } else {
-                return sorted[base];
-            }
-        }
-
-        // --- RENDER UI ---
         function renderApp() {
-            // 1. Filter Data
-            const filteredData = currentFilter === 'all' 
-                ? entries 
-                : entries.filter(e => e.protocol === currentFilter);
+            // Filter Logic
+            filteredEntries = entries.filter(e => {
+                if (filters.hospital !== 'all' && e.hospitalName !== filters.hospital) return false;
+                if (filters.protocol !== 'all' && e.protocol !== filters.protocol) return false;
+                if (filters.ctdiMin !== null && Number(e.ctdi) < filters.ctdiMin) return false;
+                if (filters.ctdiMax !== null && Number(e.ctdi) > filters.ctdiMax) return false;
+                return true;
+            });
 
-            // 2. Update Stats
-            const ctdiValues = filteredData.map(e => Number(e.ctdi)).filter(n => !isNaN(n));
-            const dlpValues = filteredData.map(e => Number(e.dlp)).filter(n => !isNaN(n));
+            // Calc Stats
+            const ctdiValues = filteredEntries.map(e => Number(e.ctdi)).filter(n => !isNaN(n));
+            const dlpValues = filteredEntries.map(e => Number(e.dlp)).filter(n => !isNaN(n));
 
-            document.getElementById('statTotal').textContent = filteredData.length;
-            document.getElementById('statLabel').textContent = currentFilter === 'all' ? 'Mixed Data' : 'Filtered';
+            document.getElementById('statTotal').textContent = filteredEntries.length;
+            document.getElementById('statLabel').textContent = entries.length === filteredEntries.length ? 'All Data' : 'Filtered Data';
             
             document.getElementById('statCtdi75').textContent = getPercentile(ctdiValues, 0.75).toFixed(2);
             document.getElementById('statCtdiMedian').textContent = getPercentile(ctdiValues, 0.50).toFixed(2);
-            
             document.getElementById('statDlp75').textContent = getPercentile(dlpValues, 0.75).toFixed(2);
             document.getElementById('statDlpMedian').textContent = getPercentile(dlpValues, 0.50).toFixed(2);
 
-            // 3. Update Table
+            // Table Render
             const tbody = document.getElementById('dataTableBody');
             const emptyState = document.getElementById('emptyState');
-            const exportBtn = document.getElementById('exportBtn');
+            const btnCsv = document.getElementById('btnExportCsv');
+            const btnExcel = document.getElementById('btnExportExcel');
 
             tbody.innerHTML = '';
             
-            if (entries.length === 0) {
+            if (filteredEntries.length === 0) {
                 emptyState.classList.remove('hidden');
-                exportBtn.disabled = true;
+                btnCsv.disabled = true;
+                btnExcel.disabled = true;
             } else {
                 emptyState.classList.add('hidden');
-                exportBtn.disabled = false;
+                btnCsv.disabled = false;
+                btnExcel.disabled = false;
 
-                entries.forEach(entry => {
+                filteredEntries.forEach(entry => {
                     const tr = document.createElement('tr');
                     tr.className = 'hover:bg-indigo-50/30 transition-colors group border-b border-slate-50 last:border-none';
+                    
+                    // PERMISSION CHECK
+                    // Show Edit/Delete if: Admin Mode is ON OR Current User owns the entry
+                    let canEdit = false;
+                    if (currentUser) {
+                        if (isAdminMode) {
+                            canEdit = true;
+                        } else if (entry.userId === currentUser.uid) {
+                            canEdit = true;
+                        }
+                    }
+
+                    const actions = canEdit 
+                        ? `<div class="flex items-center justify-end gap-1">
+                             <button data-id="${entry.id}" class="edit-btn text-amber-500 hover:text-amber-700 p-2 rounded-full hover:bg-amber-50" title="Sửa">
+                                <i data-lucide="edit-2" class="w-4 h-4"></i>
+                             </button>
+                             <button data-id="${entry.id}" class="delete-btn text-slate-300 hover:text-rose-500 p-2 rounded-full hover:bg-rose-50" title="Xóa">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                             </button>
+                           </div>`
+                        : (entry.userId === currentUser?.uid ? `<span class="text-[10px] text-indigo-400 bg-indigo-50 px-2 py-1 rounded">Của bạn</span>` : '');
+
                     tr.innerHTML = `
                         <td class="px-6 py-4">
                             <div class="font-medium text-slate-800 text-sm">${escapeHtml(entry.hospitalName)}</div>
@@ -502,62 +800,140 @@
                         <td class="px-6 py-4 text-right text-xs text-slate-400">
                              ${entry.scanDate}
                         </td>
-                        <td class="px-6 py-4 text-right">
-                            <button data-id="${entry.id}" class="delete-btn text-slate-300 hover:text-rose-500 p-2 rounded-full hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
+                        <td class="px-6 py-4 text-right min-w-[100px]">
+                            ${actions}
                         </td>
                     `;
                     tbody.appendChild(tr);
                 });
             }
-
-            // Refresh Icons
             lucide.createIcons();
         }
 
-        // --- HELPERS ---
-        function setupDropdowns() {
-            const provinceSelect = document.getElementById('province');
-            NORTHERN_PROVINCES.forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p;
-                opt.textContent = p;
-                provinceSelect.appendChild(opt);
-            });
-
-            const protocolSelect = document.getElementById('protocol');
-            const filterSelect = document.getElementById('protocolFilter');
-            
-            ACR_PROTOCOLS.forEach(p => {
-                // Form Select
-                const opt1 = document.createElement('option');
-                opt1.value = p.name;
-                opt1.textContent = p.name;
-                protocolSelect.appendChild(opt1);
-
-                // Filter Select
-                const opt2 = document.createElement('option');
-                opt2.value = p.name;
-                opt2.textContent = p.name;
-                filterSelect.appendChild(opt2);
-            });
-        }
-
+        // --- EVENT LISTENERS ---
         function setupEventListeners() {
-            // 1. Submit Form
+            // User Menu Toggle (Click instead of Hover)
+            const userMenuBtn = document.getElementById('userMenuBtn');
+            const userDropdown = document.getElementById('userDropdown');
+            
+            if(userMenuBtn && userDropdown) {
+                userMenuBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    userDropdown.classList.toggle('hidden');
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+                        userDropdown.classList.add('hidden');
+                    }
+                });
+            }
+
+            // Auth UI Triggers
+            document.getElementById('navLoginBtn').addEventListener('click', () => {
+                document.getElementById('authModal').classList.remove('hidden');
+                isLoginMode = true; // Reset to login default
+                toggleAuthMode(); // Ensure UI matches
+                toggleAuthMode(); // Hacky toggle back to ensure state
+            });
+
+            // Close Modal on backdrop click
+            document.getElementById('authModal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('authModal')) {
+                    document.getElementById('authModal').classList.add('hidden');
+                }
+            });
+
+            document.getElementById('authForm').addEventListener('submit', handleAuth);
+            
+            document.getElementById('authSwitchBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleAuthMode();
+            });
+
+            document.getElementById('googleLoginBtn').addEventListener('click', handleGoogleLogin);
+
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                signOut(auth).then(() => {
+                    showToast('Đã đăng xuất', 'success');
+                });
+            });
+
+            // Toggle Admin (Pin Check)
+            document.getElementById('toggleAdminBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                if (isAdminMode) {
+                    isAdminMode = false;
+                    showToast('Đã tắt quyền Admin', 'success');
+                    updateAdminBtnState();
+                } else {
+                    const pin = prompt("Nhập mã PIN Admin:");
+                    if (pin === "123456") {
+                        isAdminMode = true;
+                        showToast('Đã bật quyền Admin', 'success');
+                        updateAdminBtnState();
+                    } else if (pin !== null) {
+                        showToast('Sai mã PIN', 'error');
+                    }
+                }
+            });
+
+            // Change Password UI
+            document.getElementById('openChangePassBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('changePassModal').classList.remove('hidden');
+            });
+            document.getElementById('closePassModal').addEventListener('click', () => {
+                document.getElementById('changePassModal').classList.add('hidden');
+            });
+            document.getElementById('changePassForm').addEventListener('submit', handleChangePassword);
+
+            // Form Logic
+            document.getElementById('hospitalSelect').addEventListener('change', (e) => {
+                const customInput = document.getElementById('customHospitalName');
+                if (e.target.value === 'other') {
+                    customInput.classList.remove('hidden');
+                    customInput.focus();
+                } else {
+                    customInput.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('cancelEditBtn').addEventListener('click', resetFormState);
+
             document.getElementById('drlForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                if (!currentUser) return showToast('Vui lòng đợi kết nối...', 'error');
+                if (!currentUser) return showToast('Vui lòng đăng nhập', 'error');
 
                 const btn = document.getElementById('submitBtn');
                 const originalContent = btn.innerHTML;
+                const editingId = document.getElementById('editEntryId').value;
+                const isEditing = !!editingId;
+                
+                // Determine Hospital
+                const selectVal = document.getElementById('hospitalSelect').value;
+                let finalHospitalName = selectVal;
+                
+                if (selectVal === 'other') {
+                    const customName = document.getElementById('customHospitalName').value.trim();
+                    if (!customName) {
+                        showToast('Vui lòng nhập tên bệnh viện', 'error');
+                        return;
+                    }
+                    finalHospitalName = customName;
+                } else if (!selectVal) {
+                    showToast('Vui lòng chọn bệnh viện', 'error');
+                    return;
+                }
+
                 btn.disabled = true;
-                btn.innerHTML = `<div class="loader w-4 h-4 border-white border-t-transparent"></div> Lưu...`;
+                btn.innerHTML = `<div class="loader w-4 h-4 border-white border-t-transparent"></div> Processing...`;
 
                 try {
                     const formData = {
-                        hospitalName: document.getElementById('hospitalName').value,
+                        hospitalName: finalHospitalName,
                         province: document.getElementById('province').value,
                         scannerModel: document.getElementById('scannerModel').value,
                         protocol: document.getElementById('protocol').value,
@@ -570,22 +946,32 @@
                         kVp: document.getElementById('kVp').value,
                         mAs: document.getElementById('mAs').value,
                         scanDate: document.getElementById('scanDate').value,
-                        userId: currentUser.uid,
-                        timestamp: Date.now(),
-                        createdAt: new Date().toLocaleString('vi-VN')
+                        userId: currentUser.uid, // Always stamp with current user
+                        timestamp: isEditing ? undefined : Date.now(),
+                        createdAt: isEditing ? undefined : new Date().toLocaleString('vi-VN')
                     };
-
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), formData);
-                    showToast('Đã lưu dữ liệu thành công!', 'success');
                     
-                    // Reset numeric fields
-                    ['patientId', 'age', 'weight', 'ctdi', 'dlp', 'mAs'].forEach(id => {
-                        document.getElementById(id).value = '';
-                    });
+                    if(isEditing) {
+                        delete formData.timestamp;
+                        delete formData.createdAt;
+                        delete formData.userId; // Don't change owner on edit? Optional. Let's keep owner.
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', editingId), formData);
+                        showToast('Đã cập nhật!', 'success');
+                        resetFormState();
+                    } else {
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), formData);
+                        showToast('Đã thêm mới!', 'success');
+                        resetFormFields();
+                    }
+                    
+                    if (selectVal === 'other' && !availableHospitals.includes(finalHospitalName)) {
+                        availableHospitals.push(finalHospitalName);
+                        renderHospitalOptions();
+                    }
 
                 } catch (error) {
                     console.error(error);
-                    showToast('Lỗi khi lưu: ' + error.message, 'error');
+                    showToast('Lỗi: ' + error.message, 'error');
                 } finally {
                     btn.disabled = false;
                     btn.innerHTML = originalContent;
@@ -593,33 +979,61 @@
                 }
             });
 
-            // 2. Delete (Event Delegation)
+            // Table Actions
             document.getElementById('dataTableBody').addEventListener('click', async (e) => {
-                const btn = e.target.closest('.delete-btn');
-                if (!btn) return;
-                
-                const id = btn.dataset.id;
-                if(confirm('Bạn có chắc chắn muốn xóa dòng này?')) {
-                    try {
-                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id));
-                        showToast('Đã xóa dữ liệu', 'success');
-                    } catch (error) {
-                        showToast('Lỗi xóa: ' + error.message, 'error');
+                // Delete
+                const deleteBtn = e.target.closest('.delete-btn');
+                if (deleteBtn) {
+                    const id = deleteBtn.dataset.id;
+                    if(confirm('Xóa bản ghi này?')) {
+                        try {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id));
+                            showToast('Đã xóa', 'success');
+                            if (document.getElementById('editEntryId').value === id) resetFormState();
+                        } catch (error) {
+                            showToast('Lỗi xóa: ' + error.message, 'error');
+                        }
                     }
+                    return;
+                }
+                // Edit
+                const editBtn = e.target.closest('.edit-btn');
+                if (editBtn) {
+                    const id = editBtn.dataset.id;
+                    const entry = entries.find(e => e.id === id);
+                    if (entry) populateFormForEdit(entry);
                 }
             });
 
-            // 3. Filter Change
-            document.getElementById('protocolFilter').addEventListener('change', (e) => {
-                currentFilter = e.target.value;
+            // Filters & Export
+            const updateFilterState = () => {
+                filters.hospital = document.getElementById('filterHospital').value;
+                filters.protocol = document.getElementById('filterProtocol').value;
+                const min = document.getElementById('filterCtdiMin').value;
+                const max = document.getElementById('filterCtdiMax').value;
+                filters.ctdiMin = min ? Number(min) : null;
+                filters.ctdiMax = max ? Number(max) : null;
                 renderApp();
+            };
+
+            document.getElementById('filterHospital').addEventListener('change', updateFilterState);
+            document.getElementById('filterProtocol').addEventListener('change', updateFilterState);
+            document.getElementById('filterCtdiMin').addEventListener('input', updateFilterState);
+            document.getElementById('filterCtdiMax').addEventListener('input', updateFilterState);
+            
+            document.getElementById('resetFilters').addEventListener('click', () => {
+                document.getElementById('filterHospital').value = 'all';
+                document.getElementById('filterProtocol').value = 'all';
+                document.getElementById('filterCtdiMin').value = '';
+                document.getElementById('filterCtdiMax').value = '';
+                updateFilterState();
             });
 
-            // 4. Export CSV
-            document.getElementById('exportBtn').addEventListener('click', () => {
-                if (entries.length === 0) return;
+            // Export
+            document.getElementById('btnExportCsv').addEventListener('click', () => {
+                if (filteredEntries.length === 0) return;
                 const headers = ["ID,BenhVien,Tinh,May,MaBN,Tuoi,CanNang,GioiTinh,Protocol,CTDIvol,DLP,kVp,mAs,Ngay,User"];
-                const rows = entries.map(e => 
+                const rows = filteredEntries.map(e => 
                     `${e.id},"${e.hospitalName}","${e.province}","${e.scannerModel}","${e.patientId}",${e.age},${e.weight},${e.gender},${e.protocol},${e.ctdi},${e.dlp},${e.kVp},${e.mAs},${e.scanDate},${e.userId}`
                 );
                 const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers, ...rows].join("\n");
@@ -628,39 +1042,149 @@
                 link.download = `DRL_Export_${new Date().toISOString().slice(0,10)}.csv`;
                 link.click();
             });
+
+            document.getElementById('btnExportExcel').addEventListener('click', () => {
+                if (filteredEntries.length === 0) return;
+                const excelData = filteredEntries.map(e => ({
+                    'Ngày Chụp': e.scanDate, 'Bệnh Viện': e.hospitalName, 'Tỉnh/Thành': e.province,
+                    'Model Máy': e.scannerModel, 'Protocol': e.protocol,
+                    'CTDIvol (mGy)': Number(e.ctdi), 'DLP (mGy.cm)': Number(e.dlp),
+                    'kVp': e.kVp, 'mAs': e.mAs, 'Mã BN': e.patientId,
+                    'Tuổi': e.age, 'Giới Tính': e.gender, 'Cân Nặng (kg)': e.weight
+                }));
+                const worksheet = XLSX.utils.json_to_sheet(excelData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "DRL Data");
+                XLSX.writeFile(workbook, `DRL_Export.xlsx`);
+            });
         }
 
         // --- UTILS ---
+        function updateHospitalFilters(data) {
+            const filterSelect = document.getElementById('filterHospital');
+            const currentSelection = filterSelect.value;
+            const dbHospitals = [...new Set(data.map(e => e.hospitalName))];
+            const allHospitals = [...new Set([...availableHospitals, ...dbHospitals])].sort();
+            filterSelect.innerHTML = '<option value="all">Tất cả Bệnh viện</option>';
+            allHospitals.forEach(h => { if(h) {
+                const opt = document.createElement('option'); opt.value = h; opt.textContent = h; filterSelect.appendChild(opt);
+            }});
+            filterSelect.value = currentSelection;
+        }
+
+        function getPercentile(data, q) {
+            if (!data || data.length === 0) return 0;
+            const sorted = [...data].sort((a, b) => a - b);
+            const pos = (sorted.length - 1) * q;
+            const base = Math.floor(pos);
+            const rest = pos - base;
+            if (sorted[base + 1] !== undefined) return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+            return sorted[base];
+        }
+
+        function renderHospitalOptions() {
+            const select = document.getElementById('hospitalSelect');
+            const first = select.firstElementChild; const last = select.lastElementChild;
+            select.innerHTML = ''; select.appendChild(first);
+            availableHospitals.forEach(h => {
+                const opt = document.createElement('option'); opt.value = h; opt.textContent = h; select.appendChild(opt);
+            });
+            select.appendChild(last);
+        }
+
+        function setupDropdowns() {
+            const provinceSelect = document.getElementById('province');
+            NORTHERN_PROVINCES.forEach(p => {
+                const opt = document.createElement('option'); opt.value = p; opt.textContent = p; provinceSelect.appendChild(opt);
+            });
+            const protocolSelect = document.getElementById('protocol');
+            const filterProtocol = document.getElementById('filterProtocol');
+            ACR_PROTOCOLS.forEach(p => {
+                const opt1 = document.createElement('option'); opt1.value = p.name; opt1.textContent = p.name; protocolSelect.appendChild(opt1);
+                const opt2 = document.createElement('option'); opt2.value = p.name; opt2.textContent = p.name; filterProtocol.appendChild(opt2);
+            });
+        }
+
+        function populateFormForEdit(entry) {
+            const container = document.getElementById('formContainer');
+            container.classList.add('editing-mode');
+            container.scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('editEntryId').value = entry.id;
+            document.getElementById('formTitle').innerHTML = `<i data-lucide="edit-2" class="text-amber-600 w-5 h-5"></i> Đang sửa dữ liệu`;
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.querySelector('span').textContent = 'Cập nhật thay đổi';
+            submitBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+            submitBtn.classList.add('bg-amber-600', 'hover:bg-amber-700');
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+            if (availableHospitals.includes(entry.hospitalName)) {
+                document.getElementById('hospitalSelect').value = entry.hospitalName;
+                document.getElementById('customHospitalName').classList.add('hidden');
+            } else {
+                document.getElementById('hospitalSelect').value = 'other';
+                const customInput = document.getElementById('customHospitalName');
+                customInput.classList.remove('hidden');
+                customInput.value = entry.hospitalName;
+            }
+            document.getElementById('province').value = entry.province;
+            document.getElementById('scannerModel').value = entry.scannerModel || '';
+            document.getElementById('protocol').value = entry.protocol;
+            document.getElementById('patientId').value = entry.patientId || '';
+            document.getElementById('age').value = entry.age || '';
+            document.getElementById('gender').value = entry.gender || 'M';
+            document.getElementById('weight').value = entry.weight || '';
+            document.getElementById('ctdi').value = entry.ctdi;
+            document.getElementById('dlp').value = entry.dlp;
+            document.getElementById('kVp').value = entry.kVp || '';
+            document.getElementById('mAs').value = entry.mAs || '';
+            document.getElementById('scanDate').value = entry.scanDate;
+            lucide.createIcons();
+        }
+
+        function resetFormState() {
+            const container = document.getElementById('formContainer');
+            container.classList.remove('editing-mode');
+            document.getElementById('editEntryId').value = '';
+            document.getElementById('formTitle').innerHTML = `<i data-lucide="plus-circle" class="text-indigo-600 w-5 h-5"></i> Nhập Dữ Liệu Mới`;
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.querySelector('span').textContent = 'Lưu vào Database';
+            submitBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+            submitBtn.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+            document.getElementById('cancelEditBtn').classList.add('hidden');
+            resetFormFields();
+            lucide.createIcons();
+        }
+
+        function resetFormFields() {
+            ['patientId', 'age', 'weight', 'ctdi', 'dlp', 'mAs', 'customHospitalName'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            if (document.getElementById('hospitalSelect').value === 'other') {
+                document.getElementById('customHospitalName').classList.remove('hidden');
+            } else {
+                document.getElementById('customHospitalName').classList.add('hidden');
+            }
+        }
+
         function showToast(msg, type) {
             const toast = document.getElementById('toast');
             const icon = document.getElementById('toastIcon');
             const text = document.getElementById('toastMessage');
-
             toast.className = `fixed top-20 right-6 px-6 py-4 rounded-xl shadow-2xl text-white z-50 flex items-center gap-3 transition-all duration-300 transform translate-x-0 opacity-100 ${type === 'error' ? 'bg-rose-500' : 'bg-emerald-500'}`;
             text.textContent = msg;
-            
-            // Simple icon handling
             icon.innerHTML = type === 'error' 
                 ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>'
                 : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>';
-
-            setTimeout(() => {
-                toast.classList.add('translate-x-full', 'opacity-0');
-            }, 3000);
+            setTimeout(() => { toast.classList.add('translate-x-full', 'opacity-0'); }, 3000);
         }
 
         function escapeHtml(text) {
             if (!text) return "";
-            return text.replace(/&/g, "&amp;")
-                       .replace(/</g, "&lt;")
-                       .replace(/>/g, "&gt;")
-                       .replace(/"/g, "&quot;")
-                       .replace(/'/g, "&#039;");
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
 
-        // --- START ---
         initApp();
-        lucide.createIcons(); // Initial icons
+        lucide.createIcons();
     </script>
 </body>
 </html>
