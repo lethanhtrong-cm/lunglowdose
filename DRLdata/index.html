@@ -1,1 +1,648 @@
 
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Activity, 
+  Database, 
+  FileDown, 
+  Trash2, 
+  Plus, 
+  Hospital, 
+  Zap,
+  User,
+  Save,
+  Cloud,
+  Loader2,
+  Wifi,
+  LayoutDashboard,
+  Stethoscope,
+  Scale,
+  Calendar,
+  Filter,
+  Calculator
+} from 'lucide-react';
+
+// Firebase Imports
+import { initializeApp } from 'firebase/app';
+import { 
+  getAuth, 
+  onAuthStateChanged, 
+  signInAnonymously, 
+  signInWithCustomToken 
+} from 'firebase/auth';
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  deleteDoc, 
+  doc, 
+  onSnapshot
+} from 'firebase/firestore';
+
+// --- CONFIGURATION ---
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+// Danh sách các tỉnh thành miền Bắc
+const NORTHERN_PROVINCES = [
+  "Hà Nội", "Hải Phòng", "Quảng Ninh", "Bắc Ninh", "Hải Dương", 
+  "Hưng Yên", "Thái Bình", "Nam Định", "Ninh Bình", "Vĩnh Phúc", 
+  "Phú Thọ", "Thái Nguyên", "Bắc Giang", "Lạng Sơn", "Lào Cai"
+];
+
+const ACR_PROTOCOLS = [
+  { id: 'ct_head', name: 'CT Head (Sọ não)', modality: 'CT' },
+  { id: 'ct_chest', name: 'CT Chest (Ngực)', modality: 'CT' },
+  { id: 'ct_abd_pel', name: 'CT Abd/Pelvis (Bụng/Chậu)', modality: 'CT' },
+  { id: 'ct_chest_hi_res', name: 'HRCT Chest (Phổi HR)', modality: 'CT' },
+  { id: 'ped_head', name: 'Pediatric Head (<5 tuổi)', modality: 'CT' },
+  { id: 'ped_abd', name: 'Pediatric Abd (Bụng nhi)', modality: 'CT' },
+];
+
+// Helper: Calculate Percentile (Linear Interpolation)
+const getPercentile = (data, q) => {
+  if (!data || data.length === 0) return 0;
+  
+  const sorted = [...data].sort((a, b) => a - b);
+  const pos = (sorted.length - 1) * q;
+  const base = Math.floor(pos);
+  const rest = pos - base;
+  
+  if (sorted[base + 1] !== undefined) {
+      return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+  } else {
+      return sorted[base];
+  }
+};
+
+export default function DRLDashboard() {
+  const [entries, setEntries] = useState([]);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [filterProtocol, setFilterProtocol] = useState('all'); // State cho bộ lọc
+  
+  const [formData, setFormData] = useState({
+    hospitalName: '',
+    province: 'Hà Nội',
+    scannerModel: '',
+    patientId: '', 
+    age: '',
+    weight: '',
+    gender: 'M',
+    protocol: 'ct_head',
+    ctdi: '',
+    dlp: '', 
+    kVp: '120',
+    mAs: '',
+    scanDate: new Date().toISOString().split('T')[0]
+  });
+
+  const [notification, setNotification] = useState(null);
+
+  // 1. Authentication Setup
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (error) {
+        console.error("Auth Error:", error);
+        showNotification('Lỗi kết nối xác thực!', 'error');
+      }
+    };
+    initAuth();
+    
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Real-time Data Sync (Firestore)
+  useEffect(() => {
+    if (!user) return;
+
+    // Use a single public collection for collaborative research
+    const q = collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries');
+
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        const data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        // Client-side sort (newest first)
+        data.sort((a, b) => b.timestamp - a.timestamp);
+        setEntries(data);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Firestore Error:", error);
+        showNotification('Lỗi đồng bộ dữ liệu!', 'error');
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!user) return;
+    
+    if (!formData.hospitalName || !formData.ctdi || !formData.dlp) {
+      showNotification('Vui lòng điền đủ thông tin!', 'error');
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const newEntry = {
+        ...formData,
+        userId: user.uid,
+        timestamp: Date.now(),
+        createdAt: new Date().toLocaleString('vi-VN')
+      };
+
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), newEntry);
+      showNotification('Đã lưu dữ liệu!', 'success');
+      
+      // Reset numeric fields, keep hospital info for faster entry
+      setFormData(prev => ({
+        ...prev,
+        patientId: '',
+        age: '',
+        weight: '',
+        ctdi: '',
+        dlp: '',
+        mAs: ''
+      }));
+    } catch (error) {
+      showNotification('Lỗi: ' + error.message, 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Xóa dữ liệu này?')) return;
+    try {
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id));
+      showNotification('Đã xóa!', 'success');
+    } catch (error) {
+      showNotification('Lỗi xóa!', 'error');
+    }
+  };
+
+  const exportCSV = () => {
+    if (entries.length === 0) return;
+    const headers = ["ID,BenhVien,Tinh,May,MaBN,Tuoi,CanNang,GioiTinh,Protocol,CTDIvol,DLP,kVp,mAs,Ngay,User"];
+    const rows = entries.map(e => 
+      `${e.id},"${e.hospitalName}","${e.province}","${e.scannerModel}","${e.patientId}",${e.age},${e.weight},${e.gender},${e.protocol},${e.ctdi},${e.dlp},${e.kVp},${e.mAs},${e.scanDate},${e.userId}`
+    );
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers, ...rows].join("\n");
+    const link = document.createElement("a");
+    link.href = encodeURI(csvContent);
+    link.download = `DRL_Export_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+  };
+
+  const showNotification = (message, type) => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  // --- STATS CALCULATION LOGIC (Real-time) ---
+  const stats = useMemo(() => {
+    // 1. Filter data based on selected protocol
+    const filteredData = filterProtocol === 'all' 
+      ? entries 
+      : entries.filter(e => e.protocol === filterProtocol);
+
+    const ctdiValues = filteredData.map(e => Number(e.ctdi)).filter(n => !isNaN(n));
+    const dlpValues = filteredData.map(e => Number(e.dlp)).filter(n => !isNaN(n));
+
+    return {
+      total: filteredData.length,
+      // CTDIvol Stats
+      ctdi75: getPercentile(ctdiValues, 0.75).toFixed(2), // DRL Value
+      ctdiMedian: getPercentile(ctdiValues, 0.50).toFixed(2), // Median
+      // DLP Stats
+      dlp75: getPercentile(dlpValues, 0.75).toFixed(2), // DRL Value
+      dlpMedian: getPercentile(dlpValues, 0.50).toFixed(2), // Median
+    };
+  }, [entries, filterProtocol]);
+
+  return (
+    <div className="min-h-screen bg-gray-50 text-slate-800 font-sans selection:bg-indigo-100 selection:text-indigo-800">
+      
+      {/* Toast Notification */}
+      {notification && (
+        <div className={`fixed top-6 right-6 px-6 py-4 rounded-xl shadow-2xl text-white z-50 flex items-center gap-3 animate-in fade-in slide-in-from-top-5 duration-300 ${notification.type === 'error' ? 'bg-rose-500' : 'bg-emerald-500'}`}>
+          {notification.type === 'error' ? <Activity size={20} /> : <Cloud size={20} />}
+          <span className="font-medium">{notification.message}</span>
+        </div>
+      )}
+
+      {/* Top Navigation Bar */}
+      <nav className="bg-white border-b border-gray-200 sticky top-0 z-30 backdrop-blur-md bg-white/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center gap-3">
+              <div className="bg-indigo-600 p-2 rounded-lg">
+                <LayoutDashboard className="text-white h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-slate-900 tracking-tight leading-none">Vietnam DRL</h1>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">Northern Region Study</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full text-xs font-medium text-slate-600">
+                <Wifi size={14} className={user ? "text-emerald-500" : "text-amber-500"} />
+                {user ? "System Online" : "Connecting..."}
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-12 gap-8">
+          
+          {/* LEFT COLUMN: INPUT CARD */}
+          <div className="col-span-12 lg:col-span-4 space-y-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h2 className="font-semibold text-slate-800 flex items-center gap-2">
+                  <Plus className="text-indigo-600" size={18} />
+                  New Record
+                </h2>
+                <span className="text-xs font-mono text-slate-400">#ENTRY</span>
+              </div>
+              
+              <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                {/* Facility Section */}
+                <div className="space-y-4">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Hospital size={12} /> Facility Info
+                  </label>
+                  <div className="grid grid-cols-1 gap-4">
+                    <input 
+                      type="text" 
+                      name="hospitalName"
+                      value={formData.hospitalName}
+                      onChange={handleChange}
+                      placeholder="Hospital Name (e.g. Bach Mai)"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-gray-400"
+                      required
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <select 
+                        name="province"
+                        value={formData.province}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      >
+                        {NORTHERN_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                      <input 
+                        type="text" 
+                        name="scannerModel"
+                        value={formData.scannerModel}
+                        onChange={handleChange}
+                        placeholder="Scanner Model"
+                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none placeholder:text-gray-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <hr className="border-dashed border-gray-200" />
+
+                {/* Patient Section */}
+                <div className="space-y-4">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <User size={12} /> Patient & Exam
+                  </label>
+                  
+                  <select 
+                    name="protocol"
+                    value={formData.protocol}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-sm font-medium text-indigo-900 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                    {ACR_PROTOCOLS.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                  </select>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <input 
+                      type="text" 
+                      name="patientId"
+                      value={formData.patientId}
+                      onChange={handleChange}
+                      placeholder="Patient ID"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                    <div className="flex gap-2">
+                       <input 
+                        type="number" 
+                        name="age"
+                        value={formData.age}
+                        onChange={handleChange}
+                        placeholder="Age"
+                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      />
+                       <select 
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handleChange}
+                        className="px-2 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      >
+                        <option value="M">M</option>
+                        <option value="F">F</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Scale className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input 
+                      type="number" 
+                      name="weight"
+                      value={formData.weight}
+                      onChange={handleChange}
+                      placeholder="Weight (kg)"
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <hr className="border-dashed border-gray-200" />
+
+                {/* Dose Section */}
+                <div className="space-y-4">
+                  <label className="text-xs font-bold text-amber-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <Zap size={12} /> Dose Indicators
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs text-gray-500 ml-1">CTDIvol (mGy)</label>
+                      <input 
+                        type="number" 
+                        step="0.01"
+                        name="ctdi"
+                        value={formData.ctdi}
+                        onChange={handleChange}
+                        placeholder="0.00"
+                        className="w-full px-4 py-3 bg-white border-2 border-amber-100 rounded-xl text-lg font-bold text-slate-800 focus:border-amber-400 focus:ring-0 outline-none transition-colors"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-gray-500 ml-1">DLP (mGy.cm)</label>
+                      <input 
+                        type="number" 
+                        step="0.1"
+                        name="dlp"
+                        value={formData.dlp}
+                        onChange={handleChange}
+                        placeholder="0.0"
+                        className="w-full px-4 py-3 bg-white border-2 border-amber-100 rounded-xl text-lg font-bold text-slate-800 focus:border-amber-400 focus:ring-0 outline-none transition-colors"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-3">
+                    <input 
+                      type="number" 
+                      name="kVp"
+                      value={formData.kVp}
+                      onChange={handleChange}
+                      placeholder="kVp"
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs"
+                    />
+                    <input 
+                      type="number" 
+                      name="mAs"
+                      value={formData.mAs}
+                      onChange={handleChange}
+                      placeholder="mAs"
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs"
+                    />
+                     <input 
+                      type="date" 
+                      name="scanDate"
+                      value={formData.scanDate}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs"
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={submitting || !user}
+                  className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-lg shadow-indigo-200 active:transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {submitting ? <Loader2 className="animate-spin h-5 w-5" /> : <Save size={18} />}
+                  Add to Database
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: DASHBOARD & STATS */}
+          <div className="col-span-12 lg:col-span-8 space-y-6">
+            
+            {/* Header with Filter */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <Calculator size={24} className="text-indigo-600" />
+                  DRL Calculator
+                </h3>
+                <p className="text-sm text-slate-500">
+                  Real-time calculation of Median (50th) & DRL (75th)
+                </p>
+              </div>
+
+              {/* Protocol Filter */}
+              <div className="bg-white p-1 rounded-lg border border-gray-200 flex items-center shadow-sm">
+                <div className="px-3 text-slate-400">
+                  <Filter size={16} />
+                </div>
+                <select 
+                  value={filterProtocol}
+                  onChange={(e) => setFilterProtocol(e.target.value)}
+                  className="bg-transparent border-none text-sm font-medium text-slate-700 focus:ring-0 cursor-pointer py-1.5 pr-8"
+                >
+                  <option value="all">All Protocols (Mixed)</option>
+                  {ACR_PROTOCOLS.map(p => (
+                    <option key={p.id} value={p.name}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Stats Widgets */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Stat Card 1: Sample Size */}
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between h-36 relative overflow-hidden">
+                <div className="relative z-10">
+                  <p className="text-slate-500 text-sm font-medium">Total Samples</p>
+                  <h3 className="text-4xl font-bold text-slate-800 mt-2">{loading ? "..." : stats.total}</h3>
+                </div>
+                <div className="relative z-10 flex items-center gap-1 text-xs text-indigo-600 font-medium bg-indigo-50 w-fit px-2 py-1 rounded-full">
+                  <Database size={12} /> 
+                  {filterProtocol === 'all' ? 'Mixed Data' : 'Filtered'}
+                </div>
+              </div>
+
+              {/* Stat Card 2: CTDIvol */}
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-blue-300 transition-colors">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                   <Activity size={60} className="text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-blue-900 text-sm font-bold uppercase tracking-wider">CTDIvol (mGy)</p>
+                  <div className="mt-3 flex items-end gap-2">
+                    <div>
+                      <span className="text-xs text-slate-400 font-medium uppercase">DRL (75th)</span>
+                      <h3 className="text-3xl font-bold text-blue-600 leading-none">{loading ? "..." : stats.ctdi75}</h3>
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-gray-100 flex justify-between items-center">
+                   <span className="text-xs text-slate-500">Median (50th)</span>
+                   <span className="text-sm font-semibold text-slate-700">{loading ? "..." : stats.ctdiMedian}</span>
+                </div>
+              </div>
+
+              {/* Stat Card 3: DLP */}
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-amber-300 transition-colors">
+                 <div className="absolute top-0 right-0 p-4 opacity-10">
+                   <Zap size={60} className="text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-amber-900 text-sm font-bold uppercase tracking-wider">DLP (mGy.cm)</p>
+                  <div className="mt-3 flex items-end gap-2">
+                     <div>
+                      <span className="text-xs text-slate-400 font-medium uppercase">DRL (75th)</span>
+                      <h3 className="text-3xl font-bold text-amber-600 leading-none">{loading ? "..." : stats.dlp75}</h3>
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-gray-100 flex justify-between items-center">
+                   <span className="text-xs text-slate-500">Median (50th)</span>
+                   <span className="text-sm font-semibold text-slate-700">{loading ? "..." : stats.dlpMedian}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Data Table Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col h-[500px] overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-20">
+                <div className="flex items-center gap-3">
+                  <div className="bg-indigo-50 p-2 rounded-lg text-indigo-600">
+                    <Cloud size={18} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-800">Live Data Stream</h3>
+                    <p className="text-xs text-slate-400 hidden sm:block">Real-time updates from all connected facilities</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={exportCSV}
+                  disabled={entries.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-slate-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  <FileDown size={16} />
+                  <span className="hidden sm:inline">Export CSV</span>
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-auto bg-slate-50/30 relative scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
+                {loading ? (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 size={32} className="text-indigo-500 animate-spin" />
+                  </div>
+                ) : entries.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                    <Database size={48} className="opacity-20 mb-3" />
+                    <p>No data recorded yet.</p>
+                  </div>
+                ) : (
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-gray-50/80 backdrop-blur sticky top-0 z-10 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      <tr>
+                        <th className="px-6 py-4">Facility</th>
+                        <th className="px-6 py-4">Protocol</th>
+                        <th className="px-6 py-4">CTDIvol</th>
+                        <th className="px-6 py-4">DLP</th>
+                        <th className="px-6 py-4 text-right">Date</th>
+                        <th className="px-6 py-4"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 bg-white">
+                      {entries.map((entry) => (
+                        <tr key={entry.id} className="hover:bg-indigo-50/30 transition-colors group">
+                          <td className="px-6 py-4">
+                            <div className="font-medium text-slate-800 text-sm">{entry.hospitalName}</div>
+                            <div className="text-xs text-slate-400">{entry.province}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100 truncate max-w-[120px]" title={entry.protocol}>
+                              {entry.protocol}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 font-mono text-sm font-medium text-slate-700">
+                            {entry.ctdi}
+                          </td>
+                          <td className="px-6 py-4 font-mono text-sm font-medium text-slate-700">
+                            {entry.dlp}
+                          </td>
+                          <td className="px-6 py-4 text-right text-xs text-slate-400">
+                            <div className="flex items-center justify-end gap-1">
+                              <Calendar size={12} />
+                              {entry.scanDate}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button 
+                              onClick={() => handleDelete(entry.id)}
+                              className="text-gray-300 hover:text-rose-500 p-2 rounded-full hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
