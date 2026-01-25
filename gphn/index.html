@@ -1,571 +1,925 @@
 <!DOCTYPE html>
-<script src="https://cdn.counter.dev/script.js" data-id="86e74dda-26a8-41de-99d1-63d0e8fec60e" data-utcoffset="7"></script>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VnRad Legal - Cổng thông tin Pháp lý CĐHA</title>
+    <title>Vietnam Multicenter DRL - White Glass Edition</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
-    <!-- Babel -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
+    <!-- SheetJS (Excel Export) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
     <style>
         body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
+            font-family: 'Inter', sans-serif; 
             background: #f8fafc;
-            background-image: 
-                radial-gradient(at 0% 0%, hsla(210,100%,95%,1) 0, transparent 50%), 
-                radial-gradient(at 100% 0%, hsla(220,100%,94%,1) 0, transparent 50%),
-                radial-gradient(at 100% 100%, hsla(230,100%,96%,1) 0, transparent 50%),
-                radial-gradient(at 0% 100%, hsla(240,100%,95%,1) 0, transparent 50%);
-            background-attachment: fixed;
-        }
-        .glass {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-        }
-        .glass-dark {
-            background: rgba(15, 23, 42, 0.9);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .ai-float {
-            animation: float 3s ease-in-out infinite;
-        }
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
-        }
-        
-        .card-hover:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+            color: #1e293b;
+            overflow: hidden; 
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
-        .header-tag {
-            background: rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
+        .mesh-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            background: 
+                radial-gradient(at 0% 0%, hsla(220,100%,95%,1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(260,100%,92%,1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(190,100%,92%,1) 0, transparent 50%),
+                radial-gradient(at 0% 100%, hsla(260,100%,92%,1) 0, transparent 50%);
+        }
+
+        .app-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            margin-top: 110px; 
+            padding: 0 1rem 1rem 1rem;
+            gap: 1.5rem;
+            max-width: 80rem; 
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .scroll-section {
+            height: 100%;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0,0,0,0.1) transparent;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+        }
+
+        .glass-input {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            color: #1e293b;
+            transition: all 0.3s ease;
+        }
+        .glass-input:focus {
+            background: #ffffff;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        }
+        .input-warning { border-color: #f59e0b !important; background: #fffbeb !important; }
+        .input-error { border-color: #ef4444 !important; background: #fef2f2 !important; }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+
+        .loader {
+            border: 2px solid rgba(0,0,0,0.05);
+            border-top: 2px solid #4f46e5;
+            border-radius: 50%;
+            width: 24px; height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .section-label {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: #64748b;
+        }
+
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #e2e8f0; transition: .4s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px;
+            left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #4f46e5; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* Phân đoạn liều nổi bật */
+        .dose-highlight-box {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border: 2px solid #f59e0b;
+            box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.2);
+            transition: transform 0.3s ease;
+        }
+        .dose-highlight-box:hover {
+            transform: scale(1.01);
         }
     </style>
 </head>
-<body class="text-slate-900 overflow-x-hidden">
-    <div id="root"></div>
+<body class="min-h-screen">
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+    <div class="mesh-bg"></div>
 
-        // --- ICON COMPONENTS ---
-        const Icon = ({ path, size = 24, className = "" }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: path }} />
-        );
+    <!-- AUTH MODAL -->
+    <div id="authModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 backdrop-blur-md hidden p-4">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl transform transition-all text-slate-900 border border-slate-100">
+            <div class="text-center mb-8">
+                <div class="bg-indigo-600 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-indigo-200 rotate-3">
+                    <i data-lucide="shield-check" class="w-10 h-10"></i>
+                </div>
+                <h2 id="authTitle" class="text-3xl font-black tracking-tight">Đăng Nhập</h2>
+                <p id="authSubtitle" class="text-slate-500 mt-2 font-medium">Hệ thống DRL Đa trung tâm</p>
+            </div>
 
-        const Scale = (p) => <Icon {...p} path='<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>' />;
-        const FileText = (p) => <Icon {...p} path='<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/>' />;
-        const ShieldCheck = (p) => <Icon {...p} path='<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/>' />;
-        const Search = (p) => <Icon {...p} path='<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>' />;
-        const Award = (p) => <Icon {...p} path='<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>' />;
-        const Table = (p) => <Icon {...p} path='<path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/>' />;
-        const UserCheck = (p) => <Icon {...p} path='<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/>' />;
-        const AlertTriangle = (p) => <Icon {...p} path='<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>' />;
-        const Clock = (p) => <Icon {...p} path='<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' />;
-        const Building = (p) => <Icon {...p} path='<rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/>' />;
-        const Menu = (p) => <Icon {...p} path='<line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>' />;
-        const X = (p) => <Icon {...p} path='<path d="M18 6 6 18"/><path d="m6 6 12 12"/>' />;
-        const BookOpen = (p) => <Icon {...p} path='<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>' />;
-        const RefreshCw = (p) => <Icon {...p} path='<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>' />;
-        const FileX = (p) => <Icon {...p} path='<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m14.5 12.5-5 5"/><path d="m9.5 12.5 5 5"/>' />;
-        const User = (p) => <Icon {...p} path='<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>' />;
-        const Activity = (p) => <Icon {...p} path='<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>' />;
-        const ChevronDown = (p) => <Icon {...p} path='<path d="m6 9 6 6 6-6"/>' />;
-        const List = (p) => <Icon {...p} path='<line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/>' />;
-        const MapPin = (p) => <Icon {...p} path='<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>' />;
-        const ExternalLink = (p) => <Icon {...p} path='<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/>' />;
-        const Sparkles = (p) => <Icon {...p} path='<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M2 7h4"/><path d="M2 11h4"/>' />;
-        const MessageSquare = (p) => <Icon {...p} path='<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' />;
-        const ArrowUp = (p) => <Icon {...p} path='<path d="m18 15-6-6-6 6"/>' />;
-        const Send = (p) => <Icon {...p} path='<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>' />;
+            <form id="authForm" class="space-y-5">
+                <div>
+                    <label class="section-label mb-2 block ml-1">Email Tài Khoản</label>
+                    <input type="email" id="authEmail" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="name@hospital.com" required>
+                </div>
+                <div>
+                    <label class="section-label mb-2 block ml-1">Mật khẩu</label>
+                    <input type="password" id="authPassword" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="••••••••" required>
+                </div>
 
+                <div class="flex items-center justify-between px-1">
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <input type="checkbox" id="authRemember" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" checked>
+                        <span class="text-xs font-bold text-slate-500 group-hover:text-slate-700 transition-colors">Ghi nhớ đăng nhập</span>
+                    </label>
+                </div>
 
-        // --- DỮ LIỆU ---
-        const PRACTICE_LICENSE_DATA = [
-            { id: "art26", title: "Đối tượng phải có GPHN", sub: "Điều 26", icon: <UserCheck size={24} />, color: "blue", content: [ "Bác sỹ", "Y sỹ", "Điều dưỡng", "Hộ sinh", "Kỹ thuật y", "Dinh dưỡng lâm sàng", "Cấp cứu viên ngoại viện", "Tâm lý lâm sàng", "Lương y", "Người có bài thuốc gia truyền" ], desc: "10 chức danh chuyên môn bắt buộc phải có Giấy phép hành nghề." },
-            { id: "practice_time", title: "Thời gian thực hành (KTY)", sub: "NĐ 96/2023 (Điều 3)", icon: <Clock size={24} />, color: "red", content: [ "Tổng thời gian thực hành: 06 tháng.", "Thực hành chuyên môn KCB: 05 tháng.", "Thực hành hồi sức cấp cứu: 01 tháng." ], desc: "Áp dụng cho chức danh Kỹ thuật y, Điều dưỡng, Hộ sinh (Giảm từ 09 tháng xuống còn 06 tháng)." },
-            { id: "art27", title: "Thời hạn & Phạm vi", sub: "Điều 27", icon: <Clock size={24} />, color: "green", content: [ "Thời hạn: 05 năm (Quy định mới).", "Phạm vi: Có giá trị trên toàn quốc.", "Mỗi người hành nghề chỉ được cấp 01 giấy phép hành nghề." ], desc: "Thay đổi lớn nhất so với luật cũ (vĩnh viễn) là giấy phép có thời hạn 5 năm." },
-            { id: "art28", title: "Thẩm quyền cấp", sub: "Điều 28", icon: <Building size={24} />, color: "purple", content: [ "Bộ Y tế: Cấp cho cơ sở trực thuộc, BV hạng đặc biệt...", "Bộ Quốc phòng / Bộ Công an: Cấp cho đối tượng thuộc thẩm quyền.", "Sở Y tế: Cấp cho các đối tượng còn lại trên địa bàn." ], desc: "Phân cấp rõ ràng thẩm quyền cấp mới, cấp lại, gia hạn, thu hồi." },
-            { id: "art30", title: "Điều kiện cấp mới", sub: "Điều 30", icon: <FileText size={24} />, color: "orange", content: [ "Được đánh giá đủ năng lực hành nghề qua kiểm tra (Thi sát hạch) theo Điều 24.", "Có đủ sức khỏe để hành nghề.", "Đáp ứng năng lực tiếng Việt (đối với người nước ngoài).", "Không thuộc trường hợp bị cấm hành nghề." ], desc: "Lộ trình thi đánh giá năng lực bắt đầu từ 2027 (Bác sỹ), 2029 (KTV)." },
-            { id: "art32", title: "Gia hạn Giấy phép", sub: "Điều 32", icon: <RefreshCw size={24} />, color: "teal", content: [ "Đã hoàn thành cập nhật kiến thức y khoa liên tục (CME) theo Điều 22.", "Có đủ sức khỏe để hành nghề.", "Thực hiện thủ tục gia hạn ít nhất 60 ngày trước khi giấy phép hết hạn.", "Không thuộc trường hợp bị cấm hành nghề." ], desc: "Nếu không gia hạn kịp thời, giấy phép sẽ hết hiệu lực." },
-            { id: "art34_35", title: "Đình chỉ & Thu hồi", sub: "Điều 34, 35", icon: <FileX size={24} />, color: "red", content: [ "Đình chỉ (1-24 tháng): Có sai sót chuyên môn; Vi phạm đạo đức; Không đủ sức khỏe.", "Thu hồi: Giả mạo hồ sơ; Cấp sai thẩm quyền; Không hành nghề trong 24 tháng liên tục; Bị cấm hành nghề; Tự đề nghị thu hồi." ], desc: "Quy định chặt chẽ các trường hợp bị tước quyền hành nghề." }
-        ];
+                <div class="pt-2">
+                    <button type="button" id="authAdminToggleBtn" class="w-full py-3 text-slate-500 font-bold rounded-2xl border-2 border-slate-50 hover:bg-slate-50 transition-all flex items-center justify-center gap-2 text-sm mb-4">
+                        <i data-lucide="shield" class="w-4 h-4"></i> Đăng nhập Admin
+                    </button>
+                    <div id="authAdminPinContainer" class="hidden mt-2 mb-4">
+                        <input type="password" id="authAdminPin" class="w-full px-5 py-4 bg-amber-50 border-2 border-amber-200 rounded-2xl text-center font-bold tracking-[0.5em] text-amber-700 placeholder:tracking-normal" placeholder="NHẬP PIN">
+                    </div>
+                </div>
+                
+                <button type="submit" id="authSubmitBtn" class="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black shadow-2xl shadow-indigo-200 transition-all flex items-center justify-center gap-3 active:scale-95">
+                    <span id="authSubmitText">VÀO HỆ THỐNG</span>
+                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                </button>
+            </form>
 
-        const CME_FORMS = [
-            { title: "Đào tạo ngắn hạn", desc: "Các khóa tập huấn, bồi dưỡng chuyên môn nghiệp vụ.", icon: <BookOpen size={20} />, color: "teal", bgColor: "bg-teal-50/50", borderColor: "border-teal-200/50", iconColor: "text-teal-600", },
-            { title: "Hội thảo & Hội nghị", desc: "Tham gia với tư cách đại biểu, báo cáo viên hoặc chủ tọa.", icon: <User size={20} />, color: "blue", bgColor: "bg-blue-50/50", borderColor: "border-blue-200/50", iconColor: "text-blue-600", },
-            { title: "Nghiên cứu khoa học", desc: "Chủ nhiệm đề tài, viết báo, hướng dẫn luận văn.", icon: <FileText size={20} />, color: "purple", bgColor: "bg-purple-50/50", borderColor: "border-purple-200/50", iconColor: "text-purple-600", },
-            { title: "Biên soạn giáo trình", desc: "Tham gia biên soạn tài liệu giảng dạy, quy trình chuyên môn.", icon: <Award size={20} />, color: "orange", bgColor: "bg-orange-50/50", borderColor: "border-orange-200/50", iconColor: "text-orange-600", },
-        ];
+            <div class="mt-6 text-center">
+                <p class="text-sm text-slate-500 font-medium">
+                    <span id="toggleAuthModeText">Bạn chưa có tài khoản?</span> 
+                    <button id="toggleAuthModeBtn" class="text-indigo-600 font-black hover:underline ml-1">Đăng ký ngay</button>
+                </p>
+            </div>
 
-        const CME_CONVERSION_DATA = [
-            { group: "1. Đào tạo, hội thảo", color: "teal", icon: <BookOpen size={20} />, items: [ { name: "Học viên / Giảng viên khóa ngắn hạn", value: "1 tiết = 1 giờ tín chỉ" }, { name: "Chủ trì hội nghị, hội thảo", value: "2 giờ tín chỉ/buổi" }, { name: "Báo cáo viên", value: "2 giờ tín chỉ/báo cáo" }, { name: "Đại biểu tham dự", value: "1.5 giờ tín chỉ/buổi" } ] },
-            { group: "2. Soạn thảo quy trình chuyên môn", color: "orange", icon: <Award size={20} />, items: [ { name: "Trưởng/Phó ban soạn thảo (Giáo trình)", value: "5 giờ tín chỉ/tài liệu" }, { name: "Thành viên ban soạn thảo (Giáo trình)", value: "2 giờ tín chỉ/tài liệu" }, { name: "Trưởng/Phó ban soạn thảo (VBQPPL)", value: "5 giờ tín chỉ/văn bản" }, { name: "Thành viên ban soạn thảo (VBQPPL)", value: "3 giờ tín chỉ/văn bản" } ] },
-            { group: "3. Nghiên cứu khoa học", color: "purple", icon: <FileText size={20} />, items: [ { name: "Chủ trì đề tài cấp CS", value: "8 giờ tín chỉ" }, { name: "Bài báo quốc tế (Tác giả chính)", value: "8 giờ tín chỉ" }, { name: "Bài báo trong nước (Tác giả chính)", value: "4 giờ tín chỉ" } ] },
-            { group: "4. Hình thức khác", color: "blue", icon: <User size={20} />, items: [ { name: "Hướng dẫn luận văn", value: "4 giờ tín chỉ/luận văn" }, { name: "Hội chẩn ca bệnh", value: "1 giờ tín chỉ/ca bệnh" }, { name: "Học văn bằng/chứng chỉ chuyên khoa", value: "24 giờ tín chỉ/năm hoặc 1 tiết = 1 giờ" } ] }
-        ];
+            <div class="my-8 flex items-center gap-4">
+                <div class="h-px bg-slate-100 flex-1"></div>
+                <span class="text-[9px] text-slate-400 font-black uppercase tracking-widest">Hoặc</span>
+                <div class="h-px bg-slate-100 flex-1"></div>
+            </div>
 
-        const IMAGING_SCOPE_DATA = [
-            { category: "1. X-Quang Chẩn đoán (Thường quy & KTS)", color: "blue", icon: <Activity size={24} />, items: [ "Chụp Xquang sọ, xoang, mặt (thẳng, nghiêng, tiếp tuyến, Hirtz, Blondeau...)", "Chụp Xquang cột sống (cổ, ngực, thắt lưng, cùng cụt) các tư thế", "Chụp Xquang lồng ngực, xương ức, xương sườn", "Chụp Xquang ổ bụng (KCB), hệ tiết niệu (KCB)", "Chụp Xquang chi trên (vai, cánh tay, khuỷu, cẳng tay, cổ tay, bàn tay)", "Chụp Xquang chi dưới (chậu, háng, đùi, gối, cẳng chân, cổ chân, bàn chân)", "Chụp Xquang tuyến vú (Mammography)", "Chụp Xquang tại giường, tại phòng mổ (C-arm)", "Chụp Xquang răng (toàn cảnh, cận chóp)", "Chụp Xquang đường mật (Kehr, qua nội soi)", "Chụp Xquang thực quản, dạ dày, ruột non, đại tràng (có thuốc cản quang)", "Chụp Xquang hệ tiết niệu có tiêm thuốc (UIV), ngược dòng, xuôi dòng", "Chụp Xquang tử cung vòi trứng (HSG)", "Chụp Xquang các đường rò" ] },
-            { category: "2. Cắt lớp vi tính (CT Scanner)", color: "teal", icon: <Table size={24} />, items: [ "Chụp CLVT Sọ nội sọ (thường quy, có thuốc, dựng hình 3D, tưới máu nội sọ)", "Chụp CLVT Đầu mặt cổ (hốc mắt, xương đá, xoang, hàm mặt)", "Chụp CLVT Lồng ngực (phổi, trung thất, mạch máu phổi, mạch chủ)", "Chụp CLVT Bụng - Tiểu khung (gan, mật, tụy, lách, thận, tiết niệu, tử cung...)", "Chụp CLVT Cột sống (cổ, ngực, thắt lưng) và Xương khớp", "Chụp CLVT Mạch máu (Mạch nội sọ, mạch cảnh, mạch chi, mạch tạng)", "Chụp CLVT Tim và mạch vành (đánh giá vôi hóa, chức năng)", "Chụp CLVT Nội soi ảo (đại tràng, phế quản)", "Chụp CLVT dẫn đường cho sinh thiết, chọc hút" ] },
-            { category: "3. Cộng hưởng từ (MRI)", color: "indigo", icon: <RefreshCw size={24} />, items: [ "MRI Sọ não (nhu mô, mạch máu, tuyến yên, hốc mắt, dây thần kinh)", "MRI Vùng cổ (phần mềm, họng, thanh quản, tuyến giáp)", "MRI Cột sống (cổ, ngực, thắt lưng) và Tủy sống", "MRI Cơ xương khớp (vai, khuỷu, cổ tay, háng, gối, cổ chân)", "MRI Bụng (gan mật, tụy, lách, thận, thượng thận)", "MRI Tiểu khung (tử cung, buồng trứng, tiền liệt tuyến, trực tràng)", "MRI Tuyến vú", "MRI Tim mạch (chức năng tim, mạch máu)", "MRI Thai nhi, Bánh nhau", "MRI Toàn thân (tầm soát di căn)" ] },
-            { category: "4. Điện quang can thiệp", color: "red", icon: <Activity size={24} />, items: [ "Chụp mạch số hóa xóa nền (DSA) các tạng (não, tạng, chi)", "Nút mạch điều trị (u gan, u xơ tử cung, ho ra máu, chảy máu mũi...)", "Nong và đặt Stent mạch máu (mạch vành, mạch chi, mạch thận...)", "Lấy huyết khối (mạch nội sọ, mạch chi)", "Điều trị phình mạch nội sọ (Coil, Stent)", "Can thiệp đường mật (dẫn lưu, đặt stent)", "Đổ xi măng cột sống", "Đốt sóng cao tần (RFA) điều trị u (gan, phổi, tuyến giáp...)" ] },
-            { category: "5. Y học hạt nhân", color: "amber", icon: <Activity size={24} />, items: [ "Xạ hình SPECT (xương, thận, tuyến giáp, tưới máu cơ tim, phổi...)", "Xạ hình SPECT/CT", "Chụp PET/CT chẩn đoán ung thư, tim mạch, thần kinh", "Đo độ tập trung I-131 tuyến giáp", "Điều trị I-131 (Ung thư tuyến giáp, Basedow)", "Điều trị giảm đau di căn xương bằng đồng vị phóng xạ", "Điều trị miễn dịch phóng xạ" ] }
-        ];
+            <button id="googleLoginBtn" class="w-full py-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-2xl font-bold transition-all flex items-center justify-center gap-3 shadow-sm group active:scale-95">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                <span>Sử dụng Google</span>
+            </button>
+        </div>
+    </div>
 
-        const FACILITIES_DATA = [
-            { province: "Bộ Y tế", name: "Cục Quản lý Khám, chữa bệnh", desc: "Danh sách cơ sở KCB đủ điều kiện hướng dẫn thực hành trên toàn quốc.", link: "https://kcb.vn/hanh-nghe/danh-sach-co-so-kbcb-du-dieu-kien-huong-dan-thuc-hanh", icon: <ShieldCheck size={24} /> },
-            { province: "TP. Hồ Chí Minh", name: "Sở Y tế TP. Hồ Chí Minh", desc: "Danh sách các cơ sở đủ điều kiện tổ chức thực hành khám bệnh, chữa bệnh.", link: "https://tochuccanbo.medinet.gov.vn/ve-co-so-thuc-hanh-c14539.aspx", icon: <MapPin size={24} /> }
-        ];
+    <!-- HEADER - FIXED -->
+    <header class="fixed top-0 left-0 right-0 z-50 px-4 pt-6">
+        <nav class="max-w-7xl mx-auto glass-card rounded-[2rem] px-8 py-4 flex justify-between items-center shadow-lg border-white">
+            <div class="flex items-center gap-4">
+                <div class="bg-indigo-600 p-2.5 rounded-2xl text-white shadow-lg shadow-indigo-100">
+                    <i data-lucide="activity" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-black tracking-tighter text-slate-900 leading-none">VN-DRL <span class="text-indigo-600">STUDY</span></h1>
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Nghiên cứu liều chuẩn Việt Nam</p>
+                </div>
+            </div>
 
-        // --- THEME ENGINE ---
-        const THEME = {
-            blue: { grad: 'from-blue-600 to-indigo-700', text: 'text-blue-600', light: 'bg-blue-50' },
-            teal: { grad: 'from-teal-500 to-emerald-600', text: 'text-teal-600', light: 'bg-teal-50' },
-            pink: { grad: 'from-pink-500 to-rose-600', text: 'text-pink-600', light: 'bg-pink-50' },
-            green: { grad: 'from-green-600 to-emerald-700', text: 'text-green-600', light: 'bg-green-50' },
-            purple: { grad: 'from-purple-500 to-indigo-700', text: 'text-purple-600', light: 'bg-purple-50' },
-            orange: { grad: 'from-orange-500 to-amber-600', text: 'text-orange-600', light: 'bg-orange-50' },
-            red: { grad: 'from-red-600 to-rose-700', text: 'text-red-600', light: 'bg-red-50' },
-            indigo: { grad: 'from-indigo-600 to-blue-800', text: 'text-indigo-600', light: 'bg-indigo-50' },
-            rose: { grad: 'from-rose-600 to-red-700', text: 'text-rose-600', light: 'bg-rose-50' },
-            amber: { grad: 'from-amber-500 to-orange-600', text: 'text-amber-600', light: 'bg-amber-50' }
-        };
+            <div class="flex items-center gap-4">
+                <div id="connectionStatus" class="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-2xl text-[9px] font-black uppercase tracking-widest text-slate-500 border border-slate-200">
+                    <div id="statusDot" class="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                    <span id="statusText">Kiểm tra kết nối...</span>
+                </div>
 
-        // --- COMPONENTS ---
+                <div id="userMenu" class="hidden flex items-center gap-4 pl-4 border-l border-slate-200">
+                    <div class="hidden lg:block text-right">
+                        <p id="userEmailDisplay" class="text-xs font-black text-slate-800">user@hosp.com</p>
+                        <p id="userRoleDisplay" class="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Thành viên</p>
+                    </div>
+                    <div class="relative">
+                        <button id="userMenuBtn" class="w-10 h-10 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-2xl flex items-center justify-center hover:bg-indigo-100 transition-colors">
+                            <i data-lucide="user" class="w-5 h-5"></i>
+                        </button>
+                        <div id="userDropdown" class="absolute right-0 mt-4 w-56 bg-white rounded-3xl shadow-2xl overflow-hidden hidden z-50 text-slate-800 p-2 border border-slate-100">
+                            <a href="#" id="toggleAdminBtn" class="flex items-center gap-3 px-4 py-3 text-sm font-bold hover:bg-slate-50 rounded-2xl transition-colors text-slate-600">
+                                <i data-lucide="shield-check" class="w-4 h-4 text-indigo-600"></i>
+                                <span id="adminBtnText">Kích hoạt Admin</span>
+                            </a>
+                            <hr class="my-1 border-slate-50">
+                            <a href="#" id="logoutBtn" class="flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 rounded-2xl transition-colors">
+                                <i data-lucide="log-out" class="w-4 h-4"></i> Đăng xuất
+                            </a>
+                        </div>
+                    </div>
+                </div>
 
-        const Navbar = ({ activeTab, setActiveTab }) => {
-            const [isOpen, setIsOpen] = useState(false);
-            return (
-                <div className="fixed top-4 left-0 right-0 z-[100] px-4">
-                    <nav className="max-w-7xl mx-auto glass rounded-2xl shadow-xl overflow-hidden">
-                        <div className="px-6 flex justify-between items-center h-20 gap-4">
-                            {/* Logo */}
-                            <div className="flex items-center gap-3 cursor-pointer group shrink-0" onClick={() => setActiveTab('cme')}>
-                                <div className="p-2 bg-blue-600 text-white rounded-xl shadow-lg group-hover:scale-110 transition-transform">
-                                    <Scale size={28} />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="font-extrabold text-2xl tracking-tight leading-none bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">VnRadLegal</span>
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Cổng thông tin Pháp lý CĐHA</span>
-                                </div>
+                <button id="navLoginBtn" class="px-6 py-2.5 bg-indigo-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-100">
+                    Đăng nhập
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- APP CONTAINER -->
+    <div class="app-container">
+        
+        <!-- LEFT COLUMN: INPUT FORM -->
+        <aside class="w-1/3 min-w-[380px] scroll-section glass-card rounded-[2.5rem] flex flex-col overflow-hidden relative">
+            <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-white/40 backdrop-blur-md sticky top-0 z-20">
+                <h2 id="formTitle" class="font-black text-slate-900 flex items-center gap-3 uppercase tracking-widest text-xs">
+                    <i data-lucide="plus-circle" class="text-indigo-600 w-5 h-5"></i> Nhập dữ liệu
+                </h2>
+                <span class="px-3 py-1 bg-indigo-50 rounded-full text-[9px] font-black text-indigo-600 border border-indigo-100 uppercase">Input Mode</span>
+            </div>
+
+            <form id="drlForm" class="flex flex-col flex-1 overflow-hidden relative">
+                <div id="formLockOverlay" class="absolute inset-0 bg-white/60 backdrop-blur-md z-30 flex flex-col items-center justify-center text-center p-8 hidden">
+                    <div class="bg-indigo-50 p-5 rounded-full mb-4 border border-indigo-100">
+                        <i data-lucide="lock" class="w-8 h-8 text-indigo-600"></i>
+                    </div>
+                    <p class="text-xs font-black text-slate-800 uppercase tracking-widest">Đăng nhập để bắt đầu</p>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-8 space-y-8 sidebar-scroll-area">
+                    <input type="hidden" id="editEntryId" value="">
+
+                    <!-- Section: Cơ sở -->
+                    <div class="space-y-4">
+                        <label class="section-label flex items-center gap-2 font-bold"><i data-lucide="hospital" class="w-3 h-3 text-indigo-500"></i> Cơ sở & Thiết bị</label>
+                        <div class="space-y-3">
+                            <select id="hospitalSelect" class="w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none appearance-none font-medium">
+                                <option value="" disabled selected>-- Chọn Bệnh viện --</option>
+                                <option value="other" class="font-bold text-indigo-600">➕ Bệnh viện khác (Nhập mới)</option>
+                            </select>
+                            <input type="text" id="customHospitalName" placeholder="Tên bệnh viện mới..." class="hidden w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none border-indigo-200">
+                            <div class="grid grid-cols-2 gap-3">
+                                <select id="manufacturer" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-medium">
+                                    <option value="" disabled selected>Hãng máy</option>
+                                </select>
+                                <select id="sliceCount" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-medium">
+                                    <option value="" disabled selected>Số lát</option>
+                                </select>
                             </div>
                             
-                            {/* Desktop Menu - Trải dài đều */}
-                            <div className="hidden lg:flex flex-1 items-center bg-slate-100/50 p-1.5 rounded-xl border border-slate-200/50 max-w-2xl mx-auto">
-                                {[
-                                    {id: 'cme', label: 'Cập nhật KTYK'},
-                                    {id: 'license', label: 'Giấy phép HN'},
-                                    {id: 'scope', label: 'Phạm vi HN'},
-                                    {id: 'facilities', label: 'Cơ sở TH'}
-                                ].map(tab => (
-                                    <button 
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id)}
-                                        className={`flex-1 px-4 py-2.5 font-bold text-sm transition-all duration-300 rounded-lg whitespace-nowrap ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-900 hover:bg-white/50'}`}
-                                    >
-                                        {tab.label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* AI Button */}
-                            <div className="hidden lg:flex items-center shrink-0">
-                                <a href="https://gemini.google.com/gem/1Kbzv_16us4UuH7c5yycu51dPpw6jPF9x?usp=sharing" target="_blank" className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:shadow-indigo-300 hover:scale-105 transition-all flex items-center gap-2">
-                                    <Sparkles className="w-4 h-4 text-yellow-300" /> AI Tra cứu
-                                </a>
-                            </div>
-
-                            {/* Mobile Toggle */}
-                            <button onClick={() => setIsOpen(!isOpen)} className="lg:hidden p-2.5 rounded-xl text-slate-600 hover:bg-white transition-colors">
-                                {isOpen ? <X size={24} /> : <Menu size={24} />}
-                            </button>
-                        </div>
-
-                        {/* Mobile Menu */}
-                        {isOpen && (
-                            <div className="lg:hidden p-4 space-y-2 border-t border-slate-100 bg-white/90 animate-in slide-in-from-top duration-300">
-                                {['cme', 'license', 'scope', 'facilities'].map(id => (
-                                    <button key={id} onClick={() => {setActiveTab(id); setIsOpen(false)}} className={`block w-full text-left px-4 py-3 rounded-xl font-bold ${activeTab === id ? 'bg-blue-50 text-blue-700' : 'text-slate-600'}`}>
-                                        {id === 'cme' ? 'Cập nhật KTYK' : id === 'license' ? 'Giấy phép HN' : id === 'scope' ? 'Phạm vi HN' : 'Cơ sở TH'}
-                                    </button>
-                                ))}
-                                <a href="https://gemini.google.com/gem/1Kbzv_16us4UuH7c5yycu51dPpw6jPF9x?usp=sharing" target="_blank" className="block w-full text-center px-4 py-3 rounded-xl font-bold bg-indigo-600 text-white shadow-lg mt-4">AI Tra cứu</a>
-                            </div>
-                        )}
-                    </nav>
-                </div>
-            );
-        };
-
-        const Banner = ({ type }) => {
-            const configs = {
-                license: { title: "Quy định về Giấy phép hành nghề", desc: "Cập nhật toàn diện về chức danh, thời hạn, điều kiện cấp mới và gia hạn giấy phép theo quy định mới nhất từ 01/01/2024.", tag: "Luật Khám bệnh, chữa bệnh 2023", grad: "from-blue-600 to-indigo-700", icon: <UserCheck size={180} /> },
-                cme: { title: "Cập nhật kiến thức Y khoa (CME)", desc: "Quy định chi tiết về các hình thức, thời gian và bảng quy đổi tín chỉ đào tạo liên tục. Điều kiện bắt buộc để gia hạn giấy phép 05 năm.", tag: "Thông tư 32/2023/TT-BYT", grad: "from-teal-500 to-emerald-700", icon: <Award size={180} /> },
-                scope: { title: "Phạm vi Hoạt động Chuyên môn", desc: "Danh mục kỹ thuật chi tiết được phép thực hiện đối với chức danh Kỹ thuật y chuyên ngành Hình ảnh y học và Y học hạt nhân.", tag: "Phụ lục XIV - Thông tư 32/2023", grad: "from-indigo-600 to-blue-800", icon: <List size={180} /> },
-                facilities: { title: "Cơ sở Hướng dẫn Thực hành", desc: "Tra cứu danh sách các cơ sở khám bệnh, chữa bệnh đủ điều kiện hướng dẫn thực hành theo quy định của Bộ Y tế và Sở Y tế.", tag: "Nghị định 96/2023/NĐ-CP", grad: "from-rose-500 to-pink-700", icon: <Building size={180} /> }
-            };
-            const c = configs[type] || configs.cme;
-            return (
-                <div className={`relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br ${c.grad} p-8 md:p-16 text-white shadow-2xl mb-12`}>
-                    <div className="absolute top-0 right-0 opacity-10 p-10 transform translate-x-12 -translate-y-12">{c.icon}</div>
-                    <div className="relative z-10 max-w-4xl">
-                        <div className="inline-flex items-center gap-2 bg-white/20 border border-white/30 rounded-full px-5 py-2 mb-8 backdrop-blur-md">
-                            <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></span>
-                            <span className="text-xs font-black uppercase tracking-widest">{c.tag}</span>
-                        </div>
-                        <h1 className="text-4xl md:text-6xl font-extrabold mb-8 leading-[1.15] tracking-tight">{c.title}</h1>
-                        <p className="text-white/90 text-lg md:text-xl leading-relaxed max-w-2xl font-medium">{c.desc}</p>
-                    </div>
-                </div>
-            );
-        };
-
-        const LicenseContent = () => (
-            <div className="animate-in fade-in duration-700 slide-in-from-bottom-10">
-                <Banner type="license" />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {PRACTICE_LICENSE_DATA.map((item) => {
-                        const theme = THEME[item.color];
-                        return (
-                            <div key={item.id} className="group glass rounded-[2rem] p-1 card-hover transition-all duration-500 flex flex-col h-full overflow-hidden">
-                                <div className={`p-8 rounded-[1.8rem] bg-gradient-to-br ${theme.grad} text-white shadow-xl mb-4 relative overflow-hidden`}>
-                                    <div className="absolute top-0 right-0 opacity-10 -mr-6 -mt-6 text-white">{item.icon}</div>
-                                    <div className="flex justify-between items-start mb-6">
-                                        <div className="p-3 bg-white/30 rounded-2xl backdrop-blur-md border border-white/40 text-white shadow-lg">
-                                            {item.icon}
-                                        </div>
-                                        <span className="header-tag text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-inner">{item.sub}</span>
-                                    </div>
-                                    <h3 className="text-2xl font-black leading-tight text-white drop-shadow-md">{item.title}</h3>
-                                </div>
-                                
-                                <div className="p-8 pt-2 flex-grow flex flex-col">
-                                    <p className="text-slate-500 text-sm font-semibold mb-6 italic leading-relaxed">{item.desc}</p>
-                                    <div className="space-y-4 flex-grow">
-                                        {item.content.map((line, idx) => (
-                                            <div key={idx} className="flex items-start gap-4">
-                                                <div className="mt-1.5 shrink-0"><div className={`w-2 h-2 rounded-full bg-gradient-to-r ${theme.grad}`}></div></div>
-                                                <span className="text-slate-700 font-medium leading-relaxed">{line}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-
-        const CmeContent = () => (
-            <div className="animate-in fade-in duration-700 slide-in-from-bottom-10">
-                <Banner type="cme" />
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    <div className="lg:col-span-4 space-y-6">
-                        <div className="glass rounded-[2rem] p-8 border-orange-200/50 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-4 opacity-5"><AlertTriangle size={80} /></div>
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="p-3 bg-orange-500 text-white rounded-2xl shadow-lg shadow-orange-100"><AlertTriangle size={24} /></div>
-                                <h4 className="font-black text-slate-800 uppercase tracking-wide text-sm">Quy định tối thiểu</h4>
-                            </div>
-                            <div className="space-y-4 text-slate-700 font-medium">
-                                <p>Cấp nhật kiến thức y khoa liên tục là <span className="text-orange-600 font-black">bắt buộc</span> để gia hạn GPHN.</p>
-                                <div className="bg-white/50 p-4 rounded-2xl border border-white">
-                                    <p className="text-xs uppercase text-slate-500 mb-1">Thời gian yêu cầu</p>
-                                    <p className="text-2xl font-black text-slate-900">120 Giờ tín chỉ</p>
-                                    <p className="text-sm text-slate-500">Trong 05 năm liên tục</p>
+                            <div class="space-y-2">
+                                <label class="section-label text-[9px] ml-1">Tùy biến liều tia</label>
+                                <div class="p-1.5 bg-slate-100 rounded-[1.5rem] flex gap-1 border border-slate-200">
+                                    <label class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:text-indigo-600 has-[:checked]:shadow-sm text-slate-400 font-black text-[10px] uppercase">
+                                        <input type="radio" name="doseModulation" value="Có" class="hidden" required checked> Có
+                                    </label>
+                                    <label class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:text-indigo-600 has-[:checked]:shadow-sm text-slate-400 font-black text-[10px] uppercase">
+                                        <input type="radio" name="doseModulation" value="Không" class="hidden"> Không
+                                    </label>
                                 </div>
                             </div>
                         </div>
-                        <div className="glass rounded-[2rem] p-8">
-                            <h3 className="font-black text-slate-800 mb-6 text-lg">Hình thức công nhận</h3>
-                            <div className="space-y-4">
-                                {CME_FORMS.map((form, idx) => (
-                                    <div key={idx} className={`p-4 rounded-2xl border ${form.borderColor} ${form.bgColor} flex items-start gap-4 transition-all hover:bg-white`}>
-                                        <div className={`p-2.5 rounded-xl bg-white ${form.iconColor} shadow-sm shrink-0`}>{form.icon}</div>
-                                        <div>
-                                            <h4 className={`font-black text-sm ${form.iconColor} mb-1 uppercase tracking-tight`}>{form.title}</h4>
-                                            <p className="text-xs text-slate-600 font-medium leading-relaxed">{form.desc}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
                     </div>
-                    <div className="lg:col-span-8">
-                        <div className="glass rounded-[2rem] overflow-hidden shadow-2xl">
-                            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white/50">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-100"><Table size={24} /></div>
-                                    <div><h3 className="text-xl font-black text-slate-800">Bảng quy đổi giờ tín chỉ</h3><p className="text-slate-500 text-sm font-medium">Phụ lục I - TT 32/2023/TT-BYT</p></div>
-                                </div>
-                            </div>
-                            <div className="p-8 space-y-8">
-                                {CME_CONVERSION_DATA.map((section, idx) => (
-                                    <div key={idx} className="space-y-4">
-                                        <h4 className="font-black text-xs text-slate-400 uppercase tracking-[0.2em] pl-2">{section.group}</h4>
-                                        <div className="grid gap-3">
-                                            {section.items.map((item, i) => (
-                                                <div key={i} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-5 rounded-2xl bg-white/40 border border-white hover:border-blue-200 hover:bg-white transition-all group shadow-sm">
-                                                    <span className="font-bold text-slate-700 group-hover:text-blue-700 transition-colors">{item.name}</span>
-                                                    <span className="mt-2 sm:mt-0 text-xs font-black text-blue-700 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 shrink-0 uppercase tracking-tight">{item.value}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
 
-        const ScopeContent = () => {
-            const [openIndex, setOpenIndex] = useState(0);
-            return (
-                <div className="animate-in fade-in duration-700 slide-in-from-bottom-10">
-                    <Banner type="scope" />
-                    <div className="glass rounded-[2.5rem] p-6 md:p-12">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
-                            <div><h3 className="text-3xl font-black text-slate-800 tracking-tight">Danh mục kỹ thuật KTY</h3><p className="text-slate-500 font-medium mt-2">Chuyên ngành Hình ảnh y học và Y học hạt nhân</p></div>
-                            <div className="relative group"><input type="text" placeholder="Tìm kỹ thuật nhanh..." className="pl-14 pr-6 py-4 glass rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full md:w-80 shadow-inner font-medium text-slate-700" /><Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} /></div>
+                    <!-- Section: Protocol -->
+                    <div class="space-y-4">
+                        <label class="section-label flex items-center gap-2 font-bold"><i data-lucide="user" class="w-3 h-3 text-indigo-500"></i> Bệnh nhân & Protocol</label>
+                        <select id="protocol" class="w-full px-5 py-4 bg-indigo-50 border border-indigo-100 rounded-2xl text-sm font-black text-indigo-700 outline-none"></select>
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="text" id="patientId" placeholder="ID Bệnh nhân" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-medium">
+                            <input type="date" id="scanDate" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-black text-[10px] text-slate-600">
                         </div>
-                        <div className="space-y-6">
-                            {IMAGING_SCOPE_DATA.map((group, index) => {
-                                const theme = THEME[group.color];
-                                return (
-                                    <div key={index} className={`glass rounded-[2rem] overflow-hidden transition-all duration-500 ${openIndex === index ? 'shadow-2xl border-indigo-200' : 'hover:bg-white/80'}`}>
-                                        <button onClick={() => setOpenIndex(openIndex === index ? null : index)} className={`w-full flex items-center justify-between p-6 md:p-8 text-left transition-all ${openIndex === index ? `bg-gradient-to-r ${theme.grad} text-white` : 'text-slate-800'}`}>
-                                            <div className="flex items-center gap-6">
-                                                <div className={`p-4 rounded-2xl shadow-lg transition-transform ${openIndex === index ? 'bg-white/25 border border-white/20 text-white' : `${theme.light} ${theme.text}`}`}>{group.icon}</div>
-                                                <span className="font-black text-xl md:text-2xl tracking-tight leading-none">{group.category}</span>
-                                            </div>
-                                            <ChevronDown className={`transition-transform duration-500 ${openIndex === index ? 'rotate-180 text-white' : 'opacity-40'}`} size={28} />
-                                        </button>
-                                        {openIndex === index && (
-                                            <div className="p-8 md:p-12 animate-in zoom-in-95 duration-500">
-                                                <ul className="grid md:grid-cols-2 gap-x-12 gap-y-6">
-                                                    {group.items.map((item, idx) => (
-                                                        <li key={idx} className="flex items-start gap-4 group">
-                                                            <div className={`mt-2 shrink-0 p-1 ${theme.light} rounded-lg group-hover:bg-indigo-600 transition-colors`}><div className={`w-1.5 h-1.5 rounded-full ${theme.text} group-hover:bg-white`}></div></div>
-                                                            <span className="text-slate-700 font-medium leading-relaxed group-hover:text-slate-900 transition-colors">{item}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const PracticeFacilitiesContent = () => (
-            <div className="animate-in fade-in duration-700 slide-in-from-bottom-10">
-                <Banner type="facilities" />
-                <div className="space-y-12">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {FACILITIES_DATA.map((item, index) => (
-                            <a key={index} href={item.link} target="_blank" className="group glass rounded-[2.5rem] p-8 card-hover transition-all duration-500 border-rose-100 flex flex-col md:flex-row gap-8 items-center md:items-start">
-                                <div className="p-6 bg-rose-600 text-white rounded-3xl shadow-xl shadow-rose-200 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500">{item.icon}</div>
-                                <div className="flex-grow text-center md:text-left">
-                                    <div className="flex items-center justify-center md:justify-between mb-4"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-500">{item.province}</span><ExternalLink size={20} className="hidden md:block text-slate-300 group-hover:text-rose-500 transition-colors" /></div>
-                                    <h4 className="text-2xl font-black text-slate-800 mb-3 group-hover:text-rose-700 transition-colors leading-tight">{item.name}</h4>
-                                    <p className="text-slate-500 font-medium leading-relaxed">{item.desc}</p>
-                                </div>
-                            </a>
-                        ))}
-                    </div>
-                    <div className="glass rounded-[2.5rem] p-8 md:p-12 border-rose-200/50">
-                        <div className="flex flex-col md:flex-row md:items-center gap-6 mb-10"><div className="p-4 bg-rose-500 text-white rounded-2xl shadow-xl"><Building size={32} /></div><div><h3 className="text-3xl font-black text-slate-800 tracking-tight">Điều kiện Cơ sở Thực hành</h3><p className="text-slate-500 font-medium">Nghị định 96/2023/NĐ-CP - Hướng dẫn chi tiết</p></div></div>
-                        <div className="grid md:grid-cols-2 gap-8">
-                            <div className="bg-white/50 p-8 rounded-[2rem] border border-white shadow-sm">
-                                <h4 className="text-rose-700 font-black uppercase tracking-widest text-xs mb-6 flex items-center gap-2"><div className="w-1.5 h-4 bg-rose-500 rounded-full"></div>Điều kiện chung</h4>
-                                <ul className="space-y-5">
-                                    <li className="flex gap-4"><ShieldCheck className="text-rose-500 shrink-0 mt-1" size={20} /><span className="text-slate-700 font-medium">Cơ sở đã được cấp GPHĐ phù hợp với hình thức tổ chức.</span></li>
-                                    <li className="flex gap-4"><ShieldCheck className="text-rose-500 shrink-0 mt-1" size={20} /><span className="text-slate-700 font-medium">Phạm vi hoạt động chuyên môn phù hợp với nội dung thực hành.</span></li>
-                                </ul>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <input type="number" id="age" placeholder="Tuổi" class="w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none text-center font-bold">
                             </div>
-                            <div className="bg-rose-600 p-8 rounded-[2rem] text-white shadow-xl shadow-rose-100 relative overflow-hidden">
-                                <h4 className="font-black uppercase tracking-widest text-xs mb-6 text-rose-200 flex items-center gap-2"><div className="w-1.5 h-4 bg-white rounded-full"></div>Riêng KTV Hình ảnh</h4>
-                                <div className="grid gap-3">{['Bệnh viện', 'Phòng khám', 'Cơ sở chẩn đoán hình ảnh'].map(t => (<div key={t} className="bg-white/20 backdrop-blur-md border border-white/20 px-5 py-3 rounded-xl font-black text-lg text-white">{t}</div>))}</div>
+                            <select id="gender" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none text-center font-bold">
+                                <option value="M">Nam</option>
+                                <option value="F">Nữ</option>
+                            </select>
+                            <div>
+                                <input type="number" id="weight" placeholder="Kg" class="w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none text-center font-bold">
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        );
 
-        const FooterFeedback = () => {
-            const [status, setStatus] = useState("");
-            
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                setStatus("sending");
-                const form = e.target;
-                const data = new FormData(form);
-                try {
-                    const response = await fetch("https://formspree.io/f/xvzklawb", {
-                        method: "POST",
-                        body: data,
-                        headers: { 'Accept': 'application/json' }
-                    });
-                    if (response.ok) {
-                        setStatus("success");
-                        form.reset();
-                        setTimeout(() => setStatus(""), 5000);
-                    } else {
-                        setStatus("error");
-                    }
-                } catch (error) {
-                    setStatus("error");
-                }
-            };
-
-            return (
-                <div className="w-full max-w-xl mx-auto mt-12 mb-8">
-                    <form onSubmit={handleSubmit} className="relative group">
-                        {/* Container ô góp ý: Tinh chỉnh nền trắng đục và bo tròn để thấy chữ rõ nhất */}
-                        <div className="flex flex-col sm:flex-row gap-3 p-2 bg-white/95 rounded-3xl shadow-2xl border border-white/50">
-                            <input 
-                                name="email" 
-                                type="email" 
-                                required
-                                placeholder="Email của bạn..."
-                                className="flex-1 bg-slate-100/80 px-6 py-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 placeholder-slate-400 font-bold text-sm transition-all"
-                            />
-                            <input 
-                                name="message" 
-                                required
-                                placeholder="Góp ý nhanh cho VnRad Legal..."
-                                className="flex-[1.5] bg-slate-100/80 px-6 py-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 placeholder-slate-400 font-bold text-sm transition-all"
-                            />
-                            <button 
-                                type="submit" 
-                                disabled={status === "sending"}
-                                className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 rounded-2xl font-black shadow-lg hover:scale-95 active:scale-90 transition-all flex items-center justify-center gap-2 min-w-[64px]"
-                            >
-                                {status === "sending" ? (
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                ) : (
-                                    <Send size={22} />
-                                )}
-                            </button>
+                    <!-- Section: THÔNG SỐ LIỀU BỨC XẠ (HIGHLIGHTED) -->
+                    <div class="space-y-4 dose-highlight-box p-6 rounded-[2.5rem]">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[11px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-2">
+                                <i data-lucide="zap" class="w-4 h-4 fill-amber-500 text-amber-600"></i>
+                                Thông số liều bức xạ
+                            </label>
+                            <span class="px-2 py-0.5 bg-amber-200 text-amber-800 rounded-lg text-[8px] font-black">CRITICAL DATA</span>
                         </div>
                         
-                        {status === "success" && (
-                            <p className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-green-400 text-xs font-black uppercase tracking-widest animate-in fade-in slide-in-from-top-2">
-                                Đã gửi thành công! Cảm ơn bạn.
-                            </p>
-                        )}
-                        {status === "error" && (
-                            <p className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-red-400 text-xs font-black uppercase tracking-widest animate-in fade-in slide-in-from-top-2">
-                                Lỗi gửi tin. Thử lại sau.
-                            </p>
-                        )}
-                    </form>
-                </div>
-            );
-        };
-
-        const App = () => {
-            const [activeTab, setActiveTab] = useState('cme');
-            const [isChatOpen, setIsChatOpen] = useState(false);
-            const [showBackToTop, setShowBackToTop] = useState(false);
-
-            useEffect(() => {
-                const handleScroll = () => setShowBackToTop(window.scrollY > 400);
-                window.addEventListener('scroll', handleScroll);
-                return () => window.removeEventListener('scroll', handleScroll);
-            }, []);
-
-            return (
-                <div className="min-h-screen flex flex-col pt-28">
-                    <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
-                    <main className="flex-grow max-w-7xl mx-auto px-4 py-8 w-full">
-                        {activeTab === 'license' && <LicenseContent />}
-                        {activeTab === 'cme' && <CmeContent />}
-                        {activeTab === 'scope' && <ScopeContent />}
-                        {activeTab === 'facilities' && <PracticeFacilitiesContent />}
-                    </main>
-
-                    <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-4">
-                        {showBackToTop && (
-                            <button onClick={() => window.scrollTo({top:0, behavior:'smooth'})} className="p-4 glass rounded-2xl shadow-xl text-slate-600 hover:text-blue-600 hover:-translate-y-1 transition-all duration-300 border-white/50"><ArrowUp size={24} /></button>
-                        )}
-                        <div className="flex flex-col items-end gap-3">
-                            {isChatOpen && (
-                                <div className="glass-dark rounded-[2.5rem] shadow-2xl w-[22rem] overflow-hidden animate-in slide-in-from-bottom-10 duration-500 mb-2 border-white/10">
-                                    <div className="bg-gradient-to-r from-blue-600/50 to-purple-600/50 p-6 flex justify-between items-center backdrop-blur-md">
-                                        <div className="flex items-center gap-3 text-white"><Sparkles className="w-5 h-5 text-yellow-300" /><span className="font-black tracking-tight uppercase">AI TRỢ LÝ PHÁP LÝ</span></div>
-                                        <button onClick={() => setIsChatOpen(false)} className="text-white/60 hover:text-white"><X size={20} /></button>
-                                    </div>
-                                    <div className="p-8 space-y-6 text-white font-medium">
-                                        Xin chào! Tôi là AI được huấn luyện để giải đáp các thắc mắc về Luật Khám chữa bệnh.
-                                        <a href="https://gemini.google.com/gem/1Kbzv_16us4UuH7c5yycu51dPpw6jPF9x?usp=sharing" target="_blank" className="block w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-center font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/30 hover:scale-[1.02] transition-transform text-sm tracking-widest uppercase">Bắt đầu Tra cứu AI</a>
-                                    </div>
+                        <div class="space-y-5">
+                            <div class="space-y-1.5">
+                                <div class="flex justify-between items-center ml-2">
+                                    <label class="text-[10px] font-black text-amber-600 uppercase">CTDIvol (mGy)</label>
+                                    <span class="text-[9px] font-medium text-amber-500 italic">Volume CT Dose Index</span>
                                 </div>
-                            )}
-                            <button onClick={() => setIsChatOpen(!isChatOpen)} className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white p-5 rounded-[2rem] shadow-2xl hover:scale-110 transition-all duration-300 ai-float relative group">
-                                {isChatOpen ? <X size={32} /> : <MessageSquare size={32} />}
-                            </button>
-                        </div>
-                    </div>
-
-                    <footer className="glass-dark text-white pt-20 pb-12 mt-24 relative overflow-hidden">
-                        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center text-center">
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="p-3 bg-white text-blue-900 rounded-2xl shadow-2xl"><Scale size={32} /></div>
-                                <span className="font-black text-4xl tracking-tighter">VnRadLegal</span>
+                                <input type="number" step="0.01" id="ctdi" placeholder="0.00" class="w-full px-4 py-5 bg-white border-2 border-amber-300 rounded-3xl text-4xl font-black text-amber-600 outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-200/50 transition-all text-center placeholder:text-amber-200">
                             </div>
                             
-                            <p className="text-xs font-black uppercase tracking-[0.3em] text-white/40 mb-2">Gửi góp ý nhanh cho chúng tôi</p>
-                            <FooterFeedback />
-                            
-                            <div className="w-full h-px bg-white/5 my-8"></div>
-                            
-                            <p className="text-[10px] text-slate-400 uppercase tracking-[0.4em] font-black opacity-60">
-                                Dữ liệu từ Luật 15/2023/QH15 & Thông tư 32/2023/TT-BYT.
-                                <br/><span className="mt-4 block">© 2025 VNRadLegal. All Rights Reserved.</span>
-                            </p>
+                            <div class="space-y-1.5">
+                                <div class="flex justify-between items-center ml-2">
+                                    <label class="text-[10px] font-black text-amber-600 uppercase">DLP (mGy.cm)</label>
+                                    <span class="text-[9px] font-medium text-amber-500 italic">Dose Length Product</span>
+                                </div>
+                                <input type="number" step="0.1" id="dlp" placeholder="0.0" class="w-full px-4 py-5 bg-white border-2 border-amber-300 rounded-3xl text-4xl font-black text-amber-600 outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-200/50 transition-all text-center placeholder:text-amber-200">
+                            </div>
                         </div>
-                    </footer>
+                    </div>
                 </div>
-            );
+
+                <div class="p-6 border-t border-slate-100 bg-white/80 backdrop-blur-xl sticky bottom-0 z-20">
+                    <div class="flex gap-3">
+                        <button type="button" id="cancelEditBtn" class="hidden flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">Hủy</button>
+                        <button type="submit" id="submitBtn" class="flex-[3] py-5 bg-indigo-600 text-white rounded-3xl font-black text-[11px] uppercase tracking-[0.1em] transition-all active:scale-95 flex items-center justify-center gap-3 shadow-xl shadow-indigo-100">
+                            <i data-lucide="save" class="w-5 h-5"></i> 
+                            <span id="submitBtnText">Lưu Dữ Liệu</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </aside>
+
+        <!-- RIGHT COLUMN: DASHBOARD -->
+        <main class="flex-1 scroll-section relative">
+            <!-- STICKY STATS HEADER -->
+            <div class="sticky top-0 z-30 pb-4 pt-1 bg-[#f8fafc]/40 backdrop-blur-md">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-card p-6 rounded-[2rem] flex flex-col justify-between shadow-lg border-white/50">
+                        <div class="flex justify-between items-start">
+                            <p class="section-label">Tổng số mẫu</p>
+                            <i data-lucide="database" class="w-4 h-4 text-indigo-400"></i>
+                        </div>
+                        <h3 id="statTotal" class="text-4xl font-black text-slate-900 mt-2 tracking-tighter">0</h3>
+                        <div class="mt-2 flex items-center gap-2"><span id="statLabel" class="text-[8px] font-black px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full uppercase border border-indigo-100">Dữ liệu lọc</span></div>
+                    </div>
+                    <div class="glass-card p-6 rounded-[2rem] border-l-[6px] border-l-indigo-600 flex flex-col justify-between shadow-lg border-white/50">
+                        <div>
+                            <p class="section-label text-indigo-600">DRL (75th) CTDIvol</p>
+                            <div class="flex items-baseline gap-2 mt-2"><h3 id="statCtdi75" class="text-4xl font-black text-slate-900 tracking-tighter">0.0</h3><span class="text-[10px] font-black text-slate-400 uppercase">mGy</span></div>
+                        </div>
+                        <div class="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center"><span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Median (50th)</span><span id="statCtdiMedian" class="text-xs font-black text-indigo-600">0.0</span></div>
+                    </div>
+                    <div class="glass-card p-6 rounded-[2rem] border-l-[6px] border-l-amber-500 flex flex-col justify-between shadow-lg border-white/50">
+                        <div>
+                            <p class="section-label text-amber-600">DRL (75th) DLP</p>
+                            <div class="flex items-baseline gap-2 mt-2"><h3 id="statDlp75" class="text-4xl font-black text-slate-900 tracking-tighter">0</h3><span class="text-[10px] font-black text-slate-400 uppercase">mGy.cm</span></div>
+                        </div>
+                        <div class="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center"><span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Median (50th)</span><span id="statDlpMedian" class="text-xs font-black text-amber-600">0</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SCROLLABLE AREA -->
+            <div class="space-y-8 pt-4">
+                <!-- FILTER PANEL -->
+                <div class="glass-card p-8 rounded-[2.5rem] border-white shadow-xl">
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-indigo-50 p-3 rounded-2xl text-indigo-600 border border-indigo-100"><i data-lucide="sliders" class="w-5 h-5"></i></div>
+                            <h3 class="font-black text-slate-800 text-xs uppercase tracking-[0.2em]">Bộ lọc nghiên cứu</h3>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2"><label class="section-label ml-1">Bệnh viện</label><select id="filterHospital" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none"><option value="all">Tất cả bệnh viện</option></select></div>
+                        <div class="space-y-2"><label class="section-label ml-1">Protocol</label><select id="filterProtocol" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none"><option value="all">Tất cả</option></select></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                        <div class="space-y-2">
+                            <label class="section-label ml-1">Cân nặng (45 - 75 kg)</label>
+                            <div class="flex items-center gap-3">
+                                <input type="number" id="filterWeightMin" value="45" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none">
+                                <span class="text-slate-300">—</span>
+                                <input type="number" id="filterWeightMax" value="75" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none">
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="section-label ml-1">Khoảng liều CTDI (mGy)</label>
+                            <div class="flex items-center gap-3">
+                                <input type="number" id="filterCtdiMin" placeholder="Từ" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none">
+                                <span class="text-slate-300">—</span>
+                                <input type="number" id="filterCtdiMax" placeholder="Đến" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BIỂU ĐỒ -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="glass-card p-8 rounded-[2.5rem] border-white shadow-lg">
+                        <div class="flex justify-between items-center mb-8">
+                            <div class="flex items-center gap-3">
+                                <h3 class="section-label flex items-center gap-2">
+                                    <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-600"></i> CTDIvol
+                                </h3>
+                                <button onclick="exportChartAsHD('ctdiChart', 'Biểu đồ CTDIvol')" class="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all title='Lưu ảnh Full HD'">
+                                    <i data-lucide="camera" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <select id="ctdiViewMode" class="bg-slate-100 border-none rounded-xl text-[9px] font-black text-slate-500 px-3 py-1.5 outline-none uppercase tracking-widest">
+                                <option value="hospital">Bệnh viện</option>
+                                <option value="manufacturer">Hãng máy</option>
+                                <option value="age">Tuổi</option>
+                                <option value="gender">Giới tính</option>
+                            </select>
+                        </div>
+                        <div class="h-80"><canvas id="ctdiChart"></canvas></div>
+                    </div>
+
+                    <div class="glass-card p-8 rounded-[2.5rem] border-white shadow-lg">
+                        <div class="flex justify-between items-center mb-8">
+                            <div class="flex items-center gap-3">
+                                <h3 class="section-label flex items-center gap-2">
+                                    <i data-lucide="bar-chart-3" class="w-4 h-4 text-amber-600"></i> DLP
+                                </h3>
+                                <button onclick="exportChartAsHD('dlpChart', 'Biểu đồ DLP')" class="p-2 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-100 transition-all title='Lưu ảnh Full HD'">
+                                    <i data-lucide="camera" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <select id="dlpViewMode" class="bg-slate-100 border-none rounded-xl text-[9px] font-black text-slate-500 px-3 py-1.5 outline-none uppercase tracking-widest">
+                                <option value="hospital">Bệnh viện</option>
+                                <option value="manufacturer">Hãng máy</option>
+                                <option value="age">Tuổi</option>
+                                <option value="gender">Giới tính</option>
+                            </select>
+                        </div>
+                        <div class="h-80"><canvas id="dlpChart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- TABLE -->
+                <div class="glass-card rounded-[2.5rem] overflow-hidden border-white shadow-2xl mb-20">
+                    <div class="p-8 border-b border-slate-50 flex flex-wrap justify-between items-center gap-4 bg-white/40">
+                        <div class="flex items-center gap-4"><div class="bg-slate-100 p-2.5 rounded-2xl text-slate-600 border border-slate-200"><i data-lucide="table" class="w-5 h-5"></i></div><h3 class="section-label">Dữ liệu thô</h3></div>
+                        <button id="btnExportExcel" class="px-5 py-2.5 bg-emerald-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 hover:bg-emerald-700 active:scale-95 flex items-center gap-2"><i data-lucide="download" class="w-3 h-3"></i> Excel (.xlsx)</button>
+                    </div>
+                    <div class="overflow-x-auto relative">
+                        <div id="tableLoader" class="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-sm hidden"><div class="loader"></div></div>
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50/50 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                <tr><th class="px-8 py-5">Cơ sở / BN</th><th class="px-8 py-5">Protocol</th><th class="px-8 py-5 text-center">Modul.</th><th class="px-8 py-5">CTDIvol</th><th class="px-8 py-5">DLP</th><th class="px-8 py-5 text-right">Hành động</th></tr>
+                            </thead>
+                            <tbody id="dataTableBody" class="divide-y divide-slate-50 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="fixed bottom-10 right-10 p-6 bg-white border border-slate-100 rounded-[2rem] shadow-2xl z-[110] transform translate-y-20 opacity-0 pointer-events-none transition-all duration-500 flex items-center gap-4">
+        <div id="toastIconContainer" class="p-3 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100"></div>
+        <p id="toastMessage" class="font-black text-slate-800 text-xs uppercase tracking-tight"></p>
+    </div>
+
+    <!-- FIREBASE & LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithPopup, GoogleAuthProvider, signInWithCustomToken, signInAnonymously, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const INITIAL_HOSPITALS = ["Bệnh viện đa khoa tỉnh Quảng Ninh", "Bệnh viện đa khoa tỉnh Bắc Ninh", "Bệnh viện hữu nghị Việt Tiệp", "Bệnh viện 30 - 04, Bộ Công An", "Bệnh viện Gia An 115"];
+        const MANUFACTURERS = ["GE HealthCare", "Siemens Healthineers", "Philips Healthcare", "Canon Medical Systems", "Fujifilm", "Neusoft", "United Imaging"];
+        const SLICE_COUNTS = ["16 - 32 lát", "64 - 128 lát", "256 - 512 lát", "Máy 2 bóng (Dual Source)"];
+        const ACR_PROTOCOLS = [{ name: 'Sọ não (Head)' }, { name: 'Ngực không thuốc (Chest)' }, { name: 'Bụng không thuốc (Abdomen)' }, { name: 'Phổi liều thấp (LDCT)' }];
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAtQdmDbA1BgOrvwevrG6gwuFzlUmBTbfY",
+            authDomain: "wb-idr.firebaseapp.com",
+            projectId: "wb-idr",
+            storageBucket: "wb-idr.firebasestorage.app",
+            messagingSenderId: "716649486328",
+            appId: "1:716649486328:web:340d7ae8dd0bafa1e0680d",
+            measurementId: "G-2K8631P0DY"
+        };
+        
+        const appId = 'wb-idr';
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        let user = null;
+        let entries = [];
+        let filteredEntries = [];
+        let isAdminMode = false;
+        let isLoginMode = true; 
+        let ctdiChart = null;
+        let dlpChart = null;
+
+        async function initAuth() {
+            if (sessionStorage.getItem('manualLogout') === 'true') {
+                updateStatus("Chưa đăng nhập", "slate");
+                return;
+            }
+            updateStatus("Đang kết nối...", "slate");
+        }
+
+        function updateStatus(text, color) {
+            const dot = document.getElementById('statusDot');
+            const txt = document.getElementById('statusText');
+            if (dot && txt) {
+                dot.className = `w-1.5 h-1.5 rounded-full bg-${color}-500`;
+                txt.textContent = text;
+                document.getElementById('connectionStatus').classList.remove('hidden');
+            }
+        }
+
+        function setupDataSync(currentUser) {
+            if (!currentUser) return;
+            updateStatus("Đã kết nối", "indigo");
+            document.getElementById('tableLoader').classList.remove('hidden');
+            const collectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries');
+            return onSnapshot(collectionRef, (snap) => {
+                entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                render();
+                updateHospitalDropdowns();
+                document.getElementById('tableLoader').classList.add('hidden');
+            }, (err) => {
+                console.error(err);
+                updateStatus("Lỗi dữ liệu", "red");
+            });
+        }
+
+        function render() {
+            const elHosp = document.getElementById('filterHospital');
+            const elProt = document.getElementById('filterProtocol');
+            const elCMin = document.getElementById('filterCtdiMin');
+            const elCMax = document.getElementById('filterCtdiMax');
+            const elWMin = document.getElementById('filterWeightMin');
+            const elWMax = document.getElementById('filterWeightMax');
+
+            if (!elHosp || !elProt || !elCMin || !elCMax || !elWMin || !elWMax) return;
+
+            const fHosp = elHosp.value;
+            const fProt = elProt.value;
+            const fCMin = parseFloat(elCMin.value) || 0;
+            const fCMax = parseFloat(elCMax.value) || 9999;
+            const fWMin = parseFloat(elWMin.value) || 0;
+            const fWMax = parseFloat(elWMax.value) || 999;
+
+            filteredEntries = entries.filter(e => {
+                if (fHosp !== 'all' && e.hospitalName !== fHosp) return false;
+                if (fProt !== 'all' && e.protocol !== fProt) return false;
+                const c = parseFloat(e.ctdi);
+                if (c < fCMin || c > fCMax) return false;
+                const w = parseFloat(e.weight);
+                if (w < fWMin || w > fWMax) return false;
+                return true;
+            });
+
+            const ctdis = filteredEntries.map(e => parseFloat(e.ctdi)).filter(n => !isNaN(n)).sort((a,b)=>a-b);
+            const dlps = filteredEntries.map(e => parseFloat(e.dlp)).filter(n => !isNaN(n)).sort((a,b)=>a-b);
+            const getP75 = (arr) => arr.length ? arr[Math.floor(arr.length * 0.75)] || arr[arr.length-1] : 0;
+            const getMed = (arr) => arr.length ? arr[Math.floor(arr.length * 0.5)] || arr[0] : 0;
+
+            document.getElementById('statTotal').textContent = filteredEntries.length;
+            document.getElementById('statCtdi75').textContent = getP75(ctdis).toFixed(1);
+            document.getElementById('statCtdiMedian').textContent = getMed(ctdis).toFixed(1);
+            document.getElementById('statDlp75').textContent = Math.round(getP75(dlps));
+            document.getElementById('statDlpMedian').textContent = Math.round(getMed(dlps));
+            
+            const tbody = document.getElementById('dataTableBody');
+            tbody.innerHTML = '';
+            filteredEntries.forEach(e => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors group";
+                const isOwner = user && e.userId === user.uid && !user.isAnonymous;
+                const canEdit = isOwner || isAdminMode;
+                const weight = parseFloat(e.weight);
+                
+                tr.innerHTML = `
+                    <td class="px-8 py-6">
+                        <div class="font-black text-slate-800 tracking-tight">${e.hospitalName}</div>
+                        <div class="text-[9px] text-slate-400 font-bold uppercase mt-1 tracking-widest">ID: ${e.patientId || '??'} • ${e.age || '?'}t • ${weight || '?'}kg</div>
+                    </td>
+                    <td class="px-8 py-6">
+                        <span class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[9px] font-black uppercase border border-indigo-100">${e.protocol}</span>
+                    </td>
+                    <td class="px-8 py-6 text-center">
+                        <span class="text-[10px] font-black ${e.doseModulation === 'Có' ? 'text-indigo-600' : 'text-slate-300'}">${e.doseModulation || 'N/A'}</span>
+                    </td>
+                    <td class="px-8 py-6 font-black text-slate-900 text-lg tracking-tighter">${e.ctdi}</td>
+                    <td class="px-8 py-6 font-bold text-slate-400">${e.dlp}</td>
+                    <td class="px-8 py-6 text-right">
+                        <div class="opacity-0 group-hover:opacity-100 transition-opacity flex justify-end gap-1">
+                            ${canEdit ? `
+                                <button data-id="${e.id}" class="btn-edit p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                                <button data-id="${e.id}" class="btn-delete p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            ` : '<span class="text-[8px] font-bold text-slate-300 uppercase italic">Chỉ xem</span>'}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            updateCharts();
+            lucide.createIcons();
+            attachTableEvents();
+        }
+
+        function updateCharts() {
+            const chartCanvasC = document.getElementById('ctdiChart');
+            const chartCanvasD = document.getElementById('dlpChart');
+            if (!chartCanvasC || !chartCanvasD) return;
+
+            const ctxC = chartCanvasC.getContext('2d');
+            const ctxD = chartCanvasD.getContext('2d');
+            const modeC = document.getElementById('ctdiViewMode').value;
+            const modeD = document.getElementById('dlpViewMode').value;
+
+            const process = (mode, metric) => {
+                const groups = {};
+                filteredEntries.forEach(e => {
+                    let key = "Khác";
+                    if (mode === 'hospital') key = e.hospitalName;
+                    else if (mode === 'manufacturer') key = e.manufacturer || "N/A";
+                    else if (mode === 'gender') key = e.gender === 'M' ? 'Nam' : 'Nữ';
+                    else if (mode === 'age') {
+                        const age = parseInt(e.age);
+                        if (age < 18) key = "< 18"; else if (age <= 40) key = "18-40"; else if (age <= 60) key = "41-60"; else key = "> 60";
+                    }
+                    if (!groups[key]) groups[key] = [];
+                    const v = parseFloat(e[metric]); if (!isNaN(v)) groups[key].push(v);
+                });
+                const labels = Object.keys(groups);
+                const data75 = labels.map(k => { const s = groups[k].sort((a,b)=>a-b); return s[Math.floor(s.length * 0.75)] || s[0] || 0; });
+                const data50 = labels.map(k => { const s = groups[k].sort((a,b)=>a-b); return s[Math.floor(s.length * 0.5)] || s[0] || 0; });
+                return { labels, data75, data50 };
+            };
+
+            const draw = (ctx, data, c1, c2) => new Chart(ctx, {
+                type: 'bar',
+                data: { labels: data.labels, datasets: [{ label: '75th (DRL)', data: data.data75, backgroundColor: c1, borderRadius: 8 }, { label: '50th (Med)', data: data.data50, backgroundColor: c2, borderRadius: 8 }] },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    animation: { duration: 500 },
+                    plugins: { legend: { display: true, position: 'top', labels: { font: { size: 10, weight: 'bold' } } } }, 
+                    scales: { y: { beginAtZero: true } } 
+                }
+            });
+
+            if (ctdiChart) ctdiChart.destroy();
+            ctdiChart = draw(ctxC, process(modeC, 'ctdi'), '#4f46e5', '#a5b4fc');
+            if (dlpChart) dlpChart.destroy();
+            dlpChart = draw(ctxD, process(modeD, 'dlp'), '#f59e0b', '#fcd34d');
+        }
+
+        window.exportChartAsHD = (chartId, title) => {
+            const chartCanvas = document.getElementById(chartId);
+            if (!chartCanvas) return;
+            const hdCanvas = document.createElement('canvas');
+            hdCanvas.width = 1920; hdCanvas.height = 1080;
+            const ctx = hdCanvas.getContext('2d');
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, 1920, 1080);
+            ctx.fillStyle = "#1e293b";
+            ctx.font = "bold 40px Inter, sans-serif";
+            ctx.fillText(title, 50, 80);
+            ctx.font = "20px Inter, sans-serif";
+            ctx.fillStyle = "#64748b";
+            ctx.fillText(`Xuất ngày: ${new Date().toLocaleDateString('vi-VN')} | VN-DRL Study`, 50, 120);
+            ctx.drawImage(chartCanvas, 50, 180, 1820, 850);
+            const link = document.createElement('a');
+            link.download = `${title.replace(/\s+/g, '_')}_${new Date().getTime()}.jpg`;
+            link.href = hdCanvas.toDataURL('image/jpeg', 1.0);
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            showToast("Đã lưu ảnh Full HD", "success");
         };
 
-        const root = ReactDOM.createRoot(document.getElementById("root"));
-        root.render(<App />);
+        function setupEventListeners() {
+            document.getElementById('userMenuBtn').onclick = (e) => { e.stopPropagation(); document.getElementById('userDropdown').classList.toggle('hidden'); };
+            window.addEventListener('click', () => { const drop = document.getElementById('userDropdown'); if (drop) drop.classList.add('hidden'); });
+
+            document.getElementById('navLoginBtn').onclick = () => { isLoginMode = true; updateAuthModalUI(); sessionStorage.removeItem('manualLogout'); document.getElementById('authModal').classList.remove('hidden'); };
+            document.getElementById('toggleAuthModeBtn').onclick = () => { isLoginMode = !isLoginMode; updateAuthModalUI(); };
+
+            document.getElementById('authForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('authEmail').value;
+                const pass = document.getElementById('authPassword').value;
+                const remember = document.getElementById('authRemember').checked;
+                try {
+                    const persistence = remember ? browserLocalPersistence : browserSessionPersistence;
+                    await setPersistence(auth, persistence);
+                    sessionStorage.removeItem('manualLogout');
+                    if (isLoginMode) await signInWithEmailAndPassword(auth, email, pass);
+                    else await createUserWithEmailAndPassword(auth, email, pass);
+                } catch (err) { showToast("Lỗi xác thực hoặc tài khoản", "error"); }
+            };
+
+            document.getElementById('googleLoginBtn').onclick = async () => { try { await setPersistence(auth, browserLocalPersistence); sessionStorage.removeItem('manualLogout'); await signInWithPopup(auth, googleProvider); } catch (err) { showToast("Lỗi đăng nhập Google", "error"); } };
+            document.getElementById('logoutBtn').onclick = async () => { sessionStorage.setItem('manualLogout', 'true'); await signOut(auth); isAdminMode = false; updateAdminBtnState(); location.reload(); };
+
+            document.getElementById('hospitalSelect').onchange = function() { document.getElementById('customHospitalName').classList.toggle('hidden', this.value !== 'other'); };
+
+            document.getElementById('drlForm').onsubmit = async (e) => {
+                e.preventDefault();
+                if (!user || user.isAnonymous) return showToast("Hãy đăng nhập để lưu", "error");
+                const id = document.getElementById('editEntryId').value;
+                const hospVal = document.getElementById('hospitalSelect').value;
+                const finalHosp = hospVal === 'other' ? document.getElementById('customHospitalName').value.trim() : hospVal;
+                if (!finalHosp) return showToast("Thiếu tên bệnh viện", "error");
+                const doseVal = document.querySelector('input[name="doseModulation"]:checked')?.value || "Có";
+
+                const data = {
+                    hospitalName: finalHosp,
+                    manufacturer: document.getElementById('manufacturer').value,
+                    sliceCount: document.getElementById('sliceCount').value,
+                    doseModulation: doseVal,
+                    protocol: document.getElementById('protocol').value,
+                    patientId: document.getElementById('patientId').value,
+                    age: document.getElementById('age').value, weight: document.getElementById('weight').value,
+                    ctdi: document.getElementById('ctdi').value, dlp: document.getElementById('dlp').value,
+                    scanDate: document.getElementById('scanDate').value,
+                    userId: user.uid, updatedAt: new Date().toISOString()
+                };
+                try {
+                    const collRef = collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries');
+                    if (id) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id), data);
+                    else { data.createdAt = new Date().toISOString(); await addDoc(collRef, data); }
+                    showToast("Đã lưu dữ liệu!", "success");
+                    resetForm();
+                } catch (err) { showToast("Lỗi khi lưu dữ liệu", "error"); }
+            };
+
+            document.getElementById('btnExportExcel').onclick = () => {
+                const data = filteredEntries.map(e => ({ 'Ngày': e.scanDate, 'Bệnh viện': e.hospitalName, 'Protocol': e.protocol, 'Modul': e.doseModulation, 'CTDI': e.ctdi, 'DLP': e.dlp }));
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Dữ liệu");
+                XLSX.writeFile(wb, "DRL_Export.xlsx");
+            };
+
+            ['filterHospital', 'filterProtocol', 'ctdiViewMode', 'dlpViewMode'].forEach(id => { 
+                const el = document.getElementById(id); if(el) el.onchange = render; 
+            });
+            ['filterWeightMin', 'filterWeightMax', 'filterCtdiMin', 'filterCtdiMax'].forEach(id => { 
+                const el = document.getElementById(id); if(el) el.oninput = render; 
+            });
+            
+            document.getElementById('authAdminToggleBtn').onclick = () => { document.getElementById('authAdminPinContainer').classList.toggle('hidden'); };
+            document.getElementById('toggleAdminBtn').onclick = (e) => {
+                e.preventDefault();
+                if (isAdminMode) { isAdminMode = false; showToast("Đã tắt Admin", "success"); } 
+                else { const pin = prompt("PIN Admin:"); if (pin === "123456") { isAdminMode = true; showToast("Bật Admin", "success"); } else showToast("Sai PIN", "error"); }
+                updateAdminBtnState(); render();
+            };
+        }
+
+        function updateAuthModalUI() {
+            const title = document.getElementById('authTitle');
+            const submitBtn = document.getElementById('authSubmitText');
+            if (isLoginMode) { title.textContent = "Đăng Nhập"; submitBtn.textContent = "VÀO HỆ THỐNG"; document.getElementById('toggleAuthModeText').textContent = "Bạn chưa có tài khoản?"; document.getElementById('toggleAuthModeBtn').textContent = "Đăng ký ngay"; }
+            else { title.textContent = "Đăng Ký"; submitBtn.textContent = "TẠO TÀI KHOẢN"; document.getElementById('toggleAuthModeText').textContent = "Bạn đã có tài khoản?"; document.getElementById('toggleAuthModeBtn').textContent = "Đăng nhập"; }
+        }
+
+        function attachTableEvents() {
+            document.querySelectorAll('.btn-edit').forEach(b => b.onclick = () => editEntry(b.dataset.id));
+            document.querySelectorAll('.btn-delete').forEach(b => b.onclick = () => deleteEntry(b.dataset.id));
+        }
+
+        async function deleteEntry(id) {
+            const e = entries.find(x => x.id === id);
+            if (!isAdminMode && (!user || e.userId !== user.uid)) return showToast("Không có quyền", "error");
+            if (!confirm("Xác nhận xóa bản ghi này?")) return;
+            try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id)); showToast("Đã xóa dữ liệu", "success"); } catch (err) { showToast("Lỗi xóa", "error"); }
+        }
+
+        function editEntry(id) {
+            const e = entries.find(x => x.id === id);
+            if (!isAdminMode && (!user || e.userId !== user.uid)) return showToast("Không có quyền", "error");
+            if (!e) return;
+            document.getElementById('editEntryId').value = e.id;
+            const hSel = document.getElementById('hospitalSelect');
+            if ([...hSel.options].some(o => o.value === e.hospitalName)) hSel.value = e.hospitalName;
+            else { hSel.value = "other"; document.getElementById('customHospitalName').classList.remove('hidden'); document.getElementById('customHospitalName').value = e.hospitalName; }
+            document.getElementById('manufacturer').value = e.manufacturer || "";
+            document.getElementById('sliceCount').value = e.sliceCount || "";
+            document.getElementById('protocol').value = e.protocol;
+            document.getElementById('patientId').value = e.patientId;
+            document.getElementById('age').value = e.age; document.getElementById('weight').value = e.weight;
+            document.getElementById('ctdi').value = e.ctdi; document.getElementById('dlp').value = e.dlp;
+            document.getElementById('scanDate').value = e.scanDate;
+            const doseRadio = document.querySelector(`input[name="doseModulation"][value="${e.doseModulation}"]`);
+            if (doseRadio) doseRadio.checked = true;
+            document.getElementById('submitBtnText').textContent = "Cập nhật thay đổi";
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+            document.querySelector('.sidebar-scroll-area').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetForm() {
+            document.getElementById('drlForm').reset();
+            document.getElementById('editEntryId').value = "";
+            document.getElementById('cancelEditBtn').classList.add('hidden');
+            document.getElementById('submitBtnText').textContent = "Lưu Dữ Liệu";
+            document.getElementById('customHospitalName').classList.add('hidden');
+        }
+
+        function updateHospitalDropdowns() {
+            const currentHospitals = [...new Set([...INITIAL_HOSPITALS, ...entries.map(e => e.hospitalName)])].sort();
+            const fHosp = document.getElementById('filterHospital');
+            const hHosp = document.getElementById('hospitalSelect');
+            if(!fHosp || !hHosp) return;
+            const prevF = fHosp.value; const prevH = hHosp.value;
+            fHosp.innerHTML = '<option value="all">Tất cả bệnh viện</option>';
+            hHosp.innerHTML = '<option value="" disabled selected>-- Chọn Bệnh viện --</option>';
+            currentHospitals.forEach(h => {
+                const o1 = document.createElement('option'); o1.value = h; o1.textContent = h; fHosp.appendChild(o1);
+                const o2 = document.createElement('option'); o2.value = h; o2.textContent = h; hHosp.appendChild(o2);
+            });
+            const other = document.createElement('option'); other.value = "other"; other.textContent = "➕ Bệnh viện khác"; other.className="text-indigo-600 font-bold";
+            hHosp.appendChild(other);
+            fHosp.value = prevF; hHosp.value = prevH || "";
+        }
+
+        function showToast(msg, type) {
+            const t = document.getElementById('toast');
+            if (!t) return;
+            document.getElementById('toastMessage').textContent = msg;
+            const icon = document.getElementById('toastIconContainer');
+            icon.className = `p-3 rounded-2xl ${type === 'error' ? 'bg-red-50 text-red-600' : 'bg-indigo-50 text-indigo-600'}`;
+            icon.innerHTML = `<i data-lucide="${type === 'error' ? 'alert-circle' : 'check'}"></i>`;
+            lucide.createIcons();
+            t.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            setTimeout(() => t.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none'), 3000);
+        }
+
+        function updateAdminBtnState() {
+            const btnText = document.getElementById('adminBtnText');
+            const roleDisplay = document.getElementById('userRoleDisplay');
+            if (btnText) btnText.textContent = isAdminMode ? "Tắt Admin" : "Kích hoạt Admin";
+            if (roleDisplay) roleDisplay.textContent = isAdminMode ? "Quản trị viên" : "Thành viên";
+        }
+
+        window.onload = async () => {
+            const fill = (id, list) => {
+                const el = document.getElementById(id); if (!el) return;
+                list.forEach(i => { const o = document.createElement('option'); o.value = typeof i === 'string' ? i : i.name; o.textContent = o.value; el.appendChild(o); });
+            };
+            fill('manufacturer', MANUFACTURERS); fill('sliceCount', SLICE_COUNTS);
+            fill('protocol', ACR_PROTOCOLS);
+            const fProt = document.getElementById('filterProtocol');
+            ACR_PROTOCOLS.forEach(i => { const o = document.createElement('option'); o.value = i.name; o.textContent = i.name; fProt.appendChild(o); });
+            const scanDateEl = document.getElementById('scanDate');
+            if (scanDateEl) scanDateEl.valueAsDate = new Date();
+            lucide.createIcons();
+            setupEventListeners();
+            await initAuth();
+            onAuthStateChanged(auth, (u) => {
+                user = u;
+                const isAnon = !u || u.isAnonymous;
+                const navLoginBtn = document.getElementById('navLoginBtn');
+                const userMenu = document.getElementById('userMenu');
+                const formLockOverlay = document.getElementById('formLockOverlay');
+                const authModal = document.getElementById('authModal');
+                if (navLoginBtn) navLoginBtn.classList.toggle('hidden', !isAnon);
+                if (userMenu) userMenu.classList.toggle('hidden', isAnon);
+                if (formLockOverlay) formLockOverlay.classList.toggle('hidden', !isAnon);
+                if (u) {
+                    if (!u.isAnonymous) {
+                        sessionStorage.removeItem('manualLogout');
+                        if (authModal) authModal.classList.add('hidden');
+                    }
+                    const userEmailDisplay = document.getElementById('userEmailDisplay');
+                    if (userEmailDisplay) userEmailDisplay.textContent = u.email || "Google User";
+                    setupDataSync(u);
+                } else {
+                    updateStatus("Chưa đăng nhập", "slate");
+                    if (sessionStorage.getItem('manualLogout') !== 'true') signInAnonymously(auth).catch(() => {});
+                }
+            });
+        };
     </script>
 </body>
 </html>
