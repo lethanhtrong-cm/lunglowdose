@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VnRad Legal - Cổng thông tin Pháp lý CĐHA</title>
+    <title>VnRad Legal - Cổng thông tin pháp lý Hình ảnh y học</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -29,6 +29,8 @@
                 radial-gradient(at 100% 100%, hsla(230,100%,96%,1) 0, transparent 50%),
                 radial-gradient(at 0% 100%, hsla(240,100%,95%,1) 0, transparent 50%);
             background-attachment: fixed;
+            height: 100vh;
+            overflow: hidden; /* Ngăn chặn cuộn body chính */
         }
         .glass {
             background: rgba(255, 255, 255, 0.85);
@@ -42,9 +44,18 @@
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
+        /* Tùy chỉnh thanh cuộn tinh tế */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { 
+            background: rgba(148, 163, 184, 0.3); 
+            border-radius: 10px; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { 
+            background: rgba(148, 163, 184, 0.5); 
+        }
+
         .ai-float {
             animation: float 3s ease-in-out infinite;
         }
@@ -67,11 +78,11 @@
         }
     </style>
 </head>
-<body class="text-slate-900 overflow-x-hidden">
-    <div id="root"></div>
+<body class="text-slate-900">
+    <div id="root" class="h-full"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
         // --- ICON COMPONENTS ---
         const Icon = ({ path, size = 24, className = "" }) => (
@@ -111,7 +122,7 @@
             { id: "practice_time", title: "Thời gian thực hành (KTY)", sub: "NĐ 96/2023 (Điều 3)", icon: <Clock size={24} />, color: "red", content: [ "Tổng thời gian thực hành: 06 tháng.", "Thực hành chuyên môn KCB: 05 tháng.", "Thực hành hồi sức cấp cứu: 01 tháng." ], desc: "Áp dụng cho chức danh Kỹ thuật y, Điều dưỡng, Hộ sinh (Giảm từ 09 tháng xuống còn 06 tháng)." },
             { id: "art27", title: "Thời hạn & Phạm vi", sub: "Điều 27", icon: <Clock size={24} />, color: "green", content: [ "Thời hạn: 05 năm (Quy định mới).", "Phạm vi: Có giá trị trên toàn quốc.", "Mỗi người hành nghề chỉ được cấp 01 giấy phép hành nghề." ], desc: "Thay đổi lớn nhất so với luật cũ (vĩnh viễn) là giấy phép có thời hạn 5 năm." },
             { id: "art28", title: "Thẩm quyền cấp", sub: "Điều 28", icon: <Building size={24} />, color: "purple", content: [ "Bộ Y tế: Cấp cho cơ sở trực thuộc, BV hạng đặc biệt...", "Bộ Quốc phòng / Bộ Công an: Cấp cho đối tượng thuộc thẩm quyền.", "Sở Y tế: Cấp cho các đối tượng còn lại trên địa bàn." ], desc: "Phân cấp rõ ràng thẩm quyền cấp mới, cấp lại, gia hạn, thu hồi." },
-            { id: "art30", title: "Điều kiện cấp mới", sub: "Điều 30", icon: <FileText size={24} />, color: "orange", content: [ "Được đánh giá đủ năng lực hành nghề qua kiểm tra (Thi sát hạch) theo Điều 24.", "Có đủ sức khỏe để hành nghề.", "Đáp ứng năng lực tiếng Việt (đối với người nước ngoài).", "Không thuộc trường hợp bị cấm hành nghề." ], desc: "Lộ trình thi đánh giá năng lực bắt đầu từ 2027 (Bác sỹ), 2029 (KTV)." },
+            { id: "art30", title: "Điều kiện cấp mới", sub: "Điều 30", icon: <FileText size={24} />, color: "orange", content: [ "Được đánh giá đủ năng lực hành nghề qua kiểm tra (Thi sát hạch) theo Điều 24.", "Có đủ sức khỏe để hành nghề.", "Đáp đáp ứng năng lực tiếng Việt (đối với người nước ngoài).", "Không thuộc trường hợp bị cấm hành nghề." ], desc: "Lộ trình thi đánh giá năng lực bắt đầu từ 2027 (Bác sỹ), 2029 (KTV)." },
             { id: "art32", title: "Gia hạn Giấy phép", sub: "Điều 32", icon: <RefreshCw size={24} />, color: "teal", content: [ "Đã hoàn thành cập nhật kiến thức y khoa liên tục (CME) theo Điều 22.", "Có đủ sức khỏe để hành nghề.", "Thực hiện thủ tục gia hạn ít nhất 60 ngày trước khi giấy phép hết hạn.", "Không thuộc trường hợp bị cấm hành nghề." ], desc: "Nếu không gia hạn kịp thời, giấy phép sẽ hết hiệu lực." },
             { id: "art34_35", title: "Đình chỉ & Thu hồi", sub: "Điều 34, 35", icon: <FileX size={24} />, color: "red", content: [ "Đình chỉ (1-24 tháng): Có sai sót chuyên môn; Vi phạm đạo đức; Không đủ sức khỏe.", "Thu hồi: Giả mạo hồ sơ; Cấp sai thẩm quyền; Không hành nghề trong 24 tháng liên tục; Bị cấm hành nghề; Tự đề nghị thu hồi." ], desc: "Quy định chặt chẽ các trường hợp bị tước quyền hành nghề." }
         ];
@@ -148,7 +159,7 @@
             blue: { grad: 'from-blue-600 to-indigo-700', text: 'text-blue-600', light: 'bg-blue-50' },
             teal: { grad: 'from-teal-500 to-emerald-600', text: 'text-teal-600', light: 'bg-teal-50' },
             pink: { grad: 'from-pink-500 to-rose-600', text: 'text-pink-600', light: 'bg-pink-50' },
-            green: { grad: 'from-green-600 to-emerald-700', text: 'text-green-600', light: 'bg-green-50' },
+            green: { grad: 'from-green-500 to-emerald-700', text: 'text-green-600', light: 'bg-green-50' },
             purple: { grad: 'from-purple-500 to-indigo-700', text: 'text-purple-600', light: 'bg-purple-50' },
             orange: { grad: 'from-orange-500 to-amber-600', text: 'text-orange-600', light: 'bg-orange-50' },
             red: { grad: 'from-red-600 to-rose-700', text: 'text-red-600', light: 'bg-red-50' },
@@ -162,27 +173,25 @@
         const Navbar = ({ activeTab, setActiveTab }) => {
             const [isOpen, setIsOpen] = useState(false);
             return (
-                <div className="fixed top-4 left-0 right-0 z-[100] px-4">
+                <div className="z-[100] px-4 py-4 shrink-0 bg-white/20 backdrop-blur-sm border-b border-slate-200/50 shadow-sm">
                     <nav className="max-w-7xl mx-auto glass rounded-2xl shadow-xl overflow-hidden">
                         <div className="px-6 flex justify-between items-center h-20 gap-4">
-                            {/* Logo */}
                             <div className="flex items-center gap-3 cursor-pointer group shrink-0" onClick={() => setActiveTab('cme')}>
                                 <div className="p-2 bg-blue-600 text-white rounded-xl shadow-lg group-hover:scale-110 transition-transform">
                                     <Scale size={28} />
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="font-extrabold text-2xl tracking-tight leading-none bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">VnRadLegal</span>
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Cổng thông tin Pháp lý CĐHA</span>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 whitespace-nowrap">Cổng thông tin pháp lý Hình ảnh y học</span>
                                 </div>
                             </div>
                             
-                            {/* Desktop Menu - Trải dài đều */}
-                            <div className="hidden lg:flex flex-1 items-center bg-slate-100/50 p-1.5 rounded-xl border border-slate-200/50 max-w-2xl mx-auto">
+                            <div className="hidden lg:flex flex-1 items-center bg-slate-100/50 p-1.5 rounded-xl border border-slate-200/50 max-w-5xl mx-auto overflow-hidden">
                                 {[
-                                    {id: 'cme', label: 'Cập nhật KTYK'},
-                                    {id: 'license', label: 'Giấy phép HN'},
-                                    {id: 'scope', label: 'Phạm vi HN'},
-                                    {id: 'facilities', label: 'Cơ sở TH'}
+                                    {id: 'cme', label: 'Cập nhật kiến thức y khoa'},
+                                    {id: 'license', label: 'Giấy phép hành nghề'},
+                                    {id: 'scope', label: 'Phạm vi hành nghề'},
+                                    {id: 'facilities', label: 'Cơ sở thực hành'}
                                 ].map(tab => (
                                     <button 
                                         key={tab.id}
@@ -194,20 +203,17 @@
                                 ))}
                             </div>
 
-                            {/* AI Button */}
                             <div className="hidden lg:flex items-center shrink-0">
                                 <a href="https://gemini.google.com/gem/1Kbzv_16us4UuH7c5yycu51dPpw6jPF9x?usp=sharing" target="_blank" className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:shadow-indigo-300 hover:scale-105 transition-all flex items-center gap-2">
                                     <Sparkles className="w-4 h-4 text-yellow-300" /> AI Tra cứu
                                 </a>
                             </div>
 
-                            {/* Mobile Toggle */}
                             <button onClick={() => setIsOpen(!isOpen)} className="lg:hidden p-2.5 rounded-xl text-slate-600 hover:bg-white transition-colors">
                                 {isOpen ? <X size={24} /> : <Menu size={24} />}
                             </button>
                         </div>
 
-                        {/* Mobile Menu */}
                         {isOpen && (
                             <div className="lg:hidden p-4 space-y-2 border-t border-slate-100 bg-white/90 animate-in slide-in-from-top duration-300">
                                 {['cme', 'license', 'scope', 'facilities'].map(id => (
@@ -225,22 +231,22 @@
 
         const Banner = ({ type }) => {
             const configs = {
-                license: { title: "Quy định về Giấy phép hành nghề", desc: "Cập nhật toàn diện về chức danh, thời hạn, điều kiện cấp mới và gia hạn giấy phép theo quy định mới nhất từ 01/01/2024.", tag: "Luật Khám bệnh, chữa bệnh 2023", grad: "from-blue-600 to-indigo-700", icon: <UserCheck size={180} /> },
+                license: { title: "Quy định về giấy phép hành nghề", desc: "Cập nhật toàn diện về chức danh, thời hạn, điều kiện cấp mới và gia hạn giấy phép theo quy định mới nhất từ 01/01/2024.", tag: "Luật Khám bệnh, chữa bệnh 2023", grad: "from-blue-600 to-indigo-700", icon: <UserCheck size={180} /> },
                 cme: { title: "Cập nhật kiến thức Y khoa (CME)", desc: "Quy định chi tiết về các hình thức, thời gian và bảng quy đổi tín chỉ đào tạo liên tục. Điều kiện bắt buộc để gia hạn giấy phép 05 năm.", tag: "Thông tư 32/2023/TT-BYT", grad: "from-teal-500 to-emerald-700", icon: <Award size={180} /> },
-                scope: { title: "Phạm vi Hoạt động Chuyên môn", desc: "Danh mục kỹ thuật chi tiết được phép thực hiện đối với chức danh Kỹ thuật y chuyên ngành Hình ảnh y học và Y học hạt nhân.", tag: "Phụ lục XIV - Thông tư 32/2023", grad: "from-indigo-600 to-blue-800", icon: <List size={180} /> },
-                facilities: { title: "Cơ sở Hướng dẫn Thực hành", desc: "Tra cứu danh sách các cơ sở khám bệnh, chữa bệnh đủ điều kiện hướng dẫn thực hành theo quy định của Bộ Y tế và Sở Y tế.", tag: "Nghị định 96/2023/NĐ-CP", grad: "from-rose-500 to-pink-700", icon: <Building size={180} /> }
+                scope: { title: "Phạm vi hoạt động chuyên môn", desc: "Danh mục kỹ thuật chi tiết được phép thực hiện đối với chức danh Kỹ thuật y chuyên ngành Hình ảnh y học và Y học hạt nhân.", tag: "Phụ lục XIV - Thông tư 32/2023", grad: "from-indigo-600 to-blue-800", icon: <List size={180} /> },
+                facilities: { title: "Cơ sở hướng dẫn thực hành", desc: "Tra cứu danh sách các cơ sở khám bệnh, chữa bệnh đủ điều kiện hướng dẫn thực hành theo quy định của Bộ Y tế và Sở Y tế.", tag: "Nghị định 96/2023/NĐ-CP", grad: "from-rose-500 to-pink-700", icon: <Building size={180} /> }
             };
             const c = configs[type] || configs.cme;
             return (
                 <div className={`relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br ${c.grad} p-8 md:p-16 text-white shadow-2xl mb-12`}>
                     <div className="absolute top-0 right-0 opacity-10 p-10 transform translate-x-12 -translate-y-12">{c.icon}</div>
-                    <div className="relative z-10 max-w-4xl">
+                    <div className="relative z-10 max-w-5xl">
                         <div className="inline-flex items-center gap-2 bg-white/20 border border-white/30 rounded-full px-5 py-2 mb-8 backdrop-blur-md">
                             <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></span>
                             <span className="text-xs font-black uppercase tracking-widest">{c.tag}</span>
                         </div>
-                        <h1 className="text-4xl md:text-6xl font-extrabold mb-8 leading-[1.15] tracking-tight">{c.title}</h1>
-                        <p className="text-white/90 text-lg md:text-xl leading-relaxed max-w-2xl font-medium">{c.desc}</p>
+                        <h1 className="text-4xl md:text-6xl font-extrabold mb-8 leading-[1.15] tracking-tight md:whitespace-nowrap">{c.title}</h1>
+                        <p className="text-white/90 text-lg md:text-xl leading-relaxed max-w-3xl font-medium">{c.desc}</p>
                     </div>
                 </div>
             );
@@ -264,7 +270,6 @@
                                     </div>
                                     <h3 className="text-2xl font-black leading-tight text-white drop-shadow-md">{item.title}</h3>
                                 </div>
-                                
                                 <div className="p-8 pt-2 flex-grow flex flex-col">
                                     <p className="text-slate-500 text-sm font-semibold mb-6 italic leading-relaxed">{item.desc}</p>
                                     <div className="space-y-4 flex-grow">
@@ -453,46 +458,35 @@
             };
 
             return (
-                <div className="w-full max-w-xl mx-auto mt-12 mb-8">
+                <div className="w-full max-w-lg mx-auto mt-2 mb-2 px-1">
                     <form onSubmit={handleSubmit} className="relative group">
-                        {/* Container ô góp ý: Tinh chỉnh nền trắng đục và bo tròn để thấy chữ rõ nhất */}
-                        <div className="flex flex-col sm:flex-row gap-3 p-2 bg-white/95 rounded-3xl shadow-2xl border border-white/50">
+                        <div className="flex flex-col sm:flex-row gap-2 p-1 bg-white/95 rounded-xl shadow-lg border border-white/50">
                             <input 
                                 name="email" 
                                 type="email" 
                                 required
-                                placeholder="Email của bạn..."
-                                className="flex-1 bg-slate-100/80 px-6 py-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 placeholder-slate-400 font-bold text-sm transition-all"
+                                placeholder="Email..."
+                                className="flex-1 bg-slate-100/60 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-900 placeholder-slate-400 font-bold text-[10px] transition-all"
                             />
                             <input 
                                 name="message" 
                                 required
-                                placeholder="Góp ý nhanh cho VnRad Legal..."
-                                className="flex-[1.5] bg-slate-100/80 px-6 py-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 placeholder-slate-400 font-bold text-sm transition-all"
+                                placeholder="Góp ý nhanh..."
+                                className="flex-[2] bg-slate-100/60 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-900 placeholder-slate-400 font-bold text-[10px] transition-all"
                             />
                             <button 
                                 type="submit" 
                                 disabled={status === "sending"}
-                                className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 rounded-2xl font-black shadow-lg hover:scale-95 active:scale-90 transition-all flex items-center justify-center gap-2 min-w-[64px]"
+                                className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-1.5 rounded-lg font-black shadow-md hover:scale-95 active:scale-90 transition-all flex items-center justify-center gap-1 min-w-[40px]"
                             >
                                 {status === "sending" ? (
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                 ) : (
-                                    <Send size={22} />
+                                    <Send size={14} />
                                 )}
                             </button>
                         </div>
-                        
-                        {status === "success" && (
-                            <p className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-green-400 text-xs font-black uppercase tracking-widest animate-in fade-in slide-in-from-top-2">
-                                Đã gửi thành công! Cảm ơn bạn.
-                            </p>
-                        )}
-                        {status === "error" && (
-                            <p className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-red-400 text-xs font-black uppercase tracking-widest animate-in fade-in slide-in-from-top-2">
-                                Lỗi gửi tin. Thử lại sau.
-                            </p>
-                        )}
+                        {status === "success" && <p className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-green-400 text-[8px] font-black uppercase tracking-widest">Gửi thành công!</p>}
                     </form>
                 </div>
             );
@@ -501,65 +495,83 @@
         const App = () => {
             const [activeTab, setActiveTab] = useState('cme');
             const [isChatOpen, setIsChatOpen] = useState(false);
-            const [showBackToTop, setShowBackToTop] = useState(false);
+            const scrollContainerRef = useRef(null);
+
+            const scrollToTop = () => {
+                if (scrollContainerRef.current) {
+                    scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            };
 
             useEffect(() => {
-                const handleScroll = () => setShowBackToTop(window.scrollY > 400);
-                window.addEventListener('scroll', handleScroll);
-                return () => window.removeEventListener('scroll', handleScroll);
-            }, []);
+                if (scrollContainerRef.current) {
+                    scrollContainerRef.current.scrollTo({ top: 0 });
+                }
+            }, [activeTab]);
 
             return (
-                <div className="min-h-screen flex flex-col pt-28">
+                <div className="h-screen flex flex-col overflow-hidden bg-slate-50">
                     <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
-                    <main className="flex-grow max-w-7xl mx-auto px-4 py-8 w-full">
-                        {activeTab === 'license' && <LicenseContent />}
-                        {activeTab === 'cme' && <CmeContent />}
-                        {activeTab === 'scope' && <ScopeContent />}
-                        {activeTab === 'facilities' && <PracticeFacilitiesContent />}
-                    </main>
 
-                    <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-4">
-                        {showBackToTop && (
-                            <button onClick={() => window.scrollTo({top:0, behavior:'smooth'})} className="p-4 glass rounded-2xl shadow-xl text-slate-600 hover:text-blue-600 hover:-translate-y-1 transition-all duration-300 border-white/50"><ArrowUp size={24} /></button>
-                        )}
-                        <div className="flex flex-col items-end gap-3">
-                            {isChatOpen && (
-                                <div className="glass-dark rounded-[2.5rem] shadow-2xl w-[22rem] overflow-hidden animate-in slide-in-from-bottom-10 duration-500 mb-2 border-white/10">
-                                    <div className="bg-gradient-to-r from-blue-600/50 to-purple-600/50 p-6 flex justify-between items-center backdrop-blur-md">
-                                        <div className="flex items-center gap-3 text-white"><Sparkles className="w-5 h-5 text-yellow-300" /><span className="font-black tracking-tight uppercase">AI TRỢ LÝ PHÁP LÝ</span></div>
-                                        <button onClick={() => setIsChatOpen(false)} className="text-white/60 hover:text-white"><X size={20} /></button>
+                    <div className="flex-1 relative overflow-hidden">
+                        <main 
+                            ref={scrollContainerRef}
+                            className="h-full overflow-y-auto custom-scrollbar relative px-4"
+                        >
+                            <div className="max-w-7xl mx-auto py-6 w-full">
+                                {activeTab === 'license' && <LicenseContent />}
+                                {activeTab === 'cme' && <CmeContent />}
+                                {activeTab === 'scope' && <ScopeContent />}
+                                {activeTab === 'facilities' && <PracticeFacilitiesContent />}
+                            </div>
+
+                            {/* FOOTER ĐÃ ĐƯỢC CĂN CHỈNH CHIỀU NGANG BẰNG HEADER */}
+                            <footer className="max-w-7xl mx-auto glass-dark text-white pt-4 pb-4 mt-8 mb-8 relative overflow-hidden rounded-2xl shadow-xl">
+                                <div className="px-6 flex flex-col items-center text-center">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="p-1 bg-white text-blue-900 rounded-md shadow-lg"><Scale size={16} /></div>
+                                        <span className="font-black text-lg tracking-tighter text-white">VnRadLegal</span>
                                     </div>
-                                    <div className="p-8 space-y-6 text-white font-medium">
-                                        Xin chào! Tôi là AI được huấn luyện để giải đáp các thắc mắc về Luật Khám chữa bệnh.
-                                        <a href="https://gemini.google.com/gem/1Kbzv_16us4UuH7c5yycu51dPpw6jPF9x?usp=sharing" target="_blank" className="block w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-center font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/30 hover:scale-[1.02] transition-transform text-sm tracking-widest uppercase">Bắt đầu Tra cứu AI</a>
-                                    </div>
+                                    
+                                    <FooterFeedback />
+                                    
+                                    <div className="w-24 h-px bg-white/10 my-2"></div>
+                                    
+                                    <p className="text-[8px] text-slate-400 uppercase tracking-widest font-black opacity-60">
+                                        Luật 15/2023/QH15 & Thông tư 32/2023/TT-BYT. © 2025 VNRadLegal.
+                                    </p>
                                 </div>
-                            )}
-                            <button onClick={() => setIsChatOpen(!isChatOpen)} className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white p-5 rounded-[2rem] shadow-2xl hover:scale-110 transition-all duration-300 ai-float relative group">
-                                {isChatOpen ? <X size={32} /> : <MessageSquare size={32} />}
+                            </footer>
+                        </main>
+
+                        <div className="absolute bottom-6 right-6 z-[110] flex flex-col items-end gap-3 pointer-events-none">
+                            <button 
+                                onClick={scrollToTop} 
+                                className="p-3 glass rounded-xl shadow-lg text-slate-600 hover:text-blue-600 hover:-translate-y-1 transition-all duration-300 border-white/50 pointer-events-auto active:scale-90"
+                                title="Lên đầu trang"
+                            >
+                                <ArrowUp size={20} />
                             </button>
+                            
+                            <div className="flex flex-col items-end gap-2 pointer-events-auto">
+                                {isChatOpen && (
+                                    <div className="glass-dark rounded-[1.5rem] shadow-2xl w-[18rem] overflow-hidden animate-in slide-in-from-bottom-5 duration-500 mb-2 border-white/10">
+                                        <div className="bg-gradient-to-r from-blue-600/40 to-purple-600/40 p-4 flex justify-between items-center backdrop-blur-md border-b border-white/10">
+                                            <div className="flex items-center gap-2 text-white"><Sparkles className="w-4 h-4 text-yellow-300" /><span className="font-black text-xs tracking-tight uppercase">AI TRỢ LÝ</span></div>
+                                            <button onClick={() => setIsChatOpen(false)} className="text-white/40 hover:text-white"><X size={16} /></button>
+                                        </div>
+                                        <div className="p-6 space-y-4">
+                                            <p className="text-xs text-slate-300 leading-relaxed font-medium">Chào bạn! Tôi có thể giải đáp các thắc mắc về Luật Khám chữa bệnh.</p>
+                                            <a href="https://gemini.google.com/gem/1Kbzv_16us4UuH7c5yycu51dPpw6jPF9x?usp=sharing" target="_blank" className="block w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-center font-black py-2.5 rounded-lg shadow-lg hover:scale-[1.02] transition-transform text-[10px] tracking-widest uppercase">Bắt đầu Tra cứu AI</a>
+                                        </div>
+                                    </div>
+                                )}
+                                <button onClick={() => setIsChatOpen(!isChatOpen)} className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white p-4 rounded-[1.5rem] shadow-2xl hover:scale-105 transition-all duration-300 ai-float relative">
+                                    {isChatOpen ? <X size={24} /> : <MessageSquare size={24} />}
+                                </button>
+                            </div>
                         </div>
                     </div>
-
-                    <footer className="glass-dark text-white pt-20 pb-12 mt-24 relative overflow-hidden">
-                        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center text-center">
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="p-3 bg-white text-blue-900 rounded-2xl shadow-2xl"><Scale size={32} /></div>
-                                <span className="font-black text-4xl tracking-tighter">VnRadLegal</span>
-                            </div>
-                            
-                            <p className="text-xs font-black uppercase tracking-[0.3em] text-white/40 mb-2">Gửi góp ý nhanh cho chúng tôi</p>
-                            <FooterFeedback />
-                            
-                            <div className="w-full h-px bg-white/5 my-8"></div>
-                            
-                            <p className="text-[10px] text-slate-400 uppercase tracking-[0.4em] font-black opacity-60">
-                                Dữ liệu từ Luật 15/2023/QH15 & Thông tư 32/2023/TT-BYT.
-                                <br/><span className="mt-4 block">© 2025 VNRadLegal. All Rights Reserved.</span>
-                            </p>
-                        </div>
-                    </footer>
                 </div>
             );
         };
