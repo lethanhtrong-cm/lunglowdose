@@ -17,20 +17,57 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: #f8fafc;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(210,100%,95%,1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(220,100%,94%,1) 0, transparent 50%),
+                radial-gradient(at 100% 100%, hsla(230,100%,96%,1) 0, transparent 50%),
+                radial-gradient(at 0% 100%, hsla(240,100%,95%,1) 0, transparent 50%);
+            background-attachment: fixed;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .glass-dark {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .hero-pattern {
-            background-color: #0f172a;
-            background-image: radial-gradient(#1e293b 1px, transparent 1px);
-            background-size: 32px 32px;
+        
+        .ai-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-tag {
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
         }
     </style>
 </head>
-<body class="bg-slate-50">
+<body class="text-slate-900 overflow-x-hidden">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -38,7 +75,7 @@
 
         // --- ICON COMPONENTS ---
         const Icon = ({ path, size = 24, className = "" }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: path }} />
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: path }} />
         );
 
         const Scale = (p) => <Icon {...p} path='<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>' />;
@@ -58,751 +95,405 @@
         const FileX = (p) => <Icon {...p} path='<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m14.5 12.5-5 5"/><path d="m9.5 12.5 5 5"/>' />;
         const User = (p) => <Icon {...p} path='<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>' />;
         const Activity = (p) => <Icon {...p} path='<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>' />;
-        const Microscope = (p) => <Icon {...p} path='<path d="M6 18h8"/><path d="M3 22h18"/><path d="M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14h2"/><path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"/><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"/>' />;
-        const Eye = (p) => <Icon {...p} path='<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>' />;
-        const Body = (p) => <Icon {...p} path='<circle cx="12" cy="5" r="1"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/>' />;
         const ChevronDown = (p) => <Icon {...p} path='<path d="m6 9 6 6 6-6"/>' />;
         const List = (p) => <Icon {...p} path='<line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/>' />;
         const MapPin = (p) => <Icon {...p} path='<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>' />;
         const ExternalLink = (p) => <Icon {...p} path='<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/>' />;
-        const Info = (p) => <Icon {...p} path='<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>' />;
         const Sparkles = (p) => <Icon {...p} path='<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M2 7h4"/><path d="M2 11h4"/>' />;
         const MessageSquare = (p) => <Icon {...p} path='<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' />;
         const ArrowUp = (p) => <Icon {...p} path='<path d="m18 15-6-6-6 6"/>' />;
+        const Send = (p) => <Icon {...p} path='<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>' />;
 
 
         // --- DỮ LIỆU ---
         const PRACTICE_LICENSE_DATA = [
-            {
-                id: "art26",
-                title: "Đối tượng phải có GPHN",
-                sub: "Điều 26",
-                icon: <UserCheck size={24} className="text-blue-600" />,
-                color: "blue",
-                content: [
-                    "Bác sỹ", "Y sỹ", "Điều dưỡng", "Hộ sinh", "Kỹ thuật y", 
-                    "Dinh dưỡng lâm sàng", "Cấp cứu viên ngoại viện", 
-                    "Tâm lý lâm sàng", "Lương y", "Người có bài thuốc gia truyền"
-                ],
-                desc: "10 chức danh chuyên môn bắt buộc phải có Giấy phép hành nghề."
-            },
-            {
-                id: "practice_time",
-                title: "Thời gian thực hành (KTY)",
-                sub: "NĐ 96/2023 (Điều 3)",
-                icon: <Clock size={24} className="text-pink-600" />,
-                color: "pink",
-                content: [
-                    "Tổng thời gian thực hành: 06 tháng.",
-                    "Thực hành chuyên môn KCB: 05 tháng.",
-                    "Thực hành hồi sức cấp cứu: 01 tháng."
-                ],
-                desc: "Áp dụng cho chức danh Kỹ thuật y, Điều dưỡng, Hộ sinh (Giảm từ 09 tháng xuống còn 06 tháng)."
-            },
-            {
-                id: "art27",
-                title: "Thời hạn & Phạm vi",
-                sub: "Điều 27",
-                icon: <Clock size={24} className="text-green-600" />,
-                color: "green",
-                content: [
-                    "Thời hạn: 05 năm (Quy định mới).",
-                    "Phạm vi: Có giá trị trên toàn quốc.",
-                    "Mỗi người hành nghề chỉ được cấp 01 giấy phép hành nghề."
-                ],
-                desc: "Thay đổi lớn nhất so với luật cũ (vĩnh viễn) là giấy phép có thời hạn 5 năm."
-            },
-            {
-                id: "art28",
-                title: "Thẩm quyền cấp",
-                sub: "Điều 28",
-                icon: <Building size={24} className="text-purple-600" />,
-                color: "purple",
-                content: [
-                    "Bộ Y tế: Cấp cho cơ sở trực thuộc, BV hạng đặc biệt...",
-                    "Bộ Quốc phòng / Bộ Công an: Cấp cho đối tượng thuộc thẩm quyền.",
-                    "Sở Y tế: Cấp cho các đối tượng còn lại trên địa bàn."
-                ],
-                desc: "Phân cấp rõ ràng thẩm quyền cấp mới, cấp lại, gia hạn, thu hồi."
-            },
-            {
-                id: "art30",
-                title: "Điều kiện cấp mới",
-                sub: "Điều 30",
-                icon: <FileText size={24} className="text-orange-600" />,
-                color: "orange",
-                content: [
-                    "Được đánh giá đủ năng lực hành nghề qua kiểm tra (Thi sát hạch) theo Điều 24.",
-                    "Có đủ sức khỏe để hành nghề.",
-                    "Đáp ứng năng lực tiếng Việt (đối với người nước ngoài).",
-                    "Không thuộc trường hợp bị cấm hành nghề."
-                ],
-                desc: "Lộ trình thi đánh giá năng lực bắt đầu từ 2027 (Bác sỹ), 2029 (KTV)."
-            },
-            {
-                id: "art32",
-                title: "Gia hạn Giấy phép",
-                sub: "Điều 32",
-                icon: <RefreshCw size={24} className="text-teal-600" />,
-                color: "teal",
-                content: [
-                    "Đã hoàn thành cập nhật kiến thức y khoa liên tục (CME) theo Điều 22.",
-                    "Có đủ sức khỏe để hành nghề.",
-                    "Thực hiện thủ tục gia hạn ít nhất 60 ngày trước khi giấy phép hết hạn.",
-                    "Không thuộc trường hợp bị cấm hành nghề."
-                ],
-                desc: "Nếu không gia hạn kịp thời, giấy phép sẽ hết hiệu lực."
-            },
-            {
-                id: "art34_35",
-                title: "Đình chỉ & Thu hồi",
-                sub: "Điều 34, 35",
-                icon: <FileX size={24} className="text-red-600" />,
-                color: "red",
-                content: [
-                    "Đình chỉ (1-24 tháng): Có sai sót chuyên môn; Vi phạm đạo đức; Không đủ sức khỏe.",
-                    "Thu hồi: Giả mạo hồ sơ; Cấp sai thẩm quyền; Không hành nghề trong 24 tháng liên tục; Bị cấm hành nghề; Tự đề nghị thu hồi."
-                ],
-                desc: "Quy định chặt chẽ các trường hợp bị tước quyền hành nghề."
-            }
+            { id: "art26", title: "Đối tượng phải có GPHN", sub: "Điều 26", icon: <UserCheck size={24} />, color: "blue", content: [ "Bác sỹ", "Y sỹ", "Điều dưỡng", "Hộ sinh", "Kỹ thuật y", "Dinh dưỡng lâm sàng", "Cấp cứu viên ngoại viện", "Tâm lý lâm sàng", "Lương y", "Người có bài thuốc gia truyền" ], desc: "10 chức danh chuyên môn bắt buộc phải có Giấy phép hành nghề." },
+            { id: "practice_time", title: "Thời gian thực hành (KTY)", sub: "NĐ 96/2023 (Điều 3)", icon: <Clock size={24} />, color: "red", content: [ "Tổng thời gian thực hành: 06 tháng.", "Thực hành chuyên môn KCB: 05 tháng.", "Thực hành hồi sức cấp cứu: 01 tháng." ], desc: "Áp dụng cho chức danh Kỹ thuật y, Điều dưỡng, Hộ sinh (Giảm từ 09 tháng xuống còn 06 tháng)." },
+            { id: "art27", title: "Thời hạn & Phạm vi", sub: "Điều 27", icon: <Clock size={24} />, color: "green", content: [ "Thời hạn: 05 năm (Quy định mới).", "Phạm vi: Có giá trị trên toàn quốc.", "Mỗi người hành nghề chỉ được cấp 01 giấy phép hành nghề." ], desc: "Thay đổi lớn nhất so với luật cũ (vĩnh viễn) là giấy phép có thời hạn 5 năm." },
+            { id: "art28", title: "Thẩm quyền cấp", sub: "Điều 28", icon: <Building size={24} />, color: "purple", content: [ "Bộ Y tế: Cấp cho cơ sở trực thuộc, BV hạng đặc biệt...", "Bộ Quốc phòng / Bộ Công an: Cấp cho đối tượng thuộc thẩm quyền.", "Sở Y tế: Cấp cho các đối tượng còn lại trên địa bàn." ], desc: "Phân cấp rõ ràng thẩm quyền cấp mới, cấp lại, gia hạn, thu hồi." },
+            { id: "art30", title: "Điều kiện cấp mới", sub: "Điều 30", icon: <FileText size={24} />, color: "orange", content: [ "Được đánh giá đủ năng lực hành nghề qua kiểm tra (Thi sát hạch) theo Điều 24.", "Có đủ sức khỏe để hành nghề.", "Đáp ứng năng lực tiếng Việt (đối với người nước ngoài).", "Không thuộc trường hợp bị cấm hành nghề." ], desc: "Lộ trình thi đánh giá năng lực bắt đầu từ 2027 (Bác sỹ), 2029 (KTV)." },
+            { id: "art32", title: "Gia hạn Giấy phép", sub: "Điều 32", icon: <RefreshCw size={24} />, color: "teal", content: [ "Đã hoàn thành cập nhật kiến thức y khoa liên tục (CME) theo Điều 22.", "Có đủ sức khỏe để hành nghề.", "Thực hiện thủ tục gia hạn ít nhất 60 ngày trước khi giấy phép hết hạn.", "Không thuộc trường hợp bị cấm hành nghề." ], desc: "Nếu không gia hạn kịp thời, giấy phép sẽ hết hiệu lực." },
+            { id: "art34_35", title: "Đình chỉ & Thu hồi", sub: "Điều 34, 35", icon: <FileX size={24} />, color: "red", content: [ "Đình chỉ (1-24 tháng): Có sai sót chuyên môn; Vi phạm đạo đức; Không đủ sức khỏe.", "Thu hồi: Giả mạo hồ sơ; Cấp sai thẩm quyền; Không hành nghề trong 24 tháng liên tục; Bị cấm hành nghề; Tự đề nghị thu hồi." ], desc: "Quy định chặt chẽ các trường hợp bị tước quyền hành nghề." }
         ];
 
         const CME_FORMS = [
-            {
-                title: "Đào tạo ngắn hạn",
-                desc: "Các khóa tập huấn, bồi dưỡng chuyên môn nghiệp vụ.",
-                icon: <BookOpen size={20} />,
-                color: "teal",
-                bgColor: "bg-teal-50",
-                borderColor: "border-teal-100",
-                iconColor: "text-teal-600",
-            },
-            {
-                title: "Hội thảo & Hội nghị",
-                desc: "Tham gia với tư cách đại biểu, báo cáo viên hoặc chủ tọa.",
-                icon: <User size={20} />,
-                color: "blue",
-                bgColor: "bg-blue-50",
-                borderColor: "border-blue-100",
-                iconColor: "text-blue-600",
-            },
-            {
-                title: "Nghiên cứu khoa học",
-                desc: "Chủ nhiệm đề tài, viết báo, hướng dẫn luận văn.",
-                icon: <FileText size={20} />,
-                color: "purple",
-                bgColor: "bg-purple-50",
-                borderColor: "border-purple-100",
-                iconColor: "text-purple-600",
-            },
-            {
-                title: "Biên soạn giáo trình",
-                desc: "Tham gia biên soạn tài liệu giảng dạy, quy trình chuyên môn.",
-                icon: <Award size={20} />,
-                color: "orange",
-                bgColor: "bg-orange-50",
-                borderColor: "border-orange-100",
-                iconColor: "text-orange-600",
-            },
+            { title: "Đào tạo ngắn hạn", desc: "Các khóa tập huấn, bồi dưỡng chuyên môn nghiệp vụ.", icon: <BookOpen size={20} />, color: "teal", bgColor: "bg-teal-50/50", borderColor: "border-teal-200/50", iconColor: "text-teal-600", },
+            { title: "Hội thảo & Hội nghị", desc: "Tham gia với tư cách đại biểu, báo cáo viên hoặc chủ tọa.", icon: <User size={20} />, color: "blue", bgColor: "bg-blue-50/50", borderColor: "border-blue-200/50", iconColor: "text-blue-600", },
+            { title: "Nghiên cứu khoa học", desc: "Chủ nhiệm đề tài, viết báo, hướng dẫn luận văn.", icon: <FileText size={20} />, color: "purple", bgColor: "bg-purple-50/50", borderColor: "border-purple-200/50", iconColor: "text-purple-600", },
+            { title: "Biên soạn giáo trình", desc: "Tham gia biên soạn tài liệu giảng dạy, quy trình chuyên môn.", icon: <Award size={20} />, color: "orange", bgColor: "bg-orange-50/50", borderColor: "border-orange-200/50", iconColor: "text-orange-600", },
         ];
 
         const CME_CONVERSION_DATA = [
-            {
-                group: "1. Đào tạo, hội thảo",
-                color: "teal",
-                icon: <BookOpen size={20} />,
-                items: [
-                    { name: "Học viên / Giảng viên khóa ngắn hạn", value: "1 tiết = 1 giờ tín chỉ" },
-                    { name: "Chủ trì hội nghị, hội thảo", value: "2 giờ tín chỉ/buổi" },
-                    { name: "Báo cáo viên", value: "2 giờ tín chỉ/báo cáo" },
-                    { name: "Đại biểu tham dự", value: "1.5 giờ tín chỉ/buổi" }
-                ]
-            },
-            {
-                group: "2. Soạn thảo quy trình chuyên môn",
-                color: "orange",
-                icon: <Award size={20} />,
-                items: [
-                    { name: "Trưởng/Phó ban soạn thảo (Giáo trình)", value: "5 giờ tín chỉ/tài liệu" },
-                    { name: "Thành viên ban soạn thảo (Giáo trình)", value: "2 giờ tín chỉ/tài liệu" },
-                    { name: "Trưởng/Phó ban soạn thảo (VBQPPL)", value: "5 giờ tín chỉ/văn bản" },
-                    { name: "Thành viên ban soạn thảo (VBQPPL)", value: "3 giờ tín chỉ/văn bản" }
-                ]
-            },
-            {
-                group: "3. Nghiên cứu khoa học",
-                color: "purple",
-                icon: <FileText size={20} />,
-                items: [
-                    { name: "Chủ trì đề tài cấp CS", value: "8 giờ tín chỉ" },
-                    { name: "Bài báo quốc tế (Tác giả chính)", value: "8 giờ tín chỉ" },
-                    { name: "Bài báo trong nước (Tác giả chính)", value: "4 giờ tín chỉ" }
-                ]
-            },
-            {
-                group: "4. Hình thức khác",
-                color: "blue",
-                icon: <User size={20} />,
-                items: [
-                    { name: "Hướng dẫn luận văn", value: "4 giờ tín chỉ/luận văn" },
-                    { name: "Hội chẩn ca bệnh", value: "1 giờ tín chỉ/ca bệnh" },
-                    { name: "Học văn bằng/chứng chỉ chuyên khoa", value: "24 giờ tín chỉ/năm hoặc 1 tiết = 1 giờ" }
-                ]
-            }
+            { group: "1. Đào tạo, hội thảo", color: "teal", icon: <BookOpen size={20} />, items: [ { name: "Học viên / Giảng viên khóa ngắn hạn", value: "1 tiết = 1 giờ tín chỉ" }, { name: "Chủ trì hội nghị, hội thảo", value: "2 giờ tín chỉ/buổi" }, { name: "Báo cáo viên", value: "2 giờ tín chỉ/báo cáo" }, { name: "Đại biểu tham dự", value: "1.5 giờ tín chỉ/buổi" } ] },
+            { group: "2. Soạn thảo quy trình chuyên môn", color: "orange", icon: <Award size={20} />, items: [ { name: "Trưởng/Phó ban soạn thảo (Giáo trình)", value: "5 giờ tín chỉ/tài liệu" }, { name: "Thành viên ban soạn thảo (Giáo trình)", value: "2 giờ tín chỉ/tài liệu" }, { name: "Trưởng/Phó ban soạn thảo (VBQPPL)", value: "5 giờ tín chỉ/văn bản" }, { name: "Thành viên ban soạn thảo (VBQPPL)", value: "3 giờ tín chỉ/văn bản" } ] },
+            { group: "3. Nghiên cứu khoa học", color: "purple", icon: <FileText size={20} />, items: [ { name: "Chủ trì đề tài cấp CS", value: "8 giờ tín chỉ" }, { name: "Bài báo quốc tế (Tác giả chính)", value: "8 giờ tín chỉ" }, { name: "Bài báo trong nước (Tác giả chính)", value: "4 giờ tín chỉ" } ] },
+            { group: "4. Hình thức khác", color: "blue", icon: <User size={20} />, items: [ { name: "Hướng dẫn luận văn", value: "4 giờ tín chỉ/luận văn" }, { name: "Hội chẩn ca bệnh", value: "1 giờ tín chỉ/ca bệnh" }, { name: "Học văn bằng/chứng chỉ chuyên khoa", value: "24 giờ tín chỉ/năm hoặc 1 tiết = 1 giờ" } ] }
         ];
 
-        // --- SCOPE DATA (ONLY IMAGING TECH) ---
         const IMAGING_SCOPE_DATA = [
-            {
-                category: "1. X-Quang Chẩn đoán (Thường quy & KTS)",
-                color: "blue",
-                icon: <Activity size={24} />,
-                items: [
-                    "Chụp Xquang sọ, xoang, mặt (thẳng, nghiêng, tiếp tuyến, Hirtz, Blondeau...)",
-                    "Chụp Xquang cột sống (cổ, ngực, thắt lưng, cùng cụt) các tư thế",
-                    "Chụp Xquang lồng ngực, xương ức, xương sườn",
-                    "Chụp Xquang ổ bụng (KCB), hệ tiết niệu (KCB)",
-                    "Chụp Xquang chi trên (vai, cánh tay, khuỷu, cẳng tay, cổ tay, bàn tay)",
-                    "Chụp Xquang chi dưới (chậu, háng, đùi, gối, cẳng chân, cổ chân, bàn chân)",
-                    "Chụp Xquang tuyến vú (Mammography)",
-                    "Chụp Xquang tại giường, tại phòng mổ (C-arm)",
-                    "Chụp Xquang răng (toàn cảnh, cận chóp)",
-                    "Chụp Xquang đường mật (Kehr, qua nội soi)",
-                    "Chụp Xquang thực quản, dạ dày, ruột non, đại tràng (có thuốc cản quang)",
-                    "Chụp Xquang hệ tiết niệu có tiêm thuốc (UIV), ngược dòng, xuôi dòng",
-                    "Chụp Xquang tử cung vòi trứng (HSG)",
-                    "Chụp Xquang các đường rò"
-                ]
-            },
-            {
-                category: "2. Cắt lớp vi tính (CT Scanner)",
-                color: "teal",
-                icon: <Table size={24} />,
-                items: [
-                    "Chụp CLVT Sọ não (thường quy, có thuốc, dựng hình 3D, tưới máu não)",
-                    "Chụp CLVT Đầu mặt cổ (hốc mắt, xương đá, xoang, hàm mặt)",
-                    "Chụp CLVT Lồng ngực (phổi, trung thất, mạch máu phổi, mạch chủ)",
-                    "Chụp CLVT Bụng - Tiểu khung (gan, mật, tụy, lách, thận, tiết niệu, tử cung...)",
-                    "Chụp CLVT Cột sống (cổ, ngực, thắt lưng) và Xương khớp",
-                    "Chụp CLVT Mạch máu (Mạch não, mạch cảnh, mạch chi, mạch tạng)",
-                    "Chụp CLVT Tim và mạch vành (đánh giá vôi hóa, chức năng)",
-                    "Chụp CLVT Nội soi ảo (đại tràng, phế quản)",
-                    "Chụp CLVT dẫn đường cho sinh thiết, chọc hút"
-                ]
-            },
-            {
-                category: "3. Cộng hưởng từ (MRI)",
-                color: "indigo",
-                icon: <RefreshCw size={24} />, 
-                items: [
-                    "MRI Sọ não (nhu mô, mạch máu, tuyến yên, hốc mắt, dây thần kinh)",
-                    "MRI Vùng cổ (phần mềm, họng, thanh quản, tuyến giáp)",
-                    "MRI Cột sống (cổ, ngực, thắt lưng) và Tủy sống",
-                    "MRI Cơ xương khớp (vai, khuỷu, cổ tay, háng, gối, cổ chân)",
-                    "MRI Bụng (gan mật, tụy, lách, thận, thượng thận)",
-                    "MRI Tiểu khung (tử cung, buồng trứng, tiền liệt tuyến, trực tràng)",
-                    "MRI Tuyến vú",
-                    "MRI Tim mạch (chức năng tim, mạch máu)",
-                    "MRI Thai nhi, Bánh nhau",
-                    "MRI Toàn thân (tầm soát di căn)"
-                ]
-            },
-            {
-                category: "4. Điện quang can thiệp",
-                color: "rose",
-                icon: <Activity size={24} />,
-                items: [
-                    "Chụp mạch số hóa xóa nền (DSA) các tạng (não, tạng, chi)",
-                    "Nút mạch điều trị (u gan, u xơ tử cung, ho ra máu, chảy máu mũi...)",
-                    "Nong và đặt Stent mạch máu (mạch vành, mạch chi, mạch thận...)",
-                    "Lấy huyết khối (mạch não, mạch chi)",
-                    "Điều trị phình mạch não (Coil, Stent)",
-                    "Can thiệp đường mật (dẫn lưu, đặt stent)",
-                    "Đổ xi măng cột sống",
-                    "Đốt sóng cao tần (RFA) điều trị u (gan, phổi, tuyến giáp...)"
-                ]
-            },
-            {
-                category: "5. Y học hạt nhân",
-                color: "amber",
-                icon: <Activity size={24} />,
-                items: [
-                    "Xạ hình SPECT (xương, thận, tuyến giáp, tưới máu cơ tim, phổi...)",
-                    "Xạ hình SPECT/CT",
-                    "Chụp PET/CT chẩn đoán ung thư, tim mạch, thần kinh",
-                    "Đo độ tập trung I-131 tuyến giáp",
-                    "Điều trị I-131 (Ung thư tuyến giáp, Basedow)",
-                    "Điều trị giảm đau di căn xương bằng đồng vị phóng xạ",
-                    "Điều trị miễn dịch phóng xạ"
-                ]
-            }
+            { category: "1. X-Quang Chẩn đoán (Thường quy & KTS)", color: "blue", icon: <Activity size={24} />, items: [ "Chụp Xquang sọ, xoang, mặt (thẳng, nghiêng, tiếp tuyến, Hirtz, Blondeau...)", "Chụp Xquang cột sống (cổ, ngực, thắt lưng, cùng cụt) các tư thế", "Chụp Xquang lồng ngực, xương ức, xương sườn", "Chụp Xquang ổ bụng (KCB), hệ tiết niệu (KCB)", "Chụp Xquang chi trên (vai, cánh tay, khuỷu, cẳng tay, cổ tay, bàn tay)", "Chụp Xquang chi dưới (chậu, háng, đùi, gối, cẳng chân, cổ chân, bàn chân)", "Chụp Xquang tuyến vú (Mammography)", "Chụp Xquang tại giường, tại phòng mổ (C-arm)", "Chụp Xquang răng (toàn cảnh, cận chóp)", "Chụp Xquang đường mật (Kehr, qua nội soi)", "Chụp Xquang thực quản, dạ dày, ruột non, đại tràng (có thuốc cản quang)", "Chụp Xquang hệ tiết niệu có tiêm thuốc (UIV), ngược dòng, xuôi dòng", "Chụp Xquang tử cung vòi trứng (HSG)", "Chụp Xquang các đường rò" ] },
+            { category: "2. Cắt lớp vi tính (CT Scanner)", color: "teal", icon: <Table size={24} />, items: [ "Chụp CLVT Sọ nội sọ (thường quy, có thuốc, dựng hình 3D, tưới máu nội sọ)", "Chụp CLVT Đầu mặt cổ (hốc mắt, xương đá, xoang, hàm mặt)", "Chụp CLVT Lồng ngực (phổi, trung thất, mạch máu phổi, mạch chủ)", "Chụp CLVT Bụng - Tiểu khung (gan, mật, tụy, lách, thận, tiết niệu, tử cung...)", "Chụp CLVT Cột sống (cổ, ngực, thắt lưng) và Xương khớp", "Chụp CLVT Mạch máu (Mạch nội sọ, mạch cảnh, mạch chi, mạch tạng)", "Chụp CLVT Tim và mạch vành (đánh giá vôi hóa, chức năng)", "Chụp CLVT Nội soi ảo (đại tràng, phế quản)", "Chụp CLVT dẫn đường cho sinh thiết, chọc hút" ] },
+            { category: "3. Cộng hưởng từ (MRI)", color: "indigo", icon: <RefreshCw size={24} />, items: [ "MRI Sọ não (nhu mô, mạch máu, tuyến yên, hốc mắt, dây thần kinh)", "MRI Vùng cổ (phần mềm, họng, thanh quản, tuyến giáp)", "MRI Cột sống (cổ, ngực, thắt lưng) và Tủy sống", "MRI Cơ xương khớp (vai, khuỷu, cổ tay, háng, gối, cổ chân)", "MRI Bụng (gan mật, tụy, lách, thận, thượng thận)", "MRI Tiểu khung (tử cung, buồng trứng, tiền liệt tuyến, trực tràng)", "MRI Tuyến vú", "MRI Tim mạch (chức năng tim, mạch máu)", "MRI Thai nhi, Bánh nhau", "MRI Toàn thân (tầm soát di căn)" ] },
+            { category: "4. Điện quang can thiệp", color: "red", icon: <Activity size={24} />, items: [ "Chụp mạch số hóa xóa nền (DSA) các tạng (não, tạng, chi)", "Nút mạch điều trị (u gan, u xơ tử cung, ho ra máu, chảy máu mũi...)", "Nong và đặt Stent mạch máu (mạch vành, mạch chi, mạch thận...)", "Lấy huyết khối (mạch nội sọ, mạch chi)", "Điều trị phình mạch nội sọ (Coil, Stent)", "Can thiệp đường mật (dẫn lưu, đặt stent)", "Đổ xi măng cột sống", "Đốt sóng cao tần (RFA) điều trị u (gan, phổi, tuyến giáp...)" ] },
+            { category: "5. Y học hạt nhân", color: "amber", icon: <Activity size={24} />, items: [ "Xạ hình SPECT (xương, thận, tuyến giáp, tưới máu cơ tim, phổi...)", "Xạ hình SPECT/CT", "Chụp PET/CT chẩn đoán ung thư, tim mạch, thần kinh", "Đo độ tập trung I-131 tuyến giáp", "Điều trị I-131 (Ung thư tuyến giáp, Basedow)", "Điều trị giảm đau di căn xương bằng đồng vị phóng xạ", "Điều trị miễn dịch phóng xạ" ] }
         ];
 
-        // --- PRACTICE FACILITIES DATA ---
         const FACILITIES_DATA = [
-            {
-                province: "Bộ Y tế",
-                name: "Cục Quản lý Khám, chữa bệnh",
-                desc: "Danh sách cơ sở KCB đủ điều kiện hướng dẫn thực hành trên toàn quốc.",
-                link: "https://kcb.vn/hanh-nghe/danh-sach-co-so-kbcb-du-dieu-kien-huong-dan-thuc-hanh",
-                icon: <ShieldCheck size={24} />
-            },
-            {
-                province: "TP. Hồ Chí Minh",
-                name: "Sở Y tế TP. Hồ Chí Minh",
-                desc: "Danh sách các cơ sở đủ điều kiện tổ chức thực hành khám bệnh, chữa bệnh.",
-                link: "https://tochuccanbo.medinet.gov.vn/ve-co-so-thuc-hanh-c14539.aspx",
-                icon: <MapPin size={24} />
-            }
+            { province: "Bộ Y tế", name: "Cục Quản lý Khám, chữa bệnh", desc: "Danh sách cơ sở KCB đủ điều kiện hướng dẫn thực hành trên toàn quốc.", link: "https://kcb.vn/hanh-nghe/danh-sach-co-so-kbcb-du-dieu-kien-huong-dan-thuc-hanh", icon: <ShieldCheck size={24} /> },
+            { province: "TP. Hồ Chí Minh", name: "Sở Y tế TP. Hồ Chí Minh", desc: "Danh sách các cơ sở đủ điều kiện tổ chức thực hành khám bệnh, chữa bệnh.", link: "https://tochuccanbo.medinet.gov.vn/ve-co-so-thuc-hanh-c14539.aspx", icon: <MapPin size={24} /> }
         ];
+
+        // --- THEME ENGINE ---
+        const THEME = {
+            blue: { grad: 'from-blue-600 to-indigo-700', text: 'text-blue-600', light: 'bg-blue-50' },
+            teal: { grad: 'from-teal-500 to-emerald-600', text: 'text-teal-600', light: 'bg-teal-50' },
+            pink: { grad: 'from-pink-500 to-rose-600', text: 'text-pink-600', light: 'bg-pink-50' },
+            green: { grad: 'from-green-600 to-emerald-700', text: 'text-green-600', light: 'bg-green-50' },
+            purple: { grad: 'from-purple-500 to-indigo-700', text: 'text-purple-600', light: 'bg-purple-50' },
+            orange: { grad: 'from-orange-500 to-amber-600', text: 'text-orange-600', light: 'bg-orange-50' },
+            red: { grad: 'from-red-600 to-rose-700', text: 'text-red-600', light: 'bg-red-50' },
+            indigo: { grad: 'from-indigo-600 to-blue-800', text: 'text-indigo-600', light: 'bg-indigo-50' },
+            rose: { grad: 'from-rose-600 to-red-700', text: 'text-rose-600', light: 'bg-rose-50' },
+            amber: { grad: 'from-amber-500 to-orange-600', text: 'text-amber-600', light: 'bg-amber-50' }
+        };
 
         // --- COMPONENTS ---
 
         const Navbar = ({ activeTab, setActiveTab }) => {
             const [isOpen, setIsOpen] = useState(false);
             return (
-                <nav className="bg-blue-700 sticky top-0 z-50 border-b border-blue-600 shadow-md">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex justify-between items-center h-20">
+                <div className="fixed top-4 left-0 right-0 z-[100] px-4">
+                    <nav className="max-w-7xl mx-auto glass rounded-2xl shadow-xl overflow-hidden">
+                        <div className="px-6 flex justify-between items-center h-20 gap-4">
                             {/* Logo */}
-                            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('cme')}>
-                                <div className="p-1.5 bg-white/10 rounded-lg">
-                                    <Scale className="h-8 w-8 text-white" />
+                            <div className="flex items-center gap-3 cursor-pointer group shrink-0" onClick={() => setActiveTab('cme')}>
+                                <div className="p-2 bg-blue-600 text-white rounded-xl shadow-lg group-hover:scale-110 transition-transform">
+                                    <Scale size={28} />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="font-extrabold text-xl text-white tracking-tight leading-none">VnRad<span className="text-blue-200">Legal</span></span>
-                                    <span className="text-[10px] font-bold text-blue-100 uppercase tracking-[0.1em] mt-0.5">Cổng thông tin Pháp lý CĐHA</span>
-                                    <span className="text-[9px] text-blue-200/80 font-medium">Website của cộng đồng KTV hình ảnh y học 3 Miền</span>
+                                    <span className="font-extrabold text-2xl tracking-tight leading-none bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">VnRadLegal</span>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Cổng thông tin Pháp lý CĐHA</span>
                                 </div>
                             </div>
                             
-                            {/* Desktop Menu */}
-                            <div className="hidden md:flex items-center space-x-2">
-                                <button 
-                                    onClick={() => setActiveTab('cme')}
-                                    className={`px-3 py-2 font-bold text-sm transition-all duration-200 rounded-lg ${activeTab === 'cme' ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-100 hover:bg-blue-600 hover:text-white'}`}
-                                >
-                                    Cập nhật KTYK (CME)
-                                </button>
-                                <button 
-                                    onClick={() => setActiveTab('license')}
-                                    className={`px-3 py-2 font-bold text-sm transition-all duration-200 rounded-lg ${activeTab === 'license' ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-100 hover:bg-blue-600 hover:text-white'}`}
-                                >
-                                    Giấy phép hành nghề
-                                </button>
-                                <button 
-                                    onClick={() => setActiveTab('scope')}
-                                    className={`px-3 py-2 font-bold text-sm transition-all duration-200 rounded-lg ${activeTab === 'scope' ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-100 hover:bg-blue-600 hover:text-white'}`}
-                                >
-                                    Phạm vi hành nghề (KTY)
-                                </button>
-                                <button 
-                                    onClick={() => setActiveTab('facilities')}
-                                    className={`px-3 py-2 font-bold text-sm transition-all duration-200 rounded-lg ${activeTab === 'facilities' ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-100 hover:bg-blue-600 hover:text-white'}`}
-                                >
-                                    Cơ sở thực hành
-                                </button>
-                                <a 
-                                    href="https://gemini.google.com/gem/1Kbzv_16us4UuH7c5yycu51dPpw6jPF9x?usp=sharing"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="ml-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-4 py-2 rounded-full text-sm font-bold hover:shadow-lg transition-all flex items-center gap-2 group"
-                                >
-                                    <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse" />
-                                    AI Tra cứu
-                                    <span className="hidden group-hover:inline transition-all text-xs opacity-90">Mở tab mới</span>
+                            {/* Desktop Menu - Trải dài đều */}
+                            <div className="hidden lg:flex flex-1 items-center bg-slate-100/50 p-1.5 rounded-xl border border-slate-200/50 max-w-2xl mx-auto">
+                                {[
+                                    {id: 'cme', label: 'Cập nhật KTYK'},
+                                    {id: 'license', label: 'Giấy phép HN'},
+                                    {id: 'scope', label: 'Phạm vi HN'},
+                                    {id: 'facilities', label: 'Cơ sở TH'}
+                                ].map(tab => (
+                                    <button 
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`flex-1 px-4 py-2.5 font-bold text-sm transition-all duration-300 rounded-lg whitespace-nowrap ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-900 hover:bg-white/50'}`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* AI Button */}
+                            <div className="hidden lg:flex items-center shrink-0">
+                                <a href="https://gemini.google.com/gem/1Kbzv_16us4UuH7c5yycu51dPpw6jPF9x?usp=sharing" target="_blank" className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:shadow-indigo-300 hover:scale-105 transition-all flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4 text-yellow-300" /> AI Tra cứu
                                 </a>
                             </div>
 
-                            {/* Mobile Menu Button */}
-                            <div className="flex items-center md:hidden">
-                                <button onClick={() => setIsOpen(!isOpen)} className="p-2 rounded-xl text-blue-100 hover:bg-blue-600">
-                                    {isOpen ? <X size={24} /> : <Menu size={24} />}
-                                </button>
+                            {/* Mobile Toggle */}
+                            <button onClick={() => setIsOpen(!isOpen)} className="lg:hidden p-2.5 rounded-xl text-slate-600 hover:bg-white transition-colors">
+                                {isOpen ? <X size={24} /> : <Menu size={24} />}
+                            </button>
+                        </div>
+
+                        {/* Mobile Menu */}
+                        {isOpen && (
+                            <div className="lg:hidden p-4 space-y-2 border-t border-slate-100 bg-white/90 animate-in slide-in-from-top duration-300">
+                                {['cme', 'license', 'scope', 'facilities'].map(id => (
+                                    <button key={id} onClick={() => {setActiveTab(id); setIsOpen(false)}} className={`block w-full text-left px-4 py-3 rounded-xl font-bold ${activeTab === id ? 'bg-blue-50 text-blue-700' : 'text-slate-600'}`}>
+                                        {id === 'cme' ? 'Cập nhật KTYK' : id === 'license' ? 'Giấy phép HN' : id === 'scope' ? 'Phạm vi HN' : 'Cơ sở TH'}
+                                    </button>
+                                ))}
+                                <a href="https://gemini.google.com/gem/1Kbzv_16us4UuH7c5yycu51dPpw6jPF9x?usp=sharing" target="_blank" className="block w-full text-center px-4 py-3 rounded-xl font-bold bg-indigo-600 text-white shadow-lg mt-4">AI Tra cứu</a>
                             </div>
-                        </div>
-                    </div>
-                    {/* Mobile Menu Content */}
-                    {isOpen && (
-                        <div className="md:hidden bg-blue-800 border-t border-blue-700 p-4 space-y-2 shadow-lg absolute w-full left-0 z-50">
-                            <button onClick={() => {setActiveTab('cme'); setIsOpen(false)}} className="block w-full text-left px-4 py-3 rounded-lg font-bold text-white hover:bg-blue-700">Cập nhật KTYK (CME)</button>
-                            <button onClick={() => {setActiveTab('license'); setIsOpen(false)}} className="block w-full text-left px-4 py-3 rounded-lg font-bold text-white hover:bg-blue-700">Giấy phép hành nghề</button>
-                            <button onClick={() => {setActiveTab('scope'); setIsOpen(false)}} className="block w-full text-left px-4 py-3 rounded-lg font-bold text-white hover:bg-blue-700">Phạm vi hành nghề (KTY)</button>
-                            <button onClick={() => {setActiveTab('facilities'); setIsOpen(false)}} className="block w-full text-left px-4 py-3 rounded-lg font-bold text-white hover:bg-blue-700">Cơ sở thực hành</button>
-                            <a href="https://gemini.google.com/gem/1Kbzv_16us4UuH7c5yycu51dPpw6jPF9x?usp=sharing" target="_blank" className="block w-full text-left px-4 py-3 rounded-lg font-bold bg-purple-600 text-white hover:bg-purple-700 mt-2 flex items-center gap-2">
-                                <Sparkles className="w-4 h-4 text-yellow-300" /> AI Tra cứu
-                            </a>
-                        </div>
-                    )}
-                </nav>
+                        )}
+                    </nav>
+                </div>
             );
         };
 
         const Banner = ({ type }) => {
-            if (type === 'license') {
-                return (
-                    <div className="bg-blue-700 rounded-3xl p-8 md:p-12 text-white shadow-xl relative overflow-hidden mb-12">
-                        <div className="absolute top-0 right-0 opacity-10 p-8 transform translate-x-10 -translate-y-10">
-                            <UserCheck size={250} />
-                        </div>
-                        <div className="relative z-10 max-w-3xl">
-                            <div className="inline-flex items-center gap-2 bg-blue-600/50 border border-blue-400/30 rounded-full px-4 py-1.5 mb-6 backdrop-blur-md">
-                                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-                                <span className="text-xs font-bold text-blue-100 uppercase tracking-wide">Mục 3 - Luật Khám bệnh, chữa bệnh 2023</span>
-                            </div>
-                            <h1 className="text-3xl md:text-5xl font-extrabold mb-6 leading-tight">Quy định về <br/>Giấy phép hành nghề</h1>
-                            <p className="text-blue-100 text-lg leading-relaxed max-w-2xl opacity-90">
-                                Cập nhật toàn diện về chức danh, thời hạn, điều kiện cấp mới và gia hạn giấy phép theo quy định mới nhất có hiệu lực từ 01/01/2024.
-                            </p>
-                        </div>
-                    </div>
-                );
-            }
-            if (type === 'cme') {
-                return (
-                    <div className="bg-teal-700 rounded-3xl p-8 md:p-12 text-white shadow-xl relative overflow-hidden mb-12">
-                        <div className="absolute top-0 right-0 opacity-10 p-8 transform translate-x-10 -translate-y-10">
-                            <Award size={250} />
-                        </div>
-                        <div className="relative z-10 max-w-3xl">
-                            <div className="inline-flex items-center gap-2 bg-teal-600/50 border border-teal-400/30 rounded-full px-4 py-1.5 mb-6 backdrop-blur-md">
-                                <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
-                                <span className="text-xs font-bold text-teal-100 uppercase tracking-wide">Thông tư 32/2023/TT-BYT</span>
-                            </div>
-                            <h1 className="text-3xl md:text-5xl font-extrabold mb-6 leading-tight">Cập nhật kiến thức <br/>Y khoa liên tục (CME)</h1>
-                            <p className="text-teal-100 text-lg leading-relaxed max-w-2xl opacity-90">
-                                Quy định chi tiết về các hình thức, thời gian và bảng quy đổi tín chỉ đào tạo liên tục. Điều kiện bắt buộc để gia hạn giấy phép hành nghề 05 năm.
-                            </p>
-                        </div>
-                    </div>
-                );
-            }
-            if (type === 'scope') {
-                return (
-                    <div className="bg-indigo-700 rounded-3xl p-8 md:p-12 text-white shadow-xl relative overflow-hidden mb-12">
-                        <div className="absolute top-0 right-0 opacity-10 p-8 transform translate-x-10 -translate-y-10">
-                            <List size={250} />
-                        </div>
-                        <div className="relative z-10 max-w-3xl">
-                            <div className="inline-flex items-center gap-2 bg-indigo-600/50 border border-indigo-400/30 rounded-full px-4 py-1.5 mb-6 backdrop-blur-md">
-                                <span className="w-2 h-2 rounded-full bg-pink-400 animate-pulse"></span>
-                                <span className="text-xs font-bold text-indigo-100 uppercase tracking-wide">Phụ lục XIV - Thông tư 32/2023/TT-BYT</span>
-                            </div>
-                            <h1 className="text-3xl md:text-5xl font-extrabold mb-6 leading-tight">Phạm vi hoạt động <br/>Chuyên môn Kỹ thuật y</h1>
-                            <p className="text-indigo-100 text-lg leading-relaxed max-w-2xl opacity-90">
-                                Danh mục kỹ thuật chi tiết được phép thực hiện đối với chức danh Kỹ thuật y chuyên ngành Hình ảnh y học và Y học hạt nhân.
-                            </p>
-                        </div>
-                    </div>
-                );
-            }
-            // Facilities Banner
+            const configs = {
+                license: { title: "Quy định về Giấy phép hành nghề", desc: "Cập nhật toàn diện về chức danh, thời hạn, điều kiện cấp mới và gia hạn giấy phép theo quy định mới nhất từ 01/01/2024.", tag: "Luật Khám bệnh, chữa bệnh 2023", grad: "from-blue-600 to-indigo-700", icon: <UserCheck size={180} /> },
+                cme: { title: "Cập nhật kiến thức Y khoa (CME)", desc: "Quy định chi tiết về các hình thức, thời gian và bảng quy đổi tín chỉ đào tạo liên tục. Điều kiện bắt buộc để gia hạn giấy phép 05 năm.", tag: "Thông tư 32/2023/TT-BYT", grad: "from-teal-500 to-emerald-700", icon: <Award size={180} /> },
+                scope: { title: "Phạm vi Hoạt động Chuyên môn", desc: "Danh mục kỹ thuật chi tiết được phép thực hiện đối với chức danh Kỹ thuật y chuyên ngành Hình ảnh y học và Y học hạt nhân.", tag: "Phụ lục XIV - Thông tư 32/2023", grad: "from-indigo-600 to-blue-800", icon: <List size={180} /> },
+                facilities: { title: "Cơ sở Hướng dẫn Thực hành", desc: "Tra cứu danh sách các cơ sở khám bệnh, chữa bệnh đủ điều kiện hướng dẫn thực hành theo quy định của Bộ Y tế và Sở Y tế.", tag: "Nghị định 96/2023/NĐ-CP", grad: "from-rose-500 to-pink-700", icon: <Building size={180} /> }
+            };
+            const c = configs[type] || configs.cme;
             return (
-                <div className="bg-rose-700 rounded-3xl p-8 md:p-12 text-white shadow-xl relative overflow-hidden mb-12">
-                    <div className="absolute top-0 right-0 opacity-10 p-8 transform translate-x-10 -translate-y-10">
-                        <Building size={250} />
-                    </div>
-                    <div className="relative z-10 max-w-3xl">
-                        <div className="inline-flex items-center gap-2 bg-rose-600/50 border border-rose-400/30 rounded-full px-4 py-1.5 mb-6 backdrop-blur-md">
-                            <span className="w-2 h-2 rounded-full bg-yellow-300 animate-pulse"></span>
-                            <span className="text-xs font-bold text-rose-100 uppercase tracking-wide">Danh sách công bố</span>
+                <div className={`relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br ${c.grad} p-8 md:p-16 text-white shadow-2xl mb-12`}>
+                    <div className="absolute top-0 right-0 opacity-10 p-10 transform translate-x-12 -translate-y-12">{c.icon}</div>
+                    <div className="relative z-10 max-w-4xl">
+                        <div className="inline-flex items-center gap-2 bg-white/20 border border-white/30 rounded-full px-5 py-2 mb-8 backdrop-blur-md">
+                            <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></span>
+                            <span className="text-xs font-black uppercase tracking-widest">{c.tag}</span>
                         </div>
-                        <h1 className="text-3xl md:text-5xl font-extrabold mb-6 leading-tight">Danh sách Cơ sở <br/>Hướng dẫn thực hành</h1>
-                        <p className="text-rose-100 text-lg leading-relaxed max-w-2xl opacity-90">
-                            Tra cứu danh sách các cơ sở khám bệnh, chữa bệnh đủ điều kiện hướng dẫn thực hành theo quy định của Bộ Y tế và Sở Y tế.
-                        </p>
+                        <h1 className="text-4xl md:text-6xl font-extrabold mb-8 leading-[1.15] tracking-tight">{c.title}</h1>
+                        <p className="text-white/90 text-lg md:text-xl leading-relaxed max-w-2xl font-medium">{c.desc}</p>
                     </div>
                 </div>
             );
         };
 
         const LicenseContent = () => (
-            <div className="animate-in fade-in duration-500">
+            <div className="animate-in fade-in duration-700 slide-in-from-bottom-10">
                 <Banner type="license" />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {PRACTICE_LICENSE_DATA.map((item) => (
-                        <div key={item.id} className={`bg-white rounded-2xl border-t-4 border-${item.color}-500 shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col h-full overflow-hidden`}>
-                            <div className={`p-6 bg-${item.color}-50 border-b border-${item.color}-100`}>
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className={`p-3 bg-white text-${item.color}-600 rounded-xl shadow-sm`}>
-                                        {item.icon}
+                    {PRACTICE_LICENSE_DATA.map((item) => {
+                        const theme = THEME[item.color];
+                        return (
+                            <div key={item.id} className="group glass rounded-[2rem] p-1 card-hover transition-all duration-500 flex flex-col h-full overflow-hidden">
+                                <div className={`p-8 rounded-[1.8rem] bg-gradient-to-br ${theme.grad} text-white shadow-xl mb-4 relative overflow-hidden`}>
+                                    <div className="absolute top-0 right-0 opacity-10 -mr-6 -mt-6 text-white">{item.icon}</div>
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="p-3 bg-white/30 rounded-2xl backdrop-blur-md border border-white/40 text-white shadow-lg">
+                                            {item.icon}
+                                        </div>
+                                        <span className="header-tag text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-inner">{item.sub}</span>
                                     </div>
-                                    <span className={`text-xs font-bold text-${item.color}-700 bg-white px-3 py-1 rounded-full border border-${item.color}-200 font-mono`}>{item.sub}</span>
+                                    <h3 className="text-2xl font-black leading-tight text-white drop-shadow-md">{item.title}</h3>
                                 </div>
-                                <h3 className={`text-lg font-bold text-${item.color}-800`}>{item.title}</h3>
+                                
+                                <div className="p-8 pt-2 flex-grow flex flex-col">
+                                    <p className="text-slate-500 text-sm font-semibold mb-6 italic leading-relaxed">{item.desc}</p>
+                                    <div className="space-y-4 flex-grow">
+                                        {item.content.map((line, idx) => (
+                                            <div key={idx} className="flex items-start gap-4">
+                                                <div className="mt-1.5 shrink-0"><div className={`w-2 h-2 rounded-full bg-gradient-to-r ${theme.grad}`}></div></div>
+                                                <span className="text-slate-700 font-medium leading-relaxed">{line}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
-                            
-                            <div className="p-6 flex-grow flex flex-col">
-                                <p className="text-base text-slate-600 mb-6 italic leading-relaxed">{item.desc}</p>
-                                <ul className="space-y-4 flex-grow">
-                                    {item.content.map((line, idx) => (
-                                        <li key={idx} className="flex items-start gap-3 text-base text-slate-700 leading-relaxed">
-                                            <span className={`mt-2 w-1.5 h-1.5 rounded-full bg-${item.color}-500 shrink-0`}></span>
-                                            <span>{line}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         );
 
-        const CmeContent = () => {
-            const [cmeHours, setCmeHours] = useState(0);
-            return (
-                <div className="animate-in fade-in duration-500">
-                    <Banner type="cme" />
-                    
-                    {/* Important CME Notice - ENHANCED */}
-                    <div className="mb-8 p-6 bg-orange-50 border border-orange-200 rounded-2xl shadow-md flex items-start gap-4 transform hover:-translate-y-1 transition-transform duration-300">
-                        <div className="p-3 bg-orange-100 text-orange-600 rounded-xl shrink-0 shadow-sm">
-                            <AlertTriangle size={32} />
-                        </div>
-                        <div>
-                            <h4 className="font-extrabold text-orange-800 text-lg mb-2 uppercase tracking-wide">Quy định về số tiết CME tối thiểu</h4>
-                            <div className="text-base text-slate-700 space-y-2">
-                                <p>
-                                    Theo <span className="font-semibold text-orange-700">Điều 22 Luật Khám bệnh, chữa bệnh 2023</span> và <span className="font-semibold text-orange-700">Thông tư 32/2023/TT-BYT</span>:
-                                </p>
-                                <ul className="list-disc pl-5 space-y-1 text-slate-600">
-                                    <li>
-                                        <strong>Đối với Luật mới (GPHN 05 năm):</strong> Người hành nghề bắt buộc phải hoàn thành cập nhật kiến thức y khoa liên tục trước khi làm thủ tục gia hạn.
-                                    </li>
-                                    <li>
-                                        <strong>Thời gian cập nhật:</strong> Tối thiểu <span className="font-bold text-teal-600 bg-teal-50 px-1 rounded">120 giờ tín chỉ</span> trong 05 năm liên tục.
-                                    </li>
-                                    <li>
-                                        <strong>Quy đổi giờ tín chỉ:</strong> 01 giờ tín chỉ đối với các khóa đào tạo, bồi dưỡng ngắn hạn tương đương với 01 tiết học.
-                                    </li>
-                                </ul>
+        const CmeContent = () => (
+            <div className="animate-in fade-in duration-700 slide-in-from-bottom-10">
+                <Banner type="cme" />
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <div className="lg:col-span-4 space-y-6">
+                        <div className="glass rounded-[2rem] p-8 border-orange-200/50 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-5"><AlertTriangle size={80} /></div>
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="p-3 bg-orange-500 text-white rounded-2xl shadow-lg shadow-orange-100"><AlertTriangle size={24} /></div>
+                                <h4 className="font-black text-slate-800 uppercase tracking-wide text-sm">Quy định tối thiểu</h4>
+                            </div>
+                            <div className="space-y-4 text-slate-700 font-medium">
+                                <p>Cấp nhật kiến thức y khoa liên tục là <span className="text-orange-600 font-black">bắt buộc</span> để gia hạn GPHN.</p>
+                                <div className="bg-white/50 p-4 rounded-2xl border border-white">
+                                    <p className="text-xs uppercase text-slate-500 mb-1">Thời gian yêu cầu</p>
+                                    <p className="text-2xl font-black text-slate-900">120 Giờ tín chỉ</p>
+                                    <p className="text-sm text-slate-500">Trong 05 năm liên tục</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    {/* NEW DEFINITIONS SECTION */}
-                    <div className="mb-8 p-6 bg-white border border-slate-200 rounded-2xl shadow-sm">
-                        <div className="flex items-center gap-2 mb-4 text-teal-700">
-                            <Info size={24} />
-                            <h4 className="font-bold text-lg">Giải thích từ ngữ (Thông tư 32/2023/TT-BYT)</h4>
-                        </div>
-                        <div className="space-y-4 text-slate-700">
-                            <p>
-                                <strong>1. Cơ sở cập nhật kiến thức y khoa liên tục trong khám bệnh, chữa bệnh:</strong> là cơ sở khám bệnh, chữa bệnh, cơ sở giáo dục tham gia đào tạo nhân lực y tế, tổ chức xã hội - nghề nghiệp về khám bệnh, chữa bệnh đáp ứng yêu cầu tổ chức cập nhật kiến thức y khoa liên tục theo quy định tại Thông tư này.
-                            </p>
-                            <p>
-                                <strong>2. Giờ tín chỉ trong cập nhật kiến thức y khoa liên tục:</strong> là đơn vị tính thời gian người hành nghề tham gia một trong các hình thức cập nhật kiến thức y khoa liên tục với công thức quy đổi theo quy định tại Phụ lục số I ban hành kèm theo 32/2023/TT-BYT.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Left Column */}
-                        <div className="lg:col-span-1 space-y-6">
-                            
-                            {/* NEW BUTTONS SECTION - ADDED ABOVE CALCULATOR */}
-                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                                <h3 className="font-bold text-slate-800 mb-4 text-lg text-center">Các hình thức CME được công nhận</h3>
-                                <div className="space-y-3">
-                                    {CME_FORMS.map((form, idx) => (
-                                        <div key={idx} className={`p-4 rounded-xl border ${form.borderColor} ${form.bgColor} flex items-start gap-3 hover:shadow-sm transition-shadow cursor-default`}>
-                                            <div className={`p-2 rounded-lg bg-white ${form.iconColor} shrink-0`}>
-                                                {form.icon}
-                                            </div>
-                                            <div>
-                                                <h4 className={`font-bold text-sm ${form.iconColor} mb-1`}>{form.title}</h4>
-                                                <p className="text-xs text-slate-600 leading-relaxed">{form.desc}</p>
-                                            </div>
+                        <div className="glass rounded-[2rem] p-8">
+                            <h3 className="font-black text-slate-800 mb-6 text-lg">Hình thức công nhận</h3>
+                            <div className="space-y-4">
+                                {CME_FORMS.map((form, idx) => (
+                                    <div key={idx} className={`p-4 rounded-2xl border ${form.borderColor} ${form.bgColor} flex items-start gap-4 transition-all hover:bg-white`}>
+                                        <div className={`p-2.5 rounded-xl bg-white ${form.iconColor} shadow-sm shrink-0`}>{form.icon}</div>
+                                        <div>
+                                            <h4 className={`font-black text-sm ${form.iconColor} mb-1 uppercase tracking-tight`}>{form.title}</h4>
+                                            <p className="text-xs text-slate-600 font-medium leading-relaxed">{form.desc}</p>
                                         </div>
-                                    ))}
-                                </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-
-                        {/* Right: Conversion Table */}
-                        <div className="lg:col-span-2">
-                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                                <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                        <Table className="text-blue-600" /> Bảng quy đổi giờ tín chỉ CME
-                                    </h3>
-                                    <span className="text-xs font-bold text-white bg-slate-400 px-2 py-1 rounded">Phụ lục I</span>
-                                </div>
-                                <div className="p-6">
-                                    <div className="space-y-6">
-                                        {CME_CONVERSION_DATA.map((section, idx) => (
-                                            <div key={idx} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                                                <div className="bg-slate-100 px-5 py-3 border-b border-slate-200">
-                                                    <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">{section.group}</h3>
-                                                </div>
-                                                <div className="divide-y divide-slate-100">
-                                                    {section.items.map((item, i) => (
-                                                        <div key={i} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 hover:bg-slate-50 transition-colors gap-2">
-                                                            <span className="text-sm text-slate-700 font-medium">{item.name}</span>
-                                                            <span className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 text-center sm:text-right shrink-0">
-                                                                {item.value}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="mt-6 p-4 bg-amber-50 border border-amber-100 rounded-xl flex gap-3">
-                                        <AlertTriangle className="text-amber-600 shrink-0" size={20} />
-                                        <p className="text-sm text-amber-800">
-                                            <strong>Lưu ý:</strong> Một tiết học được tính bằng 50 phút. Đối với các khóa đào tạo, bồi dưỡng ngắn hạn: 1 tiết học tương đương 1 giờ tín chỉ.
-                                        </p>
-                                    </div>
+                    </div>
+                    <div className="lg:col-span-8">
+                        <div className="glass rounded-[2rem] overflow-hidden shadow-2xl">
+                            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white/50">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-100"><Table size={24} /></div>
+                                    <div><h3 className="text-xl font-black text-slate-800">Bảng quy đổi giờ tín chỉ</h3><p className="text-slate-500 text-sm font-medium">Phụ lục I - TT 32/2023/TT-BYT</p></div>
                                 </div>
                             </div>
+                            <div className="p-8 space-y-8">
+                                {CME_CONVERSION_DATA.map((section, idx) => (
+                                    <div key={idx} className="space-y-4">
+                                        <h4 className="font-black text-xs text-slate-400 uppercase tracking-[0.2em] pl-2">{section.group}</h4>
+                                        <div className="grid gap-3">
+                                            {section.items.map((item, i) => (
+                                                <div key={i} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-5 rounded-2xl bg-white/40 border border-white hover:border-blue-200 hover:bg-white transition-all group shadow-sm">
+                                                    <span className="font-bold text-slate-700 group-hover:text-blue-700 transition-colors">{item.name}</span>
+                                                    <span className="mt-2 sm:mt-0 text-xs font-black text-blue-700 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 shrink-0 uppercase tracking-tight">{item.value}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const ScopeContent = () => {
+            const [openIndex, setOpenIndex] = useState(0);
+            return (
+                <div className="animate-in fade-in duration-700 slide-in-from-bottom-10">
+                    <Banner type="scope" />
+                    <div className="glass rounded-[2.5rem] p-6 md:p-12">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+                            <div><h3 className="text-3xl font-black text-slate-800 tracking-tight">Danh mục kỹ thuật KTY</h3><p className="text-slate-500 font-medium mt-2">Chuyên ngành Hình ảnh y học và Y học hạt nhân</p></div>
+                            <div className="relative group"><input type="text" placeholder="Tìm kỹ thuật nhanh..." className="pl-14 pr-6 py-4 glass rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full md:w-80 shadow-inner font-medium text-slate-700" /><Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} /></div>
+                        </div>
+                        <div className="space-y-6">
+                            {IMAGING_SCOPE_DATA.map((group, index) => {
+                                const theme = THEME[group.color];
+                                return (
+                                    <div key={index} className={`glass rounded-[2rem] overflow-hidden transition-all duration-500 ${openIndex === index ? 'shadow-2xl border-indigo-200' : 'hover:bg-white/80'}`}>
+                                        <button onClick={() => setOpenIndex(openIndex === index ? null : index)} className={`w-full flex items-center justify-between p-6 md:p-8 text-left transition-all ${openIndex === index ? `bg-gradient-to-r ${theme.grad} text-white` : 'text-slate-800'}`}>
+                                            <div className="flex items-center gap-6">
+                                                <div className={`p-4 rounded-2xl shadow-lg transition-transform ${openIndex === index ? 'bg-white/25 border border-white/20 text-white' : `${theme.light} ${theme.text}`}`}>{group.icon}</div>
+                                                <span className="font-black text-xl md:text-2xl tracking-tight leading-none">{group.category}</span>
+                                            </div>
+                                            <ChevronDown className={`transition-transform duration-500 ${openIndex === index ? 'rotate-180 text-white' : 'opacity-40'}`} size={28} />
+                                        </button>
+                                        {openIndex === index && (
+                                            <div className="p-8 md:p-12 animate-in zoom-in-95 duration-500">
+                                                <ul className="grid md:grid-cols-2 gap-x-12 gap-y-6">
+                                                    {group.items.map((item, idx) => (
+                                                        <li key={idx} className="flex items-start gap-4 group">
+                                                            <div className={`mt-2 shrink-0 p-1 ${theme.light} rounded-lg group-hover:bg-indigo-600 transition-colors`}><div className={`w-1.5 h-1.5 rounded-full ${theme.text} group-hover:bg-white`}></div></div>
+                                                            <span className="text-slate-700 font-medium leading-relaxed group-hover:text-slate-900 transition-colors">{item}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
             );
         };
 
-        const ScopeContent = () => {
-            const [openIndex, setOpenIndex] = useState(null);
+        const PracticeFacilitiesContent = () => (
+            <div className="animate-in fade-in duration-700 slide-in-from-bottom-10">
+                <Banner type="facilities" />
+                <div className="space-y-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {FACILITIES_DATA.map((item, index) => (
+                            <a key={index} href={item.link} target="_blank" className="group glass rounded-[2.5rem] p-8 card-hover transition-all duration-500 border-rose-100 flex flex-col md:flex-row gap-8 items-center md:items-start">
+                                <div className="p-6 bg-rose-600 text-white rounded-3xl shadow-xl shadow-rose-200 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500">{item.icon}</div>
+                                <div className="flex-grow text-center md:text-left">
+                                    <div className="flex items-center justify-center md:justify-between mb-4"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-500">{item.province}</span><ExternalLink size={20} className="hidden md:block text-slate-300 group-hover:text-rose-500 transition-colors" /></div>
+                                    <h4 className="text-2xl font-black text-slate-800 mb-3 group-hover:text-rose-700 transition-colors leading-tight">{item.name}</h4>
+                                    <p className="text-slate-500 font-medium leading-relaxed">{item.desc}</p>
+                                </div>
+                            </a>
+                        ))}
+                    </div>
+                    <div className="glass rounded-[2.5rem] p-8 md:p-12 border-rose-200/50">
+                        <div className="flex flex-col md:flex-row md:items-center gap-6 mb-10"><div className="p-4 bg-rose-500 text-white rounded-2xl shadow-xl"><Building size={32} /></div><div><h3 className="text-3xl font-black text-slate-800 tracking-tight">Điều kiện Cơ sở Thực hành</h3><p className="text-slate-500 font-medium">Nghị định 96/2023/NĐ-CP - Hướng dẫn chi tiết</p></div></div>
+                        <div className="grid md:grid-cols-2 gap-8">
+                            <div className="bg-white/50 p-8 rounded-[2rem] border border-white shadow-sm">
+                                <h4 className="text-rose-700 font-black uppercase tracking-widest text-xs mb-6 flex items-center gap-2"><div className="w-1.5 h-4 bg-rose-500 rounded-full"></div>Điều kiện chung</h4>
+                                <ul className="space-y-5">
+                                    <li className="flex gap-4"><ShieldCheck className="text-rose-500 shrink-0 mt-1" size={20} /><span className="text-slate-700 font-medium">Cơ sở đã được cấp GPHĐ phù hợp với hình thức tổ chức.</span></li>
+                                    <li className="flex gap-4"><ShieldCheck className="text-rose-500 shrink-0 mt-1" size={20} /><span className="text-slate-700 font-medium">Phạm vi hoạt động chuyên môn phù hợp với nội dung thực hành.</span></li>
+                                </ul>
+                            </div>
+                            <div className="bg-rose-600 p-8 rounded-[2rem] text-white shadow-xl shadow-rose-100 relative overflow-hidden">
+                                <h4 className="font-black uppercase tracking-widest text-xs mb-6 text-rose-200 flex items-center gap-2"><div className="w-1.5 h-4 bg-white rounded-full"></div>Riêng KTV Hình ảnh</h4>
+                                <div className="grid gap-3">{['Bệnh viện', 'Phòng khám', 'Cơ sở chẩn đoán hình ảnh'].map(t => (<div key={t} className="bg-white/20 backdrop-blur-md border border-white/20 px-5 py-3 rounded-xl font-black text-lg text-white">{t}</div>))}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
 
-            const toggleAccordion = (index) => {
-                setOpenIndex(openIndex === index ? null : index);
+        const FooterFeedback = () => {
+            const [status, setStatus] = useState("");
+            
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setStatus("sending");
+                const form = e.target;
+                const data = new FormData(form);
+                try {
+                    const response = await fetch("https://formspree.io/f/xvzklawb", {
+                        method: "POST",
+                        body: data,
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (response.ok) {
+                        setStatus("success");
+                        form.reset();
+                        setTimeout(() => setStatus(""), 5000);
+                    } else {
+                        setStatus("error");
+                    }
+                } catch (error) {
+                    setStatus("error");
+                }
             };
 
             return (
-                <div className="animate-in fade-in duration-500">
-                    <Banner type="scope" />
-                    
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                            <div>
-                                <h3 className="text-2xl font-bold text-slate-800">Danh mục kỹ thuật (Hình ảnh y học)</h3>
-                                <p className="text-slate-500 mt-1">Trích xuất từ Phụ lục XIV - Danh mục kỹ thuật của Kỹ thuật y</p>
-                            </div>
-                            <div className="relative">
-                                <input 
-                                    type="text" 
-                                    placeholder="Tìm kiếm kỹ thuật..." 
-                                    className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full md:w-64"
-                                />
-                                <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
-                            </div>
+                <div className="w-full max-w-xl mx-auto mt-12 mb-8">
+                    <form onSubmit={handleSubmit} className="relative group">
+                        {/* Container ô góp ý: Tinh chỉnh nền trắng đục và bo tròn để thấy chữ rõ nhất */}
+                        <div className="flex flex-col sm:flex-row gap-3 p-2 bg-white/95 rounded-3xl shadow-2xl border border-white/50">
+                            <input 
+                                name="email" 
+                                type="email" 
+                                required
+                                placeholder="Email của bạn..."
+                                className="flex-1 bg-slate-100/80 px-6 py-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 placeholder-slate-400 font-bold text-sm transition-all"
+                            />
+                            <input 
+                                name="message" 
+                                required
+                                placeholder="Góp ý nhanh cho VnRad Legal..."
+                                className="flex-[1.5] bg-slate-100/80 px-6 py-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 placeholder-slate-400 font-bold text-sm transition-all"
+                            />
+                            <button 
+                                type="submit" 
+                                disabled={status === "sending"}
+                                className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 rounded-2xl font-black shadow-lg hover:scale-95 active:scale-90 transition-all flex items-center justify-center gap-2 min-w-[64px]"
+                            >
+                                {status === "sending" ? (
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                ) : (
+                                    <Send size={22} />
+                                )}
+                            </button>
                         </div>
-
-                        <div className="space-y-4">
-                            {IMAGING_SCOPE_DATA.map((group, index) => (
-                                <div key={index} className={`border-l-4 border-${group.color}-500 border-y border-r border-slate-200 rounded-xl overflow-hidden shadow-sm`}>
-                                    <button 
-                                        onClick={() => toggleAccordion(index)}
-                                        className={`w-full flex items-center justify-between p-5 text-left transition-colors ${openIndex === index ? `bg-${group.color}-50` : 'bg-white hover:bg-slate-50'}`}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className={`p-3 rounded-xl ${openIndex === index ? 'bg-white text-' + group.color + '-600 shadow-sm' : 'bg-' + group.color + '-50 text-' + group.color + '-600'}`}>
-                                                {group.icon}
-                                            </div>
-                                            <span className={`font-bold text-xl ${openIndex === index ? 'text-' + group.color + '-800' : 'text-slate-800'}`}>
-                                                {group.category}
-                                            </span>
-                                        </div>
-                                        <ChevronDown className={`text-slate-400 transition-transform duration-300 ${openIndex === index ? `rotate-180 text-${group.color}-600` : ''}`} />
-                                    </button>
-                                    
-                                    {openIndex === index && (
-                                        <div className="p-6 bg-white border-t border-slate-100">
-                                            <ul className="grid md:grid-cols-2 gap-x-8 gap-y-4">
-                                                {group.items.map((item, idx) => (
-                                                    <li key={idx} className="flex items-start gap-3 text-slate-700 text-base leading-loose py-1 border-b border-slate-50 last:border-0 md:border-0 hover:bg-slate-50 rounded px-2 -mx-2 transition-colors">
-                                                        <span className={`mt-2.5 w-2 h-2 rounded-full bg-${group.color}-400 shrink-0`}></span>
-                                                        <span>{item}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const PracticeFacilitiesContent = () => {
-            return (
-                <div className="animate-in fade-in duration-500">
-                    <Banner type="facilities" />
-                    
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
-                        <div className="mb-8">
-                            <h3 className="text-2xl font-bold text-slate-800">Danh sách Sở Y tế công bố</h3>
-                            <p className="text-slate-500 mt-1">Cập nhật link tra cứu chính thức từ các Sở Y tế trên cả nước</p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                            {FACILITIES_DATA.map((item, index) => (
-                                <a 
-                                    key={index} 
-                                    href={item.link} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="block bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg hover:border-rose-300 transition-all group"
-                                >
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="p-3 bg-rose-50 text-rose-600 rounded-xl group-hover:bg-rose-600 group-hover:text-white transition-colors">
-                                            {item.icon}
-                                        </div>
-                                        <ExternalLink size={20} className="text-slate-400 group-hover:text-rose-600" />
-                                    </div>
-                                    <h4 className="text-lg font-bold text-slate-800 mb-2 group-hover:text-rose-700">{item.name}</h4>
-                                    <p className="text-sm text-slate-500 mb-3">{item.province}</p>
-                                    <p className="text-xs text-slate-400 line-clamp-2">{item.desc}</p>
-                                </a>
-                            ))}
-                        </div>
-
-                        {/* New Section based on image_bce829.png */}
-                        <div className="border-t border-slate-100 pt-8">
-                            <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                <Building className="text-rose-600" /> 
-                                Điều kiện của cơ sở hướng dẫn thực hành
-                                <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-1 rounded ml-2">Nghị định 96/2023/NĐ-CP</span>
-                            </h3>
-                            
-                            <div className="bg-rose-50 rounded-xl p-6 border border-rose-100 text-slate-700 space-y-6">
-                                <div>
-                                    <p className="font-bold text-rose-800 mb-2">1. Điều kiện chung (Điều 6 Nghị định 96/2023/NĐ-CP):</p>
-                                    <ul className="space-y-2 list-disc pl-5 text-sm">
-                                        <li>
-                                            Là cơ sở khám bệnh, chữa bệnh đã được cấp giấy phép hoạt động phù hợp với các hình thức tổ chức của cơ sở hướng dẫn thực hành.
-                                        </li>
-                                        <li>
-                                            Có phạm vi hoạt động chuyên môn phù hợp với nội dung thực hành. Trường hợp không đủ các chuyên khoa theo nội dung thực hành thì được ký hợp đồng hợp tác với cơ sở khác.
-                                        </li>
-                                    </ul>
-                                </div>
-
-                                {/* New Content based on image_bcdc65.png */}
-                                <div className="bg-white p-4 rounded-lg border border-rose-100 shadow-sm">
-                                    <p className="font-bold text-rose-800 mb-2 flex items-center gap-2">
-                                        <UserCheck size={18}/>
-                                        Đối với KTV Hình ảnh y học (Điều 5):
-                                    </p>
-                                    <p className="text-sm text-slate-700">
-                                        Cơ sở hướng dẫn thực hành phải là cơ sở khám bệnh, chữa bệnh được cấp giấy phép hoạt động theo hình thức tổ chức là:
-                                    </p>
-                                    <ul className="list-disc pl-5 mt-2 text-sm font-medium text-slate-800">
-                                        <li>Bệnh viện</li>
-                                        <li>Phòng khám</li>
-                                        <li>Cơ sở chẩn đoán hình ảnh</li>
-                                    </ul>
-                                    <p className="text-sm text-slate-600 mt-2 italic">
-                                        * Các cơ sở này phải có phạm vi hoạt động chuyên môn phù hợp với nội dung thực hành của kỹ thuật hình ảnh y học.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                        
+                        {status === "success" && (
+                            <p className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-green-400 text-xs font-black uppercase tracking-widest animate-in fade-in slide-in-from-top-2">
+                                Đã gửi thành công! Cảm ơn bạn.
+                            </p>
+                        )}
+                        {status === "error" && (
+                            <p className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-red-400 text-xs font-black uppercase tracking-widest animate-in fade-in slide-in-from-top-2">
+                                Lỗi gửi tin. Thử lại sau.
+                            </p>
+                        )}
+                    </form>
                 </div>
             );
         };
@@ -813,47 +504,14 @@
             const [showBackToTop, setShowBackToTop] = useState(false);
 
             useEffect(() => {
-                const handleScroll = () => {
-                    if (window.scrollY > 300) {
-                        setShowBackToTop(true);
-                    } else {
-                        setShowBackToTop(false);
-                    }
-                };
-
+                const handleScroll = () => setShowBackToTop(window.scrollY > 400);
                 window.addEventListener('scroll', handleScroll);
                 return () => window.removeEventListener('scroll', handleScroll);
             }, []);
 
-            const scrollToTop = () => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            };
-
-            // Dynamic classes based on activeTab
-            let footerBgClass, footerBorderClass, footerTextClass;
-            
-            if (activeTab === 'license') {
-                footerBgClass = 'bg-blue-700';
-                footerBorderClass = 'border-blue-600';
-                footerTextClass = 'text-blue-100';
-            } else if (activeTab === 'cme') {
-                footerBgClass = 'bg-teal-700';
-                footerBorderClass = 'border-teal-600';
-                footerTextClass = 'text-teal-100';
-            } else if (activeTab === 'scope') {
-                footerBgClass = 'bg-indigo-700';
-                footerBorderClass = 'border-indigo-600';
-                footerTextClass = 'text-indigo-100';
-            } else { // facilities
-                footerBgClass = 'bg-rose-700';
-                footerBorderClass = 'border-rose-600';
-                footerTextClass = 'text-rose-100';
-            }
-
             return (
-                <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex flex-col relative">
+                <div className="min-h-screen flex flex-col pt-28">
                     <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
-
                     <main className="flex-grow max-w-7xl mx-auto px-4 py-8 w-full">
                         {activeTab === 'license' && <LicenseContent />}
                         {activeTab === 'cme' && <CmeContent />}
@@ -861,87 +519,45 @@
                         {activeTab === 'facilities' && <PracticeFacilitiesContent />}
                     </main>
 
-                    {/* Back to Top Button */}
-                    {showBackToTop && (
-                        <button
-                            onClick={scrollToTop}
-                            className="fixed bottom-24 right-6 z-[90] p-3 bg-white text-slate-600 rounded-full shadow-lg border border-slate-200 hover:bg-slate-100 hover:text-blue-600 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4"
-                            title="Lên đầu trang"
-                        >
-                            <ArrowUp size={24} />
-                        </button>
-                    )}
-
-                    {/* AI Chat Widget */}
-                    <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-2">
-                        {isChatOpen && (
-                            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-80 overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
-                                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 flex justify-between items-center">
-                                    <div className="flex items-center gap-2 text-white">
-                                        <Sparkles className="w-5 h-5 text-yellow-300" />
-                                        <span className="font-bold">Trợ lý AI Pháp lý</span>
-                                    </div>
-                                    <button 
-                                        onClick={() => setIsChatOpen(false)}
-                                        className="text-white/80 hover:text-white hover:bg-white/20 rounded-full p-1 transition-colors"
-                                    >
-                                        <X size={18} />
-                                    </button>
-                                </div>
-                                <div className="p-4 bg-slate-50 min-h-[150px]">
-                                    <div className="flex gap-3 mb-4">
-                                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
-                                            <Sparkles size={16} />
-                                        </div>
-                                        <div className="bg-white p-3 rounded-2xl rounded-tl-none border border-slate-200 text-sm text-slate-600 shadow-sm">
-                                            Xin chào! Tôi là AI được huấn luyện để giải đáp các thắc mắc về Luật Khám chữa bệnh & Quy định hành nghề CĐHA. Bạn cần giúp gì không?
-                                        </div>
-                                    </div>
-                                    <a 
-                                        href="https://gemini.google.com/gem/1Kbzv_16us4UuH7c5yycu51dPpw6jPF9x?usp=sharing"
-                                        target="_blank"
-                                        className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2 rounded-xl transition-colors text-sm shadow-md shadow-indigo-200"
-                                    >
-                                        Bắt đầu chat với AI
-                                    </a>
-                                </div>
-                            </div>
+                    <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-4">
+                        {showBackToTop && (
+                            <button onClick={() => window.scrollTo({top:0, behavior:'smooth'})} className="p-4 glass rounded-2xl shadow-xl text-slate-600 hover:text-blue-600 hover:-translate-y-1 transition-all duration-300 border-white/50"><ArrowUp size={24} /></button>
                         )}
-                        
-                        <button 
-                            onClick={() => setIsChatOpen(!isChatOpen)}
-                            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300 ai-float group relative"
-                        >
-                            <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
-                            {isChatOpen ? <X size={28} /> : <MessageSquare size={28} />}
-                        </button>
+                        <div className="flex flex-col items-end gap-3">
+                            {isChatOpen && (
+                                <div className="glass-dark rounded-[2.5rem] shadow-2xl w-[22rem] overflow-hidden animate-in slide-in-from-bottom-10 duration-500 mb-2 border-white/10">
+                                    <div className="bg-gradient-to-r from-blue-600/50 to-purple-600/50 p-6 flex justify-between items-center backdrop-blur-md">
+                                        <div className="flex items-center gap-3 text-white"><Sparkles className="w-5 h-5 text-yellow-300" /><span className="font-black tracking-tight uppercase">AI TRỢ LÝ PHÁP LÝ</span></div>
+                                        <button onClick={() => setIsChatOpen(false)} className="text-white/60 hover:text-white"><X size={20} /></button>
+                                    </div>
+                                    <div className="p-8 space-y-6 text-white font-medium">
+                                        Xin chào! Tôi là AI được huấn luyện để giải đáp các thắc mắc về Luật Khám chữa bệnh.
+                                        <a href="https://gemini.google.com/gem/1Kbzv_16us4UuH7c5yycu51dPpw6jPF9x?usp=sharing" target="_blank" className="block w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-center font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/30 hover:scale-[1.02] transition-transform text-sm tracking-widest uppercase">Bắt đầu Tra cứu AI</a>
+                                    </div>
+                                </div>
+                            )}
+                            <button onClick={() => setIsChatOpen(!isChatOpen)} className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white p-5 rounded-[2rem] shadow-2xl hover:scale-110 transition-all duration-300 ai-float relative group">
+                                {isChatOpen ? <X size={32} /> : <MessageSquare size={32} />}
+                            </button>
+                        </div>
                     </div>
 
-                    <footer className={`${footerBgClass} ${footerTextClass} py-16 mt-auto relative overflow-hidden transition-colors duration-500`}>
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/10 pointer-events-none"></div>
-                        <div className="max-w-7xl mx-auto px-4 relative z-10">
-                            <div className="flex flex-col items-center justify-center text-center">
-                                <div className="flex items-center justify-center gap-3 mb-6">
-                                    <div className="p-2 bg-white rounded-xl shadow-lg shadow-black/20">
-                                        <Scale className={`h-8 w-8 ${
-                                            activeTab === 'license' ? 'text-blue-700' : 
-                                            activeTab === 'cme' ? 'text-teal-700' : 
-                                            activeTab === 'scope' ? 'text-indigo-700' : 'text-rose-700'
-                                        }`} />
-                                    </div>
-                                    <span className="font-extrabold text-3xl text-white tracking-tight">VnRad<span className="opacity-80">Legal</span></span>
-                                </div>
-                                
-                                <p className="text-lg font-medium mb-2 max-w-2xl opacity-90">
-                                    Nền tảng tra cứu pháp lý chuyên sâu cho cộng đồng Hình ảnh y học
-                                </p>
-                                
-                                <p className={`text-sm mt-8 pt-8 border-t ${footerBorderClass} w-full max-w-md opacity-70`}>
-                                    Dữ liệu được trích xuất từ Luật Khám bệnh, chữa bệnh số 15/2023/QH15 và Thông tư 32/2023/TT-BYT.
-                                    <br/>
-                                    © 2025 VnRadLegal. All rights reserved.
-                                </p>
+                    <footer className="glass-dark text-white pt-20 pb-12 mt-24 relative overflow-hidden">
+                        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center text-center">
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="p-3 bg-white text-blue-900 rounded-2xl shadow-2xl"><Scale size={32} /></div>
+                                <span className="font-black text-4xl tracking-tighter">VnRadLegal</span>
                             </div>
+                            
+                            <p className="text-xs font-black uppercase tracking-[0.3em] text-white/40 mb-2">Gửi góp ý nhanh cho chúng tôi</p>
+                            <FooterFeedback />
+                            
+                            <div className="w-full h-px bg-white/5 my-8"></div>
+                            
+                            <p className="text-[10px] text-slate-400 uppercase tracking-[0.4em] font-black opacity-60">
+                                Dữ liệu từ Luật 15/2023/QH15 & Thông tư 32/2023/TT-BYT.
+                                <br/><span className="mt-4 block">© 2025 VNRadLegal. All Rights Reserved.</span>
+                            </p>
                         </div>
                     </footer>
                 </div>
