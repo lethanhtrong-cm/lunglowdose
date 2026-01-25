@@ -433,7 +433,7 @@
         let isAdminMode = false;
         let ctdiChart = null;
         let dlpChart = null;
-        let isLoginMode = true; // State for Auth Modal
+        let isLoginMode = true; 
 
         const VALIDATION_RULES = {
             ctdi: { warn: 80, max: 150 }, 
@@ -475,9 +475,7 @@
             if (!currentUser) return;
             updateStatus("Đã kết nối", "indigo");
             document.getElementById('tableLoader').classList.remove('hidden');
-            
             const collectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries');
-            
             return onSnapshot(collectionRef, (snap) => {
                 entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 render();
@@ -641,7 +639,7 @@
                     }
                     
                     if (pin === "123456") { isAdminMode = true; updateAdminBtnState(); }
-                    document.getElementById('authModal').classList.add('hidden');
+                    // Chú ý: Modal sẽ tự đóng qua onAuthStateChanged bên dưới
                 } catch (err) { 
                     console.error("Auth error:", err);
                     let msg = "Lỗi xác thực";
@@ -653,9 +651,15 @@
                 }
             };
 
-            document.getElementById('googleLoginBtn').onclick = () => {
-                sessionStorage.removeItem('manualLogout');
-                signInWithPopup(auth, googleProvider);
+            document.getElementById('googleLoginBtn').onclick = async () => {
+                try {
+                    sessionStorage.removeItem('manualLogout');
+                    await signInWithPopup(auth, googleProvider);
+                    // Modal sẽ tự đóng qua onAuthStateChanged
+                } catch (err) {
+                    console.error(err);
+                    showToast("Lỗi đăng nhập Google", "error");
+                }
             };
             
             document.getElementById('logoutBtn').onclick = async () => {
@@ -877,13 +881,19 @@
                 const navLoginBtn = document.getElementById('navLoginBtn');
                 const userMenu = document.getElementById('userMenu');
                 const formLockOverlay = document.getElementById('formLockOverlay');
+                const authModal = document.getElementById('authModal');
                 
                 if (navLoginBtn) navLoginBtn.classList.toggle('hidden', !isAnon);
                 if (userMenu) userMenu.classList.toggle('hidden', isAnon);
                 if (formLockOverlay) formLockOverlay.classList.toggle('hidden', !isAnon);
                 
                 if (u) {
-                    if (!u.isAnonymous) sessionStorage.removeItem('manualLogout');
+                    // CỐ ĐỊNH: Đóng modal ngay khi có user (không phải anonymous)
+                    if (!u.isAnonymous) {
+                        sessionStorage.removeItem('manualLogout');
+                        if (authModal) authModal.classList.add('hidden');
+                    }
+                    
                     const userEmailDisplay = document.getElementById('userEmailDisplay');
                     if (userEmailDisplay) userEmailDisplay.textContent = u.email || "Khách ẩn danh";
                     setupDataSync(u);
