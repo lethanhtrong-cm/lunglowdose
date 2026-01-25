@@ -1,1097 +1,1725 @@
 <!DOCTYPE html>
 <html lang="vi">
-    <script src="https://cdn.counter.dev/script.js" data-id="86e74dda-26a8-41de-99d1-63d0e8fec60e" data-utcoffset="7"></script>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SCCT Guidelines: Coronary CTA Protocol</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vietnam Multicenter DRL Study - Dashboard</title>
     
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons (Fixed Version for Browser) -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <!-- SheetJS (Excel Export) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Chart.js (Biểu đồ) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #0f172a; color: #f8fafc; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* Metro Tile Effects */
-        .metro-tile {
-            transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.08);
-            min-height: 180px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4f46e5;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Highlight editing mode */
+        .editing-mode {
+            border: 2px solid #f59e0b;
+            background-color: #fffbeb;
         }
         
-        @media (min-width: 768px) {
-            .metro-tile:hover {
-                transform: translateY(-4px) scale(1.02);
-                box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.6);
-                z-index: 10;
-                border-color: rgba(255,255,255,0.4);
-            }
+        /* Modal Backdrop */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
         }
         
-        .metro-tile:active {
-            transform: scale(0.98);
-            opacity: 0.9;
-        }
+        /* Outlier Warning Animation */
+        @keyframes flash-red { 0% { background-color: #fee2e2; } 100% { background-color: white; } }
+        .outlier-warning { animation: flash-red 0.5s 2; border-color: #ef4444 !important; }
 
-        .metro-tile::before {
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(0,0,0,0) 60%);
-            pointer-events: none;
-        }
-
-        /* Scrollbar */
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-track { background: #1e293b; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
-
-        /* Modal Glass */
-        .glass-modal {
-            background: rgba(15, 23, 42, 0.98);
-            backdrop-filter: blur(20px);
-        }
-        @media (min-width: 768px) {
-            .glass-modal { background: rgba(15, 23, 42, 0.95); }
-        }
-
-        /* Recommendation Box Style */
-        .rec-box {
-            background: rgba(234, 179, 8, 0.1);
-            border-left: 4px solid #eab308;
-            padding: 1rem;
-            margin-top: 1.25rem;
-            border-radius: 0.5rem;
-        }
-        .rec-title {
-            color: #facc15;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-            font-size: 0.9rem;
-            letter-spacing: 0.05em;
-        }
-
-        /* Group Headers */
-        .group-header {
-            grid-column: 1 / -1;
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-top: 2.5rem;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        @media (min-width: 768px) {
-            .group-header { font-size: 1.5rem; margin-top: 3rem; gap: 0.75rem; }
-        }
-
-        /* Pulse Animation for Feedback Button */
-        @keyframes subtle-pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7); }
-            50% { box-shadow: 0 0 0 10px rgba(234, 179, 8, 0); }
-        }
-        .btn-pulse {
-            animation: subtle-pulse 2s infinite;
-        }
+        /* Weight Warning Animation */
+        @keyframes flash-yellow { 0% { background-color: #fef3c7; } 100% { background-color: white; } }
+        .weight-warning-input { animation: flash-yellow 0.5s 2; border-color: #f59e0b !important; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col overflow-x-hidden selection:bg-cyan-500 selection:text-white pb-safe">
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-12">
 
-    <!-- Header -->
-    <header class="w-full max-w-[1400px] mx-auto px-4 py-6 md:px-6 md:py-8 flex flex-col md:flex-row justify-between items-center md:items-end border-b border-white/10 gap-6 md:gap-4">
-        <div class="text-center md:text-left w-full md:w-auto">
-            <h1 class="text-2xl md:text-4xl font-bold text-white leading-tight">SCCT <span class="font-light text-cyan-400">Guidelines</span></h1>
-            <p class="text-xs md:text-sm text-gray-400 mt-1 uppercase tracking-widest">Performance & Acquisition of Coronary CTA</p>
-        </div>
-        
-        <div class="flex flex-col items-center md:items-end gap-4 w-full md:w-auto">
-            <div class="inline-block px-3 py-1 bg-white/5 text-gray-400 text-[10px] md:text-xs font-bold rounded-full border border-white/10 tracking-wide text-center">
-                <i class="fa-solid fa-users mr-1"></i> CỘNG ĐỒNG KTV HÌNH ẢNH Y HỌC 3 MIỀN
-            </div>
-            
-            <div class="flex flex-col-reverse md:flex-row items-center gap-3 md:gap-4 w-full md:w-auto">
-                <div class="text-center md:text-right hidden lg:block mr-2">
-                    <div class="text-[10px] md:text-xs text-gray-500 font-mono">SOURCE: SCCT GUIDELINES 2016</div>
-                    <div class="text-[10px] md:text-xs text-gray-500 font-mono">Consensus Update</div>
+    <!-- AUTH MODAL (Login/Register) -->
+    <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 transform transition-all scale-100 max-h-[90vh] overflow-y-auto">
+            <div class="text-center mb-6">
+                <div class="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600">
+                    <i data-lucide="shield-check" class="w-8 h-8"></i>
                 </div>
-                
-                <a href="http://vnrad.tech" class="w-full md:w-auto text-center group px-5 py-2.5 bg-slate-800 text-slate-300 font-semibold rounded-full hover:bg-slate-700 transition-all duration-300 border border-white/10 flex items-center justify-center gap-2 text-sm">
-                    <i class="fa-solid fa-house-medical"></i>
-                    <span>Trang chủ VNRAD</span>
-                </a>
+                <h2 id="authTitle" class="text-2xl font-bold text-slate-800">Đăng Nhập</h2>
+                <p id="authSubtitle" class="text-sm text-slate-500 mt-1">Truy cập hệ thống DRL Đa trung tâm</p>
             </div>
-        </div>
-    </header>
 
-    <!-- Content Grid -->
-    <main class="w-full max-w-[1400px] mx-auto px-4 pb-20 flex-grow">
-        <!-- Grid Uniform: 1 col mobile, 2 col tablet, 4 col desktop -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            
-            <!-- GROUP 1: TRƯỚC CHỤP -->
-            <h2 class="group-header text-cyan-400">
-                <i class="fa-solid fa-notes-medical"></i> <span>I. Trước khi Chụp (Pre-Op)</span>
-            </h2>
-
-            <!-- 1. Screening -->
-            <div onclick="openModal('screening')" class="metro-tile bg-gradient-to-br from-slate-800 to-slate-700 p-5 rounded-xl cursor-pointer group">
-                <div class="flex justify-between items-start">
-                    <i class="fa-solid fa-clipboard-check text-3xl text-slate-300 group-hover:text-cyan-400 transition-colors"></i>
-                    <span class="bg-black/20 text-[10px] px-2 py-1 rounded font-mono text-slate-400">4.1-4.2</span>
+            <form id="authForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
+                    <input type="email" id="authEmail" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="name@hospital.com">
                 </div>
                 <div>
-                    <h3 class="text-lg font-bold text-white mb-1">Sàng lọc & Chỉ định</h3>
-                    <p class="text-xs text-slate-300">Chống chỉ định, Thận, Thai kỳ & Nguy cơ.</p>
-                </div>
-            </div>
-
-            <!-- 2. Heart Rate -->
-            <div onclick="openModal('heartrate')" class="metro-tile bg-gradient-to-br from-rose-800 to-pink-900 p-5 rounded-xl cursor-pointer group">
-                <div class="flex justify-between items-start">
-                    <i class="fa-solid fa-heart-pulse text-3xl text-rose-300"></i>
-                    <span class="bg-black/20 text-[10px] px-2 py-1 rounded font-mono text-rose-200">Target</span>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-white mb-1">Nhịp Tim <span class="text-rose-300">&le; 60</span></h3>
-                    <p class="text-xs text-rose-200">Beta-blockers, Ivabradine & Esmolol.</p>
-                </div>
-            </div>
-
-            <!-- 3. Prep -->
-            <div onclick="openModal('prep')" class="metro-tile bg-gradient-to-br from-blue-800 to-blue-900 p-5 rounded-xl cursor-pointer group">
-                <div class="flex justify-between items-start">
-                    <i class="fa-solid fa-clock text-3xl text-blue-300"></i>
-                    <span class="bg-black/20 text-[10px] px-2 py-1 rounded font-mono text-blue-200">NPO</span>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-white mb-1">Chuẩn bị</h3>
-                    <p class="text-xs text-blue-200">Nhịn ăn 3-4h, Kiêng Cafein 12h.</p>
-                </div>
-            </div>
-
-            <!-- 4. Nitro -->
-            <div onclick="openModal('nitro')" class="metro-tile bg-gradient-to-br from-amber-700 to-orange-800 p-5 rounded-xl cursor-pointer group">
-                <div class="flex justify-between items-start">
-                    <i class="fa-solid fa-spray-can text-3xl text-amber-300"></i>
-                    <span class="bg-black/20 text-[10px] px-2 py-1 rounded font-mono text-amber-200">GTN</span>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-white mb-1">Nitroglycerin</h3>
-                    <p class="text-xs text-amber-200">Giãn mạch (400-800 µg).</p>
-                </div>
-            </div>
-
-
-            <!-- GROUP 2: TRONG QUÁ TRÌNH CHỤP -->
-            <h2 class="group-header text-emerald-400">
-                <i class="fa-solid fa-microchip"></i> <span>II. Kỹ thuật Chụp (Acquisition)</span>
-            </h2>
-
-            <!-- 5. Scan Protocol -->
-            <div onclick="openModal('scan_protocol')" class="metro-tile bg-gradient-to-br from-lime-800 to-green-900 p-5 rounded-xl cursor-pointer group border-l-4 border-lime-500">
-                <div class="flex justify-between items-start">
-                    <i class="fa-solid fa-bone text-3xl text-lime-300"></i>
-                    <span class="bg-black/20 text-[10px] px-2 py-1 rounded font-mono text-lime-200">Step 1</span>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-white mb-1">Scout & Vôi hóa</h3>
-                    <p class="text-xs text-lime-200">Định vị & Agatston Score.</p>
-                </div>
-            </div>
-
-            <!-- 6. Contrast -->
-            <div onclick="openModal('contrast')" class="metro-tile bg-gradient-to-br from-indigo-800 to-violet-900 p-5 rounded-xl cursor-pointer group">
-                <div class="flex justify-between items-start">
-                    <i class="fa-solid fa-syringe text-3xl text-indigo-300"></i>
-                    <span class="bg-black/20 text-[10px] px-2 py-1 rounded font-mono text-indigo-200">Step 2</span>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-white mb-1">Thuốc Cản quang</h3>
-                    <p class="text-xs text-indigo-200">5-7 mL/s, Saline Chaser.</p>
-                </div>
-            </div>
-
-            <!-- 7. Radiation -->
-            <div onclick="openModal('radiation')" class="metro-tile bg-gradient-to-br from-yellow-800 to-amber-900 p-5 rounded-xl cursor-pointer group">
-                <div class="flex justify-between items-start">
-                    <i class="fa-solid fa-radiation text-3xl text-yellow-400"></i>
-                    <span class="bg-black/20 text-[10px] px-2 py-1 rounded font-mono text-yellow-200">ALARA</span>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-white mb-1">An toàn Bức xạ</h3>
-                    <p class="text-xs text-yellow-200">100 kVp & Modulation.</p>
-                </div>
-            </div>
-
-            <!-- 8. Acquisition (Standard Size) -->
-            <div onclick="openModal('acquisition')" class="metro-tile bg-gradient-to-br from-emerald-800 to-teal-900 p-5 rounded-xl cursor-pointer group relative overflow-hidden">
-                <div class="relative z-10 flex flex-col justify-between h-full">
-                    <div class="flex justify-between items-start">
-                        <i class="fa-solid fa-bolt text-3xl text-emerald-300"></i>
-                        <span class="bg-black/20 text-[10px] px-2 py-1 rounded font-mono text-emerald-200">Mode</span>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-bold text-white mb-1">Chế độ Chụp</h3>
-                        <p class="text-xs text-emerald-200">Prospective vs Retrospective.</p>
-                    </div>
-                </div>
-                <i class="fa-solid fa-microchip text-8xl absolute -right-4 -bottom-4 text-white/5 group-hover:rotate-12 transition-transform"></i>
-            </div>
-
-
-            <!-- GROUP 3: HẬU XỬ LÝ -->
-            <h2 class="group-header text-blue-400">
-                <i class="fa-solid fa-display"></i> <span>III. Hậu xử lý (Post-Processing)</span>
-            </h2>
-
-            <!-- 9. Recon (Highlighted - 2 Cols to balance row) -->
-            <div onclick="openModal('recon')" class="metro-tile col-span-1 md:col-span-2 bg-gradient-to-br from-cyan-800 to-blue-900 p-5 rounded-xl cursor-pointer group">
-                <div class="flex justify-between items-start">
-                    <div class="flex items-center gap-3">
-                        <i class="fa-solid fa-layer-group text-3xl text-cyan-300"></i>
-                        <span class="text-2xl font-bold text-white">Tái tạo Ảnh</span>
-                    </div>
-                    <span class="bg-black/20 text-[10px] px-2 py-1 rounded font-mono text-cyan-200">Process</span>
-                </div>
-                <div>
-                    <p class="text-sm text-cyan-200 mt-2">Chọn pha tối ưu (Best Phase), Kernel, Độ dày lát cắt & Chỉnh sửa ECG (Editing).</p>
-                </div>
-            </div>
-
-            <!-- 10. CAD-RADS -->
-            <div onclick="openModal('cadrads')" class="metro-tile bg-gradient-to-br from-purple-800 to-fuchsia-900 p-5 rounded-xl cursor-pointer group border-r-4 border-purple-500">
-                <div class="flex justify-between items-start">
-                    <i class="fa-solid fa-file-medical-alt text-3xl text-purple-300"></i>
-                    <span class="bg-black/20 text-[10px] px-2 py-1 rounded font-mono text-purple-200">Report</span>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-white mb-1">Báo cáo (PACS)</h3>
-                    <p class="text-xs text-purple-200">CAD-RADS 2.0 & MPR/CPR.</p>
-                </div>
-            </div>
-
-            <!-- 11. Anatomy -->
-            <div onclick="openModal('anatomy')" class="metro-tile bg-gradient-to-br from-red-900 to-red-950 p-5 rounded-xl cursor-pointer group">
-                <div class="flex justify-between items-start">
-                    <i class="fa-solid fa-heart text-3xl text-red-400"></i>
-                    <span class="bg-black/20 text-[10px] px-2 py-1 rounded font-mono text-red-200">Ref</span>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-white mb-1">Giải phẫu</h3>
-                    <p class="text-xs text-red-200">LAD, LCX, RCA & Segments.</p>
-                </div>
-            </div>
-
-        </div>
-    </main>
-
-    <!-- FOOTER SECTION -->
-    <footer class="w-full bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-t border-white/10 text-gray-400 text-sm mt-10">
-        <div class="w-full max-w-[1400px] mx-auto px-6 py-12">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-                
-                <!-- Column 1: Info -->
-                <div class="space-y-4">
-                    <h4 class="text-white font-bold text-lg uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-heart-pulse text-cyan-400"></i> SCCT Guidelines
-                    </h4>
-                    <p class="leading-relaxed opacity-80">
-                        Công cụ tra cứu nhanh quy trình chụp cắt lớp vi tính mạch vành theo khuyến cáo của Hiệp hội Cắt lớp vi tính Tim mạch (SCCT).
-                    </p>
-                    <div class="pt-2">
-                        <span class="inline-block px-3 py-1 bg-white/5 rounded-full text-xs font-mono border border-white/10">Version 2.1 (2021 Update)</span>
-                    </div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Mật khẩu</label>
+                    <input type="password" id="authPassword" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••">
                 </div>
 
-                <!-- Column 2: Community -->
-                <div class="space-y-4">
-                    <h4 class="text-white font-bold text-lg uppercase tracking-wider">Kết nối</h4>
-                    <ul class="space-y-3">
-                        <li>
-                            <a href="http://vnrad.tech" class="hover:text-cyan-400 transition-colors flex items-center gap-2">
-                                <i class="fa-solid fa-globe"></i> Website VNRAD.TECH
-                            </a>
-                        </li>
-                        <li>
-                            <a href="https://www.facebook.com/share/g/1CDaBDFfjL/" class="hover:text-cyan-400 transition-colors flex items-center gap-2">
-                                <i class="fa-brands fa-facebook"></i> Cộng đồng KTV 3 Miền
-                            </a>
-                        </li>
-                    </ul>
-                    
-                    <!-- FEEDBACK BUTTON (Moved Here) -->
-                    <div class="pt-2">
-                        <button onclick="openModal('feedback')" class="w-full btn-pulse bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-orange-500/30 transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-2 text-base border-2 border-yellow-300/30">
-                            <i class="fa-solid fa-comment-dots"></i>
-                            <span>GÓP Ý ẨN DANH NGAY</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Column 3: Disclaimer -->
-                <div class="space-y-4">
-                    <h4 class="text-white font-bold text-lg uppercase tracking-wider text-yellow-500">
-                        <i class="fa-solid fa-triangle-exclamation"></i> Miễn trừ trách nhiệm
-                    </h4>
-                    <p class="text-xs leading-relaxed text-gray-500 bg-black/20 p-4 rounded-lg border border-white/5">
-                        Nội dung trên website này chỉ mang tính chất tham khảo hỗ trợ kỹ thuật viên và bác sĩ. Mọi quyết định lâm sàng và chỉ định kỹ thuật phải tuân theo quy trình chuẩn tại cơ sở y tế và đánh giá trực tiếp của bác sĩ chuyên khoa.
-                    </p>
-                </div>
-            </div>
-
-            <!-- Bottom Bar -->
-            <div class="border-t border-white/5 mt-10 pt-6 flex flex-col md:flex-row justify-between items-center text-xs opacity-60">
-                <p>&copy; 2024 VNRAD.TECH - Cộng đồng KTV Hình ảnh Y học. All rights reserved.</p>
-                <div class="flex gap-4 mt-2 md:mt-0">
-                    <span>Privacy Policy</span>
-                    <span>Terms of Use</span>
-                </div>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Modal Container -->
-    <div id="modalOverlay" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
-        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity opacity-0" id="modalBackdrop" onclick="closeModal()"></div>
-        
-        <div class="absolute inset-0 flex items-end md:items-center justify-center p-0 md:p-4 pointer-events-none">
-            <!-- Modal Card: Full width/bottom on mobile, Centered on Desktop -->
-            <div id="modalCard" class="glass-modal w-full md:max-w-4xl h-[90vh] md:h-[85vh] rounded-t-2xl md:rounded-2xl shadow-2xl transform translate-y-full md:translate-y-0 md:scale-95 opacity-0 transition-all duration-300 pointer-events-auto flex flex-col border-t md:border border-white/10">
-                
-                <!-- Modal Header -->
-                <div class="px-6 py-4 md:px-8 md:py-6 border-b border-white/10 flex justify-between items-center bg-white/5 sticky top-0 z-10 backdrop-blur-md">
-                    <div class="flex items-center gap-3 md:gap-4 pr-4">
-                        <div id="modalIcon" class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
-                            <i class="fa-solid fa-star text-base md:text-lg"></i>
-                        </div>
-                        <h2 id="modalTitle" class="text-xl md:text-3xl font-bold text-white line-clamp-1">Title Here</h2>
-                    </div>
-                    <button onclick="closeModal()" class="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-gray-300 hover:text-white hover:bg-red-500/80 transition-colors">
-                        <i class="fa-solid fa-xmark text-xl"></i>
+                <!-- Admin Login Option (Button) -->
+                <div class="pt-2 border-t border-slate-100">
+                    <button type="button" id="authAdminToggleBtn" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 text-sm">
+                        <i data-lucide="shield"></i> Đăng nhập quyền Quản trị (Admin)
                     </button>
+                    <div id="authAdminPinContainer" class="hidden mt-3 animate-in fade-in slide-in-from-top-1">
+                        <input type="password" id="authAdminPin" class="w-full px-4 py-3 border-2 border-amber-200 bg-amber-50 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-center font-bold tracking-widest placeholder:font-normal" placeholder="Nhập mã PIN Admin">
+                    </div>
                 </div>
+                
+                <button type="submit" id="authSubmitBtn" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2">
+                    <span>Đăng Nhập</span>
+                </button>
+            </form>
 
-                <!-- Modal Body - Increased default text size here -->
-                <div id="modalBody" class="p-5 md:p-8 overflow-y-auto custom-scroll text-gray-300 leading-relaxed text-base md:text-lg pb-10 md:pb-8">
-                    <!-- Content injected via JS -->
-                </div>
+            <div class="my-6 flex items-center gap-4">
+                <div class="h-px bg-slate-200 flex-1"></div>
+                <span class="text-xs text-slate-400 font-bold uppercase">Hoặc</span>
+                <div class="h-px bg-slate-200 flex-1"></div>
+            </div>
 
-                <!-- Modal Footer -->
-                <div class="px-6 py-4 bg-white/5 border-t border-white/10 text-xs text-gray-500 flex justify-between shrink-0 safe-pb">
-                    <span>Source: SCCT Guidelines 2016/2021</span>
-                    <span class="hidden md:inline font-mono">Press ESC to close</span>
-                </div>
+            <button id="googleLoginBtn" class="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-medium transition-all flex items-center justify-center gap-3 shadow-sm group">
+                <svg class="w-5 h-5 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                <span>Đăng nhập bằng Google</span>
+            </button>
+
+            <div class="mt-6 text-center text-sm border-t border-slate-100 pt-4">
+                <p id="authSwitchText">Chưa có tài khoản? <a href="#" id="authSwitchBtn" class="text-indigo-600 font-bold hover:underline">Đăng ký ngay</a></p>
             </div>
         </div>
     </div>
 
-    <!-- JavaScript Data -->
-    <script>
-        const guidelines = {
-            screening: {
-                title: "Sàng lọc & Chỉ định (Mục 4.1 - 4.2)",
-                icon: "fa-clipboard-check",
-                content: `
-                    <div class="space-y-6">
-                        <p class="text-gray-300">Quyết định chụp cần tuân theo hướng dẫn quốc gia và tiêu chí sử dụng phù hợp (AUC).</p>
+    <!-- CHANGE PASSWORD MODAL -->
+    <div id="changePassModal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 relative">
+            <button id="closePassModal" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Đổi Mật Khẩu</h3>
+            <form id="changePassForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Mật khẩu mới</label>
+                    <input type="password" id="newPassword" class="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-indigo-500" required minlength="6">
+                </div>
+                <button type="submit" class="w-full py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700">Lưu thay đổi</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Navbar with Gradient Style -->
+    <nav class="bg-gradient-to-r from-blue-900 via-indigo-800 to-purple-900 border-b border-white/10 sticky top-0 z-30 shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 backdrop-blur-md p-2 rounded-lg text-white border border-white/10 shadow-inner">
+                        <i data-lucide="layout-dashboard"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-white leading-none tracking-tight">Vietnam Multicenter DRL Study</h1>
+                        <p class="text-xs text-blue-200 font-medium mt-0.5 opacity-90">Hệ thống thu thập dữ liệu đa trung tâm</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <!-- User Menu (Hidden by default) -->
+                    <div id="userMenu" class="hidden flex items-center gap-3">
+                        <div class="text-right hidden md:block">
+                            <p id="userEmailDisplay" class="text-xs font-bold text-white">user@example.com</p>
+                            <p id="userRoleDisplay" class="text-[10px] text-blue-200 uppercase tracking-wider">Thành viên</p>
+                        </div>
                         
-                        <div class="grid md:grid-cols-2 gap-4 md:gap-6">
-                            <div class="bg-white/5 p-4 rounded border border-white/5">
-                                <strong class="text-red-400 block mb-2 flex items-center gap-2"><i class="fa-solid fa-ban"></i> Chống chỉ định</strong>
-                                <ul class="list-disc list-inside text-gray-400 space-y-1">
-                                    <li>Tiền sử dị ứng thuốc cản quang nặng.</li>
-                                    <li>Không thể phối hợp nín thở.</li>
-                                    <li>Huyết động không ổn định.</li>
-                                    <li>Suy thận (lưu ý eGFR).</li>
-                                </ul>
-                            </div>
-                            <div class="bg-white/5 p-4 rounded border border-white/5">
-                                <strong class="text-cyan-400 block mb-2 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation"></i> Lưu ý Đặc biệt</strong>
-                                <ul class="list-disc list-inside text-gray-400 space-y-1">
-                                    <li><strong>Thai kỳ:</strong> Cân nhắc kỹ. Iod qua sữa mẹ rất ít, không cần ngưng cho con bú.</li>
-                                    <li><strong>Béo phì:</strong> Xem xét giới hạn trọng lượng máy quét.</li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <!-- RECOMMENDATION BOX SECTION 4.7 -->
-                        <div class="rec-box">
-                            <div class="rec-title"><i class="fa-solid fa-star"></i> SCCT Recommendations (Mục 4.7)</div>
-                            <ul class="list-disc list-inside text-gray-300 space-y-2 text-sm md:text-base">
-                                <li>Quyết định chụp CLVT mạch vành phải được thực hiện bởi bác sĩ có chuyên môn.</li>
-                                <li>Chỉ thực hiện khi kết quả có tiềm năng ảnh hưởng đến việc điều trị hoặc tiên lượng.</li>
-                                <li><strong>Không thực hiện</strong> nếu có chống chỉ định (ví dụ: Suy thận), trừ khi lợi ích vượt trội rủi ro.</li>
-                                <li>Trong các tình huống chất lượng hình ảnh có nguy cơ không đạt (béo phì, loạn nhịp), cần cân nhắc lợi ích so với nguy cơ nhiễm xạ/nhiễm độc thận.</li>
-                                <li>Đường truyền tĩnh mạch phải đủ chuẩn cho áp lực và tốc độ cao.</li>
-                            </ul>
-                        </div>
-                    </div>
-                `
-            },
-            prep: {
-                title: "Chuẩn bị Bệnh nhân (Mục 4.3)",
-                icon: "fa-user-nurse",
-                content: `
-                    <div class="space-y-6">
-                        <ul class="space-y-4 text-gray-300">
-                            <li class="flex gap-3">
-                                <span class="bg-blue-500/20 text-blue-300 px-2 py-1 rounded text-sm font-bold h-fit whitespace-nowrap">ĂN UỐNG</span>
-                                <span>Nhịn ăn đặc 3-4 giờ. Uống nước lọc bình thường.</span>
-                            </li>
-                            <li class="flex gap-3">
-                                <span class="bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded text-sm font-bold h-fit whitespace-nowrap">CAFFEINE</span>
-                                <span>Kiêng 12 giờ trước chụp (Cafe, trà, nước tăng lực).</span>
-                            </li>
-                            <li class="flex gap-3">
-                                <span class="bg-purple-500/20 text-purple-300 px-2 py-1 rounded text-sm font-bold h-fit whitespace-nowrap">METFORMIN</span>
-                                <span>Cân nhắc ngưng 48h sau chụp ở bệnh nhân suy thận.</span>
-                            </li>
-                        </ul>
-
-                         <!-- RECOMMENDATION BOX SECTION 4.9 (BREATH HOLD PART) -->
-                        <div class="rec-box">
-                            <div class="rec-title"><i class="fa-solid fa-star"></i> SCCT Recommendations (Mục 4.9)</div>
-                            <ul class="list-disc list-inside text-gray-300 space-y-2 text-sm md:text-base">
-                                <li>Hướng dẫn nín thở (Breath-holding instructions) rõ ràng và <strong>tập nín thở</strong> (training) là bắt buộc trước khi chụp.</li>
-                                <li>Việc tập luyện giúp đảm bảo bệnh nhân không thực hiện nghiệm pháp Valsalva gây thay đổi nhịp tim.</li>
-                            </ul>
-                        </div>
-                    </div>
-                `
-            },
-            heartrate: {
-                title: "Kiểm soát Nhịp tim (Mục 4.8.1)",
-                icon: "fa-heart-pulse",
-                content: `
-                    <div class="space-y-4">
-                        <div class="bg-gray-800 p-4 rounded border-l-4 border-rose-500">
-                            <h5 class="text-white font-bold mb-2 text-lg">Beta-Blockers</h5>
-                            <p class="text-gray-400 mb-2">Metoprolol là lựa chọn hàng đầu.</p>
-                            <ul class="list-disc list-inside text-gray-300">
-                                <li>Oral: 50-100mg trước 1h.</li>
-                                <li>IV: 5mg mỗi 5 phút (Max 15-20mg).</li>
-                            </ul>
-                        </div>
-
-                        <!-- RECOMMENDATION BOX SECTION 4.9 -->
-                        <div class="rec-box">
-                            <div class="rec-title"><i class="fa-solid fa-star"></i> SCCT Recommendations (Mục 4.9)</div>
-                            <ul class="list-disc list-inside text-gray-300 space-y-2 text-sm md:text-base">
-                                <li>Cân nhắc sử dụng Beta-blocker dựa trên yếu tố máy quét và người bệnh.</li>
-                                <li>Nhịp tim mục tiêu cho chụp mạch vành thường là <strong>&le; 60 bpm</strong>.</li>
-                                <li>Tuy nhiên, tùy thuộc vào máy chụp (ví dụ: Dual Source, Wide detector), nhịp tim cao hơn có thể chấp nhận được.</li>
-                                <li>Cân nhắc dùng một liều thấp Beta-blocker uống ngay cả khi nhịp tim nghỉ thấp để giúp <strong>giảm biến thiên nhịp tim</strong> (Heart rate variability).</li>
-                            </ul>
-                        </div>
-                    </div>
-                `
-            },
-            nitro: {
-                title: "Nitroglycerin (Mục 4.8.2)",
-                icon: "fa-spray-can",
-                content: `
-                    <div class="space-y-4">
-                        <p class="text-gray-300">Giãn mạch vành, bắt buộc dùng để đánh giá đường kính lòng mạch.</p>
-                        <ul class="text-gray-300 list-disc list-inside">
-                            <li>Liều: 400-800 µg (xịt/ngậm).</li>
-                            <li>Thời điểm: 5 phút trước khi chụp.</li>
-                        </ul>
-                        <div class="bg-red-900/20 p-3 rounded border border-red-500/30 text-base">
-                            <strong>Chống chỉ định:</strong> Đã dùng thuốc rối loạn cương dương (Viagra/Cialis) trong 24-48h.
-                        </div>
-
-                        <!-- RECOMMENDATION BOX SECTION 4.9 -->
-                        <div class="rec-box">
-                            <div class="rec-title"><i class="fa-solid fa-star"></i> SCCT Recommendations (Mục 4.9)</div>
-                            <ul class="list-disc list-inside text-gray-300 space-y-2 text-sm md:text-base">
-                                <li>Sử dụng Nitroglycerin nên là <strong>quy trình mặc định</strong> (default protocol).</li>
-                                <li>Chỉ không dùng khi có chống chỉ định tuyệt đối (Huyết áp thấp, hẹp chủ khít, dùng thuốc PDE5).</li>
-                                <li>Quan trọng: Việc chụp chỉ nên bắt đầu <strong>5 phút sau khi dùng thuốc</strong> để đảm bảo hiệu quả giãn mạch tối đa.</li>
-                            </ul>
-                        </div>
-                    </div>
-                `
-            },
-            scan_protocol: {
-                title: "Mục 4.10 & 8: Tư thế, ECG & Giao thức Quét",
-                icon: "fa-bone",
-                content: `
-                    <div class="space-y-6">
-                        <!-- 4.10 Positioning & ECG -->
-                        <div class="bg-gray-800 p-4 rounded border-l-4 border-lime-500">
-                            <h4 class="text-lime-400 font-bold text-lg md:text-xl mb-2">4.10 Chuẩn bị Tư thế & ECG (Quan trọng cho KTV)</h4>
-                            <div class="grid md:grid-cols-2 gap-4 text-sm md:text-base">
-                                <div>
-                                    <strong class="text-white block mb-1">Tư thế bệnh nhân</strong>
-                                    <ul class="list-disc list-inside text-gray-400">
-                                        <li>Nằm ngửa, hai tay đưa cao quá đầu (thoải mái để tránh run tay gây nhiễu).</li>
-                                        <li><strong>Isocenter:</strong> Căn chỉnh tim vào đúng tâm máy (thường lệch trái nhẹ) để tối ưu độ phân giải không gian.</li>
-                                    </ul>
-                                </div>
-                                <div>
-                                    <strong class="text-white block mb-1">Dán điện cực ECG</strong>
-                                    <ul class="list-disc list-inside text-gray-400">
-                                        <li>Làm sạch da/cạo lông vùng dán để giảm trở kháng.</li>
-                                        <li>Tránh đặt điện cực lên vùng phổi hoặc cơ hoành di động nhiều.</li>
-                                        <li>Mục tiêu: Sóng R cao, rõ nét; Đường nền (baseline) phẳng.</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 8.1 Scout -->
-                        <div class="bg-lime-900/20 border border-lime-500/30 p-4 rounded">
-                            <h4 class="text-white font-bold text-lg md:text-xl mb-2">8.1 Hình ảnh định vị (Scout)</h4>
-                            <ul class="text-gray-400 list-disc list-inside space-y-1 text-sm md:text-base">
-                                <li><strong>Giới hạn trên:</strong> Chạc ba khí quản (Carina).</li>
-                                <li><strong>Giới hạn dưới:</strong> Đáy tim (vừa qua cơ hoành).</li>
-                                <li><strong>Chiều dài trung bình:</strong> 12 - 15 cm. Tránh quét quá dài gây tăng liều tia.</li>
-                            </ul>
+                        <!-- CLICKABLE DROPDOWN WRAPPER -->
+                        <div class="relative">
+                            <button id="userMenuBtn" class="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-colors focus:ring-2 focus:ring-white/50 focus:outline-none border border-white/10 shadow-sm">
+                                <i data-lucide="user" class="w-5 h-5 text-white"></i>
+                            </button>
                             
-                            <div class="mt-4 bg-yellow-500/10 p-3 rounded border border-yellow-500/20">
-                                <strong class="text-yellow-400 text-sm md:text-base uppercase flex items-center gap-2"><i class="fa-solid fa-exclamation-circle"></i> Lưu ý Ca Cầu Nối (CABG)</strong>
-                                <p class="text-sm md:text-base text-gray-300 mt-1">
-                                    Bắt buộc mở rộng trường chụp lên phía trên, lấy hết đỉnh phổi (ngang mức xương đòn) để khảo sát nguyên ủy của động mạch vú trong (LIMA/RIMA).
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- 8.2 Calcium Score -->
-                        <div class="bg-lime-900/20 border border-lime-500/30 p-4 rounded">
-                            <h4 class="text-white font-bold text-lg md:text-xl mb-2">8.2 Chụp Vôi hóa (CaScore)</h4>
-                            <ul class="text-gray-400 list-disc list-inside space-y-1 text-sm md:text-base">
-                                <li>Chế độ: Prospective Axial (Step-and-shoot).</li>
-                                <li>Thông số: 120 kVp, độ dày 2.5 - 3.0 mm.</li>
-                                <li>Lưu ý: Nếu điểm Agatston > 1000, cân nhắc lợi ích chụp CTA do nhiễu ảnh vôi hóa (blooming) sẽ rất nặng.</li>
-                            </ul>
-                        </div>
-                    </div>
-                `
-            },
-            contrast: {
-                title: "Thuốc cản quang & Timing (Mục 4.11 - 4.12)",
-                icon: "fa-syringe",
-                content: `
-                    <div class="space-y-6">
-                        <!-- Practical Tips for KTV (New Added) -->
-                        <div class="bg-indigo-500/20 p-4 rounded border-l-4 border-indigo-400">
-                            <h4 class="text-indigo-300 font-bold mb-2 uppercase text-sm tracking-wide">Mẹo thực hành cho KTV</h4>
-                            <ul class="list-disc list-inside text-gray-300 space-y-2 text-sm md:text-base">
-                                <li><strong>Vị trí đặt kim:</strong> Ưu tiên 100% <strong>Tay Phải</strong>. Tránh tay trái để loại bỏ xảo ảnh vắt ngang qua quai động mạch chủ từ tĩnh mạch vô danh.</li>
-                                <li><strong>Kích thước kim:</strong> Tối thiểu <strong>18G</strong> (màu xanh lá) hoặc 20G (màu hồng) ở vị trí nếp gấp khuỷu tay chịu áp lực cao.</li>
-                                <li><strong>Công thức tính thuốc (Tham khảo):</strong> <br>
-                                    <code class="bg-black/30 px-2 py-1 rounded text-indigo-200">Thể tích = (Thời gian chụp + 2s) x Tốc độ bơm</code>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <!-- 4.11 Timing Method -->
-                        <div>
-                            <h4 class="text-indigo-400 font-bold text-lg md:text-xl mb-2">4.11 Phương pháp bắt thuốc (Timing)</h4>
-                            <div class="grid md:grid-cols-2 gap-4 text-sm md:text-base">
-                                <div class="bg-indigo-900/20 p-3 rounded border border-indigo-500/20">
-                                    <strong class="text-white block mb-1">Test Bolus</strong>
-                                    <p class="text-gray-400">Tiêm một lượng nhỏ (10-20ml) thuốc + 50ml muối. Đo thời gian đỉnh quang tại động mạch chủ lên. Chính xác, kiểm tra được đường truyền, nhưng tốn thêm thuốc/tia.</p>
-                                </div>
-                                <div class="bg-indigo-900/20 p-3 rounded border border-indigo-500/20">
-                                    <strong class="text-white block mb-1">Bolus Tracking (Phổ biến)</strong>
-                                    <p class="text-gray-400">Theo dõi đậm độ thời gian thực tại ROI (Ascending Aorta). Tự động kích hoạt chụp khi đạt ngưỡng (vd: 150-180 HU). Tiện lợi và nhanh chóng.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 4.12 Contrast Injection -->
-                        <div>
-                            <h4 class="text-indigo-400 font-bold text-lg md:text-xl mb-2">4.12 Quy trình tiêm (Contrast Injection)</h4>
-                            <div class="grid grid-cols-3 gap-2 text-center mb-4">
-                                <div class="bg-indigo-900/30 p-2 rounded">
-                                    <div class="text-lg md:text-xl font-bold text-white">High</div>
-                                    <div class="text-xs md:text-sm text-gray-400">Iodine Conc.<br>(350-400 mgI)</div>
-                                </div>
-                                <div class="bg-indigo-900/30 p-2 rounded">
-                                    <div class="text-lg md:text-xl font-bold text-white">5-7</div>
-                                    <div class="text-xs md:text-sm text-gray-400">mL/s<br>Flow Rate</div>
-                                </div>
-                                <div class="bg-indigo-900/30 p-2 rounded">
-                                    <div class="text-lg md:text-xl font-bold text-white">50-120</div>
-                                    <div class="text-xs md:text-sm text-gray-400">mL<br>Total Vol</div>
-                                </div>
-                            </div>
-
-                            <ul class="space-y-3 text-gray-300 text-sm md:text-base">
-                                <li class="flex gap-3">
-                                    <span class="bg-indigo-500 w-6 h-6 rounded flex items-center justify-center text-sm font-bold shrink-0">1</span>
-                                    <span>
-                                        <strong>Loại thuốc:</strong> Nồng độ Iod cao (350-400 mgI/mL) để đạt độ tương phản động mạch tốt nhất.
-                                    </span>
-                                </li>
-                                <li class="flex gap-3">
-                                    <span class="bg-indigo-500 w-6 h-6 rounded flex items-center justify-center text-sm font-bold shrink-0">2</span>
-                                    <span>
-                                        <strong>Tốc độ dòng (Flow rate):</strong> Cao, thường từ <strong>5 - 7 mL/s</strong>. Cần tốc độ cao để thuốc tập trung đậm đặc trong thời gian ngắn.
-                                    </span>
-                                </li>
-                                <li class="flex gap-3">
-                                    <span class="bg-indigo-500 w-6 h-6 rounded flex items-center justify-center text-sm font-bold shrink-0">3</span>
-                                    <span>
-                                        <strong>Saline Chaser (Đuổi nước muối):</strong> Bắt buộc. Bơm 40-50mL NaCl ngay sau thuốc với cùng tốc độ.
-                                        <br><em class="text-sm text-gray-500">Tác dụng: Đẩy thuốc vào thất trái, rửa sạch thuốc ở thất phải (giảm xảo ảnh beam-hardening) và tiết kiệm thuốc.</em>
-                                    </span>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <!-- RECOMMENDATION BOX SECTION 4.12 -->
-                        <div class="rec-box">
-                            <div class="rec-title"><i class="fa-solid fa-star"></i> SCCT Recommendations (Mục 4.12)</div>
-                            <ul class="list-disc list-inside text-gray-300 space-y-2 text-sm md:text-base">
-                                <li>Ưu tiên thuốc cản quang nồng độ cao để đạt tương phản tốt nhất.</li>
-                                <li>Tổng thể tích thuốc dựa trên thời gian chụp (Scan duration), thường từ 50-120 cc.</li>
-                                <li>Máy bơm tiêm nòng đôi (Dual head power injectors) được ưu tiên hơn nòng đơn.</li>
-                                <li>Nên dùng giao thức tiêm 2 pha (Biphasic) hoặc 3 pha (Triphasic).</li>
-                                <li>Sử dụng <strong>Bolus Tracking</strong> hoặc <strong>Test Bolus</strong> đều chấp nhận được. Không khuyến cáo chụp theo thời gian cố định (Empiric timing).</li>
-                            </ul>
-                        </div>
-                    </div>
-                `
-            },
-            radiation: {
-                title: "An toàn Bức xạ & Che chắn (Mục 5 & 7)",
-                icon: "fa-radiation",
-                content: `
-                    <div class="space-y-6">
-                        <!-- Intro -->
-                        <p class="text-gray-300 text-sm md:text-base">Hiểu rõ các thông số vật lý là chìa khóa để cân bằng giữa chất lượng hình ảnh và liều tia xạ (Nguyên tắc ALARA).</p>
-
-                        <!-- 5.4 Tube Potential -->
-                        <div class="bg-yellow-900/20 border border-yellow-500/30 p-4 rounded">
-                            <h4 class="text-yellow-400 font-bold text-lg md:text-xl mb-2">5.4 Điện thế bóng (Tube Potential - kVp)</h4>
-                            <div class="flex gap-4">
-                                <div class="text-3xl text-yellow-500 hidden md:block"><i class="fa-solid fa-bolt"></i></div>
-                                <div class="space-y-2 text-sm md:text-base">
-                                    <p class="text-gray-300">SCCT khuyến cáo giảm kVp bất cứ khi nào có thể.</p>
-                                    <ul class="text-gray-400 list-disc list-inside">
-                                        <li><strong>120 kVp:</strong> Chỉ dùng cho BMI > 30 kg/m² hoặc > 100 kg.</li>
-                                        <li><strong>100 kVp:</strong> Khuyến cáo mạnh mẽ cho đa số bệnh nhân (BMI &le; 30). Giảm 30-50% liều tia.</li>
-                                        <li><strong>70-80 kVp:</strong> Cho người rất gầy (&le; 60 kg) hoặc trẻ em.</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 5.5 Tube Current -->
-                        <div class="bg-orange-900/20 border border-orange-500/30 p-4 rounded">
-                            <h4 class="text-orange-400 font-bold text-lg md:text-xl mb-2">5.5 - 5.7 Dòng điện & Điều biến (mAs)</h4>
-                            <div class="flex gap-4">
-                                <div class="text-3xl text-orange-500 hidden md:block"><i class="fa-solid fa-wave-square"></i></div>
-                                <div class="space-y-2 text-sm md:text-base">
-                                    <ul class="text-gray-400 list-disc list-inside">
-                                        <li>Không dùng mAs cố định. Điều chỉnh theo thể trạng.</li>
-                                        <li><strong>ECG-based modulation:</strong> Bắt buộc dùng khi chụp Retrospective. Giảm dòng điện xuống thấp (4-20%) ở thì tâm thu.</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 7. Shielding (Mục 7) -->
-                        <div class="bg-gray-700/50 p-4 rounded border-l-4 border-gray-400">
-                            <h4 class="text-white font-bold text-lg md:text-xl mb-2">7. Che chắn Bức xạ (Shielding)</h4>
-                            <p class="text-sm md:text-base text-gray-300">
-                                <strong>Lưu ý cho KTV:</strong> SCCT 2016 <strong>không khuyến cáo</strong> dùng tấm che chì/bismuth vùng ngực/tuyến vú thường quy vì gây nhiễu ảnh (xảo ảnh) và tăng nhiễu hạt (noise).<br>
-                                <em class="text-gray-400">Thay thế:</em> Sử dụng kỹ thuật dời mô vú (breast displacement) ra khỏi trường chụp nếu có thể.
-                            </p>
-                        </div>
-
-                        <!-- Recommendations Box -->
-                        <div class="rec-box">
-                            <div class="rec-title"><i class="fa-solid fa-star"></i> SCCT Recommendations (Mục 5)</div>
-                            <ul class="list-disc list-inside text-gray-300 space-y-2 text-sm md:text-base">
-                                <li><strong>Giảm kVp xuống 100 kVp</strong> là chiến lược hiệu quả nhất.</li>
-                                <li>Luôn bật chế độ <strong>Điều biến dòng theo ECG</strong> khi chụp Retrospective.</li>
-                                <li>Tận dụng <strong>Tái tạo lặp (IR)</strong> để giảm mAs mà không tăng nhiễu.</li>
-                            </ul>
-                        </div>
-                    </div>
-                `
-            },
-            acquisition: {
-                title: "Kỹ thuật & Chế độ chụp (Mục 6)",
-                icon: "fa-microchip",
-                content: `
-                    <div class="space-y-6">
-                        <p class="text-gray-300 text-sm md:text-base">Việc lựa chọn chế độ chụp quyết định trực tiếp đến chất lượng hình ảnh và liều tia xạ. Cần cân nhắc kỹ dựa trên nhịp tim và thể trạng bệnh nhân.</p>
-
-                        <!-- 6.1 Prospective -->
-                        <div class="bg-emerald-900/20 border border-emerald-500/30 p-4 rounded">
-                            <h4 class="text-emerald-400 font-bold text-lg md:text-xl mb-2">6.1 Chụp Axial kích hoạt theo ECG (Prospective Triggering)</h4>
-                            <div class="flex gap-4">
-                                <div class="text-3xl text-emerald-500 hidden md:block"><i class="fa-solid fa-bolt"></i></div>
-                                <div>
-                                    <p class="text-gray-300 mb-2"><em>Hay còn gọi là "Step-and-Shoot". Đây là chế độ mặc định được khuyến cáo.</em></p>
-                                    <ul class="text-gray-400 list-disc list-inside space-y-1 text-sm md:text-base">
-                                        <li><strong>Cơ chế:</strong> Bóng phát tia chỉ bật tại một pha định trước của chu chuyển tim (thường là tâm trương). Bàn chụp đứng yên khi phát tia.</li>
-                                        <li><strong>Ưu điểm:</strong> Giảm liều tia đáng kể (lên đến 90%) so với Retrospective.</li>
-                                        <li><strong>Kỹ thuật:</strong>
-                                            <ul class="list-[circle] list-inside ml-4 text-gray-500">
-                                                <li><em>Nhịp < 60 bpm:</em> Cửa sổ hẹp (mid-diastole).</li>
-                                                <li><em>Nhịp cao/biến thiên:</em> <strong class="text-emerald-400">Padding (Mở rộng cửa sổ)</strong>. KTV nên mở rộng thời gian phát tia (ví dụ: 30-80%) để thu thập thêm dữ liệu các pha khác, phòng ngừa trường hợp nhịp tim thay đổi bất ngờ trong lúc chụp.</li>
-                                            </ul>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 6.2 Retrospective -->
-                        <div class="bg-purple-900/20 border border-purple-500/30 p-4 rounded">
-                            <h4 class="text-purple-400 font-bold text-lg md:text-xl mb-2">6.2 Chụp Xoắn ốc có cổng ECG (Retrospective Gating)</h4>
-                            <div class="flex gap-4">
-                                <div class="text-3xl text-purple-500 hidden md:block"><i class="fa-solid fa-dna"></i></div>
-                                <div>
-                                    <p class="text-gray-300 mb-2"><em>Chế độ quét liên tục truyền thống.</em></p>
-                                    <ul class="text-gray-400 list-disc list-inside space-y-1 text-sm md:text-base">
-                                        <li><strong>Cơ chế:</strong> Phát tia liên tục và bàn di chuyển liên tục. Thu thập dữ liệu toàn bộ chu chuyển tim (Oversampling).</li>
-                                        <li><strong>Chỉ định:</strong>
-                                            <ul class="list-[circle] list-inside ml-4 text-gray-500">
-                                                <li>Nhịp tim không đều, loạn nhịp (Ngoại tâm thu, Rung nhĩ).</li>
-                                                <li>Nhịp tim rất cao mà Prospective không đáp ứng được.</li>
-                                                <li>Cần đánh giá chức năng tim (vận động thành tim, van tim).</li>
-                                            </ul>
-                                        </li>
-                                        <li><strong>Lưu ý:</strong> Bắt buộc dùng <em>Điều biến dòng theo ECG (ECG-based tube current modulation)</em> để giảm liều ở các pha không quan trọng.</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 6.3 High Pitch -->
-                        <div class="bg-blue-900/20 border border-blue-500/30 p-4 rounded">
-                            <h4 class="text-blue-400 font-bold text-lg md:text-xl mb-2">6.3 Chụp Xoắn ốc Pitch cao (High-Pitch Helical / Flash)</h4>
-                            <div class="flex gap-4">
-                                <div class="text-3xl text-blue-500 hidden md:block"><i class="fa-solid fa-forward-fast"></i></div>
-                                <div>
-                                    <p class="text-gray-300 mb-2"><em>Chế độ chụp siêu nhanh (chỉ có trên Dual Source CT).</em></p>
-                                    <ul class="text-gray-400 list-disc list-inside space-y-1 text-sm md:text-base">
-                                        <li><strong>Cơ chế:</strong> Bàn di chuyển rất nhanh (Pitch > 3.0). Quét toàn bộ tim trong một nhịp tim (thường là 60% R-R hoặc cuối tâm thu).</li>
-                                        <li><strong>Ưu điểm:</strong> Liều tia cực thấp (< 1 mSv). Không có xảo ảnh do chuyển động giữa các nhịp.</li>
-                                        <li><strong>Điều kiện:</strong> Nhịp tim phải rất ổn định và thấp (&le; 60 bpm). BMI < 30 kg/m².</li>
-                                        <li><strong>Nhược điểm:</strong> Chỉ có dữ liệu 1 pha duy nhất, không thể sửa lỗi nếu có chuyển động.</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- RECOMMENDATION BOX SECTION 6 -->
-                        <div class="rec-box">
-                            <div class="rec-title"><i class="fa-solid fa-star"></i> SCCT Recommendations (Mục 6)</div>
-                            <ul class="list-disc list-inside text-gray-300 space-y-2 text-sm md:text-base">
-                                <li><strong>Prospective Axial:</strong> Là lựa chọn ưu tiên hàng đầu (First choice) cho hầu hết bệnh nhân.</li>
-                                <li><strong>High-pitch Spiral:</strong> Nên cân nhắc cho bệnh nhân chọn lọc có nhịp tim ổn định &le; 60 bpm.</li>
-                                <li><strong>Retrospective Gating:</strong> Chỉ dùng khi nhịp tim không đều hoặc cần đánh giá chức năng thất/van tim.</li>
-                                <li>Với máy dò rộng (Wide-detector): Có thể chụp 1 nhịp (Single heartbeat) ở chế độ Prospective mà không cần di chuyển bàn (Step-and-shoot 1 step).</li>
-                            </ul>
-                        </div>
-                    </div>
-                `
-            },
-            recon: {
-                title: "Tái tạo & Hậu xử lý (Image Reconstruction)",
-                icon: "fa-layer-group",
-                content: `
-                    <div class="space-y-6">
-                        <div class="flex flex-col md:flex-row gap-6">
-                            <div class="flex-1 bg-cyan-900/20 border border-cyan-500/20 p-4 rounded">
-                                <h4 class="text-cyan-400 font-bold mb-2 text-lg">Chọn Pha (Cardiac Phase)</h4>
-                                <ul class="text-gray-300 space-y-2 text-sm md:text-base">
-                                    <li><strong>Nhịp thấp (<65 bpm):</strong> Tái tạo ở thì Tâm trương (Diastole), khoảng 70-80%.</li>
-                                    <li><strong>Nhịp cao (>65 bpm):</strong> Tái tạo ở thì Tâm thu (Systole), khoảng 30-40%.</li>
-                                </ul>
-                            </div>
-                            <div class="flex-1 bg-cyan-900/20 border border-cyan-500/20 p-4 rounded">
-                                <h4 class="text-cyan-400 font-bold mb-2 text-lg">Thông số Tái tạo</h4>
-                                <ul class="text-gray-300 space-y-2 text-sm md:text-base">
-                                    <li><strong>Độ dày lát cắt:</strong> Lý tưởng 0.5 - 0.6 mm.</li>
-                                    <li><strong>Increment:</strong> 50% độ dày.</li>
-                                    <li><strong>Kernel:</strong> Semi-sharp (Bình thường) hoặc Sharp (vôi hóa).</li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <!-- Stent Handling (New) -->
-                        <div class="bg-blue-900/30 border-l-4 border-blue-500 p-4 rounded">
-                            <h4 class="font-bold text-blue-300 mb-1 text-lg">Kỹ thuật với STENT mạch vành</h4>
-                            <p class="text-gray-300 text-sm md:text-base">Kim loại trong Stent gây nhiễu ảnh (Blooming artifact) làm lòng mạch trông hẹp hơn thực tế.</p>
-                            <ul class="list-disc list-inside text-gray-400 mt-2 text-sm md:text-base">
-                                <li>Bắt buộc sử dụng <strong>Sharp Kernel</strong> (Ví dụ: B46f, XCD...) để tăng độ phân giải không gian.</li>
-                                <li>Sử dụng cửa sổ rộng (Window width > 1500 HU) khi đọc phim để đánh giá lòng Stent.</li>
-                            </ul>
-                        </div>
-
-                        <!-- 10.9 ECG Editing & Troubleshooting -->
-                        <div class="bg-rose-900/20 border-l-4 border-rose-500 p-4 rounded text-base">
-                            <h4 class="font-bold text-rose-400 mb-2 text-lg">Xử lý sự cố (Troubleshooting)</h4>
-                            <ul class="list-disc list-inside text-gray-300 space-y-2 text-sm md:text-base">
-                                <li><strong>Chỉnh sửa ECG (ECG Editing):</strong> Xóa nhịp ngoại tâm thu (Ectopic beats) trên trạm làm việc nếu gây sai lệch pha chụp.</li>
-                                <li><strong>Motion Artifact (Nhòe):</strong> Do nhịp nhanh/thay đổi. -> Thử tái tạo các pha lân cận (cách nhau 5%) hoặc dùng Multi-segment.</li>
-                                <li><strong>Step Artifact (Lệch bậc thang):</strong> Do nín thở kém hoặc nhịp không đều. -> Dùng ECG Editing.</li>
-                            </ul>
-                        </div>
-                    </div>
-                `
-            },
-            cadrads: {
-                title: "Báo cáo & Giao thức Gửi ảnh (Reporting)",
-                icon: "fa-file-medical-alt",
-                content: `
-                    <div class="space-y-6">
-                        <!-- PACS Protocol -->
-                        <div class="bg-purple-900/20 border border-purple-500/30 p-4 rounded">
-                            <h4 class="text-purple-400 font-bold text-lg mb-2"><i class="fa-solid fa-server mr-2"></i>Giao thức Gửi ảnh (PACS)</h4>
-                            <p class="text-sm md:text-base text-gray-300 mb-2">Bộ dữ liệu tiêu chuẩn KTV cần chuẩn bị cho bác sĩ đọc:</p>
-                            <ul class="space-y-2 text-sm md:text-base text-gray-300">
-                                <li class="flex items-start gap-2"><i class="fa-solid fa-check text-green-500 mt-1"></i> <span><strong>Axial Thin:</strong> 0.6mm (hoặc 0.75mm), chồng lắp 50%. Đây là dữ liệu gốc quan trọng nhất để dựng hình.</span></li>
-                                <li class="flex items-start gap-2"><i class="fa-solid fa-check text-green-500 mt-1"></i> <span><strong>MPR (Multi-Planar):</strong> Axial, Coronal, Sagittal (dày 3mm) bao gồm toàn bộ lồng ngực để xem phổi/trung thất.</span></li>
-                                <li class="flex items-start gap-2"><i class="fa-solid fa-check text-green-500 mt-1"></i> <span><strong>CPR (Curved Planar):</strong> Duỗi thẳng 3 nhánh chính (RCA, LAD, LCX).</span></li>
-                                <li class="flex items-start gap-2"><i class="fa-solid fa-check text-green-500 mt-1"></i> <span><strong>VRT (3D):</strong> Cây mạch vành xoay các góc (tùy chọn, phục vụ lâm sàng).</span></li>
-                            </ul>
-                        </div>
-
-                        <!-- CAD-RADS Summary -->
-                        <div class="bg-gray-800 p-4 rounded border-l-4 border-gray-600">
-                            <h4 class="text-white font-bold text-lg mb-2">Tham khảo: Thang điểm CAD-RADS™ 2.0</h4>
-                            <p class="text-xs text-gray-400 mb-2">Giúp KTV hiểu mức độ hẹp để ưu tiên dựng hình kỹ các nhánh tổn thương.</p>
-                            <div class="space-y-1 text-sm md:text-base">
-                                <div class="flex justify-between border-b border-white/5 py-1"><span class="text-green-400 font-bold">CAD-RADS 0</span> <span class="text-gray-400">Không hẹp (0%)</span></div>
-                                <div class="flex justify-between border-b border-white/5 py-1"><span class="text-green-200 font-bold">CAD-RADS 1</span> <span class="text-gray-400">Hẹp rất nhẹ (1-24%)</span></div>
-                                <div class="flex justify-between border-b border-white/5 py-1"><span class="text-yellow-400 font-bold">CAD-RADS 2</span> <span class="text-gray-400">Hẹp nhẹ (25-49%)</span></div>
-                                <div class="flex justify-between border-b border-white/5 py-1"><span class="text-orange-400 font-bold">CAD-RADS 3</span> <span class="text-gray-400">Hẹp vừa (50-69%)</span></div>
-                                <div class="flex justify-between border-b border-white/5 py-1"><span class="text-red-400 font-bold">CAD-RADS 4</span> <span class="text-gray-400">Hẹp nặng (70-99%)</span></div>
-                                <div class="flex justify-between py-1"><span class="text-purple-400 font-bold">CAD-RADS 5</span> <span class="text-gray-400">Tắc hoàn toàn (100%)</span></div>
-                            </div>
-                            <div class="mt-3 text-xs md:text-sm text-gray-500">
-                                *Modifiers: <strong>S</strong> (Stent), <strong>G</strong> (Graft/Cầu nối), <strong>V</strong> (Mảng xơ vữa nguy cơ cao).
+                            <!-- Dropdown -->
+                            <div id="userDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden hidden z-50 text-slate-800">
+                                <a href="#" id="toggleAdminBtn" class="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 border-b border-slate-50">
+                                    <i data-lucide="lock" class="w-4 h-4 text-slate-400"></i>
+                                    <span id="adminBtnText">Bật Quyền Admin</span>
+                                </a>
+                                <a href="#" id="openChangePassBtn" class="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                                    <i data-lucide="key" class="w-4 h-4"></i>
+                                    Đổi mật khẩu
+                                </a>
+                                <a href="#" id="logoutBtn" class="block px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                                    Đăng xuất
+                                </a>
                             </div>
                         </div>
                     </div>
-                `
-            },
-            anatomy: {
-                title: "Giải phẫu Mạch vành (Coronary Anatomy)",
-                icon: "fa-heart",
-                content: `
-                    <div class="space-y-6">
-                        <p class="text-gray-300 text-sm md:text-base">Kiến thức giải phẫu giúp KTV định hướng đúng khi duỗi hình (CPR) và không bỏ sót nhánh phụ.</p>
 
-                        <div class="grid md:grid-cols-2 gap-4">
-                            <!-- LCA -->
-                            <div class="bg-red-900/20 border border-red-500/30 p-4 rounded">
-                                <h4 class="text-red-400 font-bold text-lg mb-2">Hệ thống Vành Trái (LCA)</h4>
-                                <ul class="space-y-2 text-sm md:text-base text-gray-300">
-                                    <li><strong>LM (Left Main):</strong> Thân chung. Tách ra từ xoang vành trái.</li>
-                                    <li><strong>LAD (Liên thất trước):</strong> Chạy trong rãnh liên thất trước về phía mỏm tim.
-                                        <ul class="list-disc list-inside ml-4 text-gray-400 text-xs md:text-sm">
-                                            <li>Nhánh chéo (Diagonal - D1, D2).</li>
-                                            <li>Nhánh vách (Septal - S1, S2).</li>
-                                        </ul>
-                                    </li>
-                                    <li><strong>LCX (Mũ):</strong> Chạy trong rãnh nhĩ thất trái ra phía sau.
-                                        <ul class="list-disc list-inside ml-4 text-gray-400 text-xs md:text-sm">
-                                            <li>Nhánh bờ (Obtuse Marginal - OM1, OM2).</li>
-                                        </ul>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <!-- RCA -->
-                            <div class="bg-red-900/20 border border-red-500/30 p-4 rounded">
-                                <h4 class="text-red-400 font-bold text-lg mb-2">Hệ thống Vành Phải (RCA)</h4>
-                                <ul class="space-y-2 text-sm md:text-base text-gray-300">
-                                    <li><strong>RCA (Vành phải):</strong> Chạy trong rãnh nhĩ thất phải vòng ra sau.</li>
-                                    <li><strong>PDA (Xuống sau):</strong> Nhánh quyết định ưu thế mạch vành (thường xuất phát từ RCA - 85%).</li>
-                                    <li><strong>PLV (Sau bên):</strong> Nhánh tận của RCA.</li>
-                                    <li class="mt-2 pt-2 border-t border-white/10 text-xs text-gray-400">
-                                        <em>Mẹo:</em> RCA thường có hình dạng chữ "C" trên mặt phẳng Axial và Sagittal.
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
+                    <!-- Login Button (Visible when logged out) -->
+                    <button id="navLoginBtn" class="hidden px-4 py-2 bg-white text-indigo-700 text-sm font-bold rounded-lg hover:bg-blue-50 transition-colors shadow-sm">
+                        Đăng nhập
+                    </button>
+                    
+                    <!-- Connection Status -->
+                    <div id="connectionStatus" class="flex items-center gap-2 px-3 py-1.5 bg-black/20 backdrop-blur rounded-full text-xs font-medium text-white/70 border border-white/10 transition-colors ml-2">
+                        <i data-lucide="wifi" class="w-3 h-3 text-white/50"></i>
+                        <span>Kết nối...</span>
                     </div>
-                `
-            },
-            feedback: {
-                title: "Góp ý & Phản hồi Ẩn danh",
-                icon: "fa-comments",
-                content: `
-                    <div class="space-y-6">
-                        <div class="bg-cyan-900/20 border border-cyan-500/30 p-4 rounded-lg">
-                            <p class="text-gray-300 text-sm md:text-base mb-4">
-                                Chúng tôi luôn mong muốn nhận được ý kiến đóng góp từ cộng đồng KTV để hoàn thiện website này. Mọi thông tin bạn gửi đều được <strong>bảo mật và ẩn danh</strong>.
-                            </p>
-                            
-                            <form id="feedbackForm" onsubmit="handleFeedback(event)" class="space-y-4">
-                                <div>
-                                    <label class="block text-cyan-400 text-sm font-bold mb-2">Chủ đề góp ý</label>
-                                    <!-- Added name attribute -->
-                                    <select name="topic" id="feedbackType" class="w-full bg-black/40 text-white border border-white/10 rounded p-2 text-sm focus:outline-none focus:border-cyan-500 transition-colors">
-                                        <option value="Báo lỗi">Báo lỗi nội dung/kỹ thuật</option>
-                                        <option value="Đề xuất">Đề xuất tính năng mới</option>
-                                        <option value="Chia sẻ">Chia sẻ kinh nghiệm/Mẹo hay</option>
-                                        <option value="Khác">Khác</option>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Toast Notification -->
+        <div id="toast" class="fixed top-20 right-6 px-6 py-4 rounded-xl shadow-2xl text-white z-50 flex items-center gap-3 transition-all duration-300 transform translate-x-full opacity-0 pointer-events-none">
+            <span id="toastIcon"></span>
+            <span id="toastMessage" class="font-medium"></span>
+        </div>
+
+        <div class="grid grid-cols-12 gap-8">
+            
+            <!-- LEFT COLUMN: INPUT FORM -->
+            <div class="col-span-12 lg:col-span-4 space-y-6">
+                <div id="formContainer" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden sticky top-24 transition-all duration-300">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                        <h2 id="formTitle" class="font-semibold text-slate-800 flex items-center gap-2">
+                            <i data-lucide="plus-circle" class="text-indigo-600 w-5 h-5"></i>
+                            Nhập Dữ Liệu Mới
+                        </h2>
+                        <span class="text-xs font-mono text-slate-400">#ENTRY</span>
+                    </div>
+                    
+                    <form id="drlForm" class="p-6 space-y-5 relative">
+                        <!-- Lock overlay if not logged in -->
+                        <!-- NOTE: Removed lock overlay for guest access -->
+                        <div id="formLockOverlay" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center text-center p-6 hidden">
+                            <i data-lucide="lock" class="w-10 h-10 text-slate-400 mb-2"></i>
+                            <p class="text-sm font-medium text-slate-600">Vui lòng đăng nhập để nhập liệu</p>
+                        </div>
+
+                        <!-- Hidden field to store editing ID -->
+                        <input type="hidden" id="editEntryId" value="">
+
+                        <!-- Facility Info -->
+                        <div class="space-y-4">
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <i data-lucide="hospital" class="w-3 h-3"></i> Cơ sở & Thiết bị
+                            </label>
+                            <div class="grid grid-cols-1 gap-4">
+                                <!-- Hospital Selection Logic -->
+                                <div class="flex flex-col gap-2">
+                                    <select id="hospitalSelect" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+                                        <option value="" disabled selected>-- Chọn Bệnh viện --</option>
+                                        <!-- Options populated by JS -->
+                                        <option value="other" class="font-bold text-indigo-600">➕ Bệnh viện khác (Nhập mới)</option>
+                                    </select>
+                                    <input type="text" id="customHospitalName" placeholder="Nhập tên bệnh viện mới..." 
+                                        class="hidden w-full px-4 py-2.5 bg-white border-2 border-indigo-100 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-400 animate-in fade-in slide-in-from-top-1">
+                                </div>
+
+                                <!-- Manufacturer & Slice Count Row -->
+                                <div class="grid grid-cols-2 gap-3">
+                                    <select id="manufacturer" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                        <option value="" disabled selected>Hãng máy</option>
+                                        <!-- Populated by JS -->
+                                    </select>
+                                    <select id="sliceCount" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                        <option value="" disabled selected>Số lát</option>
+                                        <!-- Populated by JS -->
                                     </select>
                                 </div>
-                                
-                                <div>
-                                    <label class="block text-cyan-400 text-sm font-bold mb-2">Nội dung</label>
-                                    <!-- Added name attribute -->
-                                    <textarea name="message" id="feedbackContent" rows="5" class="w-full bg-black/40 text-white border border-white/10 rounded p-3 text-sm focus:outline-none focus:border-cyan-500 transition-colors placeholder-gray-600" placeholder="Nhập nội dung góp ý của bạn tại đây..."></textarea>
+
+                                <!-- AEC Mode Radio Buttons -->
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Chế độ kiểm soát liều (AEC)</label>
+                                    <div class="flex gap-4">
+                                        <label class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors has-[:checked]:bg-indigo-50 has-[:checked]:border-indigo-200 has-[:checked]:text-indigo-700">
+                                            <input type="radio" name="aecMode" value="Có dùng AEC" class="accent-indigo-600" required>
+                                            <span class="text-sm font-medium">Có</span>
+                                        </label>
+                                        <label class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors has-[:checked]:bg-indigo-50 has-[:checked]:border-indigo-200 has-[:checked]:text-indigo-700">
+                                            <input type="radio" name="aecMode" value="Không dùng AEC" class="accent-indigo-600">
+                                            <span class="text-sm font-medium">Không</span>
+                                        </label>
+                                    </div>
                                 </div>
 
-                                <button type="submit" class="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 rounded-lg shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-2">
-                                    <i class="fa-solid fa-paper-plane"></i> Gửi Góp ý
-                                </button>
-                            </form>
+                                <select id="province" class="hidden"><option value="Hà Nội">Hà Nội</option></select>
+                            </div>
+                        </div>
+
+                        <hr class="border-dashed border-slate-200">
+
+                        <!-- Patient Info -->
+                        <div class="space-y-4">
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <i data-lucide="user" class="w-3 h-3"></i> Bệnh nhân & Protocol
+                            </label>
+                            
+                            <select id="protocol" class="w-full px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-sm font-medium text-indigo-900 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <!-- Options populated by JS -->
+                            </select>
+
+                            <!-- Patient ID Row -->
+                            <div>
+                                <input type="text" id="patientId" placeholder="ID Bệnh nhân"
+                                    class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+
+                            <!-- Birth Year / Age / Gender Row -->
+                            <div class="grid grid-cols-3 gap-3">
+                                <input type="number" id="birthYear" placeholder="Năm sinh"
+                                    class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-center">
+                                <input type="number" id="age" placeholder="Tuổi"
+                                    class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-center bg-slate-100">
+                                
+                                <select id="gender" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                    <option value="M">Nam</option>
+                                    <option value="F">Nữ</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Anthropometrics: Weight Only (with Warning) -->
+                            <div class="grid grid-cols-1 gap-3">
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                        <i data-lucide="scale" class="w-3 h-3"></i>
+                                    </div>
+                                    <input type="number" id="weight" placeholder="Cân nặng (kg)"
+                                        class="w-full pl-8 pr-2 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                </div>
+                            </div>
+                            
+                            <!-- Warning Message for Non-Standard Weight -->
+                            <div id="weightAlert" class="hidden text-[10px] text-amber-600 bg-amber-50 p-2 rounded border border-amber-100 flex items-center gap-1.5 transition-all">
+                                <i data-lucide="alert-circle" class="w-3 h-3 shrink-0"></i>
+                                <span>Cân nặng ngoài chuẩn (60-80kg). Lưu ý: DRL thường tính trên người lớn chuẩn.</span>
+                            </div>
+
+                            <!-- Scan Date (Moved Here) -->
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Ngày chụp</label>
+                                <input type="date" id="scanDate"
+                                    class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+
+                        <hr class="border-dashed border-slate-200">
+
+                        <!-- Dose Info -->
+                        <div class="space-y-4">
+                            <label class="text-xs font-bold text-amber-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <i data-lucide="zap" class="w-3 h-3"></i> Chỉ số Liều
+                            </label>
+                            
+                            <!-- Parameters moved up (ScanDate moved out) -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <select id="kVp" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                                    <option value="120" selected>120 kV</option>
+                                    <option value="140">140 kV</option>
+                                    <option value="100">100 kV</option>
+                                    <option value="80">80 kV</option>
+                                </select>
+                                <input type="number" id="mAs" placeholder="mAs"
+                                    class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                            </div>
+                            
+                            <!-- Phantom Type: REMOVED -->
+
+                            <!-- CTDI/DLP moved down and highlighted -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-xs text-amber-700 font-bold ml-1">CTDIvol (mGy)</label>
+                                    <input type="number" step="0.01" id="ctdi" placeholder="0.00" required
+                                        class="w-full px-4 py-3 bg-amber-50 border-2 border-amber-300 rounded-xl text-xl font-bold text-slate-800 focus:border-amber-500 focus:ring-0 outline-none transition-colors font-mono shadow-sm">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs text-amber-700 font-bold ml-1">DLP (mGy.cm)</label>
+                                    <input type="number" step="0.1" id="dlp" placeholder="0.0" required
+                                        class="w-full px-4 py-3 bg-amber-50 border-2 border-amber-300 rounded-xl text-xl font-bold text-slate-800 focus:border-amber-500 focus:ring-0 outline-none transition-colors font-mono shadow-sm">
+                                </div>
+                            </div>
+                            <!-- Alert Message -->
+                            <div id="doseAlert" class="hidden p-2 bg-red-100 text-red-700 text-xs rounded-lg border border-red-200 flex items-center gap-2">
+                                <i data-lucide="alert-triangle" class="w-4 h-4"></i> <span id="doseAlertMsg">Cảnh báo</span>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                             <button type="button" id="cancelEditBtn" class="hidden w-1/3 py-3.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-semibold transition-all">
+                                Hủy
+                            </button>
+                            <button type="submit" id="submitBtn"
+                                class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-lg shadow-indigo-200 active:transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                                <i data-lucide="save" class="w-4 h-4"></i>
+                                <span>Lưu vào Database</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: DASHBOARD -->
+            <div class="col-span-12 lg:col-span-8 space-y-6">
+                
+                <!-- FILTER PANEL -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="bg-indigo-50 p-1.5 rounded text-indigo-600">
+                            <i data-lucide="filter" class="w-4 h-4"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wide">Bộ Lọc Dữ Liệu</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- Filter Hospital -->
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-slate-500">Bệnh viện</label>
+                            <select id="filterHospital" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="all">Tất cả Bệnh viện</option>
+                                <!-- Populated via JS -->
+                            </select>
+                        </div>
+
+                        <!-- Filter Protocol -->
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-slate-500">Bộ phận / Protocol</label>
+                            <select id="filterProtocol" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="all">Tất cả Protocol</option>
+                                <!-- Populated via JS -->
+                            </select>
+                        </div>
+
+                        <!-- Filter CTDI Range -->
+                        <div class="space-y-1 sm:col-span-2">
+                            <label class="text-xs font-medium text-slate-500">Khoảng CTDI (mGy)</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="filterCtdiMin" placeholder="Min" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <span class="text-slate-300">-</span>
+                                <input type="number" id="filterCtdiMax" placeholder="Max" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
                         </div>
                         
-                        <div class="text-center text-xs text-gray-500">
-                            *Cảm ơn bạn đã đóng góp cho cộng đồng KTV VNRAD.
+                        <div class="sm:col-span-4 flex items-center gap-2">
+                             <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="filterStandardPatient" class="accent-indigo-600 w-4 h-4">
+                                <span class="text-xs font-medium text-slate-600">Chỉ BN chuẩn (60-80kg)</span>
+                            </label>
                         </div>
                     </div>
-                `
+                    
+                    <div class="flex justify-end mt-4 pt-3 border-t border-slate-50">
+                        <button id="resetFilters" class="text-xs text-slate-400 hover:text-indigo-600 font-medium flex items-center gap-1 transition-colors">
+                            <i data-lucide="refresh-ccw" class="w-3 h-3"></i> Xóa bộ lọc
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Total Card -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between h-36 relative overflow-hidden">
+                        <div class="relative z-10">
+                            <p class="text-slate-500 text-sm font-medium">Tổng mẫu (Sau lọc)</p>
+                            <h3 id="statTotal" class="text-4xl font-bold text-slate-800 mt-2">...</h3>
+                        </div>
+                        <div class="relative z-10 flex items-center gap-1 text-xs text-indigo-600 font-medium bg-indigo-50 w-fit px-2 py-1 rounded-full">
+                            <i data-lucide="database" class="w-3 h-3"></i>
+                            <span id="statLabel">Showing All</span>
+                        </div>
+                    </div>
+
+                    <!-- CTDI Card -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-blue-300 transition-colors">
+                        <div class="absolute top-0 right-0 p-4 opacity-10">
+                            <i data-lucide="activity" class="text-blue-600 w-16 h-16"></i>
+                        </div>
+                        <div>
+                            <p class="text-blue-900 text-sm font-bold uppercase tracking-wider">CTDIvol (mGy)</p>
+                            <div class="mt-3 flex items-end gap-2">
+                                <div>
+                                    <span class="text-xs text-slate-400 font-medium uppercase">DRL (75th)</span>
+                                    <div class="flex items-baseline gap-2">
+                                        <h3 id="statCtdi75" class="text-3xl font-bold text-blue-600 leading-none">...</h3>
+                                        <span id="statRefCtdi75" class="text-xs text-slate-400 font-medium hidden"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pt-2 border-t border-slate-100 flex justify-between items-center">
+                            <span class="text-xs text-slate-500">Median (50th)</span>
+                            <span id="statCtdiMedian" class="text-sm font-semibold text-slate-700">...</span>
+                        </div>
+                    </div>
+
+                    <!-- DLP Card -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between h-36 relative overflow-hidden group hover:border-amber-300 transition-colors">
+                        <div class="absolute top-0 right-0 p-4 opacity-10">
+                            <i data-lucide="zap" class="text-amber-600 w-16 h-16"></i>
+                        </div>
+                        <div>
+                            <p class="text-amber-900 text-sm font-bold uppercase tracking-wider">DLP (mGy.cm)</p>
+                            <div class="mt-3 flex items-end gap-2">
+                                <div>
+                                    <span class="text-xs text-slate-400 font-medium uppercase">DRL (75th)</span>
+                                    <div class="flex items-baseline gap-2">
+                                        <h3 id="statDlp75" class="text-3xl font-bold text-amber-600 leading-none">...</h3>
+                                        <span id="statRefDlp75" class="text-xs text-slate-400 font-medium hidden"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pt-2 border-t border-slate-100 flex justify-between items-center">
+                            <span class="text-xs text-slate-500">Median (50th)</span>
+                            <span id="statDlpMedian" class="text-sm font-semibold text-slate-700">...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CHARTS SECTION -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="flex items-center gap-3">
+                                <i data-lucide="bar-chart-2" class="w-5 h-5 text-blue-600"></i>
+                                <h3 class="font-bold text-slate-800 text-sm">CTDIvol (75th & 50th)</h3>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <select id="ctdiViewMode" class="text-xs border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none">
+                                    <option value="hospital">Theo Bệnh viện</option>
+                                    <option value="manufacturer">Theo Hãng máy</option>
+                                    <option value="sliceCount">Theo Số lát</option>
+                                    <option value="gender">Theo Giới tính</option>
+                                </select>
+                                <button onclick="downloadChart('ctdiChart')" class="text-slate-400 hover:text-blue-600 transition-colors p-1" title="Tải ảnh">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="h-80 w-full">
+                            <canvas id="ctdiChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="flex items-center gap-3">
+                                <i data-lucide="bar-chart-2" class="w-5 h-5 text-amber-600"></i>
+                                <h3 class="font-bold text-slate-800 text-sm">DLP (75th & 50th)</h3>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <select id="dlpViewMode" class="text-xs border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none">
+                                    <option value="hospital">Theo Bệnh viện</option>
+                                    <option value="manufacturer">Theo Hãng máy</option>
+                                    <option value="sliceCount">Theo Số lát</option>
+                                    <option value="gender">Theo Giới tính</option>
+                                </select>
+                                <button onclick="downloadChart('dlpChart')" class="text-slate-400 hover:text-amber-600 transition-colors p-1" title="Tải ảnh">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="h-80 w-full">
+                            <canvas id="dlpChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table & Export -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[500px] overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-20">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-indigo-50 p-2 rounded-lg text-indigo-600">
+                                <i data-lucide="cloud" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-slate-800">Dữ liệu trực tuyến</h3>
+                                <p class="text-xs text-slate-400 hidden sm:block">Kết quả lọc & tính toán</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button id="btnExportCsv" disabled class="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                                CSV
+                            </button>
+                            <button id="btnExportExcel" disabled class="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                                <i data-lucide="table" class="w-3.5 h-3.5"></i>
+                                Excel (.xlsx)
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-auto bg-slate-50/30 relative">
+                        <!-- Loader -->
+                        <div id="tableLoader" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 z-10">
+                            <div class="loader"></div>
+                        </div>
+                        
+                        <!-- Empty State -->
+                        <div id="emptyState" class="hidden flex flex-col items-center justify-center h-full text-slate-400">
+                            <i data-lucide="filter-x" class="w-12 h-12 opacity-20 mb-3"></i>
+                            <p>Không tìm thấy dữ liệu phù hợp.</p>
+                        </div>
+
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50/80 backdrop-blur sticky top-0 z-10 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                <tr>
+                                    <th class="px-6 py-4">Cơ sở</th>
+                                    <th class="px-6 py-4">Máy / Số Lát</th>
+                                    <th class="px-6 py-4">Protocol</th>
+                                    <th class="px-6 py-4">CTDIvol</th>
+                                    <th class="px-6 py-4">DLP</th>
+                                    <th class="px-6 py-4 text-right">Ngày</th>
+                                    <th class="px-6 py-4"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="dataTableBody" class="divide-y divide-slate-100 bg-white">
+                                <!-- Rows injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updatePassword, GoogleAuthProvider, signInWithPopup, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // --- CONSTANTS ---
+        const MANUFACTURERS = [
+            "GE HealthCare",
+            "Siemens Healthineers",
+            "Philips Healthcare",
+            "Canon Medical Systems (Toshiba)",
+            "Fujifilm (Hitachi)",
+            "Neusoft",
+            "United Imaging"
+        ];
+
+        const SLICE_COUNTS = [
+            "16 - 32 lát",
+            "64 - 128 lát",
+            "256 - 512 lát",
+            "Máy 2 bóng (Dual Source)"
+        ];
+
+        const INITIAL_HOSPITALS = [
+            "Bệnh viện đa khoa tỉnh Quảng Ninh",
+            "Bệnh viện đa khoa tỉnh Bắc Ninh",
+            "Bệnh viện hữu nghị Việt Tiệp",
+            "Bệnh viện 30 - 04, Bộ Công An",
+            "Bệnh viện Gia An 115"
+        ];
+        
+        let availableHospitals = [...INITIAL_HOSPITALS];
+
+        const ACR_PROTOCOLS = [
+            { id: 'ct_head', name: 'Sọ não (Head)', modality: 'CT' },
+            { id: 'ct_chest', name: 'Ngực không thuốc (Chest)', modality: 'CT' },
+            { id: 'ct_chest_contrast', name: 'Ngực có thuốc (Chest CE)', modality: 'CT' },
+            { id: 'ct_abd_non_contrast', name: 'Bụng không thuốc (Abdomen)', modality: 'CT' },
+            { id: 'ct_abd_contrast', name: 'Bụng có thuốc (Abdoment CE)', modality: 'CT' },
+            { id: 'ct_coronary', name: 'Mạch vành (Coronary)', modality: 'CT' },
+            { id: 'ct_lower_extremity', name: 'Mạch máu chi dưới (Lower Extremity)', modality: 'CT' },
+            { id: 'ct_ldct', name: 'Phổi liều thấp (LDCT)', modality: 'CT' }
+        ];
+
+        // --- FIREBASE CONFIG ---
+        let firebaseConfig;
+        let appId = 'default-app-id';
+        let customToken = null;
+        let isLocal = false; // Flag for standalone mode
+
+        try {
+            if (typeof __firebase_config !== 'undefined') {
+                firebaseConfig = JSON.parse(__firebase_config);
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                customToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+            } else {
+                 // LOCAL CONFIG - THIS IS KEY
+                 isLocal = true;
+                 firebaseConfig = {
+                    apiKey: "AIzaSyAtQdmDbA1BgOrvwevrG6gwuFzlUmBTbfY",
+                    authDomain: "wb-idr.firebaseapp.com",
+                    projectId: "wb-idr",
+                    storageBucket: "wb-idr.firebasestorage.app",
+                    messagingSenderId: "716649486328",
+                    appId: "1:716649486328:web:340d7ae8dd0bafa1e0680d",
+                    measurementId: "G-2K8631P0DY"
+                };
             }
+        } catch (e) {
+            console.error("Config Error:", e);
+        }
+
+        // --- APP STATE ---
+        let db, auth, currentUser;
+        const googleProvider = new GoogleAuthProvider();
+        
+        let entries = [];
+        let filteredEntries = []; 
+        let isAdminMode = false; 
+        let isLoginMode = true; 
+        
+        // Chart instances
+        let ctdiChartInstance = null;
+        let dlpChartInstance = null;
+
+        let filters = {
+            hospital: 'all',
+            protocol: 'all',
+            ctdiMin: null,
+            ctdiMax: null
         };
 
-        const modalOverlay = document.getElementById('modalOverlay');
-        const modalBackdrop = document.getElementById('modalBackdrop');
-        const modalCard = document.getElementById('modalCard');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalBody = document.getElementById('modalBody');
-        const modalIcon = document.getElementById('modalIcon');
+        // --- CHART FUNCTIONS ---
+        function getChartData(viewMode, metric) {
+            const groups = {};
+            // Use filteredEntries to reflect current filter state in charts
+            filteredEntries.forEach(e => {
+                let key = '';
+                if (viewMode === 'hospital') key = e.hospitalName;
+                else if (viewMode === 'manufacturer') key = e.manufacturer || 'Unknown';
+                else if (viewMode === 'sliceCount') key = e.sliceCount || 'Unknown';
+                else if (viewMode === 'gender') key = e.gender === 'M' ? 'Nam' : 'Nữ';
+                
+                if (!groups[key]) groups[key] = [];
+                const val = parseFloat(metric === 'ctdi' ? e.ctdi : e.dlp);
+                if (!isNaN(val)) groups[key].push(val);
+            });
 
-        function openModal(key) {
-            const data = guidelines[key];
-            if(!data) return;
+            const labels = Object.keys(groups);
+            const data75 = [];
+            const data50 = [];
 
-            modalTitle.textContent = data.title;
-            modalBody.innerHTML = data.content;
-            modalIcon.innerHTML = `<i class="fa-solid ${data.icon}"></i>`;
+            labels.forEach(k => {
+                const vals = groups[k];
+                data75.push(getPercentile(vals, 0.75));
+                data50.push(getPercentile(vals, 0.50));
+            });
 
-            modalOverlay.classList.remove('hidden');
-            // Animation sequence
-            requestAnimationFrame(() => {
-                modalBackdrop.classList.remove('opacity-0');
-                modalCard.classList.remove('translate-y-full', 'opacity-0', 'scale-95'); // Reset mobile/desktop states
-                // Apply active state
-                if(window.innerWidth < 768) {
-                    modalCard.classList.remove('translate-y-full'); // Slide up on mobile
-                } else {
-                    modalCard.classList.add('scale-100'); // Scale up on desktop
+            return { labels, data75, data50 };
+        }
+
+        function updateCharts() {
+            const ctxCtdi = document.getElementById('ctdiChart');
+            const ctxDlp = document.getElementById('dlpChart');
+            
+            if (!ctxCtdi || !ctxDlp) return;
+
+            const cMode = document.getElementById('ctdiViewMode').value;
+            const dMode = document.getElementById('dlpViewMode').value;
+
+            // Update CTDI Chart
+            const ctdiData = getChartData(cMode, 'ctdi');
+            if (ctdiChartInstance) ctdiChartInstance.destroy();
+            ctdiChartInstance = new Chart(ctxCtdi, {
+                type: 'bar',
+                data: {
+                    labels: ctdiData.labels,
+                    datasets: [
+                        { label: '75th Percentile', data: ctdiData.data75, backgroundColor: 'rgba(37, 99, 235, 0.8)', borderRadius: 4 },
+                        { label: '50th Percentile', data: ctdiData.data50, backgroundColor: 'rgba(147, 197, 253, 0.8)', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'mGy' } } }
+                }
+            });
+
+            // Update DLP Chart
+            const dlpData = getChartData(dMode, 'dlp');
+            if (dlpChartInstance) dlpChartInstance.destroy();
+            dlpChartInstance = new Chart(ctxDlp, {
+                type: 'bar',
+                data: {
+                    labels: dlpData.labels,
+                    datasets: [
+                        { label: '75th Percentile', data: dlpData.data75, backgroundColor: 'rgba(217, 119, 6, 0.8)', borderRadius: 4 },
+                        { label: '50th Percentile', data: dlpData.data50, backgroundColor: 'rgba(252, 211, 77, 0.8)', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'mGy.cm' } } }
                 }
             });
         }
 
-        function closeModal() {
-            modalBackdrop.classList.add('opacity-0');
-            
-            if(window.innerWidth < 768) {
-                modalCard.classList.add('translate-y-full'); // Slide down on mobile
-            } else {
-                modalCard.classList.remove('scale-100');
-                modalCard.classList.add('scale-95', 'opacity-0'); // Scale down on desktop
+        window.downloadChart = function(chartId) {
+            const canvas = document.getElementById(chartId);
+            if(canvas) {
+                const link = document.createElement('a');
+                link.download = `${chartId}_${new Date().toISOString().slice(0,10)}.jpg`;
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                tempCtx.fillStyle = '#ffffff';
+                tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                tempCtx.drawImage(canvas, 0, 0);
+                link.href = tempCanvas.toDataURL('image/jpeg', 1.0);
+                link.click();
             }
-            
-            setTimeout(() => {
-                modalOverlay.classList.add('hidden');
-            }, 300);
-        }
+        };
 
-        // ==========================================
-        // CẤU HÌNH GỬI EMAIL (FORMSPREE)
-        // ==========================================
-        // HƯỚNG DẪN ĐỔI EMAIL NHẬN GÓP Ý:
-        // 1. Truy cập https://formspree.io/ và đăng nhập.
-        // 2. Vào phần "Settings" của Form hiện tại để đổi "Target Email" (Không cần sửa code).
-        // 3. HOẶC: Tạo Form mới -> Copy "Endpoint URL" mới -> Dán đè vào dòng bên dưới:
-        const FORMSPREE_ENDPOINT = "https://formspree.io/f/xvzklawb"; 
-        
-        async function handleFeedback(e) {
-            e.preventDefault();
-            const content = document.getElementById('feedbackContent').value;
-            if(content.trim().length === 0) {
-                alert("Vui lòng nhập nội dung góp ý!");
-                return;
-            }
-            
-            const btn = e.target.querySelector('button');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...';
-            btn.disabled = true;
-
-            // Nếu chưa cấu hình URL, chạy chế độ giả lập (Simulation)
-            if (!FORMSPREE_ENDPOINT) {
-                setTimeout(() => {
-                    showSuccess(btn, originalText);
-                }, 1500);
-                return;
-            }
-
-            // Gửi thật qua Formspree
+        // --- INIT FUNCTION ---
+        async function initApp() {
             try {
-                const form = e.target;
-                const data = new FormData(form);
-                const response = await fetch(FORMSPREE_ENDPOINT, {
-                    method: 'POST',
-                    body: data,
-                    headers: {
-                        'Accept': 'application/json'
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                setupDropdowns();
+                renderHospitalOptions();
+                document.getElementById('scanDate').value = new Date().toISOString().split('T')[0];
+
+                setupEventListeners();
+
+                // AUTH LOGIC RESTORED
+                if (customToken) {
+                    await signInWithCustomToken(auth, customToken);
+                } else if (!auth.currentUser) {
+                     await signInAnonymously(auth).catch(err => {
+                         console.error("Anon auth failed", err);
+                     });
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    currentUser = user;
+                    const userMenu = document.getElementById('userMenu');
+                    const navLoginBtn = document.getElementById('navLoginBtn');
+                    const formOverlay = document.getElementById('formLockOverlay');
+                    const submitBtn = document.getElementById('submitBtn');
+                    
+                    // Header Status Elements
+                    const statusEl = document.getElementById('connectionStatus');
+                    const iconEl = statusEl.firstElementChild; 
+                    const textEl = statusEl.querySelector('span');
+
+                    if (user && !user.isAnonymous) {
+                        // Logged In (Real Account)
+                        userMenu.classList.remove('hidden');
+                        navLoginBtn.classList.add('hidden');
+                        document.getElementById('userEmailDisplay').textContent = user.email || "Người dùng Google";
+                        document.getElementById('authModal').classList.add('hidden');
+                        formOverlay.classList.add('hidden');
+                        submitBtn.disabled = false;
+                        
+                        statusEl.className = 'flex items-center gap-2 px-3 py-1.5 bg-emerald-500/20 border border-emerald-400/30 rounded-full text-xs font-medium text-emerald-100 transition-colors ml-2';
+                        if (iconEl) iconEl.setAttribute('class', 'w-3 h-3 text-emerald-300');
+                        textEl.textContent = 'Đã kết nối';
+                        
+                    } else {
+                        // Logged Out OR Anonymous (Guest View)
+                        userMenu.classList.add('hidden');
+                        navLoginBtn.classList.remove('hidden');
+                        
+                        // Disable editing for Anon
+                        formOverlay.classList.remove('hidden');
+                        submitBtn.disabled = true;
+                        
+                        statusEl.className = 'flex items-center gap-2 px-3 py-1.5 bg-black/20 border border-white/10 rounded-full text-xs font-medium text-white/50 transition-colors ml-2'; // Green for Anon too
+                        if (iconEl) iconEl.setAttribute('class', 'w-3 h-3 text-white/30');
+                        textEl.textContent = 'Khách (Chỉ xem)';
+                        
+                        isAdminMode = false; 
+                        updateAdminBtnState();
                     }
+                    // Always sync data if we have ANY user (including anonymous)
+                    if (user) startDataSync();
                 });
 
-                if (response.ok) {
-                    showSuccess(btn, originalText);
-                } else {
-                    alert("Có lỗi xảy ra khi gửi. Vui lòng thử lại sau!");
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                }
             } catch (error) {
-                alert("Lỗi kết nối. Vui lòng kiểm tra mạng!");
-                btn.innerHTML = originalText;
-                btn.disabled = false;
+                console.error("Init Error:", error);
+                showToast("Lỗi khởi động: " + error.message, 'error');
             }
         }
 
-        function showSuccess(btn, originalText) {
-            btn.innerHTML = '<i class="fa-solid fa-check"></i> Đã gửi thành công!';
-            btn.classList.remove('from-cyan-600', 'to-blue-600');
-            btn.classList.add('from-green-600', 'to-emerald-600');
+        // --- AUTH FUNCTIONS ---
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            const title = document.getElementById('authTitle');
+            const btn = document.getElementById('authSubmitBtn').querySelector('span');
+            const switchText = document.getElementById('authSwitchText');
             
-            setTimeout(() => {
-                alert("Cảm ơn bạn đã gửi góp ý! Chúng tôi đã ghi nhận.");
-                closeModal();
-                // Reset form after closing
-                setTimeout(() => {
-                    document.getElementById('feedbackForm').reset();
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                    btn.classList.add('from-cyan-600', 'to-blue-600');
-                    btn.classList.remove('from-green-600', 'to-emerald-600');
-                }, 500);
-            }, 500);
+            // Reset Admin UI when switching modes
+            document.getElementById('authAdminPinContainer').classList.add('hidden');
+            document.getElementById('authAdminToggleBtn').classList.remove('hidden');
+            
+            if (isLoginMode) {
+                title.textContent = "Đăng Nhập";
+                btn.textContent = "Đăng Nhập";
+                switchText.innerHTML = 'Chưa có tài khoản? <a href="#" id="authSwitchBtn" class="text-indigo-600 font-bold hover:underline">Đăng ký ngay</a>';
+            } else {
+                title.textContent = "Đăng Ký";
+                btn.textContent = "Đăng Ký Mới";
+                switchText.innerHTML = 'Đã có tài khoản? <a href="#" id="authSwitchBtn" class="text-indigo-600 font-bold hover:underline">Đăng nhập</a>';
+            }
+            
+            // Re-bind switch button listener
+            document.getElementById('authSwitchBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleAuthMode();
+            });
         }
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeModal();
-        });
+        async function handleAuth(e) {
+            e.preventDefault();
+            const email = document.getElementById('authEmail').value;
+            const pass = document.getElementById('authPassword').value;
+            const btn = document.getElementById('authSubmitBtn');
+            const originalText = btn.innerHTML;
+
+            // --- ADMIN PIN CHECK LOGIC ---
+            const pinContainer = document.getElementById('authAdminPinContainer');
+            const isTryingAdmin = !pinContainer.classList.contains('hidden');
+            
+            if (isTryingAdmin) {
+                const pin = document.getElementById('authAdminPin').value;
+                if (pin !== "123456") { // Hardcoded PIN
+                     showToast('Sai mã PIN Admin!', 'error');
+                     document.getElementById('authAdminPin').focus();
+                     return;
+                }
+            }
+            // -----------------------------
+
+            btn.disabled = true;
+            btn.innerHTML = `<div class="loader w-4 h-4 border-white border-t-transparent"></div>`;
+
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                    showToast('Đăng nhập thành công!', 'success');
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, pass);
+                    showToast('Đăng ký thành công!', 'success');
+                }
+                
+                // If login successful and wanted admin
+                if (isTryingAdmin) {
+                    isAdminMode = true;
+                    // Reset UI
+                    pinContainer.classList.add('hidden');
+                    document.getElementById('authAdminToggleBtn').classList.remove('hidden');
+                    document.getElementById('authAdminPin').value = '';
+                    updateAdminBtnState();
+                }
+
+            } catch (error) {
+                let msg = error.message;
+                if (error.code === 'auth/wrong-password') msg = 'Sai mật khẩu.';
+                if (error.code === 'auth/user-not-found') msg = 'Tài khoản không tồn tại.';
+                if (error.code === 'auth/email-already-in-use') msg = 'Email này đã được đăng ký.';
+                if (error.code === 'auth/weak-password') msg = 'Mật khẩu quá yếu (tối thiểu 6 ký tự).';
+                showToast(msg, 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        async function handleGoogleLogin() {
+            try {
+                await signInWithPopup(auth, googleProvider);
+                showToast('Đăng nhập Google thành công!', 'success');
+                
+                // Check Admin PIN if checked for Google too
+                // For simplified UI, Google login doesn't directly support the PIN toggle in one step
+                // User can toggle admin after login via menu
+            } catch (error) {
+                console.error(error);
+                showToast('Lỗi Google: ' + error.message, 'error');
+            }
+        }
+
+        async function handleChangePassword(e) {
+            e.preventDefault();
+            const newPass = document.getElementById('newPassword').value;
+            try {
+                await updatePassword(currentUser, newPass);
+                showToast('Đổi mật khẩu thành công!', 'success');
+                document.getElementById('changePassModal').classList.add('hidden');
+                document.getElementById('newPassword').value = '';
+            } catch (error) {
+                showToast('Lỗi: ' + error.message, 'error');
+                if (error.code === 'auth/requires-recent-login') {
+                    showToast('Vui lòng đăng nhập lại để đổi mật khẩu.', 'error');
+                }
+            }
+        }
+
+        function updateAdminBtnState() {
+            const btnText = document.getElementById('adminBtnText');
+            const userRole = document.getElementById('userRoleDisplay');
+            const toggleBtn = document.getElementById('toggleAdminBtn');
+            // Add null check
+            if (!btnText || !userRole || !toggleBtn) return;
+            const icon = toggleBtn.querySelector('i');
+            if (!icon) return;
+            
+            if (isAdminMode) {
+                btnText.textContent = "Tắt Quyền Admin";
+                userRole.textContent = "QUẢN TRỊ VIÊN";
+                userRole.classList.remove('text-blue-200');
+                userRole.classList.add('text-amber-300', 'font-bold'); 
+                icon.setAttribute('class', 'w-4 h-4 text-amber-500'); // FIX: Use setAttribute
+            } else {
+                btnText.textContent = "Bật Quyền Admin";
+                userRole.textContent = "Thành viên";
+                userRole.classList.add('text-blue-200');
+                userRole.classList.remove('text-amber-300', 'font-bold');
+                icon.setAttribute('class', 'w-4 h-4 text-slate-400'); // FIX: Use setAttribute
+            }
+            renderApp(); // Re-render to show/hide edit buttons
+        }
+
+        // --- DATA FUNCTIONS ---
+        function startDataSync() {
+            // FIX: Use simple path for Local/Standalone to match previous behavior
+            // This ensures connection works even if they haven't set up "artifacts" collection manually
+            let collRef;
+            if (isLocal) {
+                 collRef = collection(db, 'drl_entries');
+            } else {
+                 collRef = collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries');
+            }
+
+            onSnapshot(collRef, (snapshot) => {
+                // FIXED: Use explicit variable name to avoid confusion
+                const fetchedEntries = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                fetchedEntries.sort((a, b) => b.timestamp - a.timestamp);
+                entries = fetchedEntries; // Update global state
+                
+                updateHospitalFilters(entries);
+                renderApp();
+                document.getElementById('tableLoader').classList.add('hidden');
+            }, (error) => {
+                console.error("Sync Error:", error);
+                document.getElementById('tableLoader').classList.add('hidden'); // Stop loader
+                if (error.code === 'permission-denied') {
+                    // Only show if we actually expected it to work (i.e. we thought we were logged in or anon)
+                    // But if anon failed, we are unauthenticated.
+                    document.getElementById('emptyState').innerHTML = `<p class="text-red-500">Không có quyền truy cập dữ liệu.<br>Vui lòng đăng nhập.</p>`;
+                    document.getElementById('emptyState').classList.remove('hidden');
+                }
+            });
+        }
+
+        function renderApp() {
+            // Filter Logic
+            filteredEntries = entries.filter(e => {
+                if (filters.hospital !== 'all' && e.hospitalName !== filters.hospital) return false;
+                if (filters.protocol !== 'all' && e.protocol !== filters.protocol) return false;
+                if (filters.ctdiMin !== null && Number(e.ctdi) < filters.ctdiMin) return false;
+                if (filters.ctdiMax !== null && Number(e.ctdi) > filters.ctdiMax) return false;
+                
+                // Standard Patient Filter (Adults 60-80kg)
+                if (filters.standardPatientOnly) {
+                    const w = parseFloat(e.weight);
+                    const age = parseFloat(e.age);
+                    if (isNaN(w) || w < 60 || w > 80 || (age < 18)) return false; 
+                }
+                return true;
+            });
+
+            // Calc Stats
+            const ctdiValues = filteredEntries.map(e => Number(e.ctdi)).filter(n => !isNaN(n));
+            const dlpValues = filteredEntries.map(e => Number(e.dlp)).filter(n => !isNaN(n));
+
+            document.getElementById('statTotal').textContent = filteredEntries.length;
+            document.getElementById('statLabel').textContent = entries.length === filteredEntries.length ? 'All Data' : 'Filtered Data';
+            
+            document.getElementById('statCtdi75').textContent = getPercentile(ctdiValues, 0.75).toFixed(2);
+            document.getElementById('statCtdiMedian').textContent = getPercentile(ctdiValues, 0.50).toFixed(2);
+            document.getElementById('statDlp75').textContent = getPercentile(dlpValues, 0.75).toFixed(2);
+            document.getElementById('statDlpMedian').textContent = getPercentile(dlpValues, 0.50).toFixed(2);
+
+            // Ref Stats logic...
+            const refCtdiEl = document.getElementById('statRefCtdi75');
+            const refDlpEl = document.getElementById('statRefDlp75');
+
+            if (filters.hospital !== 'all' && filters.protocol !== 'all') {
+                const globalData = entries.filter(e => e.protocol === filters.protocol);
+                const globalCtdi = globalData.map(e => Number(e.ctdi)).filter(n => !isNaN(n));
+                const globalDlp = globalData.map(e => Number(e.dlp)).filter(n => !isNaN(n));
+                const refCtdi = getPercentile(globalCtdi, 0.75).toFixed(2);
+                const refDlp = getPercentile(globalDlp, 0.75).toFixed(2);
+                refCtdiEl.textContent = `(Vùng: ${refCtdi})`; refCtdiEl.classList.remove('hidden');
+                refDlpEl.textContent = `(Vùng: ${refDlp})`; refDlpEl.classList.remove('hidden');
+            } else {
+                refCtdiEl.classList.add('hidden'); refDlpEl.classList.add('hidden');
+            }
+
+            // Update Charts
+            updateCharts();
+
+            // Table Render
+            const tbody = document.getElementById('dataTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const btnCsv = document.getElementById('btnExportCsv');
+            const btnExcel = document.getElementById('btnExportExcel');
+
+            tbody.innerHTML = '';
+            
+            if (filteredEntries.length === 0) {
+                emptyState.classList.remove('hidden');
+                btnCsv.disabled = true;
+                btnExcel.disabled = true;
+            } else {
+                emptyState.classList.add('hidden');
+                btnCsv.disabled = false;
+                btnExcel.disabled = false;
+
+                filteredEntries.forEach(entry => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-indigo-50/30 transition-colors group border-b border-slate-50 last:border-none';
+                    
+                    let canEdit = false;
+                    if (currentUser && !currentUser.isAnonymous) {
+                        if (isAdminMode) {
+                            canEdit = true;
+                        } else if (entry.userId === currentUser.uid) {
+                            canEdit = true;
+                        }
+                    }
+
+                    const actions = canEdit 
+                        ? `<div class="flex items-center justify-end gap-1">
+                             <button data-id="${entry.id}" class="edit-btn text-amber-500 hover:text-amber-700 p-2 rounded-full hover:bg-amber-50" title="Sửa">
+                                <i data-lucide="edit-2" class="w-4 h-4"></i>
+                             </button>
+                             <button data-id="${entry.id}" class="delete-btn text-slate-300 hover:text-rose-500 p-2 rounded-full hover:bg-rose-50" title="Xóa">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                             </button>
+                           </div>`
+                        : (entry.userId === currentUser?.uid ? `<span class="text-[10px] text-indigo-400 bg-indigo-50 px-2 py-1 rounded">Của bạn</span>` : '');
+
+                    tr.innerHTML = `
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-slate-800 text-sm">${escapeHtml(entry.hospitalName)}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-slate-700 text-sm">${entry.manufacturer || '-'}</div>
+                            <div class="text-xs text-slate-400">${entry.sliceCount || '-'}</div>
+                            <div class="text-[10px] text-indigo-500 mt-1">${entry.aecMode ? (entry.aecMode === 'Có dùng AEC' ? 'AEC: Có' : 'AEC: Không') : ''}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100 truncate max-w-[120px]" title="${entry.protocol}">
+                                ${entry.protocol}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 font-mono text-sm ${parseFloat(entry.ctdi) > 100 ? 'text-red-600 font-bold' : 'text-slate-700'}">${entry.ctdi}</td>
+                        <td class="px-6 py-4 font-mono text-sm text-slate-700">${e.dlp}</td>
+                        <td class="px-6 py-4 text-right text-xs text-slate-400">
+                             ${entry.scanDate}
+                        </td>
+                        <td class="px-6 py-4 text-right min-w-[100px]">
+                            ${actions}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        function setupEventListeners() {
+            // ... existing listeners ...
+
+            document.getElementById('authForm').addEventListener('submit', handleAuth);
+            
+            document.getElementById('authSwitchBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleAuthMode();
+            });
+            
+            // New Admin Toggle Button Listener
+            document.getElementById('authAdminToggleBtn').addEventListener('click', (e) => {
+                const pinContainer = document.getElementById('authAdminPinContainer');
+                const pinInput = document.getElementById('authAdminPin');
+                const submitBtnSpan = document.getElementById('authSubmitBtn').querySelector('span');
+                
+                pinContainer.classList.remove('hidden');
+                e.target.classList.add('hidden'); // Hide the toggle button itself
+                pinInput.focus();
+                
+                // Update submit button text
+                if (isLoginMode) {
+                    submitBtnSpan.textContent = "Đăng Nhập Admin";
+                } else {
+                    submitBtnSpan.textContent = "Đăng Ký Admin";
+                }
+                lucide.createIcons();
+            });
+
+            // Chart view mode listeners
+            document.getElementById('ctdiViewMode').addEventListener('change', updateCharts);
+            document.getElementById('dlpViewMode').addEventListener('change', updateCharts);
+
+            // User Menu Toggle (Click instead of Hover)
+            const userMenuBtn = document.getElementById('userMenuBtn');
+            const userDropdown = document.getElementById('userDropdown');
+            
+            if(userMenuBtn && userDropdown) {
+                userMenuBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    userDropdown.classList.toggle('hidden');
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+                        userDropdown.classList.add('hidden');
+                    }
+                });
+            }
+
+            // Auth UI Triggers
+            document.getElementById('navLoginBtn').addEventListener('click', () => {
+                document.getElementById('authModal').classList.remove('hidden');
+                isLoginMode = true; // Reset to login default
+                toggleAuthMode(); // Ensure UI matches
+                toggleAuthMode(); // Hacky toggle back to ensure state
+            });
+
+            // Close Modal on backdrop click
+            document.getElementById('authModal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('authModal')) {
+                    document.getElementById('authModal').classList.add('hidden');
+                }
+            });
+            
+            document.getElementById('googleLoginBtn').addEventListener('click', handleGoogleLogin);
+
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                signOut(auth).then(() => {
+                    showToast('Đã đăng xuất', 'success');
+                });
+            });
+
+            // Toggle Admin (Pin Check)
+            document.getElementById('toggleAdminBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                if (isAdminMode) {
+                    isAdminMode = false;
+                    showToast('Đã tắt quyền Admin', 'success');
+                    updateAdminBtnState();
+                } else {
+                    const pin = prompt("Nhập mã PIN Admin:");
+                    if (pin === "123456") {
+                        isAdminMode = true;
+                        showToast('Đã bật quyền Admin', 'success');
+                        updateAdminBtnState();
+                    } else if (pin !== null) {
+                        showToast('Sai mã PIN', 'error');
+                    }
+                }
+            });
+
+            // Change Password UI
+            document.getElementById('openChangePassBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('changePassModal').classList.remove('hidden');
+            });
+            document.getElementById('closePassModal').addEventListener('click', () => {
+                document.getElementById('changePassModal').classList.add('hidden');
+            });
+            document.getElementById('changePassForm').addEventListener('submit', handleChangePassword);
+
+            // Form Logic
+            document.getElementById('hospitalSelect').addEventListener('change', (e) => {
+                const customInput = document.getElementById('customHospitalName');
+                if (e.target.value === 'other') {
+                    customInput.classList.remove('hidden');
+                    customInput.focus();
+                } else {
+                    customInput.classList.add('hidden');
+                }
+            });
+
+            // AGE & BIRTH YEAR SYNC LOGIC
+            const currentYear = new Date().getFullYear();
+            const birthYearInput = document.getElementById('birthYear');
+            const ageInput = document.getElementById('age');
+
+            birthYearInput.addEventListener('input', function() {
+                const year = parseInt(this.value);
+                if (year > 1900 && year <= currentYear) {
+                    ageInput.value = currentYear - year;
+                } else {
+                    ageInput.value = '';
+                }
+            });
+
+            ageInput.addEventListener('input', function() {
+                const age = parseInt(this.value);
+                if (age >= 0 && age < 150) {
+                    birthYearInput.value = currentYear - age;
+                } else {
+                    birthYearInput.value = '';
+                }
+            });
+            
+            // Weight Warning Logic
+            const weightInput = document.getElementById('weight');
+            weightInput.addEventListener('input', function() {
+                const val = parseFloat(this.value);
+                const alertEl = document.getElementById('weightAlert');
+                
+                if (!isNaN(val) && (val < 60 || val > 80)) {
+                    alertEl.classList.remove('hidden');
+                    this.classList.add('weight-warning-input');
+                } else {
+                    alertEl.classList.add('hidden');
+                    this.classList.remove('weight-warning-input');
+                }
+            });
+            
+            // CTDI Outlier Logic
+            const ctdiInput = document.getElementById('ctdi');
+            ctdiInput.addEventListener('input', function() {
+                const val = parseFloat(this.value);
+                const alertEl = document.getElementById('doseAlert');
+                 if (val > 100) { 
+                    alertEl.classList.remove('hidden'); 
+                    document.getElementById('doseAlertMsg').textContent = "Giá trị CTDIvol > 100 mGy rất cao. Vui lòng kiểm tra lại đơn vị hoặc protocol.";
+                    this.parentElement.classList.add('outlier-warning');
+                } else { 
+                    alertEl.classList.add('hidden'); 
+                    this.parentElement.classList.remove('outlier-warning');
+                }
+            });
+
+            document.getElementById('cancelEditBtn').addEventListener('click', resetFormState);
+
+            document.getElementById('drlForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                // Removed Auth Check for Guest submission
+                // if (!currentUser) return showToast('Vui lòng đăng nhập', 'error');
+
+                const btn = document.getElementById('submitBtn');
+                const originalContent = btn.innerHTML;
+                const editingId = document.getElementById('editEntryId').value;
+                const isEditing = !!editingId;
+                
+                // Determine Hospital
+                const selectVal = document.getElementById('hospitalSelect').value;
+                let finalHospitalName = selectVal;
+                
+                if (selectVal === 'other') {
+                    const customName = document.getElementById('customHospitalName').value.trim();
+                    if (!customName) {
+                        showToast('Vui lòng nhập tên bệnh viện', 'error');
+                        return;
+                    }
+                    finalHospitalName = customName;
+                } else if (!selectVal) {
+                    showToast('Vui lòng chọn bệnh viện', 'error');
+                    return;
+                }
+                // Get checked AEC value
+                const aecChecked = document.querySelector('input[name="aecMode"]:checked');
+                const aecValue = aecChecked ? aecChecked.value : '';
+
+
+                btn.disabled = true;
+                btn.innerHTML = `<div class="loader w-4 h-4 border-white border-t-transparent"></div> Processing...`;
+
+                try {
+                    const formData = {
+                        hospitalName: finalHospitalName,
+                        manufacturer: document.getElementById('manufacturer').value,
+                        sliceCount: document.getElementById('sliceCount').value,
+                        // scannerModel: removed
+                        aecMode: aecValue, // Use radio value
+                        protocol: document.getElementById('protocol').value,
+                        patientId: document.getElementById('patientId').value,
+                        age: document.getElementById('age').value,
+                        // Add birthYear to DB if desired, but derived from age is fine for display
+                        birthYear: document.getElementById('birthYear').value, 
+                        gender: document.getElementById('gender').value,
+                        weight: document.getElementById('weight').value,
+                        ctdi: document.getElementById('ctdi').value,
+                        dlp: document.getElementById('dlp').value,
+                        kVp: document.getElementById('kVp').value,
+                        mAs: document.getElementById('mAs').value,
+                        scanDate: document.getElementById('scanDate').value,
+                        userId: currentUser ? currentUser.uid : 'anonymous', // Handle anon user
+                        timestamp: isEditing ? undefined : Date.now(),
+                        createdAt: isEditing ? undefined : new Date().toLocaleString('vi-VN')
+                    };
+                    
+                    if(isEditing) {
+                        delete formData.timestamp;
+                        delete formData.createdAt;
+                        delete formData.userId; // Don't change owner on edit? Optional. Let's keep owner.
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', editingId), formData);
+                        showToast('Đã cập nhật!', 'success');
+                        resetFormState();
+                    } else {
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), formData);
+                        showToast('Đã thêm mới!', 'success');
+                        resetFormFields();
+                    }
+                    
+                    if (selectVal === 'other' && !availableHospitals.includes(finalHospitalName)) {
+                        availableHospitals.push(finalHospitalName);
+                        renderHospitalOptions();
+                    }
+
+                } catch (error) {
+                    console.error(error);
+                    showToast('Lỗi: ' + error.message, 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
+                    if (typeof lucide !== 'undefined') {
+                        lucide.createIcons();
+                    }
+                }
+            });
+
+            // Table Actions
+            document.getElementById('dataTableBody').addEventListener('click', async (e) => {
+                // Delete
+                const deleteBtn = e.target.closest('.delete-btn');
+                if (deleteBtn) {
+                    const id = deleteBtn.dataset.id;
+                    if(confirm('Xóa bản ghi này?')) {
+                        try {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id));
+                            showToast('Đã xóa', 'success');
+                            if (document.getElementById('editEntryId').value === id) resetFormState();
+                        } catch (error) {
+                            showToast('Lỗi xóa: ' + error.message, 'error');
+                        }
+                    }
+                    return;
+                }
+                // Edit
+                const editBtn = e.target.closest('.edit-btn');
+                if (editBtn) {
+                    const id = editBtn.dataset.id;
+                    const entry = entries.find(e => e.id === id);
+                    if (entry) populateFormForEdit(entry);
+                }
+            });
+
+            // Filters & Export
+            const updateFilterState = () => {
+                filters.hospital = document.getElementById('filterHospital').value;
+                filters.protocol = document.getElementById('filterProtocol').value;
+                const min = document.getElementById('filterCtdiMin').value;
+                const max = document.getElementById('filterCtdiMax').value;
+                filters.ctdiMin = min ? Number(min) : null;
+                filters.ctdiMax = max ? Number(max) : null;
+                renderApp();
+            };
+
+            document.getElementById('filterHospital').addEventListener('change', updateFilterState);
+            document.getElementById('filterProtocol').addEventListener('change', updateFilterState);
+            document.getElementById('filterCtdiMin').addEventListener('input', updateFilterState);
+            document.getElementById('filterCtdiMax').addEventListener('input', updateFilterState);
+            
+            document.getElementById('resetFilters').addEventListener('click', () => {
+                document.getElementById('filterHospital').value = 'all';
+                document.getElementById('filterProtocol').value = 'all';
+                document.getElementById('filterCtdiMin').value = '';
+                document.getElementById('filterCtdiMax').value = '';
+                updateFilterState();
+            });
+
+            // Export
+            document.getElementById('btnExportCsv').addEventListener('click', () => {
+                if (filteredEntries.length === 0) return;
+                const headers = ["ID,BenhVien,HangMay,SoLat,AEC,MaBN,Tuoi,NamSinh,CanNang,GioiTinh,Protocol,CTDIvol,DLP,kVp,mAs,Ngay,User"];
+                const rows = filteredEntries.map(e => 
+                    `${e.id},"${e.hospitalName}","${e.manufacturer || ''}","${e.sliceCount || ''}","${e.aecMode || ''}","${e.patientId}",${e.age},${e.birthYear || ''},${e.weight},${e.gender},${e.protocol},${e.ctdi},${e.dlp},${e.kVp},${e.mAs},${e.scanDate},${e.userId}`
+                );
+                const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers, ...rows].join("\n");
+                const link = document.createElement("a");
+                link.href = encodeURI(csvContent);
+                link.download = `DRL_Export_${new Date().toISOString().slice(0,10)}.csv`;
+                link.click();
+            });
+
+            document.getElementById('btnExportExcel').addEventListener('click', () => {
+                if (filteredEntries.length === 0) return;
+                const excelData = filteredEntries.map(e => ({
+                    'Ngày Chụp': e.scanDate, 
+                    'Bệnh Viện': e.hospitalName, 
+                    'Hãng Máy': e.manufacturer,
+                    'Số Lát': e.sliceCount,
+                    'AEC': e.aecMode,
+                    'Protocol': e.protocol,
+                    'CTDIvol (mGy)': Number(e.ctdi), 
+                    'DLP (mGy.cm)': Number(e.dlp),
+                    'kVp': e.kVp, 'mAs': e.mAs, 
+                    'Mã BN': e.patientId,
+                    'Tuổi': e.age, 
+                    'Năm Sinh': e.birthYear,
+                    'Giới Tính': e.gender, 'Cân Nặng (kg)': e.weight
+                }));
+                const worksheet = XLSX.utils.json_to_sheet(excelData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "DRL Data");
+                XLSX.writeFile(workbook, `DRL_Export.xlsx`);
+            });
+        }
+
+        // --- UTILS ---
+        function updateHospitalFilters(data) {
+            const filterSelect = document.getElementById('filterHospital');
+            const currentSelection = filterSelect.value;
+            const dbHospitals = [...new Set(data.map(e => e.hospitalName))];
+            const allHospitals = [...new Set([...availableHospitals, ...dbHospitals])].sort();
+            filterSelect.innerHTML = '<option value="all">Tất cả Bệnh viện</option>';
+            allHospitals.forEach(h => { if(h) {
+                const opt = document.createElement('option'); opt.value = h; opt.textContent = h; filterSelect.appendChild(opt);
+            }});
+            filterSelect.value = currentSelection;
+        }
+
+        function getPercentile(data, q) {
+            if (!data || data.length === 0) return 0;
+            const sorted = [...data].sort((a, b) => a - b);
+            const pos = (sorted.length - 1) * q;
+            const base = Math.floor(pos);
+            const rest = pos - base;
+            if (sorted[base + 1] !== undefined) return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+            return sorted[base];
+        }
+
+        function renderHospitalOptions() {
+            const select = document.getElementById('hospitalSelect');
+            const first = select.firstElementChild; const last = select.lastElementChild;
+            select.innerHTML = '<option value="" disabled selected>-- Chọn Bệnh viện --</option>';
+            availableHospitals.forEach(h => {
+                const opt = document.createElement('option'); opt.value = h; opt.textContent = h; select.appendChild(opt);
+            });
+            select.appendChild(last);
+        }
+
+        function setupDropdowns() {
+            // Setup Manufacturer Dropdown
+            const manufacturerSelect = document.getElementById('manufacturer');
+            if (manufacturerSelect) {
+                // Keep the placeholder option
+                const placeholder = manufacturerSelect.firstElementChild;
+                manufacturerSelect.innerHTML = '';
+                manufacturerSelect.appendChild(placeholder);
+                
+                MANUFACTURERS.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = m;
+                    manufacturerSelect.appendChild(opt);
+                });
+            }
+
+            // Setup Slice Count Dropdown
+            const sliceCountSelect = document.getElementById('sliceCount');
+            if (sliceCountSelect) {
+                const placeholder = sliceCountSelect.firstElementChild;
+                sliceCountSelect.innerHTML = '';
+                sliceCountSelect.appendChild(placeholder);
+                
+                SLICE_COUNTS.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.textContent = s;
+                    sliceCountSelect.appendChild(opt);
+                });
+            }
+
+            const protocolSelect = document.getElementById('protocol');
+            const filterProtocol = document.getElementById('filterProtocol');
+            
+            // Clear existing options except placeholders if any
+            if (protocolSelect) protocolSelect.innerHTML = ''; 
+            if (filterProtocol) {
+                 // Keep "All" option
+                 const allOpt = filterProtocol.querySelector('option[value="all"]');
+                 filterProtocol.innerHTML = '';
+                 if(allOpt) filterProtocol.appendChild(allOpt);
+            }
+
+            ACR_PROTOCOLS.forEach(p => {
+                if (protocolSelect) {
+                    const opt1 = document.createElement('option'); 
+                    opt1.value = p.name; 
+                    opt1.textContent = p.name; 
+                    protocolSelect.appendChild(opt1);
+                }
+                if (filterProtocol) {
+                    const opt2 = document.createElement('option'); 
+                    opt2.value = p.name; 
+                    opt2.textContent = p.name; 
+                    filterProtocol.appendChild(opt2);
+                }
+            });
+        }
+
+        function populateFormForEdit(entry) {
+            const container = document.getElementById('formContainer');
+            container.classList.add('editing-mode');
+            container.scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('editEntryId').value = entry.id;
+            document.getElementById('formTitle').innerHTML = `<i data-lucide="edit-2" class="text-amber-600 w-5 h-5"></i> Đang sửa dữ liệu`;
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.querySelector('span').textContent = 'Cập nhật thay đổi';
+            submitBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+            submitBtn.classList.add('bg-amber-600', 'hover:bg-amber-700');
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+            if (availableHospitals.includes(entry.hospitalName)) {
+                document.getElementById('hospitalSelect').value = entry.hospitalName;
+                document.getElementById('customHospitalName').classList.add('hidden');
+            } else {
+                document.getElementById('hospitalSelect').value = 'other';
+                const customInput = document.getElementById('customHospitalName');
+                customInput.classList.remove('hidden');
+                customInput.value = entry.hospitalName;
+            }
+            // Populate fields
+            document.getElementById('manufacturer').value = entry.manufacturer || '';
+            document.getElementById('sliceCount').value = entry.sliceCount || '';
+            // AEC Radio
+            const aecValue = entry.aecMode;
+            const radio = document.querySelector(`input[name="aecMode"][value="${aecValue}"]`);
+            if (radio) radio.checked = true;
+
+            
+            document.getElementById('protocol').value = entry.protocol;
+            document.getElementById('patientId').value = entry.patientId || '';
+            document.getElementById('age').value = entry.age || '';
+            // Populate birthYear if exists, else calc from age
+            if (entry.birthYear) {
+                document.getElementById('birthYear').value = entry.birthYear;
+            } else if (entry.age) {
+                document.getElementById('birthYear').value = new Date().getFullYear() - entry.age;
+            }
+            
+            document.getElementById('gender').value = entry.gender || 'M';
+            document.getElementById('weight').value = entry.weight || '';
+            document.getElementById('ctdi').value = entry.ctdi;
+            document.getElementById('dlp').value = entry.dlp;
+            document.getElementById('kVp').value = entry.kVp || '';
+            document.getElementById('mAs').value = entry.mAs || '';
+            document.getElementById('scanDate').value = entry.scanDate;
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function resetFormState() {
+            const container = document.getElementById('formContainer');
+            container.classList.remove('editing-mode');
+            document.getElementById('editEntryId').value = '';
+            document.getElementById('formTitle').innerHTML = `<i data-lucide="plus-circle" class="text-indigo-600 w-5 h-5"></i> Nhập Dữ Liệu Mới`;
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.querySelector('span').textContent = 'Lưu vào Database';
+            submitBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+            submitBtn.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+            document.getElementById('cancelEditBtn').classList.add('hidden');
+            resetFormFields();
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function resetFormFields() {
+            ['patientId', 'age', 'birthYear', 'weight', 'ctdi', 'dlp', 'mAs', 'customHospitalName', 'manufacturer', 'sliceCount'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            // Reset radio
+            const aecRadios = document.querySelectorAll('input[name="aecMode"]');
+            aecRadios.forEach(r => r.checked = false);
+
+            if (document.getElementById('hospitalSelect').value === 'other') {
+                document.getElementById('customHospitalName').classList.remove('hidden');
+            } else {
+                document.getElementById('customHospitalName').classList.add('hidden');
+            }
+        }
+
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            const text = document.getElementById('toastMessage');
+            toast.className = `fixed top-20 right-6 px-6 py-4 rounded-xl shadow-2xl text-white z-50 flex items-center gap-3 transition-all duration-300 transform translate-x-0 opacity-100 ${type === 'error' ? 'bg-rose-500' : 'bg-emerald-500'}`;
+            text.textContent = msg;
+            icon.innerHTML = type === 'error' 
+                ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>'
+                : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>';
+            setTimeout(() => { toast.classList.add('translate-x-full', 'opacity-0'); }, 3000);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        initApp();
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     </script>
 </body>
 </html>
