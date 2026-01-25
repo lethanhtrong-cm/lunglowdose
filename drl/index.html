@@ -25,6 +25,7 @@
             font-family: 'Inter', sans-serif; 
             background: #f8fafc;
             color: #1e293b;
+            /* Khóa cuộn toàn trang để cuộn trong từng khung */
             overflow: hidden; 
             height: 100vh;
             display: flex;
@@ -42,11 +43,12 @@
                 radial-gradient(at 0% 100%, hsla(260,100%,92%,1) 0, transparent 50%);
         }
 
+        /* Container chính chứa 2 khung cuộn */
         .app-container {
             flex: 1;
             display: flex;
             overflow: hidden;
-            margin-top: 110px; 
+            margin-top: 110px; /* Dành chỗ cho Header */
             padding: 0 1rem 1rem 1rem;
             gap: 1.5rem;
             max-width: 80rem; 
@@ -55,6 +57,7 @@
             margin-right: auto;
         }
 
+        /* Khung cuộn độc lập */
         .scroll-section {
             height: 100%;
             overflow-y: auto;
@@ -104,6 +107,19 @@
             letter-spacing: 0.15em;
             color: #64748b;
         }
+
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #e2e8f0; transition: .4s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px;
+            left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #4f46e5; }
+        input:checked + .slider:before { transform: translateX(20px); }
     </style>
 </head>
 <body class="min-h-screen">
@@ -332,78 +348,127 @@
         </aside>
 
         <!-- RIGHT COLUMN: DASHBOARD -->
-        <main class="flex-1 scroll-section space-y-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="glass-card p-8 rounded-[2.5rem] flex flex-col justify-between glass-card-hover transition-all">
-                    <div class="flex justify-between items-start">
-                        <p class="section-label">Tổng số mẫu</p>
-                        <i data-lucide="database" class="w-5 h-5 text-indigo-400"></i>
-                    </div>
-                    <h3 id="statTotal" class="text-6xl font-black text-slate-900 mt-4 tracking-tighter">0</h3>
-                    <div class="mt-4 flex items-center gap-2"><span id="statLabel" class="text-[9px] font-black px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full uppercase border border-indigo-100">Dữ liệu lọc</span></div>
-                </div>
-                <div class="glass-card p-8 rounded-[2.5rem] border-l-[6px] border-l-indigo-600 flex flex-col justify-between glass-card-hover transition-all">
-                    <div>
-                        <p class="section-label text-indigo-600">DRL (75th) CTDIvol</p>
-                        <div class="flex items-baseline gap-2 mt-4"><h3 id="statCtdi75" class="text-6xl font-black text-slate-900 tracking-tighter">0.0</h3><span class="text-xs font-black text-slate-400 uppercase">mGy</span></div>
-                    </div>
-                    <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center"><span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Median (50th)</span><span id="statCtdiMedian" class="text-sm font-black text-indigo-600">0.0</span></div>
-                </div>
-                <div class="glass-card p-8 rounded-[2.5rem] border-l-[6px] border-l-amber-500 flex flex-col justify-between glass-card-hover transition-all">
-                    <div>
-                        <p class="section-label text-amber-600">DRL (75th) DLP</p>
-                        <div class="flex items-baseline gap-2 mt-4"><h3 id="statDlp75" class="text-6xl font-black text-slate-900 tracking-tighter">0</h3><span class="text-xs font-black text-slate-400 uppercase">mGy.cm</span></div>
-                    </div>
-                    <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center"><span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Median (50th)</span><span id="statDlpMedian" class="text-sm font-black text-amber-600">0</span></div>
-                </div>
-            </div>
-
-            <!-- FILTER PANEL -->
-            <div class="glass-card p-8 rounded-[2.5rem] border-white shadow-xl">
-                <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
-                    <div class="flex items-center gap-4">
-                        <div class="bg-indigo-50 p-3 rounded-2xl text-indigo-600 border border-indigo-100"><i data-lucide="sliders" class="w-5 h-5"></i></div>
-                        <h3 class="font-black text-slate-800 text-xs uppercase tracking-[0.2em]">Bộ lọc nghiên cứu</h3>
-                    </div>
-                </div>
+        <main class="flex-1 scroll-section relative">
+            <!-- STICKY STATS HEADER -->
+            <div class="sticky top-0 z-30 pb-4 pt-1 bg-[#f8fafc]/40 backdrop-blur-md">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="space-y-2"><label class="section-label ml-1">Bệnh viện</label><select id="filterHospital" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none"><option value="all">Tất cả</option></select></div>
-                    <div class="space-y-2"><label class="section-label ml-1">Protocol</label><select id="filterProtocol" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none"><option value="all">Tất cả</option></select></div>
-                    <div class="space-y-2">
-                        <label class="section-label ml-1">Cân nặng (45 - 75 kg)</label>
-                        <div class="flex items-center gap-3">
-                            <input type="number" id="filterWeightMin" value="45" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none">
-                            <span class="text-slate-300">—</span>
-                            <input type="number" id="filterWeightMax" value="75" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none">
+                    <div class="glass-card p-6 rounded-[2rem] flex flex-col justify-between shadow-lg border-white/50">
+                        <div class="flex justify-between items-start">
+                            <p class="section-label">Tổng số mẫu</p>
+                            <i data-lucide="database" class="w-4 h-4 text-indigo-400"></i>
                         </div>
+                        <h3 id="statTotal" class="text-4xl font-black text-slate-900 mt-2 tracking-tighter">0</h3>
+                        <div class="mt-2 flex items-center gap-2"><span id="statLabel" class="text-[8px] font-black px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full uppercase border border-indigo-100">Dữ liệu lọc</span></div>
                     </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-                    <div class="md:col-span-2 space-y-2">
-                        <label class="section-label ml-1">Khoảng liều CTDI (mGy)</label>
-                        <div class="flex items-center gap-3">
-                            <input type="number" id="filterCtdiMin" placeholder="Từ" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none">
-                            <span class="text-slate-300">—</span>
-                            <input type="number" id="filterCtdiMax" placeholder="Đến" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none">
+                    <div class="glass-card p-6 rounded-[2rem] border-l-[6px] border-l-indigo-600 flex flex-col justify-between shadow-lg border-white/50">
+                        <div>
+                            <p class="section-label text-indigo-600">DRL (75th) CTDIvol</p>
+                            <div class="flex items-baseline gap-2 mt-2"><h3 id="statCtdi75" class="text-4xl font-black text-slate-900 tracking-tighter">0.0</h3><span class="text-[10px] font-black text-slate-400 uppercase">mGy</span></div>
                         </div>
+                        <div class="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center"><span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Median (50th)</span><span id="statCtdiMedian" class="text-xs font-black text-indigo-600">0.0</span></div>
+                    </div>
+                    <div class="glass-card p-6 rounded-[2rem] border-l-[6px] border-l-amber-500 flex flex-col justify-between shadow-lg border-white/50">
+                        <div>
+                            <p class="section-label text-amber-600">DRL (75th) DLP</p>
+                            <div class="flex items-baseline gap-2 mt-2"><h3 id="statDlp75" class="text-4xl font-black text-slate-900 tracking-tighter">0</h3><span class="text-[10px] font-black text-slate-400 uppercase">mGy.cm</span></div>
+                        </div>
+                        <div class="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center"><span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Median (50th)</span><span id="statDlpMedian" class="text-xs font-black text-amber-600">0</span></div>
                     </div>
                 </div>
             </div>
 
-            <!-- TABLE -->
-            <div class="glass-card rounded-[2.5rem] overflow-hidden border-white shadow-2xl mb-20">
-                <div class="p-8 border-b border-slate-50 flex flex-wrap justify-between items-center gap-4 bg-white/40">
-                    <div class="flex items-center gap-4"><div class="bg-slate-100 p-2.5 rounded-2xl text-slate-600 border border-slate-200"><i data-lucide="table" class="w-5 h-5"></i></div><h3 class="section-label">Dữ liệu thô</h3></div>
-                    <button id="btnExportExcel" class="px-5 py-2.5 bg-emerald-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 hover:bg-emerald-700 active:scale-95 flex items-center gap-2"><i data-lucide="download" class="w-3 h-3"></i> Excel (.xlsx)</button>
+            <!-- SCROLLABLE AREA -->
+            <div class="space-y-8 pt-4">
+                <!-- FILTER PANEL -->
+                <div class="glass-card p-8 rounded-[2.5rem] border-white shadow-xl">
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-indigo-50 p-3 rounded-2xl text-indigo-600 border border-indigo-100"><i data-lucide="sliders" class="w-5 h-5"></i></div>
+                            <h3 class="font-black text-slate-800 text-xs uppercase tracking-[0.2em]">Bộ lọc nghiên cứu</h3>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2"><label class="section-label ml-1">Bệnh viện</label><select id="filterHospital" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none"><option value="all">Tất cả bệnh viện</option></select></div>
+                        <div class="space-y-2"><label class="section-label ml-1">Protocol</label><select id="filterProtocol" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none"><option value="all">Tất cả</option></select></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                        <div class="space-y-2">
+                            <label class="section-label ml-1">Cân nặng (45 - 75 kg)</label>
+                            <div class="flex items-center gap-3">
+                                <input type="number" id="filterWeightMin" value="45" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none">
+                                <span class="text-slate-300">—</span>
+                                <input type="number" id="filterWeightMax" value="75" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none">
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="section-label ml-1">Khoảng liều CTDI (mGy)</label>
+                            <div class="flex items-center gap-3">
+                                <input type="number" id="filterCtdiMin" placeholder="Từ" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none">
+                                <span class="text-slate-300">—</span>
+                                <input type="number" id="filterCtdiMax" placeholder="Đến" class="w-full px-4 py-3 glass-input rounded-2xl text-xs font-bold outline-none">
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="overflow-x-auto relative">
-                    <div id="tableLoader" class="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-sm hidden"><div class="loader"></div></div>
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-50/50 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                            <tr><th class="px-8 py-5">Cơ sở / BN</th><th class="px-8 py-5">Protocol</th><th class="px-8 py-5 text-center">Modul.</th><th class="px-8 py-5">CTDIvol</th><th class="px-8 py-5">DLP</th><th class="px-8 py-5 text-right">Hành động</th></tr>
-                        </thead>
-                        <tbody id="dataTableBody" class="divide-y divide-slate-50 text-sm"></tbody>
-                    </table>
+
+                <!-- BIỂU ĐỒ -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="glass-card p-8 rounded-[2.5rem] border-white shadow-lg">
+                        <div class="flex justify-between items-center mb-8">
+                            <div class="flex items-center gap-3">
+                                <h3 class="section-label flex items-center gap-2">
+                                    <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-600"></i> CTDIvol
+                                </h3>
+                                <button onclick="exportChartAsHD('ctdiChart', 'Biểu đồ CTDIvol')" class="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all title='Lưu ảnh Full HD'">
+                                    <i data-lucide="camera" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <select id="ctdiViewMode" class="bg-slate-100 border-none rounded-xl text-[9px] font-black text-slate-500 px-3 py-1.5 outline-none uppercase tracking-widest">
+                                <option value="hospital">Bệnh viện</option>
+                                <option value="manufacturer">Hãng máy</option>
+                                <option value="age">Tuổi</option>
+                                <option value="gender">Giới tính</option>
+                            </select>
+                        </div>
+                        <div class="h-80"><canvas id="ctdiChart"></canvas></div>
+                    </div>
+
+                    <div class="glass-card p-8 rounded-[2.5rem] border-white shadow-lg">
+                        <div class="flex justify-between items-center mb-8">
+                            <div class="flex items-center gap-3">
+                                <h3 class="section-label flex items-center gap-2">
+                                    <i data-lucide="bar-chart-3" class="w-4 h-4 text-amber-600"></i> DLP
+                                </h3>
+                                <button onclick="exportChartAsHD('dlpChart', 'Biểu đồ DLP')" class="p-2 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-100 transition-all title='Lưu ảnh Full HD'">
+                                    <i data-lucide="camera" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <select id="dlpViewMode" class="bg-slate-100 border-none rounded-xl text-[9px] font-black text-slate-500 px-3 py-1.5 outline-none uppercase tracking-widest">
+                                <option value="hospital">Bệnh viện</option>
+                                <option value="manufacturer">Hãng máy</option>
+                                <option value="age">Tuổi</option>
+                                <option value="gender">Giới tính</option>
+                            </select>
+                        </div>
+                        <div class="h-80"><canvas id="dlpChart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- TABLE -->
+                <div class="glass-card rounded-[2.5rem] overflow-hidden border-white shadow-2xl mb-20">
+                    <div class="p-8 border-b border-slate-50 flex flex-wrap justify-between items-center gap-4 bg-white/40">
+                        <div class="flex items-center gap-4"><div class="bg-slate-100 p-2.5 rounded-2xl text-slate-600 border border-slate-200"><i data-lucide="table" class="w-5 h-5"></i></div><h3 class="section-label">Dữ liệu thô</h3></div>
+                        <button id="btnExportExcel" class="px-5 py-2.5 bg-emerald-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 hover:bg-emerald-700 active:scale-95 flex items-center gap-2"><i data-lucide="download" class="w-3 h-3"></i> Excel (.xlsx)</button>
+                    </div>
+                    <div class="overflow-x-auto relative">
+                        <div id="tableLoader" class="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-sm hidden"><div class="loader"></div></div>
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50/50 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                <tr><th class="px-8 py-5">Cơ sở / BN</th><th class="px-8 py-5">Protocol</th><th class="px-8 py-5 text-center">Modul.</th><th class="px-8 py-5">CTDIvol</th><th class="px-8 py-5">DLP</th><th class="px-8 py-5 text-right">Hành động</th></tr>
+                            </thead>
+                            <tbody id="dataTableBody" class="divide-y divide-slate-50 text-sm"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </main>
@@ -424,14 +489,7 @@
         const INITIAL_HOSPITALS = ["Bệnh viện đa khoa tỉnh Quảng Ninh", "Bệnh viện đa khoa tỉnh Bắc Ninh", "Bệnh viện hữu nghị Việt Tiệp", "Bệnh viện 30 - 04, Bộ Công An", "Bệnh viện Gia An 115"];
         const MANUFACTURERS = ["GE HealthCare", "Siemens Healthineers", "Philips Healthcare", "Canon Medical Systems", "Fujifilm", "Neusoft", "United Imaging"];
         const SLICE_COUNTS = ["16 - 32 lát", "64 - 128 lát", "256 - 512 lát", "Máy 2 bóng (Dual Source)"];
-        
-        // Updated Protocol List
-        const ACR_PROTOCOLS = [
-            { name: 'Sọ não (Head)' }, 
-            { name: 'Ngực không thuốc (Chest)' }, 
-            { name: 'Bụng không thuốc (Abdomen)' }, 
-            { name: 'Phổi liều thấp (LDCT)' }
-        ];
+        const ACR_PROTOCOLS = [{ name: 'Sọ não (Head)' }, { name: 'Ngực không thuốc (Chest)' }, { name: 'Bụng không thuốc (Abdomen)' }, { name: 'Phổi liều thấp (LDCT)' }];
 
         const firebaseConfig = {
             apiKey: "AIzaSyAtQdmDbA1BgOrvwevrG6gwuFzlUmBTbfY",
@@ -454,13 +512,15 @@
         let filteredEntries = [];
         let isAdminMode = false;
         let isLoginMode = true; 
+        let ctdiChart = null;
+        let dlpChart = null;
 
         async function initAuth() {
             if (sessionStorage.getItem('manualLogout') === 'true') {
                 updateStatus("Chưa đăng nhập", "slate");
                 return;
             }
-            updateStatus("Đang kết nối...", "slate");
+            updateStatus("Đang xác thực...", "slate");
         }
 
         function updateStatus(text, color) {
@@ -490,13 +550,22 @@
         }
 
         function render() {
-            const fHosp = document.getElementById('filterHospital').value;
-            const fProt = document.getElementById('filterProtocol').value;
-            const fCMin = parseFloat(document.getElementById('filterCtdiMin').value) || 0;
-            const fCMax = parseFloat(document.getElementById('filterCtdiMax').value) || 9999;
-            
-            const fWMin = parseFloat(document.getElementById('filterWeightMin').value) || 0;
-            const fWMax = parseFloat(document.getElementById('filterWeightMax').value) || 999;
+            // Defensive check for elements
+            const elHosp = document.getElementById('filterHospital');
+            const elProt = document.getElementById('filterProtocol');
+            const elCMin = document.getElementById('filterCtdiMin');
+            const elCMax = document.getElementById('filterCtdiMax');
+            const elWMin = document.getElementById('filterWeightMin');
+            const elWMax = document.getElementById('filterWeightMax');
+
+            if (!elHosp || !elProt || !elCMin || !elCMax || !elWMin || !elWMax) return;
+
+            const fHosp = elHosp.value;
+            const fProt = elProt.value;
+            const fCMin = parseFloat(elCMin.value) || 0;
+            const fCMax = parseFloat(elCMax.value) || 9999;
+            const fWMin = parseFloat(elWMin.value) || 0;
+            const fWMax = parseFloat(elWMax.value) || 999;
 
             filteredEntries = entries.filter(e => {
                 if (fHosp !== 'all' && e.hospitalName !== fHosp) return false;
@@ -552,9 +621,80 @@
                 `;
                 tbody.appendChild(tr);
             });
+            updateCharts();
             lucide.createIcons();
             attachTableEvents();
         }
+
+        function updateCharts() {
+            const chartCanvasC = document.getElementById('ctdiChart');
+            const chartCanvasD = document.getElementById('dlpChart');
+            if (!chartCanvasC || !chartCanvasD) return;
+
+            const ctxC = chartCanvasC.getContext('2d');
+            const ctxD = chartCanvasD.getContext('2d');
+            const modeC = document.getElementById('ctdiViewMode').value;
+            const modeD = document.getElementById('dlpViewMode').value;
+
+            const process = (mode, metric) => {
+                const groups = {};
+                filteredEntries.forEach(e => {
+                    let key = "Khác";
+                    if (mode === 'hospital') key = e.hospitalName;
+                    else if (mode === 'manufacturer') key = e.manufacturer || "N/A";
+                    else if (mode === 'gender') key = e.gender === 'M' ? 'Nam' : 'Nữ';
+                    else if (mode === 'age') {
+                        const age = parseInt(e.age);
+                        if (age < 18) key = "< 18"; else if (age <= 40) key = "18-40"; else if (age <= 60) key = "41-60"; else key = "> 60";
+                    }
+                    if (!groups[key]) groups[key] = [];
+                    const v = parseFloat(e[metric]); if (!isNaN(v)) groups[key].push(v);
+                });
+                const labels = Object.keys(groups);
+                const data75 = labels.map(k => { const s = groups[k].sort((a,b)=>a-b); return s[Math.floor(s.length * 0.75)] || s[0] || 0; });
+                const data50 = labels.map(k => { const s = groups[k].sort((a,b)=>a-b); return s[Math.floor(s.length * 0.5)] || s[0] || 0; });
+                return { labels, data75, data50 };
+            };
+
+            const draw = (ctx, data, c1, c2) => new Chart(ctx, {
+                type: 'bar',
+                data: { labels: data.labels, datasets: [{ label: '75th (DRL)', data: data.data75, backgroundColor: c1, borderRadius: 8 }, { label: '50th (Med)', data: data.data50, backgroundColor: c2, borderRadius: 8 }] },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    animation: { duration: 500 },
+                    plugins: { legend: { display: true, position: 'top', labels: { font: { size: 10, weight: 'bold' } } } }, 
+                    scales: { y: { beginAtZero: true } } 
+                }
+            });
+
+            if (ctdiChart) ctdiChart.destroy();
+            ctdiChart = draw(ctxC, process(modeC, 'ctdi'), '#4f46e5', '#a5b4fc');
+            if (dlpChart) dlpChart.destroy();
+            dlpChart = draw(ctxD, process(modeD, 'dlp'), '#f59e0b', '#fcd34d');
+        }
+
+        window.exportChartAsHD = (chartId, title) => {
+            const chartCanvas = document.getElementById(chartId);
+            if (!chartCanvas) return;
+            const hdCanvas = document.createElement('canvas');
+            hdCanvas.width = 1920; hdCanvas.height = 1080;
+            const ctx = hdCanvas.getContext('2d');
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, 1920, 1080);
+            ctx.fillStyle = "#1e293b";
+            ctx.font = "bold 40px Inter, sans-serif";
+            ctx.fillText(title, 50, 80);
+            ctx.font = "20px Inter, sans-serif";
+            ctx.fillStyle = "#64748b";
+            ctx.fillText(`Xuất ngày: ${new Date().toLocaleDateString('vi-VN')} | VN-DRL Study`, 50, 120);
+            ctx.drawImage(chartCanvas, 50, 180, 1820, 850);
+            const link = document.createElement('a');
+            link.download = `${title.replace(/\s+/g, '_')}_${new Date().getTime()}.jpg`;
+            link.href = hdCanvas.toDataURL('image/jpeg', 1.0);
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            showToast("Đã lưu ảnh Full HD", "success");
+        };
 
         function setupEventListeners() {
             document.getElementById('userMenuBtn').onclick = (e) => { e.stopPropagation(); document.getElementById('userDropdown').classList.toggle('hidden'); };
@@ -590,7 +730,6 @@
                 const hospVal = document.getElementById('hospitalSelect').value;
                 const finalHosp = hospVal === 'other' ? document.getElementById('customHospitalName').value.trim() : hospVal;
                 if (!finalHosp) return showToast("Thiếu tên bệnh viện", "error");
-                
                 const doseVal = document.querySelector('input[name="doseModulation"]:checked')?.value || "Có";
 
                 const data = {
@@ -622,10 +761,10 @@
                 XLSX.writeFile(wb, "DRL_Export.xlsx");
             };
 
-            ['filterHospital', 'filterProtocol'].forEach(id => { 
+            ['filterHospital', 'filterProtocol', 'ctdiViewMode', 'dlpViewMode'].forEach(id => { 
                 const el = document.getElementById(id); if(el) el.onchange = render; 
             });
-            ['filterCtdiMin', 'filterCtdiMax', 'filterWeightMin', 'filterWeightMax'].forEach(id => { 
+            ['filterWeightMin', 'filterWeightMax', 'filterCtdiMin', 'filterCtdiMax'].forEach(id => { 
                 const el = document.getElementById(id); if(el) el.oninput = render; 
             });
             
@@ -672,10 +811,8 @@
             document.getElementById('age').value = e.age; document.getElementById('weight').value = e.weight;
             document.getElementById('ctdi').value = e.ctdi; document.getElementById('dlp').value = e.dlp;
             document.getElementById('scanDate').value = e.scanDate;
-            
             const doseRadio = document.querySelector(`input[name="doseModulation"][value="${e.doseModulation}"]`);
             if (doseRadio) doseRadio.checked = true;
-
             document.getElementById('submitBtnText').textContent = "Cập nhật thay đổi";
             document.getElementById('cancelEditBtn').classList.remove('hidden');
             document.querySelector('.sidebar-scroll-area').scrollTo({ top: 0, behavior: 'smooth' });
@@ -732,10 +869,8 @@
             };
             fill('manufacturer', MANUFACTURERS); fill('sliceCount', SLICE_COUNTS);
             fill('protocol', ACR_PROTOCOLS);
-            
             const fProt = document.getElementById('filterProtocol');
             ACR_PROTOCOLS.forEach(i => { const o = document.createElement('option'); o.value = i.name; o.textContent = i.name; fProt.appendChild(o); });
-
             const scanDateEl = document.getElementById('scanDate');
             if (scanDateEl) scanDateEl.valueAsDate = new Date();
             lucide.createIcons();
@@ -752,10 +887,7 @@
                 if (userMenu) userMenu.classList.toggle('hidden', isAnon);
                 if (formLockOverlay) formLockOverlay.classList.toggle('hidden', !isAnon);
                 if (u) {
-                    if (!u.isAnonymous) {
-                        sessionStorage.removeItem('manualLogout');
-                        if (authModal) authModal.classList.add('hidden');
-                    }
+                    if (!u.isAnonymous) { sessionStorage.removeItem('manualLogout'); if (authModal) authModal.classList.add('hidden'); }
                     const userEmailDisplay = document.getElementById('userEmailDisplay');
                     if (userEmailDisplay) userEmailDisplay.textContent = u.email || "Google User";
                     setupDataSync(u);
