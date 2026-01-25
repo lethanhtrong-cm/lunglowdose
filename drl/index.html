@@ -25,7 +25,6 @@
             font-family: 'Inter', sans-serif; 
             background: #f8fafc;
             color: #1e293b;
-            /* Chặn cuộn của body để cuộn trong khung */
             overflow: hidden; 
             height: 100vh;
         }
@@ -42,10 +41,9 @@
             background-attachment: fixed;
         }
 
-        /* Khung cuộn nội dung chính */
         .content-frame {
             position: fixed;
-            top: 110px; /* Khoảng cách dành cho header */
+            top: 110px; 
             left: 0;
             right: 0;
             bottom: 0;
@@ -139,6 +137,13 @@
                 <div>
                     <label class="section-label mb-2 block ml-1">Mật khẩu</label>
                     <input type="password" id="authPassword" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="••••••••" required>
+                </div>
+
+                <div class="flex items-center justify-between px-1">
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <input type="checkbox" id="authRemember" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" checked>
+                        <span class="text-xs font-bold text-slate-500 group-hover:text-slate-700 transition-colors">Ghi nhớ đăng nhập</span>
+                    </label>
                 </div>
 
                 <div class="pt-2">
@@ -416,7 +421,7 @@
     <!-- FIREBASE & LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithPopup, GoogleAuthProvider, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithPopup, GoogleAuthProvider, signInWithCustomToken, signInAnonymously, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const INITIAL_HOSPITALS = ["Bệnh viện đa khoa tỉnh Quảng Ninh", "Bệnh viện đa khoa tỉnh Bắc Ninh", "Bệnh viện hữu nghị Việt Tiệp", "Bệnh viện 30 - 04, Bộ Công An", "Bệnh viện Gia An 115"];
@@ -424,7 +429,6 @@
         const SLICE_COUNTS = ["16 - 32 lát", "64 - 128 lát", "256 - 512 lát", "Máy 2 bóng (Dual Source)"];
         const ACR_PROTOCOLS = [{ name: 'Sọ não (Head)' }, { name: 'Ngực không thuốc (Chest)' }, { name: 'Ngực có thuốc (Chest CE)' }, { name: 'Bụng không thuốc (Abdomen)' }, { name: 'Bụng có thuốc (Abdoment CE)' }, { name: 'Mạch vành (Coronary)' }, { name: 'Phổi liều thấp (LDCT)' }];
 
-        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyAtQdmDbA1BgOrvwevrG6gwuFzlUmBTbfY",
             authDomain: "wb-idr.firebaseapp.com",
@@ -436,7 +440,6 @@
         };
         
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'wb-idr';
-        
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -450,15 +453,9 @@
         let dlpChart = null;
         let isLoginMode = true; 
 
-        const VALIDATION_RULES = {
-            ctdi: { warn: 80, max: 150 }, 
-            dlp: { warn: 1500, max: 5000 },
-            age: { min: 0, max: 120 },
-            weight: { standardMin: 60, standardMax: 80, absMin: 2, absMax: 250 }
-        };
-
         // --- AUTH FLOW ---
         async function initAuth() {
+            // Check manual logout flag
             if (sessionStorage.getItem('manualLogout') === 'true') {
                 updateStatus("Chưa đăng nhập", "slate");
                 return;
@@ -466,11 +463,9 @@
 
             updateStatus("Đang xác thực...", "slate");
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                // By default Firebase tries to restore existing user if persistence was LOCAL
+                // If no user is found, we can sign in anonymously as a guest
+                // But we don't force a sign in if an existing persistent user might exist
             } catch (err) {
                 updateStatus("Chế độ khách", "slate");
             }
@@ -537,10 +532,8 @@
             filteredEntries.forEach(e => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 transition-colors group";
-                
                 const isOwner = user && e.userId === user.uid && !user.isAnonymous;
                 const canEdit = isOwner || isAdminMode;
-                
                 const weight = parseFloat(e.weight);
                 const isStd = weight >= 60 && weight <= 80;
 
@@ -643,7 +636,13 @@
                 const email = document.getElementById('authEmail').value;
                 const pass = document.getElementById('authPassword').value;
                 const pin = document.getElementById('authAdminPin').value;
+                const remember = document.getElementById('authRemember').checked;
+
                 try {
+                    // Set persistence based on checkbox
+                    const persistence = remember ? browserLocalPersistence : browserSessionPersistence;
+                    await setPersistence(auth, persistence);
+                    
                     sessionStorage.removeItem('manualLogout');
                     if (isLoginMode) {
                         await signInWithEmailAndPassword(auth, email, pass);
@@ -665,6 +664,9 @@
 
             document.getElementById('googleLoginBtn').onclick = async () => {
                 try {
+                    // Google login defaults to local persistence in Firebase Popup usually
+                    // but we can enforce it if needed.
+                    await setPersistence(auth, browserLocalPersistence);
                     sessionStorage.removeItem('manualLogout');
                     await signInWithPopup(auth, googleProvider);
                 } catch (err) {
@@ -814,7 +816,6 @@
             document.getElementById('dlp').value = e.dlp;
             document.getElementById('cancelEditBtn').classList.remove('hidden');
             document.getElementById('submitBtn').classList.replace('bg-indigo-600', 'bg-amber-600');
-            // Cuộn khung nội dung lên đầu thay vì cuộn cửa sổ
             document.querySelector('.content-frame').scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -876,7 +877,9 @@
             if (scanDateEl) scanDateEl.valueAsDate = new Date();
             lucide.createIcons();
             setupEventListeners();
+            
             await initAuth();
+            
             onAuthStateChanged(auth, (u) => {
                 user = u;
                 const isAnon = !u || u.isAnonymous;
@@ -884,9 +887,11 @@
                 const userMenu = document.getElementById('userMenu');
                 const formLockOverlay = document.getElementById('formLockOverlay');
                 const authModal = document.getElementById('authModal');
+                
                 if (navLoginBtn) navLoginBtn.classList.toggle('hidden', !isAnon);
                 if (userMenu) userMenu.classList.toggle('hidden', isAnon);
                 if (formLockOverlay) formLockOverlay.classList.toggle('hidden', !isAnon);
+                
                 if (u) {
                     if (!u.isAnonymous) {
                         sessionStorage.removeItem('manualLogout');
@@ -895,8 +900,12 @@
                     const userEmailDisplay = document.getElementById('userEmailDisplay');
                     if (userEmailDisplay) userEmailDisplay.textContent = u.email || "Khách ẩn danh";
                     setupDataSync(u);
-                } else if (sessionStorage.getItem('manualLogout') === 'true') {
+                } else {
                     updateStatus("Chưa đăng nhập", "slate");
+                    // If no user and we're not manually logged out, try guest login
+                    if (sessionStorage.getItem('manualLogout') !== 'true') {
+                        signInAnonymously(auth).catch(() => {});
+                    }
                 }
             });
         };
