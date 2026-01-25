@@ -24,8 +24,10 @@
         body { 
             font-family: 'Inter', sans-serif; 
             background: #f8fafc;
-            overflow-x: hidden;
             color: #1e293b;
+            /* Chặn cuộn của body để cuộn trong khung */
+            overflow: hidden; 
+            height: 100vh;
         }
 
         .mesh-bg {
@@ -38,6 +40,17 @@
                 radial-gradient(at 100% 0%, hsla(190,100%,92%,1) 0, transparent 50%),
                 radial-gradient(at 0% 100%, hsla(260,100%,92%,1) 0, transparent 50%);
             background-attachment: fixed;
+        }
+
+        /* Khung cuộn nội dung chính */
+        .content-frame {
+            position: fixed;
+            top: 110px; /* Khoảng cách dành cho header */
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow-y: auto;
+            padding-bottom: 50px;
         }
 
         .glass-card {
@@ -108,7 +121,7 @@
     <div class="mesh-bg"></div>
 
     <!-- AUTH MODAL -->
-    <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-md hidden p-4">
+    <div id="authModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 backdrop-blur-md hidden p-4">
         <div class="bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl transform transition-all text-slate-900 border border-slate-100">
             <div class="text-center mb-8">
                 <div class="bg-indigo-600 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-indigo-200 rotate-3">
@@ -168,8 +181,8 @@
         </div>
     </div>
 
-    <!-- NAVBAR -->
-    <nav class="sticky top-0 z-40 px-4 py-6">
+    <!-- NAVBAR - FIXED -->
+    <nav class="fixed top-0 left-0 right-0 z-50 px-4 pt-6">
         <div class="max-w-7xl mx-auto glass-card rounded-[2rem] px-8 py-4 flex justify-between items-center shadow-lg border-white">
             <div class="flex items-center gap-4">
                 <div class="bg-indigo-600 p-2.5 rounded-2xl text-white shadow-lg shadow-indigo-100">
@@ -216,184 +229,186 @@
         </div>
     </nav>
 
-    <!-- MAIN CONTENT -->
-    <main class="max-w-7xl mx-auto px-4 py-4 grid grid-cols-12 gap-8 pb-20">
-        <!-- LEFT: FORM -->
-        <aside class="col-span-12 lg:col-span-4">
-            <div id="formContainer" class="glass-card rounded-[2.5rem] overflow-hidden sticky top-32 transition-all duration-500 shadow-xl border-white">
-                <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-white/40">
-                    <h2 id="formTitle" class="font-black text-slate-900 flex items-center gap-3 uppercase tracking-widest text-xs">
-                        <i data-lucide="plus-circle" class="text-indigo-600 w-5 h-5"></i> Nhập dữ liệu
-                    </h2>
-                    <span class="px-3 py-1 bg-indigo-50 rounded-full text-[9px] font-black text-indigo-600 border border-indigo-100">SCAN DATA</span>
-                </div>
-
-                <form id="drlForm" class="p-8 space-y-6 relative">
-                    <div id="formLockOverlay" class="absolute inset-0 bg-white/60 backdrop-blur-md z-10 flex flex-col items-center justify-center text-center p-8 hidden">
-                        <div class="bg-indigo-50 p-5 rounded-full mb-4 border border-indigo-100">
-                            <i data-lucide="lock" class="w-8 h-8 text-indigo-600"></i>
-                        </div>
-                        <p class="text-xs font-black text-slate-800 uppercase tracking-widest">Đăng nhập để bắt đầu</p>
+    <!-- CONTENT FRAME -->
+    <div class="content-frame">
+        <main class="max-w-7xl mx-auto px-4 py-4 grid grid-cols-12 gap-8 pb-20 mt-4">
+            <!-- LEFT: FORM -->
+            <aside class="col-span-12 lg:col-span-4">
+                <div id="formContainer" class="glass-card rounded-[2.5rem] overflow-hidden sticky top-8 transition-all duration-500 shadow-xl border-white">
+                    <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-white/40">
+                        <h2 id="formTitle" class="font-black text-slate-900 flex items-center gap-3 uppercase tracking-widest text-xs">
+                            <i data-lucide="plus-circle" class="text-indigo-600 w-5 h-5"></i> Nhập dữ liệu
+                        </h2>
+                        <span class="px-3 py-1 bg-indigo-50 rounded-full text-[9px] font-black text-indigo-600 border border-indigo-100">SCAN DATA</span>
                     </div>
 
-                    <input type="hidden" id="editEntryId" value="">
+                    <form id="drlForm" class="p-8 space-y-6 relative">
+                        <div id="formLockOverlay" class="absolute inset-0 bg-white/60 backdrop-blur-md z-10 flex flex-col items-center justify-center text-center p-8 hidden">
+                            <div class="bg-indigo-50 p-5 rounded-full mb-4 border border-indigo-100">
+                                <i data-lucide="lock" class="w-8 h-8 text-indigo-600"></i>
+                            </div>
+                            <p class="text-xs font-black text-slate-800 uppercase tracking-widest">Đăng nhập để bắt đầu</p>
+                        </div>
 
-                    <div class="space-y-4">
-                        <label class="section-label flex items-center gap-2"><i data-lucide="hospital" class="w-3 h-3 text-indigo-500"></i> Cơ sở & Thiết bị</label>
-                        <div class="space-y-3">
-                            <select id="hospitalSelect" class="w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none appearance-none font-medium">
-                                <option value="" disabled selected>-- Chọn Bệnh viện --</option>
-                                <option value="other" class="font-bold text-indigo-600">➕ Bệnh viện khác (Nhập mới)</option>
-                            </select>
-                            <input type="text" id="customHospitalName" placeholder="Tên bệnh viện mới..." class="hidden w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none border-indigo-200">
+                        <input type="hidden" id="editEntryId" value="">
+
+                        <div class="space-y-4">
+                            <label class="section-label flex items-center gap-2"><i data-lucide="hospital" class="w-3 h-3 text-indigo-500"></i> Cơ sở & Thiết bị</label>
+                            <div class="space-y-3">
+                                <select id="hospitalSelect" class="w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none appearance-none font-medium">
+                                    <option value="" disabled selected>-- Chọn Bệnh viện --</option>
+                                    <option value="other" class="font-bold text-indigo-600">➕ Bệnh viện khác (Nhập mới)</option>
+                                </select>
+                                <input type="text" id="customHospitalName" placeholder="Tên bệnh viện mới..." class="hidden w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none border-indigo-200">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <select id="manufacturer" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-medium">
+                                        <option value="" disabled selected>Hãng máy</option>
+                                    </select>
+                                    <select id="sliceCount" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-medium">
+                                        <option value="" disabled selected>Số lát</option>
+                                    </select>
+                                </div>
+                                <div class="p-1.5 bg-slate-100 rounded-[1.5rem] flex gap-1 border border-slate-200">
+                                    <label class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:text-indigo-600 has-[:checked]:shadow-sm text-slate-400 font-black text-[10px] uppercase">
+                                        <input type="radio" name="aecMode" value="Có dùng AEC" class="hidden" required> AEC: Có
+                                    </label>
+                                    <label class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:text-indigo-600 has-[:checked]:shadow-sm text-slate-400 font-black text-[10px] uppercase">
+                                        <input type="radio" name="aecMode" value="Không dùng AEC" class="hidden"> AEC: Không
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <label class="section-label flex items-center gap-2"><i data-lucide="user" class="w-3 h-3 text-indigo-500"></i> Bệnh nhân & Protocol</label>
+                            <select id="protocol" class="w-full px-5 py-4 bg-indigo-50 border border-indigo-100 rounded-2xl text-sm font-black text-indigo-700 outline-none"></select>
                             <div class="grid grid-cols-2 gap-3">
-                                <select id="manufacturer" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-medium">
-                                    <option value="" disabled selected>Hãng máy</option>
+                                <input type="text" id="patientId" placeholder="ID Bệnh nhân" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-medium">
+                                <input type="date" id="scanDate" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-black text-[10px] text-slate-600">
+                            </div>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div>
+                                    <input type="number" id="age" placeholder="Tuổi" class="w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none text-center font-bold">
+                                    <p id="ageWarn" class="text-[8px] font-bold text-red-500 mt-1 hidden text-center uppercase">Lỗi tuổi</p>
+                                </div>
+                                <select id="gender" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none text-center font-bold">
+                                    <option value="M">Nam</option>
+                                    <option value="F">Nữ</option>
                                 </select>
-                                <select id="sliceCount" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-medium">
-                                    <option value="" disabled selected>Số lát</option>
-                                </select>
-                            </div>
-                            <div class="p-1.5 bg-slate-100 rounded-[1.5rem] flex gap-1 border border-slate-200">
-                                <label class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:text-indigo-600 has-[:checked]:shadow-sm text-slate-400 font-black text-[10px] uppercase">
-                                    <input type="radio" name="aecMode" value="Có dùng AEC" class="hidden" required> AEC: Có
-                                </label>
-                                <label class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:text-indigo-600 has-[:checked]:shadow-sm text-slate-400 font-black text-[10px] uppercase">
-                                    <input type="radio" name="aecMode" value="Không dùng AEC" class="hidden"> AEC: Không
-                                </label>
+                                <div>
+                                    <input type="number" id="weight" placeholder="Kg" class="w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none text-center font-bold">
+                                    <p id="weightWarn" class="text-[7px] font-bold text-amber-600 mt-1 hidden text-center uppercase tracking-tighter leading-tight">Ngoài chuẩn (60-80kg)</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="space-y-4">
-                        <label class="section-label flex items-center gap-2"><i data-lucide="user" class="w-3 h-3 text-indigo-500"></i> Bệnh nhân & Protocol</label>
-                        <select id="protocol" class="w-full px-5 py-4 bg-indigo-50 border border-indigo-100 rounded-2xl text-sm font-black text-indigo-700 outline-none"></select>
-                        <div class="grid grid-cols-2 gap-3">
-                            <input type="text" id="patientId" placeholder="ID Bệnh nhân" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-medium">
-                            <input type="date" id="scanDate" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-black text-[10px] text-slate-600">
-                        </div>
-                        <div class="grid grid-cols-3 gap-3">
-                            <div>
-                                <input type="number" id="age" placeholder="Tuổi" class="w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none text-center font-bold">
-                                <p id="ageWarn" class="text-[8px] font-bold text-red-500 mt-1 hidden text-center uppercase">Lỗi tuổi</p>
-                            </div>
-                            <select id="gender" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none text-center font-bold">
-                                <option value="M">Nam</option>
-                                <option value="F">Nữ</option>
-                            </select>
-                            <div>
-                                <input type="number" id="weight" placeholder="Kg" class="w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none text-center font-bold">
-                                <p id="weightWarn" class="text-[7px] font-bold text-amber-600 mt-1 hidden text-center uppercase tracking-tighter leading-tight">Ngoài chuẩn (60-80kg)</p>
+                        <div class="space-y-4">
+                            <label class="section-label flex items-center gap-2 text-amber-600"><i data-lucide="zap" class="w-3 h-3 text-indigo-500"></i> Thông số Liều bức xạ</label>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-[9px] font-black text-slate-400 uppercase ml-2">CTDIvol (mGy)</label>
+                                    <input type="number" step="0.01" id="ctdi" placeholder="0.00" class="w-full px-5 py-5 bg-amber-50 border-2 border-amber-200 rounded-2xl text-3xl font-black text-amber-600 outline-none focus:border-amber-500 transition-all text-center">
+                                    <p id="ctdiWarn" class="text-[9px] font-black text-red-500 mt-1 hidden text-center uppercase tracking-tighter">Giá trị cao!</p>
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[9px] font-black text-slate-400 uppercase ml-2">DLP (mGy.cm)</label>
+                                    <input type="number" step="0.1" id="dlp" placeholder="0.0" class="w-full px-5 py-5 bg-amber-50 border-2 border-amber-200 rounded-2xl text-3xl font-black text-amber-600 outline-none focus:border-amber-500 transition-all text-center">
+                                    <p id="dlpWarn" class="text-[9px] font-black text-red-500 mt-1 hidden text-center uppercase tracking-tighter">Vô lý (DLP < CTDI)</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="space-y-4">
-                        <label class="section-label flex items-center gap-2 text-amber-600"><i data-lucide="zap" class="w-3 h-3 text-indigo-500"></i> Thông số Liều bức xạ</label>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-1">
-                                <label class="text-[9px] font-black text-slate-400 uppercase ml-2">CTDIvol (mGy)</label>
-                                <input type="number" step="0.01" id="ctdi" placeholder="0.00" class="w-full px-5 py-5 bg-amber-50 border-2 border-amber-200 rounded-2xl text-3xl font-black text-amber-600 outline-none focus:border-amber-500 transition-all text-center">
-                                <p id="ctdiWarn" class="text-[9px] font-black text-red-500 mt-1 hidden text-center uppercase tracking-tighter">Giá trị cao!</p>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[9px] font-black text-slate-400 uppercase ml-2">DLP (mGy.cm)</label>
-                                <input type="number" step="0.1" id="dlp" placeholder="0.0" class="w-full px-5 py-5 bg-amber-50 border-2 border-amber-200 rounded-2xl text-3xl font-black text-amber-600 outline-none focus:border-amber-500 transition-all text-center">
-                                <p id="dlpWarn" class="text-[9px] font-black text-red-500 mt-1 hidden text-center uppercase tracking-tighter">Vô lý (DLP < CTDI)</p>
-                            </div>
+                        <div class="flex gap-3 pt-4">
+                            <button type="button" id="cancelEditBtn" class="hidden flex-1 py-5 bg-slate-100 text-slate-500 rounded-3xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">Hủy bỏ</button>
+                            <button type="submit" id="submitBtn" class="flex-[2] py-5 bg-indigo-600 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-xl shadow-indigo-100">
+                                <i data-lucide="save" class="w-4 h-4"></i> Lưu Dữ Liệu
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </aside>
+
+            <!-- RIGHT: DASHBOARD -->
+            <div class="col-span-12 lg:col-span-8 space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-card p-8 rounded-[2.5rem] flex flex-col justify-between glass-card-hover transition-all group">
+                        <div class="flex justify-between items-start">
+                            <p class="section-label">Tổng số mẫu</p>
+                            <i data-lucide="database" class="w-5 h-5 text-indigo-400"></i>
+                        </div>
+                        <h3 id="statTotal" class="text-6xl font-black text-slate-900 mt-4 tracking-tighter">0</h3>
+                        <div class="mt-4 flex items-center gap-2"><span id="statLabel" class="text-[9px] font-black px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full uppercase border border-indigo-100">Dữ liệu thực tế</span></div>
+                    </div>
+                    <div class="glass-card p-8 rounded-[2.5rem] border-l-[6px] border-l-indigo-600 flex flex-col justify-between glass-card-hover transition-all">
+                        <div>
+                            <p class="section-label text-indigo-600">DRL (75th) CTDIvol</p>
+                            <div class="flex items-baseline gap-2 mt-4"><h3 id="statCtdi75" class="text-6xl font-black text-slate-900 tracking-tighter">0.0</h3><span class="text-xs font-black text-slate-400 uppercase">mGy</span></div>
+                        </div>
+                        <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center"><span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Median (50th)</span><span id="statCtdiMedian" class="text-sm font-black text-indigo-600">0.0</span></div>
+                    </div>
+                    <div class="glass-card p-8 rounded-[2.5rem] border-l-[6px] border-l-amber-500 flex flex-col justify-between glass-card-hover transition-all">
+                        <div>
+                            <p class="section-label text-amber-600">DRL (75th) DLP</p>
+                            <div class="flex items-baseline gap-2 mt-4"><h3 id="statDlp75" class="text-6xl font-black text-slate-900 tracking-tighter">0</h3><span class="text-xs font-black text-slate-400 uppercase">mGy.cm</span></div>
+                        </div>
+                        <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center"><span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Median (50th)</span><span id="statDlpMedian" class="text-sm font-black text-amber-600">0</span></div>
+                    </div>
+                </div>
+
+                <!-- FILTER PANEL -->
+                <div class="glass-card p-8 rounded-[2.5rem] border-white shadow-xl">
+                    <div class="flex items-center justify-between gap-4 mb-8">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-indigo-50 p-3 rounded-2xl text-indigo-600 border border-indigo-100"><i data-lucide="sliders" class="w-5 h-5"></i></div>
+                            <h3 class="font-black text-slate-800 text-xs uppercase tracking-[0.2em]">Bộ lọc nghiên cứu</h3>
+                        </div>
+                        <div class="flex items-center gap-3 bg-white/50 px-4 py-2 rounded-2xl border border-white">
+                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">BN chuẩn (60-80kg)</span>
+                            <label class="switch"><input type="checkbox" id="filterStandardPatient"><span class="slider"></span></label>
                         </div>
                     </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div class="space-y-2"><label class="section-label ml-1">Bệnh viện</label><select id="filterHospital" class="w-full px-4 py-3 glass-input rounded-2xl text-xs outline-none font-bold"><option value="all">Tất cả</option></select></div>
+                        <div class="space-y-2"><label class="section-label ml-1">Protocol</label><select id="filterProtocol" class="w-full px-4 py-3 glass-input rounded-2xl text-xs outline-none font-bold"><option value="all">Tất cả</option></select></div>
+                        <div class="md:col-span-2 space-y-2"><label class="section-label ml-1">Khoảng liều CTDI (mGy)</label><div class="flex items-center gap-3"><input type="number" id="filterCtdiMin" placeholder="Từ" class="w-full px-4 py-3 glass-input rounded-2xl text-xs outline-none font-bold"><span class="text-slate-300">—</span><input type="number" id="filterCtdiMax" placeholder="Đến" class="w-full px-4 py-3 glass-input rounded-2xl text-xs outline-none font-bold"></div></div>
+                    </div>
+                </div>
 
-                    <div class="flex gap-3 pt-4">
-                        <button type="button" id="cancelEditBtn" class="hidden flex-1 py-5 bg-slate-100 text-slate-500 rounded-3xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">Hủy bỏ</button>
-                        <button type="submit" id="submitBtn" class="flex-[2] py-5 bg-indigo-600 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-xl shadow-indigo-100">
-                            <i data-lucide="save" class="w-4 h-4"></i> Lưu Dữ Liệu
-                        </button>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="glass-card p-8 rounded-[2.5rem] border-white shadow-lg">
+                        <div class="flex justify-between items-center mb-8"><h3 class="section-label flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-600"></i> CTDIvol</h3><select id="ctdiViewMode" class="bg-slate-100 border-none rounded-xl text-[9px] font-black text-slate-500 px-3 py-1.5 outline-none uppercase tracking-widest"><option value="hospital">Theo Bệnh viện</option><option value="manufacturer">Theo Hãng</option><option value="age">Theo Tuổi</option><option value="gender">Giới tính</option></select></div>
+                        <div class="h-80"><canvas id="ctdiChart"></canvas></div>
                     </div>
-                </form>
-            </div>
-        </aside>
+                    <div class="glass-card p-8 rounded-[2.5rem] border-white shadow-lg">
+                        <div class="flex justify-between items-center mb-8"><h3 class="section-label flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-4 h-4 text-amber-600"></i> DLP</h3><select id="dlpViewMode" class="bg-slate-100 border-none rounded-xl text-[9px] font-black text-slate-500 px-3 py-1.5 outline-none uppercase tracking-widest"><option value="hospital">Theo Bệnh viện</option><option value="manufacturer">Theo Hãng</option><option value="age">Theo Tuổi</option><option value="gender">Giới tính</option></select></div>
+                        <div class="h-80"><canvas id="dlpChart"></canvas></div>
+                    </div>
+                </div>
 
-        <!-- RIGHT: DASHBOARD -->
-        <div class="col-span-12 lg:col-span-8 space-y-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="glass-card p-8 rounded-[2.5rem] flex flex-col justify-between glass-card-hover transition-all group">
-                    <div class="flex justify-between items-start">
-                        <p class="section-label">Tổng số mẫu</p>
-                        <i data-lucide="database" class="w-5 h-5 text-indigo-400"></i>
+                <!-- TABLE -->
+                <div class="glass-card rounded-[2.5rem] overflow-hidden border-white shadow-2xl">
+                    <div class="p-8 border-b border-slate-50 flex flex-wrap justify-between items-center gap-4 bg-white/40">
+                        <div class="flex items-center gap-4"><div class="bg-slate-100 p-2.5 rounded-2xl text-slate-600 border border-slate-200"><i data-lucide="table" class="w-5 h-5"></i></div><h3 class="section-label">Danh sách dữ liệu thô</h3></div>
+                        <div class="flex gap-2">
+                            <button id="btnExportExcel" class="px-5 py-2.5 bg-emerald-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 hover:bg-emerald-700 active:scale-95 flex items-center gap-2"><i data-lucide="download" class="w-3 h-3"></i> Excel (.xlsx)</button>
+                        </div>
                     </div>
-                    <h3 id="statTotal" class="text-6xl font-black text-slate-900 mt-4 tracking-tighter">0</h3>
-                    <div class="mt-4 flex items-center gap-2"><span id="statLabel" class="text-[9px] font-black px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full uppercase border border-indigo-100">Dữ liệu thực tế</span></div>
-                </div>
-                <div class="glass-card p-8 rounded-[2.5rem] border-l-[6px] border-l-indigo-600 flex flex-col justify-between glass-card-hover transition-all">
-                    <div>
-                        <p class="section-label text-indigo-600">DRL (75th) CTDIvol</p>
-                        <div class="flex items-baseline gap-2 mt-4"><h3 id="statCtdi75" class="text-6xl font-black text-slate-900 tracking-tighter">0.0</h3><span class="text-xs font-black text-slate-400 uppercase">mGy</span></div>
+                    <div class="overflow-x-auto relative min-h-[400px]">
+                        <div id="tableLoader" class="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-sm hidden"><div class="loader"></div></div>
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50/50 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                <tr><th class="px-8 py-5">Cơ sở / BN</th><th class="px-8 py-5">Protocol</th><th class="px-8 py-5 text-center">Habitus</th><th class="px-8 py-5">CTDIvol</th><th class="px-8 py-5">DLP</th><th class="px-8 py-5 text-right">Hành động</th></tr>
+                            </thead>
+                            <tbody id="dataTableBody" class="divide-y divide-slate-50 text-sm"></tbody>
+                        </table>
                     </div>
-                    <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center"><span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Median (50th)</span><span id="statCtdiMedian" class="text-sm font-black text-indigo-600">0.0</span></div>
-                </div>
-                <div class="glass-card p-8 rounded-[2.5rem] border-l-[6px] border-l-amber-500 flex flex-col justify-between glass-card-hover transition-all">
-                    <div>
-                        <p class="section-label text-amber-600">DRL (75th) DLP</p>
-                        <div class="flex items-baseline gap-2 mt-4"><h3 id="statDlp75" class="text-6xl font-black text-slate-900 tracking-tighter">0</h3><span class="text-xs font-black text-slate-400 uppercase">mGy.cm</span></div>
-                    </div>
-                    <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center"><span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Median (50th)</span><span id="statDlpMedian" class="text-sm font-black text-amber-600">0</span></div>
-                </div>
-            </div>
-
-            <!-- FILTER PANEL -->
-            <div class="glass-card p-8 rounded-[2.5rem] border-white shadow-xl">
-                <div class="flex items-center justify-between gap-4 mb-8">
-                    <div class="flex items-center gap-4">
-                        <div class="bg-indigo-50 p-3 rounded-2xl text-indigo-600 border border-indigo-100"><i data-lucide="sliders" class="w-5 h-5"></i></div>
-                        <h3 class="font-black text-slate-800 text-xs uppercase tracking-[0.2em]">Bộ lọc nghiên cứu</h3>
-                    </div>
-                    <div class="flex items-center gap-3 bg-white/50 px-4 py-2 rounded-2xl border border-white">
-                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">BN chuẩn (60-80kg)</span>
-                        <label class="switch"><input type="checkbox" id="filterStandardPatient"><span class="slider"></span></label>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div class="space-y-2"><label class="section-label ml-1">Bệnh viện</label><select id="filterHospital" class="w-full px-4 py-3 glass-input rounded-2xl text-xs outline-none font-bold"><option value="all">Tất cả</option></select></div>
-                    <div class="space-y-2"><label class="section-label ml-1">Protocol</label><select id="filterProtocol" class="w-full px-4 py-3 glass-input rounded-2xl text-xs outline-none font-bold"><option value="all">Tất cả</option></select></div>
-                    <div class="md:col-span-2 space-y-2"><label class="section-label ml-1">Khoảng liều CTDI (mGy)</label><div class="flex items-center gap-3"><input type="number" id="filterCtdiMin" placeholder="Từ" class="w-full px-4 py-3 glass-input rounded-2xl text-xs outline-none font-bold"><span class="text-slate-300">—</span><input type="number" id="filterCtdiMax" placeholder="Đến" class="w-full px-4 py-3 glass-input rounded-2xl text-xs outline-none font-bold"></div></div>
                 </div>
             </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="glass-card p-8 rounded-[2.5rem] border-white shadow-lg">
-                    <div class="flex justify-between items-center mb-8"><h3 class="section-label flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-600"></i> CTDIvol</h3><select id="ctdiViewMode" class="bg-slate-100 border-none rounded-xl text-[9px] font-black text-slate-500 px-3 py-1.5 outline-none uppercase tracking-widest"><option value="hospital">Theo Bệnh viện</option><option value="manufacturer">Theo Hãng</option><option value="age">Theo Tuổi</option><option value="gender">Giới tính</option></select></div>
-                    <div class="h-80"><canvas id="ctdiChart"></canvas></div>
-                </div>
-                <div class="glass-card p-8 rounded-[2.5rem] border-white shadow-lg">
-                    <div class="flex justify-between items-center mb-8"><h3 class="section-label flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-4 h-4 text-amber-600"></i> DLP</h3><select id="dlpViewMode" class="bg-slate-100 border-none rounded-xl text-[9px] font-black text-slate-500 px-3 py-1.5 outline-none uppercase tracking-widest"><option value="hospital">Theo Bệnh viện</option><option value="manufacturer">Theo Hãng</option><option value="age">Theo Tuổi</option><option value="gender">Giới tính</option></select></div>
-                    <div class="h-80"><canvas id="dlpChart"></canvas></div>
-                </div>
-            </div>
-
-            <!-- TABLE -->
-            <div class="glass-card rounded-[2.5rem] overflow-hidden border-white shadow-2xl">
-                <div class="p-8 border-b border-slate-50 flex flex-wrap justify-between items-center gap-4 bg-white/40">
-                    <div class="flex items-center gap-4"><div class="bg-slate-100 p-2.5 rounded-2xl text-slate-600 border border-slate-200"><i data-lucide="table" class="w-5 h-5"></i></div><h3 class="section-label">Danh sách dữ liệu thô</h3></div>
-                    <div class="flex gap-2">
-                        <button id="btnExportExcel" class="px-5 py-2.5 bg-emerald-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 hover:bg-emerald-700 active:scale-95 flex items-center gap-2"><i data-lucide="download" class="w-3 h-3"></i> Excel (.xlsx)</button>
-                    </div>
-                </div>
-                <div class="overflow-x-auto relative min-h-[400px]">
-                    <div id="tableLoader" class="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-sm hidden"><div class="loader"></div></div>
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-50/50 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                            <tr><th class="px-8 py-5">Cơ sở / BN</th><th class="px-8 py-5">Protocol</th><th class="px-8 py-5 text-center">Habitus</th><th class="px-8 py-5">CTDIvol</th><th class="px-8 py-5">DLP</th><th class="px-8 py-5 text-right">Hành động</th></tr>
-                        </thead>
-                        <tbody id="dataTableBody" class="divide-y divide-slate-50 text-sm"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </main>
+        </main>
+    </div>
 
     <!-- TOAST -->
-    <div id="toast" class="fixed bottom-10 right-10 p-6 bg-white border border-slate-100 rounded-[2rem] shadow-2xl z-[100] transform translate-y-20 opacity-0 pointer-events-none transition-all duration-500 flex items-center gap-4">
+    <div id="toast" class="fixed bottom-10 right-10 p-6 bg-white border border-slate-100 rounded-[2rem] shadow-2xl z-[110] transform translate-y-20 opacity-0 pointer-events-none transition-all duration-500 flex items-center gap-4">
         <div id="toastIconContainer" class="p-3 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100"></div>
         <p id="toastMessage" class="font-black text-slate-800 text-xs uppercase tracking-tight"></p>
     </div>
@@ -637,15 +652,12 @@
                         await createUserWithEmailAndPassword(auth, email, pass);
                         showToast("Đăng ký thành công!", "success");
                     }
-                    
                     if (pin === "123456") { isAdminMode = true; updateAdminBtnState(); }
-                    // Chú ý: Modal sẽ tự đóng qua onAuthStateChanged bên dưới
                 } catch (err) { 
                     console.error("Auth error:", err);
                     let msg = "Lỗi xác thực";
                     if (err.code === 'auth/email-already-in-use') msg = "Email này đã được đăng ký";
                     else if (err.code === 'auth/weak-password') msg = "Mật khẩu quá yếu (tối thiểu 6 ký tự)";
-                    else if (err.code === 'auth/invalid-email') msg = "Email không hợp lệ";
                     else if (isLoginMode) msg = "Sai tài khoản hoặc mật khẩu";
                     showToast(msg, "error"); 
                 }
@@ -655,7 +667,6 @@
                 try {
                     sessionStorage.removeItem('manualLogout');
                     await signInWithPopup(auth, googleProvider);
-                    // Modal sẽ tự đóng qua onAuthStateChanged
                 } catch (err) {
                     console.error(err);
                     showToast("Lỗi đăng nhập Google", "error");
@@ -676,14 +687,11 @@
 
             document.getElementById('drlForm').onsubmit = async (e) => {
                 e.preventDefault();
-                if (!user || user.isAnonymous) return showToast("Hãy đăng nhập tài khoản thực để lưu", "error");
-                
+                if (!user || user.isAnonymous) return showToast("Hãy đăng nhập để lưu", "error");
                 const id = document.getElementById('editEntryId').value;
                 const hospVal = document.getElementById('hospitalSelect').value;
                 const finalHosp = hospVal === 'other' ? document.getElementById('customHospitalName').value.trim() : hospVal;
-                
                 if (!finalHosp) return showToast("Thiếu tên bệnh viện", "error");
-
                 const data = {
                     hospitalName: finalHosp,
                     manufacturer: document.getElementById('manufacturer').value,
@@ -699,7 +707,6 @@
                     userId: user.uid,
                     updatedAt: new Date().toISOString()
                 };
-
                 try {
                     const collRef = collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries');
                     if (id) {
@@ -759,7 +766,6 @@
             const submitBtn = document.getElementById('authSubmitText');
             const toggleText = document.getElementById('toggleAuthModeText');
             const toggleBtn = document.getElementById('toggleAuthModeBtn');
-
             if (isLoginMode) {
                 title.textContent = "Đăng Nhập";
                 submitBtn.textContent = "VÀO HỆ THỐNG";
@@ -808,7 +814,8 @@
             document.getElementById('dlp').value = e.dlp;
             document.getElementById('cancelEditBtn').classList.remove('hidden');
             document.getElementById('submitBtn').classList.replace('bg-indigo-600', 'bg-amber-600');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Cuộn khung nội dung lên đầu thay vì cuộn cửa sổ
+            document.querySelector('.content-frame').scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function resetForm() {
@@ -865,35 +872,26 @@
             fill('sliceCount', SLICE_COUNTS);
             fill('protocol', ACR_PROTOCOLS);
             fill('filterProtocol', ACR_PROTOCOLS);
-            
             const scanDateEl = document.getElementById('scanDate');
             if (scanDateEl) scanDateEl.valueAsDate = new Date();
-            
             lucide.createIcons();
             setupEventListeners();
-            
             await initAuth();
-
             onAuthStateChanged(auth, (u) => {
                 user = u;
                 const isAnon = !u || u.isAnonymous;
-                
                 const navLoginBtn = document.getElementById('navLoginBtn');
                 const userMenu = document.getElementById('userMenu');
                 const formLockOverlay = document.getElementById('formLockOverlay');
                 const authModal = document.getElementById('authModal');
-                
                 if (navLoginBtn) navLoginBtn.classList.toggle('hidden', !isAnon);
                 if (userMenu) userMenu.classList.toggle('hidden', isAnon);
                 if (formLockOverlay) formLockOverlay.classList.toggle('hidden', !isAnon);
-                
                 if (u) {
-                    // CỐ ĐỊNH: Đóng modal ngay khi có user (không phải anonymous)
                     if (!u.isAnonymous) {
                         sessionStorage.removeItem('manualLogout');
                         if (authModal) authModal.classList.add('hidden');
                     }
-                    
                     const userEmailDisplay = document.getElementById('userEmailDisplay');
                     if (userEmailDisplay) userEmailDisplay.textContent = u.email || "Khách ẩn danh";
                     setupDataSync(u);
