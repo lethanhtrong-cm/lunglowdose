@@ -59,17 +59,17 @@
             box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
         }
 
-        /* Sidebar cố định theo chiều cao màn hình với thanh cuộn tinh tế */
+        /* Tối ưu Sidebar: Cố định và có thanh cuộn riêng */
         .fixed-sidebar-container {
-            max-height: calc(100vh - 160px);
-            overflow-y: auto;
-            scrollbar-width: thin;
+            max-height: calc(100vh - 150px);
+            display: flex;
+            flex-direction: column;
         }
-
-        .glass-card-hover:hover {
-            background: rgba(255, 255, 255, 0.85);
-            box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.1);
-            transform: translateY(-4px);
+        
+        .sidebar-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 20px;
         }
 
         .glass-input {
@@ -119,10 +119,6 @@
         }
         input:checked + .slider { background-color: #4f46e5; }
         input:checked + .slider:before { transform: translateX(20px); }
-
-        .btn-save-glow {
-            box-shadow: 0 0 20px rgba(79, 70, 229, 0.3);
-        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -251,14 +247,17 @@
             <!-- LEFT: SIDEBAR nhập liệu -->
             <aside class="col-span-12 lg:col-span-4">
                 <div id="formContainer" class="glass-card rounded-[2.5rem] overflow-hidden sticky top-4 transition-all duration-500 shadow-xl border-white fixed-sidebar-container">
-                    <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-white/40 sticky top-0 z-20 backdrop-blur-md">
+                    
+                    <!-- Header Sidebar (Cố định đầu Sidebar) -->
+                    <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-white/40 backdrop-blur-md">
                         <h2 id="formTitle" class="font-black text-slate-900 flex items-center gap-3 uppercase tracking-widest text-xs">
                             <i data-lucide="plus-circle" class="text-indigo-600 w-5 h-5"></i> Nhập dữ liệu
                         </h2>
                         <span class="px-3 py-1 bg-indigo-50 rounded-full text-[9px] font-black text-indigo-600 border border-indigo-100 uppercase">Input Mode</span>
                     </div>
 
-                    <form id="drlForm" class="p-8 space-y-6 relative">
+                    <form id="drlForm" class="flex flex-col h-full relative">
+                        <!-- Overlay khóa khi chưa đăng nhập -->
                         <div id="formLockOverlay" class="absolute inset-0 bg-white/60 backdrop-blur-md z-30 flex flex-col items-center justify-center text-center p-8 hidden">
                             <div class="bg-indigo-50 p-5 rounded-full mb-4 border border-indigo-100">
                                 <i data-lucide="lock" class="w-8 h-8 text-indigo-600"></i>
@@ -266,96 +265,99 @@
                             <p class="text-xs font-black text-slate-800 uppercase tracking-widest">Đăng nhập để bắt đầu</p>
                         </div>
 
-                        <input type="hidden" id="editEntryId" value="">
+                        <!-- VÙNG CUỘN NỘI DUNG FORM -->
+                        <div class="sidebar-scroll-area p-8 space-y-8">
+                            <input type="hidden" id="editEntryId" value="">
 
-                        <!-- Section: Cơ sở -->
-                        <div class="space-y-4">
-                            <label class="section-label flex items-center gap-2"><i data-lucide="hospital" class="w-3 h-3 text-indigo-500"></i> Cơ sở & Thiết bị</label>
-                            <div class="space-y-3">
-                                <select id="hospitalSelect" class="w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none appearance-none font-medium">
-                                    <option value="" disabled selected>-- Chọn Bệnh viện --</option>
-                                    <option value="other" class="font-bold text-indigo-600">➕ Bệnh viện khác (Nhập mới)</option>
-                                </select>
-                                <input type="text" id="customHospitalName" placeholder="Tên bệnh viện mới..." class="hidden w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none border-indigo-200">
+                            <!-- Section: Cơ sở -->
+                            <div class="space-y-4">
+                                <label class="section-label flex items-center gap-2"><i data-lucide="hospital" class="w-3 h-3 text-indigo-500"></i> Cơ sở & Thiết bị</label>
+                                <div class="space-y-3">
+                                    <select id="hospitalSelect" class="w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none appearance-none font-medium">
+                                        <option value="" disabled selected>-- Chọn Bệnh viện --</option>
+                                        <option value="other" class="font-bold text-indigo-600">➕ Bệnh viện khác (Nhập mới)</option>
+                                    </select>
+                                    <input type="text" id="customHospitalName" placeholder="Tên bệnh viện mới..." class="hidden w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none border-indigo-200">
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <select id="manufacturer" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-medium">
+                                            <option value="" disabled selected>Hãng máy</option>
+                                        </select>
+                                        <select id="sliceCount" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-medium">
+                                            <option value="" disabled selected>Số lát</option>
+                                        </select>
+                                    </div>
+                                    <div class="p-1.5 bg-slate-100 rounded-[1.5rem] flex gap-1 border border-slate-200">
+                                        <label class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:text-indigo-600 has-[:checked]:shadow-sm text-slate-400 font-black text-[10px] uppercase">
+                                            <input type="radio" name="aecMode" value="Có dùng AEC" class="hidden" required> AEC: Có
+                                        </label>
+                                        <label class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:text-indigo-600 has-[:checked]:shadow-sm text-slate-400 font-black text-[10px] uppercase">
+                                            <input type="radio" name="aecMode" value="Không dùng AEC" class="hidden"> AEC: Không
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Section: Protocol -->
+                            <div class="space-y-4">
+                                <label class="section-label flex items-center gap-2"><i data-lucide="user" class="w-3 h-3 text-indigo-500"></i> Bệnh nhân & Protocol</label>
+                                <select id="protocol" class="w-full px-5 py-4 bg-indigo-50 border border-indigo-100 rounded-2xl text-sm font-black text-indigo-700 outline-none"></select>
                                 <div class="grid grid-cols-2 gap-3">
-                                    <select id="manufacturer" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-medium">
-                                        <option value="" disabled selected>Hãng máy</option>
+                                    <input type="text" id="patientId" placeholder="ID Bệnh nhân" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-medium">
+                                    <input type="date" id="scanDate" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-black text-[10px] text-slate-600">
+                                </div>
+                                <div class="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <input type="number" id="age" placeholder="Tuổi" class="w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none text-center font-bold">
+                                        <p id="ageWarn" class="text-[8px] font-bold text-red-500 mt-1 hidden text-center uppercase">Lỗi tuổi</p>
+                                    </div>
+                                    <select id="gender" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none text-center font-bold">
+                                        <option value="M">Nam</option>
+                                        <option value="F">Nữ</option>
                                     </select>
-                                    <select id="sliceCount" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-medium">
-                                        <option value="" disabled selected>Số lát</option>
-                                    </select>
+                                    <div>
+                                        <input type="number" id="weight" placeholder="Kg" class="w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none text-center font-bold">
+                                        <p id="weightWarn" class="text-[7px] font-bold text-amber-600 mt-1 hidden text-center uppercase tracking-tighter leading-tight">Ngoài chuẩn</p>
+                                    </div>
                                 </div>
-                                <div class="p-1.5 bg-slate-100 rounded-[1.5rem] flex gap-1 border border-slate-200">
-                                    <label class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:text-indigo-600 has-[:checked]:shadow-sm text-slate-400 font-black text-[10px] uppercase">
-                                        <input type="radio" name="aecMode" value="Có dùng AEC" class="hidden" required> AEC: Có
-                                    </label>
-                                    <label class="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:text-indigo-600 has-[:checked]:shadow-sm text-slate-400 font-black text-[10px] uppercase">
-                                        <input type="radio" name="aecMode" value="Không dùng AEC" class="hidden"> AEC: Không
-                                    </label>
+                            </div>
+
+                            <!-- Section: Liều (QUAN TRỌNG: CỐ ĐỊNH VÀO LUỒNG CUỘN) -->
+                            <div class="space-y-4 bg-amber-50/50 p-4 rounded-[2rem] border border-amber-100">
+                                <label class="section-label flex items-center gap-2 text-amber-600"><i data-lucide="zap" class="w-3 h-3 text-amber-500"></i> Thông số Liều bức xạ</label>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="space-y-1">
+                                        <label class="text-[9px] font-black text-slate-400 uppercase ml-2">CTDIvol (mGy)</label>
+                                        <input type="number" step="0.01" id="ctdi" placeholder="0.00" class="w-full px-4 py-4 bg-white border border-amber-200 rounded-2xl text-2xl font-black text-amber-600 outline-none focus:border-amber-500 transition-all text-center">
+                                        <p id="ctdiWarn" class="text-[8px] font-bold text-red-500 mt-1 hidden text-center uppercase">Giá trị cao!</p>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="text-[9px] font-black text-slate-400 uppercase ml-2">DLP (mGy.cm)</label>
+                                        <input type="number" step="0.1" id="dlp" placeholder="0.0" class="w-full px-4 py-4 bg-white border border-amber-200 rounded-2xl text-2xl font-black text-amber-600 outline-none focus:border-amber-500 transition-all text-center">
+                                        <p id="dlpWarn" class="text-[8px] font-bold text-red-500 mt-1 hidden text-center uppercase">Vô lý (DLP < CTDI)</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Section: Protocol -->
-                        <div class="space-y-4">
-                            <label class="section-label flex items-center gap-2"><i data-lucide="user" class="w-3 h-3 text-indigo-500"></i> Bệnh nhân & Protocol</label>
-                            <select id="protocol" class="w-full px-5 py-4 bg-indigo-50 border border-indigo-100 rounded-2xl text-sm font-black text-indigo-700 outline-none"></select>
-                            <div class="grid grid-cols-2 gap-3">
-                                <input type="text" id="patientId" placeholder="ID Bệnh nhân" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-medium">
-                                <input type="date" id="scanDate" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none font-black text-[10px] text-slate-600">
-                            </div>
-                            <div class="grid grid-cols-3 gap-3">
-                                <div>
-                                    <input type="number" id="age" placeholder="Tuổi" class="w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none text-center font-bold">
-                                    <p id="ageWarn" class="text-[8px] font-bold text-red-500 mt-1 hidden text-center uppercase">Lỗi tuổi</p>
-                                </div>
-                                <select id="gender" class="px-5 py-4 glass-input rounded-2xl text-sm outline-none text-center font-bold">
-                                    <option value="M">Nam</option>
-                                    <option value="F">Nữ</option>
-                                </select>
-                                <div>
-                                    <input type="number" id="weight" placeholder="Kg" class="w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none text-center font-bold">
-                                    <p id="weightWarn" class="text-[7px] font-bold text-amber-600 mt-1 hidden text-center uppercase tracking-tighter leading-tight">Ngoài chuẩn (60-80kg)</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Section: Liều -->
-                        <div class="space-y-4">
-                            <label class="section-label flex items-center gap-2 text-amber-600"><i data-lucide="zap" class="w-3 h-3 text-indigo-500"></i> Thông số Liều bức xạ</label>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="space-y-1">
-                                    <label class="text-[9px] font-black text-slate-400 uppercase ml-2">CTDIvol (mGy)</label>
-                                    <input type="number" step="0.01" id="ctdi" placeholder="0.00" class="w-full px-5 py-5 bg-amber-50 border-2 border-amber-200 rounded-2xl text-3xl font-black text-amber-600 outline-none focus:border-amber-500 transition-all text-center">
-                                    <p id="ctdiWarn" class="text-[9px] font-black text-red-500 mt-1 hidden text-center uppercase tracking-tighter">Giá trị cao!</p>
-                                </div>
-                                <div class="space-y-1">
-                                    <label class="text-[9px] font-black text-slate-400 uppercase ml-2">DLP (mGy.cm)</label>
-                                    <input type="number" step="0.1" id="dlp" placeholder="0.0" class="w-full px-5 py-5 bg-amber-50 border-2 border-amber-200 rounded-2xl text-3xl font-black text-amber-600 outline-none focus:border-amber-500 transition-all text-center">
-                                    <p id="dlpWarn" class="text-[9px] font-black text-red-500 mt-1 hidden text-center uppercase tracking-tighter">Vô lý (DLP < CTDI)</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- FOOTER ACTION: SAVE BUTTON -->
-                        <div class="flex flex-col gap-3 pt-4 sticky bottom-0 bg-white/60 backdrop-blur-md -mx-8 px-8 pb-4">
+                        <!-- Footer Hành động: Nút LƯU (Sticky ở đáy Sidebar) -->
+                        <div class="p-6 border-t border-slate-100 bg-white/80 backdrop-blur-xl rounded-b-[2.5rem] mt-auto">
                             <div class="flex gap-3">
-                                <button type="button" id="cancelEditBtn" class="hidden flex-1 py-5 bg-slate-100 text-slate-500 rounded-3xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">Hủy bỏ</button>
-                                <button type="submit" id="submitBtn" class="flex-[2] py-5 bg-indigo-600 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 btn-save-glow">
+                                <button type="button" id="cancelEditBtn" class="hidden flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">Hủy</button>
+                                <button type="submit" id="submitBtn" class="flex-[3] py-5 bg-indigo-600 text-white rounded-3xl font-black text-[11px] uppercase tracking-[0.1em] transition-all active:scale-95 flex items-center justify-center gap-3 shadow-xl shadow-indigo-100">
                                     <i data-lucide="save" class="w-5 h-5"></i> 
                                     <span id="submitBtnText">Lưu Dữ Liệu</span>
                                 </button>
                             </div>
-                            <p class="text-[8px] text-center text-slate-400 font-bold uppercase tracking-widest">Kiểm tra thông tin trước khi lưu</p>
                         </div>
                     </form>
                 </div>
             </aside>
 
-            <!-- RIGHT: DASHBOARD & TABLE -->
+            <!-- RIGHT: DASHBOARD -->
             <div class="col-span-12 lg:col-span-8 space-y-8">
+                <!-- STATS -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="glass-card p-8 rounded-[2.5rem] flex flex-col justify-between glass-card-hover transition-all group">
+                    <div class="glass-card p-8 rounded-[2.5rem] flex flex-col justify-between glass-card-hover transition-all">
                         <div class="flex justify-between items-start">
                             <p class="section-label">Tổng số mẫu</p>
                             <i data-lucide="database" class="w-5 h-5 text-indigo-400"></i>
@@ -379,7 +381,7 @@
                     </div>
                 </div>
 
-                <!-- FILTER PANEL -->
+                <!-- FILTER -->
                 <div class="glass-card p-8 rounded-[2.5rem] border-white shadow-xl">
                     <div class="flex items-center justify-between gap-4 mb-8">
                         <div class="flex items-center gap-4">
@@ -392,31 +394,17 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        <div class="space-y-2"><label class="section-label ml-1">Bệnh viện</label><select id="filterHospital" class="w-full px-4 py-3 glass-input rounded-2xl text-xs outline-none font-bold"><option value="all">Tất cả bệnh viện</option></select></div>
+                        <div class="space-y-2"><label class="section-label ml-1">Bệnh viện</label><select id="filterHospital" class="w-full px-4 py-3 glass-input rounded-2xl text-xs outline-none font-bold"><option value="all">Tất cả</option></select></div>
                         <div class="space-y-2"><label class="section-label ml-1">Protocol</label><select id="filterProtocol" class="w-full px-4 py-3 glass-input rounded-2xl text-xs outline-none font-bold"><option value="all">Tất cả</option></select></div>
-                        <div class="md:col-span-2 space-y-2"><label class="section-label ml-1">Khoảng liều CTDI (mGy)</label><div class="flex items-center gap-3"><input type="number" id="filterCtdiMin" placeholder="Từ" class="w-full px-4 py-3 glass-input rounded-2xl text-xs outline-none font-bold"><span class="text-slate-300">—</span><input type="number" id="filterCtdiMax" placeholder="Đến" class="w-full px-4 py-3 glass-input rounded-2xl text-xs outline-none font-bold"></div></div>
-                    </div>
-                </div>
-
-                <!-- CHARTS -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="glass-card p-8 rounded-[2.5rem] border-white shadow-lg">
-                        <div class="flex justify-between items-center mb-8"><h3 class="section-label flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-600"></i> CTDIvol</h3><select id="ctdiViewMode" class="bg-slate-100 border-none rounded-xl text-[9px] font-black text-slate-500 px-3 py-1.5 outline-none uppercase tracking-widest"><option value="hospital">Theo Bệnh viện</option><option value="manufacturer">Theo Hãng</option><option value="age">Theo Tuổi</option><option value="gender">Giới tính</option></select></div>
-                        <div class="h-80"><canvas id="ctdiChart"></canvas></div>
-                    </div>
-                    <div class="glass-card p-8 rounded-[2.5rem] border-white shadow-lg">
-                        <div class="flex justify-between items-center mb-8"><h3 class="section-label flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-4 h-4 text-amber-600"></i> DLP</h3><select id="dlpViewMode" class="bg-slate-100 border-none rounded-xl text-[9px] font-black text-slate-500 px-3 py-1.5 outline-none uppercase tracking-widest"><option value="hospital">Theo Bệnh viện</option><option value="manufacturer">Theo Hãng</option><option value="age">Theo Tuổi</option><option value="gender">Giới tính</option></select></div>
-                        <div class="h-80"><canvas id="dlpChart"></canvas></div>
+                        <div class="md:col-span-2 space-y-2"><label class="section-label ml-1">Khoảng CTDI (mGy)</label><div class="flex items-center gap-3"><input type="number" id="filterCtdiMin" placeholder="Từ" class="w-full px-4 py-3 glass-input rounded-2xl text-xs outline-none font-bold"><span class="text-slate-300">—</span><input type="number" id="filterCtdiMax" placeholder="Đến" class="w-full px-4 py-3 glass-input rounded-2xl text-xs outline-none font-bold"></div></div>
                     </div>
                 </div>
 
                 <!-- TABLE -->
                 <div class="glass-card rounded-[2.5rem] overflow-hidden border-white shadow-2xl">
                     <div class="p-8 border-b border-slate-50 flex flex-wrap justify-between items-center gap-4 bg-white/40">
-                        <div class="flex items-center gap-4"><div class="bg-slate-100 p-2.5 rounded-2xl text-slate-600 border border-slate-200"><i data-lucide="table" class="w-5 h-5"></i></div><h3 class="section-label">Danh sách dữ liệu thô</h3></div>
-                        <div class="flex gap-2">
-                            <button id="btnExportExcel" class="px-5 py-2.5 bg-emerald-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 hover:bg-emerald-700 active:scale-95 flex items-center gap-2"><i data-lucide="download" class="w-3 h-3"></i> Excel (.xlsx)</button>
-                        </div>
+                        <div class="flex items-center gap-4"><div class="bg-slate-100 p-2.5 rounded-2xl text-slate-600 border border-slate-200"><i data-lucide="table" class="w-5 h-5"></i></div><h3 class="section-label">Dữ liệu thô</h3></div>
+                        <button id="btnExportExcel" class="px-5 py-2.5 bg-emerald-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 hover:bg-emerald-700 active:scale-95 flex items-center gap-2"><i data-lucide="download" class="w-3 h-3"></i> Excel (.xlsx)</button>
                     </div>
                     <div class="overflow-x-auto relative min-h-[400px]">
                         <div id="tableLoader" class="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-sm hidden"><div class="loader"></div></div>
@@ -449,7 +437,7 @@
         const SLICE_COUNTS = ["16 - 32 lát", "64 - 128 lát", "256 - 512 lát", "Máy 2 bóng (Dual Source)"];
         const ACR_PROTOCOLS = [{ name: 'Sọ não (Head)' }, { name: 'Ngực không thuốc (Chest)' }, { name: 'Ngực có thuốc (Chest CE)' }, { name: 'Bụng không thuốc (Abdomen)' }, { name: 'Bụng có thuốc (Abdoment CE)' }, { name: 'Mạch vành (Coronary)' }, { name: 'Phổi liều thấp (LDCT)' }];
 
-        // --- FIREBASE CONFIG (wb-idr) ---
+        // Config Firebase wb-idr
         const firebaseConfig = {
             apiKey: "AIzaSyAtQdmDbA1BgOrvwevrG6gwuFzlUmBTbfY",
             authDomain: "wb-idr.firebaseapp.com",
@@ -470,18 +458,9 @@
         let entries = [];
         let filteredEntries = [];
         let isAdminMode = false;
-        let ctdiChart = null;
-        let dlpChart = null;
         let isLoginMode = true; 
 
-        const VALIDATION_RULES = {
-            ctdi: { warn: 80, max: 150 }, 
-            dlp: { warn: 1500, max: 5000 },
-            age: { min: 0, max: 120 },
-            weight: { standardMin: 60, standardMax: 80, absMin: 2, absMax: 250 }
-        };
-
-        // --- AUTH LOGIC ---
+        // --- AUTH ---
         async function initAuth() {
             if (sessionStorage.getItem('manualLogout') === 'true') {
                 updateStatus("Chưa đăng nhập", "slate");
@@ -504,7 +483,6 @@
             if (!currentUser) return;
             updateStatus("Đã kết nối", "indigo");
             document.getElementById('tableLoader').classList.remove('hidden');
-            // Path: /artifacts/{appId}/public/data/drl_entries
             const collectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries');
             return onSnapshot(collectionRef, (snap) => {
                 entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -512,7 +490,7 @@
                 updateHospitalDropdowns();
                 document.getElementById('tableLoader').classList.add('hidden');
             }, (err) => {
-                console.error("Firestore sync error:", err);
+                console.error(err);
                 updateStatus("Lỗi đồng bộ", "red");
             });
         }
@@ -536,7 +514,6 @@
                 return true;
             });
 
-            // Calculate Metrics
             const ctdis = filteredEntries.map(e => parseFloat(e.ctdi)).filter(n => !isNaN(n)).sort((a,b)=>a-b);
             const dlps = filteredEntries.map(e => parseFloat(e.dlp)).filter(n => !isNaN(n)).sort((a,b)=>a-b);
             const getP75 = (arr) => arr.length ? arr[Math.floor(arr.length * 0.75)] || arr[arr.length-1] : 0;
@@ -582,76 +559,17 @@
                 `;
                 tbody.appendChild(tr);
             });
-            updateCharts();
             lucide.createIcons();
             attachTableEvents();
         }
 
-        function updateCharts() {
-            const chartCanvasC = document.getElementById('ctdiChart');
-            const chartCanvasD = document.getElementById('dlpChart');
-            if (!chartCanvasC || !chartCanvasD) return;
-
-            const ctxC = chartCanvasC.getContext('2d');
-            const ctxD = chartCanvasD.getContext('2d');
-            const modeC = document.getElementById('ctdiViewMode').value;
-            const modeD = document.getElementById('dlpViewMode').value;
-
-            const process = (mode, metric) => {
-                const groups = {};
-                filteredEntries.forEach(e => {
-                    let key = "Khác";
-                    if (mode === 'hospital') key = e.hospitalName;
-                    else if (mode === 'manufacturer') key = e.manufacturer || "N/A";
-                    else if (mode === 'gender') key = e.gender === 'M' ? 'Nam' : 'Nữ';
-                    else if (mode === 'age') {
-                        const age = parseInt(e.age);
-                        if (age < 18) key = "< 18"; else if (age <= 40) key = "18-40"; else if (age <= 60) key = "41-60"; else key = "> 60";
-                    }
-                    if (!groups[key]) groups[key] = [];
-                    const v = parseFloat(e[metric]); if (!isNaN(v)) groups[key].push(v);
-                });
-                const labels = Object.keys(groups);
-                const data75 = labels.map(k => { const s = groups[k].sort((a,b)=>a-b); return s[Math.floor(s.length * 0.75)] || s[0] || 0; });
-                const data50 = labels.map(k => { const s = groups[k].sort((a,b)=>a-b); return s[Math.floor(s.length * 0.5)] || s[0] || 0; });
-                return { labels, data75, data50 };
-            };
-
-            const draw = (ctx, data, c1, c2) => new Chart(ctx, {
-                type: 'bar',
-                data: { labels: data.labels, datasets: [{ label: '75th (DRL)', data: data.data75, backgroundColor: c1, borderRadius: 8 }, { label: '50th (Med)', data: data.data50, backgroundColor: c2, borderRadius: 8 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top', labels: { font: { size: 10, weight: 'bold' } } } }, scales: { y: { beginAtZero: true } } }
-            });
-
-            if (ctdiChart) ctdiChart.destroy();
-            ctdiChart = draw(ctxC, process(modeC, 'ctdi'), '#4f46e5', '#a5b4fc');
-            if (dlpChart) dlpChart.destroy();
-            dlpChart = draw(ctxD, process(modeD, 'dlp'), '#f59e0b', '#fcd34d');
-        }
-
-        // --- EVENTS ---
+        // --- FORM LOGIC ---
         function setupEventListeners() {
-            document.getElementById('userMenuBtn').onclick = (e) => {
-                e.stopPropagation();
-                document.getElementById('userDropdown').classList.toggle('hidden');
-            };
+            document.getElementById('userMenuBtn').onclick = (e) => { e.stopPropagation(); document.getElementById('userDropdown').classList.toggle('hidden'); };
+            window.addEventListener('click', () => { const drop = document.getElementById('userDropdown'); if (drop) drop.classList.add('hidden'); });
 
-            window.addEventListener('click', () => {
-                const drop = document.getElementById('userDropdown');
-                if (drop) drop.classList.add('hidden');
-            });
-
-            document.getElementById('navLoginBtn').onclick = () => {
-                isLoginMode = true;
-                updateAuthModalUI();
-                sessionStorage.removeItem('manualLogout');
-                document.getElementById('authModal').classList.remove('hidden');
-            };
-            
-            document.getElementById('toggleAuthModeBtn').onclick = () => {
-                isLoginMode = !isLoginMode;
-                updateAuthModalUI();
-            };
+            document.getElementById('navLoginBtn').onclick = () => { isLoginMode = true; updateAuthModalUI(); sessionStorage.removeItem('manualLogout'); document.getElementById('authModal').classList.remove('hidden'); };
+            document.getElementById('toggleAuthModeBtn').onclick = () => { isLoginMode = !isLoginMode; updateAuthModalUI(); };
 
             document.getElementById('authForm').onsubmit = async (e) => {
                 e.preventDefault();
@@ -663,58 +581,25 @@
                     const persistence = remember ? browserLocalPersistence : browserSessionPersistence;
                     await setPersistence(auth, persistence);
                     sessionStorage.removeItem('manualLogout');
-                    if (isLoginMode) {
-                        await signInWithEmailAndPassword(auth, email, pass);
-                        showToast("Đăng nhập thành công", "success");
-                    } else {
-                        await createUserWithEmailAndPassword(auth, email, pass);
-                        showToast("Đăng ký thành công!", "success");
-                    }
+                    if (isLoginMode) await signInWithEmailAndPassword(auth, email, pass);
+                    else await createUserWithEmailAndPassword(auth, email, pass);
                     if (pin === "123456") { isAdminMode = true; updateAdminBtnState(); }
-                } catch (err) { 
-                    console.error("Auth error:", err);
-                    showToast("Lỗi tài khoản hoặc mật khẩu", "error"); 
-                }
+                } catch (err) { showToast("Lỗi tài khoản hoặc mật khẩu", "error"); }
             };
 
-            document.getElementById('googleLoginBtn').onclick = async () => {
-                try {
-                    await setPersistence(auth, browserLocalPersistence);
-                    sessionStorage.removeItem('manualLogout');
-                    await signInWithPopup(auth, googleProvider);
-                } catch (err) {
-                    console.error(err);
-                    showToast("Lỗi đăng nhập Google", "error");
-                }
-            };
-            
-            document.getElementById('logoutBtn').onclick = async () => {
-                sessionStorage.setItem('manualLogout', 'true');
-                await signOut(auth);
-                isAdminMode = false;
-                updateAdminBtnState();
-                location.reload(); 
-            };
+            document.getElementById('googleLoginBtn').onclick = async () => { try { await setPersistence(auth, browserLocalPersistence); sessionStorage.removeItem('manualLogout'); await signInWithPopup(auth, googleProvider); } catch (err) { showToast("Lỗi Google", "error"); } };
+            document.getElementById('logoutBtn').onclick = async () => { sessionStorage.setItem('manualLogout', 'true'); await signOut(auth); isAdminMode = false; updateAdminBtnState(); location.reload(); };
 
-            document.getElementById('hospitalSelect').onchange = function() {
-                document.getElementById('customHospitalName').classList.toggle('hidden', this.value !== 'other');
-            };
+            document.getElementById('hospitalSelect').onchange = function() { document.getElementById('customHospitalName').classList.toggle('hidden', this.value !== 'other'); };
 
-            // --- FORM SUBMIT (SAVE DATA) ---
             document.getElementById('drlForm').onsubmit = async (e) => {
                 e.preventDefault();
                 if (!user || user.isAnonymous) return showToast("Hãy đăng nhập để lưu", "error");
-                
                 const id = document.getElementById('editEntryId').value;
                 const hospVal = document.getElementById('hospitalSelect').value;
                 const finalHosp = hospVal === 'other' ? document.getElementById('customHospitalName').value.trim() : hospVal;
-                
                 if (!finalHosp) return showToast("Thiếu tên bệnh viện", "error");
                 
-                // Logic validation Check
-                const weight = parseFloat(document.getElementById('weight').value);
-                if (weight < 2 || weight > 250) return showToast("Cân nặng không thực tế", "error");
-
                 const data = {
                     hospitalName: finalHosp,
                     manufacturer: document.getElementById('manufacturer').value,
@@ -722,88 +607,45 @@
                     aecMode: document.querySelector('input[name="aecMode"]:checked')?.value || "Không",
                     protocol: document.getElementById('protocol').value,
                     patientId: document.getElementById('patientId').value,
-                    age: document.getElementById('age').value,
-                    weight: document.getElementById('weight').value,
-                    ctdi: document.getElementById('ctdi').value,
-                    dlp: document.getElementById('dlp').value,
+                    age: document.getElementById('age').value, weight: document.getElementById('weight').value,
+                    ctdi: document.getElementById('ctdi').value, dlp: document.getElementById('dlp').value,
                     scanDate: document.getElementById('scanDate').value,
-                    userId: user.uid,
-                    updatedAt: new Date().toISOString()
+                    userId: user.uid, updatedAt: new Date().toISOString()
                 };
-
                 try {
                     const collRef = collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries');
-                    if (id) {
-                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id), data);
-                        showToast("Cập nhật thành công", "success");
-                    } else {
-                        data.createdAt = new Date().toISOString();
-                        await addDoc(collRef, data);
-                        showToast("Lưu dữ liệu thành công!", "success");
-                    }
+                    if (id) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id), data);
+                    else { data.createdAt = new Date().toISOString(); await addDoc(collRef, data); }
+                    showToast("Đã lưu dữ liệu!", "success");
                     resetForm();
-                } catch (err) { 
-                    console.error("Save error:", err);
-                    showToast("Lỗi khi lưu dữ liệu", "error"); 
-                }
+                } catch (err) { showToast("Lỗi khi lưu", "error"); }
             };
 
             document.getElementById('btnExportExcel').onclick = () => {
-                const data = filteredEntries.map(e => ({ 'Ngày': e.scanDate, 'Bệnh viện': e.hospitalName, 'Giao thức': e.protocol, 'Habitus': (e.weight >= 60 && e.weight <= 80 ? 'Standard' : 'Non-Std'), 'CTDI': e.ctdi, 'DLP': e.dlp }));
+                const data = filteredEntries.map(e => ({ 'Ngày': e.scanDate, 'Bệnh viện': e.hospitalName, 'Protocol': e.protocol, 'CTDI': e.ctdi, 'DLP': e.dlp }));
                 const ws = XLSX.utils.json_to_sheet(data);
                 const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Dữ liệu DRL");
+                XLSX.utils.book_append_sheet(wb, ws, "Dữ liệu");
                 XLSX.writeFile(wb, "DRL_Export.xlsx");
             };
 
-            ['filterHospital', 'filterProtocol', 'filterStandardPatient', 'ctdiViewMode', 'dlpViewMode'].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.onchange = render;
-            });
-            ['filterCtdiMin', 'filterCtdiMax'].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.oninput = render;
-            });
+            ['filterHospital', 'filterProtocol', 'filterStandardPatient'].forEach(id => { const el = document.getElementById(id); if(el) el.onchange = render; });
+            ['filterCtdiMin', 'filterCtdiMax'].forEach(id => { const el = document.getElementById(id); if(el) el.oninput = render; });
             
-            document.getElementById('authAdminToggleBtn').onclick = () => {
-                document.getElementById('authAdminPinContainer').classList.toggle('hidden');
-            };
-            
+            document.getElementById('authAdminToggleBtn').onclick = () => { document.getElementById('authAdminPinContainer').classList.toggle('hidden'); };
             document.getElementById('toggleAdminBtn').onclick = (e) => {
                 e.preventDefault();
-                if (isAdminMode) {
-                    isAdminMode = false;
-                    showToast("Đã tắt quyền Admin", "success");
-                } else {
-                    const pin = prompt("Nhập mã PIN Admin:");
-                    if (pin === "123456") {
-                        isAdminMode = true;
-                        showToast("Đã kích hoạt quyền Admin", "success");
-                    } else {
-                        showToast("Sai mã PIN", "error");
-                    }
-                }
-                updateAdminBtnState();
-                render();
+                if (isAdminMode) { isAdminMode = false; showToast("Đã tắt Admin", "success"); } 
+                else { const pin = prompt("PIN Admin:"); if (pin === "123456") { isAdminMode = true; showToast("Bật Admin", "success"); } else showToast("Sai PIN", "error"); }
+                updateAdminBtnState(); render();
             };
         }
 
         function updateAuthModalUI() {
             const title = document.getElementById('authTitle');
             const submitBtn = document.getElementById('authSubmitText');
-            const toggleText = document.getElementById('toggleAuthModeText');
-            const toggleBtn = document.getElementById('toggleAuthModeBtn');
-            if (isLoginMode) {
-                title.textContent = "Đăng Nhập";
-                submitBtn.textContent = "VÀO HỆ THỐNG";
-                toggleText.textContent = "Bạn chưa có tài khoản?";
-                toggleBtn.textContent = "Đăng ký ngay";
-            } else {
-                title.textContent = "Đăng Ký";
-                submitBtn.textContent = "TẠO TÀI KHOẢN";
-                toggleText.textContent = "Bạn đã có tài khoản?";
-                toggleBtn.textContent = "Đăng nhập";
-            }
+            if (isLoginMode) { title.textContent = "Đăng Nhập"; submitBtn.textContent = "VÀO HỆ THỐNG"; document.getElementById('toggleAuthModeText').textContent = "Bạn chưa có tài khoản?"; document.getElementById('toggleAuthModeBtn').textContent = "Đăng ký ngay"; }
+            else { title.textContent = "Đăng Ký"; submitBtn.textContent = "TẠO TÀI KHOẢN"; document.getElementById('toggleAuthModeText').textContent = "Bạn đã có tài khoản?"; document.getElementById('toggleAuthModeBtn').textContent = "Đăng nhập"; }
         }
 
         function attachTableEvents() {
@@ -813,21 +655,14 @@
 
         async function deleteEntry(id) {
             const e = entries.find(x => x.id === id);
-            if (!isAdminMode && (!user || e.userId !== user.uid)) {
-                return showToast("Bạn không có quyền xóa ca này", "error");
-            }
-            if (!confirm("Xác nhận xóa bản ghi này?")) return;
-            try {
-                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id));
-                showToast("Đã xóa dữ liệu", "success");
-            } catch (err) { showToast("Lỗi khi xóa", "error"); }
+            if (!isAdminMode && (!user || e.userId !== user.uid)) return showToast("Không có quyền", "error");
+            if (!confirm("Xóa bản ghi?")) return;
+            try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id)); showToast("Đã xóa", "success"); } catch (err) { showToast("Lỗi xóa", "error"); }
         }
 
         function editEntry(id) {
             const e = entries.find(x => x.id === id);
-            if (!isAdminMode && (!user || e.userId !== user.uid)) {
-                return showToast("Bạn không có quyền sửa ca này", "error");
-            }
+            if (!isAdminMode && (!user || e.userId !== user.uid)) return showToast("Không có quyền", "error");
             if (!e) return;
             document.getElementById('editEntryId').value = e.id;
             const hSel = document.getElementById('hospitalSelect');
@@ -835,10 +670,8 @@
             else { hSel.value = "other"; document.getElementById('customHospitalName').classList.remove('hidden'); document.getElementById('customHospitalName').value = e.hospitalName; }
             document.getElementById('protocol').value = e.protocol;
             document.getElementById('patientId').value = e.patientId;
-            document.getElementById('age').value = e.age;
-            document.getElementById('weight').value = e.weight;
-            document.getElementById('ctdi').value = e.ctdi;
-            document.getElementById('dlp').value = e.dlp;
+            document.getElementById('age').value = e.age; document.getElementById('weight').value = e.weight;
+            document.getElementById('ctdi').value = e.ctdi; document.getElementById('dlp').value = e.dlp;
             document.getElementById('cancelEditBtn').classList.remove('hidden');
             document.getElementById('submitBtn').classList.replace('bg-indigo-600', 'bg-amber-600');
             document.getElementById('submitBtnText').textContent = "Cập nhật thay đổi";
@@ -859,8 +692,7 @@
             const fHosp = document.getElementById('filterHospital');
             const hHosp = document.getElementById('hospitalSelect');
             if(!fHosp || !hHosp) return;
-            const prevF = fHosp.value;
-            const prevH = hHosp.value;
+            const prevF = fHosp.value; const prevH = hHosp.value;
             fHosp.innerHTML = '<option value="all">Tất cả bệnh viện</option>';
             hHosp.innerHTML = '<option value="" disabled selected>-- Chọn Bệnh viện --</option>';
             currentHospitals.forEach(h => {
@@ -896,12 +728,9 @@
                 const el = document.getElementById(id); if (!el) return;
                 list.forEach(i => { const o = document.createElement('option'); o.value = typeof i === 'string' ? i : i.name; o.textContent = o.value; el.appendChild(o); });
             };
-            fill('manufacturer', MANUFACTURERS);
-            fill('sliceCount', SLICE_COUNTS);
+            fill('manufacturer', MANUFACTURERS); fill('sliceCount', SLICE_COUNTS);
             fill('protocol', ACR_PROTOCOLS);
-            fill('filterProtocol', ACR_PROTOCOLS);
-            const scanDateEl = document.getElementById('scanDate');
-            if (scanDateEl) scanDateEl.valueAsDate = new Date();
+            const scanDateEl = document.getElementById('scanDate'); if (scanDateEl) scanDateEl.valueAsDate = new Date();
             lucide.createIcons();
             setupEventListeners();
             await initAuth();
@@ -916,18 +745,12 @@
                 if (userMenu) userMenu.classList.toggle('hidden', isAnon);
                 if (formLockOverlay) formLockOverlay.classList.toggle('hidden', !isAnon);
                 if (u) {
-                    if (!u.isAnonymous) {
-                        sessionStorage.removeItem('manualLogout');
-                        if (authModal) authModal.classList.add('hidden');
-                    }
-                    const userEmailDisplay = document.getElementById('userEmailDisplay');
-                    if (userEmailDisplay) userEmailDisplay.textContent = u.email || "Khách ẩn danh";
+                    if (!u.isAnonymous) { sessionStorage.removeItem('manualLogout'); if (authModal) authModal.classList.add('hidden'); }
+                    const userEmailDisplay = document.getElementById('userEmailDisplay'); if (userEmailDisplay) userEmailDisplay.textContent = u.email || "Google User";
                     setupDataSync(u);
                 } else {
                     updateStatus("Chưa đăng nhập", "slate");
-                    if (sessionStorage.getItem('manualLogout') !== 'true') {
-                        signInAnonymously(auth).catch(() => {});
-                    }
+                    if (sessionStorage.getItem('manualLogout') !== 'true') signInAnonymously(auth).catch(() => {});
                 }
             });
         };
