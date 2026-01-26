@@ -599,7 +599,7 @@
             return { mean, sd, median, p75, p: pVal };
         };
 
-        // NAV & AUTH
+        // NAV & AUTH UI ACTIONS
         el('navLoginBtn').onclick = () => { isLoginMode = true; updateAuthUI(); el('authModal').classList.remove('hidden'); };
         el('closeAuthModal').onclick = () => el('authModal').classList.add('hidden');
         el('toggleAuthBtn').onclick = () => { isLoginMode = !isLoginMode; updateAuthUI(); };
@@ -608,6 +608,36 @@
         document.body.onclick = () => { el('userDropdown').classList.add('hidden'); el('onlineDropdown').classList.add('hidden'); };
 
         function updateAuthUI() { el('authTitle').textContent = isLoginMode ? "Đăng Nhập" : "Đăng Ký"; el('authSubmitBtn').querySelector('span').textContent = isLoginMode ? "VÀO HỆ THỐNG" : "TẠO TÀI KHOẢN"; }
+
+        // AUTH LOGIC (MISSING IMPLEMENTATION FIXED)
+        el('authForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const email = el('authEmail').value;
+            const pass = el('authPassword').value;
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                    showToast("Đã đăng nhập thành công!");
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, pass);
+                    showToast("Đã đăng ký tài khoản mới!");
+                }
+                el('authModal').classList.add('hidden');
+            } catch (err) {
+                showToast("Lỗi: " + err.message);
+            }
+        };
+
+        el('googleLoginBtn').onclick = async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+                showToast("Đăng nhập Google thành công!");
+                el('authModal').classList.add('hidden');
+            } catch (err) {
+                showToast("Lỗi Google Auth: " + err.message);
+            }
+        };
 
         window.switchTab = (tabId) => {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
@@ -640,7 +670,7 @@
             if (!u) return;
             const presenceRef = doc(db, 'artifacts', appId, 'public', 'data', 'presence', u.uid);
             await setDoc(presenceRef, {
-                email: u.email || (u.isAnonymous ? "Anonymous User" : "Unknown"),
+                email: u.email || (u.isAnonymous ? "Guest User" : "Unknown"),
                 lastSeen: new Date().toISOString(),
                 isAnonymous: u.isAnonymous
             }, { merge: true });
@@ -663,13 +693,13 @@
                     list.innerHTML = '<p class="text-[10px] text-slate-400 text-center py-4">Không có ai online</p>';
                 } else {
                     activeUsers.forEach(u => {
-                        const isMe = user && u.email === (user.email || "Anonymous User");
+                        const isMe = user && u.email === (user.email || "Guest User");
                         list.innerHTML += `
                             <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-50 border border-slate-100">
                                 <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
                                 <div class="flex-1 min-w-0">
                                     <p class="text-[11px] font-black text-slate-800 truncate">${u.email}</p>
-                                    <p class="text-[8px] font-bold text-slate-400 uppercase">${isMe ? 'Bạn' : 'Người dùng'}</p>
+                                    <p class="text-[8px] font-bold text-slate-400 uppercase">${isMe ? 'Bạn' : 'Thành viên'}</p>
                                 </div>
                             </div>
                         `;
@@ -840,7 +870,7 @@
             onAuthStateChanged(auth, async (u) => {
                 user = u;
                 if (u) {
-                    el('sessionUserEmail').textContent = u.email || "Khách (Chế độ xem)";
+                    el('sessionUserEmail').textContent = u.email || "Guest User";
                     const isAdmin = u.email && ADMIN_EMAILS.includes(u.email);
                     el('adminControls').classList.toggle('hidden', !isAdmin);
                     el('navLoginBtn').classList.toggle('hidden', !u.isAnonymous);
