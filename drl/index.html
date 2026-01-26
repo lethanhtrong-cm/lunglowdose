@@ -19,6 +19,9 @@
             color: #1e293b; 
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
         .mesh-bg { 
             position: fixed; 
@@ -27,20 +30,21 @@
             background: radial-gradient(at 0% 0%, hsla(220,100%,95%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(260,100%,92%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(190,100%,92%,1) 0, transparent 50%), radial-gradient(at 0% 100%, hsla(260,100%,92%,1) 0, transparent 50%); 
         }
         .app-layout { 
-            margin-top: 1.5rem; 
-            padding: 0 1rem 3rem 1rem; 
+            margin-top: 1rem; 
+            padding: 0 1rem 1rem 1rem; 
             max-width: 80rem; 
             width: 100%; 
             margin-left: auto; 
             margin-right: auto; 
             display: flex;
             flex-direction: column;
-            gap: 2.5rem;
+            gap: 2rem;
+            flex: 1;
         }
         .section-container {
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 1rem;
         }
         .top-grid {
             display: flex;
@@ -75,10 +79,39 @@
             .sidebar-form { width: 100%; min-width: 100%; }
         }
 
+        /* Mobile Card Style */
+        @media (max-width: 768px) {
+            #dataTableBody tr {
+                display: block;
+                padding: 1.25rem;
+                margin-bottom: 1rem;
+                background: white;
+                border-radius: 1.5rem;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+            #dataTableBody td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.5rem 0;
+                border: none;
+                width: 100% !important;
+            }
+            #dataTableBody td::before {
+                content: attr(data-label);
+                font-size: 8px;
+                text-transform: uppercase;
+                font-weight: 800;
+                color: #94a3b8;
+                flex: 1;
+                text-align: left;
+            }
+            .mobile-hide-head { display: none; }
+        }
+
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
         .report-iframe-container {
             width: 100%;
@@ -87,24 +120,6 @@
             overflow: hidden;
             box-shadow: 0 20px 50px -10px rgba(0,0,0,0.1);
         }
-
-        .btn-google {
-            background: white;
-            color: #1f2937;
-            border: 1px solid #e5e7eb;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            font-weight: 600;
-            padding: 12px;
-            border-radius: 12px;
-            transition: all 0.2s;
-        }
-        .btn-google:hover {
-            background: #f9fafb;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
     </style>
 </head>
 <body class="antialiased font-inter text-slate-900">
@@ -112,32 +127,23 @@
 
     <!-- AUTH MODAL -->
     <div id="authModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md hidden p-4">
-        <div class="bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl transform transition-all text-slate-900 border border-slate-100 relative">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl transform transition-all border border-slate-100 relative">
             <button id="closeAuthModal" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
             <div class="text-center mb-8">
-                <div class="bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white shadow-xl rotate-3 font-black"><i data-lucide="shield-check" class="w-8 h-8 text-white"></i></div>
+                <div class="bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white shadow-xl rotate-3"><i data-lucide="shield-check" class="w-8 h-8"></i></div>
                 <h2 id="authTitle" class="text-2xl md:text-3xl font-black tracking-tight text-indigo-900">Đăng Nhập</h2>
             </div>
-            
             <form id="authForm" class="space-y-4">
-                <div><label class="section-label mb-2 block ml-1 font-black">Email Tài Khoản</label><input type="email" id="authEmail" class="w-full px-5 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-slate-900" placeholder="name@hospital.com" required></div>
-                <div><label class="section-label mb-2 block ml-1 font-black">Mật khẩu</label><input type="password" id="authPassword" class="w-full px-5 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-slate-900" placeholder="••••••••" required></div>
-                <button type="submit" id="authSubmitBtn" class="w-full py-4 md:py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl md:rounded-2xl font-black shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95 uppercase"><span>VÀO HỆ THỐNG</span><i data-lucide="arrow-right" class="w-5 h-5"></i></button>
+                <div><label class="section-label mb-2 block ml-1">Email Tài Khoản</label><input type="email" id="authEmail" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" placeholder="name@hospital.com" required></div>
+                <div><label class="section-label mb-2 block ml-1">Mật khẩu</label><input type="password" id="authPassword" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" placeholder="••••••••" required></div>
+                <button type="submit" id="authSubmitBtn" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black shadow-xl transition-all flex items-center justify-center gap-3 uppercase active:scale-95"><span>VÀO HỆ THỐNG</span><i data-lucide="arrow-right" class="w-5 h-5"></i></button>
             </form>
-
-            <div class="mt-6 text-center">
-                <p class="text-xs text-slate-500 font-medium">
-                    <span id="toggleText">Chưa có tài khoản?</span>
-                    <button id="toggleAuthBtn" class="text-indigo-600 font-bold hover:underline ml-1">Đăng ký ngay</button>
-                </p>
+            <div class="mt-6 text-center text-xs text-slate-500 font-medium">
+                <span id="toggleText">Chưa có tài khoản?</span>
+                <button id="toggleAuthBtn" class="text-indigo-600 font-bold hover:underline ml-1">Đăng ký ngay</button>
             </div>
-
-            <div class="relative my-8">
-                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-100"></div></div>
-                <div class="relative flex justify-center text-xs uppercase"><span class="bg-white px-2 text-slate-400">Hoặc</span></div>
-            </div>
-
-            <button id="googleLoginBtn" class="btn-google w-full">
+            <div class="relative my-8"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-100"></div></div><div class="relative flex justify-center text-xs uppercase"><span class="bg-white px-2 text-slate-400">Hoặc</span></div></div>
+            <button id="googleLoginBtn" class="bg-white text-slate-900 border border-slate-200 w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-50 shadow-sm transition-all">
                 <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.79 2.71v2.24h2.91c1.71-1.57 2.68-3.88 2.68-6.58z" fill="#4285F4"/><path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.24c-.8.54-1.84.85-3.05.85-2.34 0-4.32-1.58-5.03-3.71H.95v2.3C2.43 15.89 5.5 18 9 18z" fill="#34A853"/><path d="M3.97 10.72c-.18-.54-.28-1.11-.28-1.72s.1-1.18.28-1.72V4.98H.95C.34 6.19 0 7.56 0 9s.34 2.81.95 4.02l3.02-2.3z" fill="#FBBC05"/><path d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.47.89 11.43 0 9 0 5.5 0 2.43 2.11.95 5.12l3.02 2.3c.71-2.13 2.69-3.71 5.03-3.71z" fill="#EA4335"/></svg>
                 Tiếp tục với Google
             </button>
@@ -149,77 +155,68 @@
         <nav class="glass-card rounded-2xl md:rounded-[2rem] px-4 md:px-8 py-2 md:py-4 flex justify-between items-center shadow-lg border-white text-slate-900">
             <div class="flex items-center gap-2 md:gap-4">
                 <div class="bg-indigo-600 p-2 md:p-2.5 rounded-xl md:rounded-2xl text-white shadow-lg"><i data-lucide="activity" class="w-4 h-4 md:w-6 md:h-6"></i></div>
-                <div><h1 class="text-sm md:text-xl font-black tracking-tighter text-slate-900 leading-none uppercase">VN-DRL <span class="text-indigo-600">STUDY</span></h1></div>
+                <div><h1 class="text-xs md:text-xl font-black tracking-tighter text-slate-900 uppercase">VN-DRL <span class="text-indigo-600">STUDY</span></h1></div>
             </div>
-
-            <!-- TAB NAVIGATION -->
-            <div class="hidden md:flex items-center gap-8">
-                <button onclick="switchTab('main-tab')" id="btn-main-tab" class="tab-btn active px-2 py-4 text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard & Nhập liệu
+            <div class="flex items-center gap-2 md:gap-8">
+                <button onclick="switchTab('main-tab')" id="btn-main-tab" class="tab-btn active px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
+                    <i data-lucide="layout-dashboard" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Dashboard & Nhập liệu</span><span class="sm:hidden">Nhập liệu</span>
                 </button>
-                <button onclick="switchTab('report-tab')" id="btn-report-tab" class="tab-btn px-2 py-4 text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Báo cáo Looker Studio
+                <button onclick="switchTab('data-tab')" id="btn-data-tab" class="tab-btn px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
+                    <i data-lucide="table-2" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Danh sách dữ liệu</span><span class="sm:hidden">Danh sách</span>
+                </button>
+                <button onclick="switchTab('report-tab')" id="btn-report-tab" class="tab-btn px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
+                    <i data-lucide="bar-chart-3" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Báo cáo phân tích</span><span class="sm:hidden">Báo cáo</span>
                 </button>
             </div>
-
-            <div class="flex items-center gap-2 md:gap-4">
-                <div id="connectionStatus" class="hidden md:flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-xl text-[8px] font-black uppercase border border-slate-200">
-                    <div id="statusDot" class="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
-                    <span id="statusText">Kết nối...</span>
-                </div>
-                <div id="userMenu" class="hidden flex items-center gap-2 md:gap-4 pl-2 md:pl-4 border-l border-slate-200">
-                    <div class="hidden lg:block text-right">
-                        <p id="userEmailDisplay" class="text-[10px] font-black text-slate-800 truncate max-w-[120px]">user@hosp.com</p>
-                        <p id="userRoleDisplay" class="text-[8px] font-black text-indigo-600 uppercase tracking-widest">Thành viên</p>
-                    </div>
-                    <div class="relative">
-                        <button id="userMenuBtn" class="w-8 h-8 md:w-10 md:h-10 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl md:rounded-2xl flex items-center justify-center hover:bg-indigo-100 active:scale-95">
-                            <i data-lucide="user" class="w-4 h-4 md:w-5 h-5 text-indigo-600"></i>
-                        </button>
-                        <div id="userDropdown" class="absolute right-0 mt-3 w-48 md:w-56 bg-white rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden hidden z-50 text-slate-800 p-2 border border-slate-100">
-                            <a href="#" id="requestAdminBtn" class="flex items-center gap-3 px-4 py-3 text-xs md:text-sm font-bold text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-colors mb-1"><i data-lucide="shield-plus" class="w-4 h-4"></i> Yêu cầu quyền Admin</a>
-                            <a href="#" id="logoutBtn" class="flex items-center gap-3 px-4 py-3 text-xs md:text-sm font-bold text-red-600 hover:bg-red-50 rounded-2xl transition-colors"><i data-lucide="log-out" class="w-4 h-4"></i> Đăng xuất</a>
+            <div class="flex items-center gap-2">
+                <!-- ONLINE USERS DROPDOWN -->
+                <div class="relative">
+                    <button id="onlineMenuBtn" class="w-8 h-8 md:w-10 md:h-10 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl md:rounded-2xl flex items-center justify-center hover:bg-emerald-100 relative transition-all">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                    </button>
+                    <!-- ONLINE LIST DROPDOWN -->
+                    <div id="onlineDropdown" class="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-2xl hidden z-50 text-slate-800 p-4 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-50">
+                            <p class="section-label mb-0">Người dùng online</p>
+                            <span id="onlineCount" class="px-2 py-0.5 bg-emerald-100 text-emerald-600 rounded-md text-[10px] font-black">0</span>
+                        </div>
+                        <div id="onlineList" class="space-y-3 max-h-60 overflow-y-auto custom-scrollbar pr-1">
                         </div>
                     </div>
                 </div>
-                <button id="navLoginBtn" class="px-3 md:px-6 py-2 md:py-2.5 bg-indigo-600 text-white text-[10px] md:text-xs font-black uppercase tracking-widest rounded-xl md:rounded-2xl hover:bg-indigo-700 shadow-lg">Đăng nhập</button>
+
+                <div id="userMenu" class="hidden flex items-center gap-2 pl-2 md:pl-4 border-l border-slate-200">
+                    <div class="relative">
+                        <button id="userMenuBtn" class="w-8 h-8 md:w-10 md:h-10 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl flex items-center justify-center hover:bg-indigo-100">
+                            <i data-lucide="user" class="w-4 h-4 md:w-5 h-5"></i>
+                        </button>
+                        <div id="userDropdown" class="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-2xl hidden z-50 text-slate-800 p-2 border border-slate-100">
+                            <div class="px-4 py-2 border-b border-slate-50 mb-1">
+                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Đang đăng nhập</p>
+                                <p id="sessionUserEmail" class="text-[10px] font-black text-indigo-600 truncate">Khách</p>
+                            </div>
+                            <a href="#" id="requestAdminBtn" class="flex items-center gap-3 px-4 py-3 text-xs font-bold text-indigo-600 hover:bg-indigo-50 rounded-xl"><i data-lucide="shield-plus" class="w-4 h-4"></i> Quyền Admin</a>
+                            <a href="#" id="logoutBtn" class="flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl"><i data-lucide="log-out" class="w-4 h-4"></i> Đăng xuất</a>
+                        </div>
+                    </div>
+                </div>
+                <button id="navLoginBtn" class="px-3 md:px-6 py-2 md:py-2.5 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-xl md:rounded-2xl hover:bg-indigo-700 shadow-lg">Login</button>
             </div>
         </nav>
     </header>
 
-    <!-- INFO BAR -->
-    <section id="sessionBar" class="relative z-40 px-2 md:px-4 mt-6 max-w-7xl mx-auto w-full">
-        <div class="glass-card rounded-2xl md:rounded-[1.5rem] px-6 py-3.5 flex flex-wrap justify-between items-center border border-indigo-100 shadow-md">
-            <div class="flex items-center gap-4">
-                <div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg">
-                    <i data-lucide="user-check" class="w-4 h-4"></i>
-                </div>
-                <div>
-                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Tài khoản</p>
-                    <p id="sessionUserEmail" class="text-xs font-black text-slate-900">Khách truy cập (Chế độ xem)</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2 px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 transition-all">
-                    <span class="relative flex h-2 w-2">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    <span id="sessionStatusText" class="text-[10px] font-black uppercase tracking-widest">Hệ thống sẵn sàng</span>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- TAB 1 CONTENT -->
+    <!-- TAB 1: DASHBOARD & NHẬP LIỆU -->
     <div id="main-tab" class="tab-content app-layout">
         <div class="section-container">
             <div class="top-grid">
-                <!-- SIDEBAR FORM -->
+                <!-- FORM -->
                 <aside class="sidebar-form glass-card rounded-[2.5rem] flex flex-col overflow-hidden relative">
-                    <div class="p-6 md:p-8 border-b border-slate-100 flex justify-between items-center bg-white/40 backdrop-blur-md sticky top-0 z-20">
+                    <div class="p-6 md:p-8 border-b border-slate-100 bg-white/40 sticky top-0 z-20 flex justify-between items-center">
                         <h2 id="formTitle" class="font-black text-slate-900 flex items-center gap-3 uppercase tracking-widest text-xs"><i data-lucide="plus-circle" class="text-indigo-600 w-5 h-5"></i> Nhập dữ liệu</h2>
-                        <span class="px-3 py-1 bg-indigo-50 rounded-full text-[9px] font-black text-indigo-600 border border-indigo-100 uppercase">Mới</span>
+                        <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-lg text-[8px] font-black uppercase">Mới</span>
                     </div>
                     <form id="drlForm" class="flex flex-col flex-1 relative">
                         <div id="formLockOverlay" class="absolute inset-0 bg-white/60 backdrop-blur-md z-30 flex flex-col items-center justify-center text-center p-6 hidden">
@@ -237,14 +234,8 @@
                                     <div class="p-3 bg-white/50 rounded-xl border border-slate-100">
                                         <label class="text-[8px] font-black text-slate-400 uppercase block mb-2">Kiểm soát liều (Modulation)</label>
                                         <div class="flex gap-4">
-                                            <label class="flex items-center gap-2 cursor-pointer group">
-                                                <input type="radio" name="doseModulation" value="Có" checked class="w-4 h-4 text-indigo-600">
-                                                <span class="text-xs font-bold text-slate-600 group-hover:text-indigo-600">Bật (Có)</span>
-                                            </label>
-                                            <label class="flex items-center gap-2 cursor-pointer group">
-                                                <input type="radio" name="doseModulation" value="Không" class="w-4 h-4 text-indigo-600">
-                                                <span class="text-xs font-bold text-slate-600 group-hover:text-indigo-600">Tắt (Không)</span>
-                                            </label>
+                                            <label class="flex items-center gap-2 cursor-pointer group"><input type="radio" name="doseModulation" value="Có" checked class="w-4 h-4 text-indigo-600"><span class="text-xs font-bold text-slate-600 group-hover:text-indigo-600">Có</span></label>
+                                            <label class="flex items-center gap-2 cursor-pointer group"><input type="radio" name="doseModulation" value="Không" class="w-4 h-4 text-indigo-600"><span class="text-xs font-bold text-slate-600 group-hover:text-indigo-600">Không</span></label>
                                         </div>
                                     </div>
                                 </div>
@@ -253,202 +244,298 @@
                                 <label class="section-label flex items-center gap-2 font-bold"><i data-lucide="user" class="w-3 h-3 text-indigo-500"></i> Bệnh nhân & Protocol</label>
                                 <select id="protocol" class="w-full px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl text-sm font-black text-indigo-700"></select>
                                 <div class="grid grid-cols-2 gap-3">
-                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">ID Bệnh nhân</label><input type="text" id="patientId" placeholder="ID Bệnh nhân" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium"></div>
+                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">ID BN</label><input type="text" id="patientId" placeholder="ID Bệnh nhân" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium"></div>
                                     <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Ngày chụp</label><input type="date" id="scanDate" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-black text-slate-600"></div>
                                 </div>
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Năm sinh</label><input type="number" id="yob" placeholder="YYYY" class="w-full px-3 py-3 glass-input rounded-xl text-sm text-center font-bold"></div>
-                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Tuổi</label><input type="number" id="age" placeholder="Tuổi" class="w-full px-3 py-3 glass-input rounded-xl text-sm text-center font-bold"></div>
-                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Phái</label><select id="gender" class="w-full px-2 py-3 glass-input rounded-xl text-sm text-center font-bold"><option value="M">Nam</option><option value="F">Nữ</option></select></div>
-                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Kg</label><input type="number" id="weight" placeholder="Kg" class="w-full px-3 py-3 glass-input rounded-xl text-sm text-center font-bold"></div>
+                                <div class="grid grid-cols-4 gap-2 md:gap-3">
+                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">YOB</label><input type="number" id="yob" placeholder="YYYY" class="w-full px-1 py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold"></div>
+                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Tuổi</label><input type="number" id="age" placeholder="Tuổi" class="w-full px-1 py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold"></div>
+                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Phái</label><select id="gender" class="w-full px-1 py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold"><option value="M">Nam</option><option value="F">Nữ</option></select></div>
+                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Kg</label><input type="number" id="weight" placeholder="Kg" class="w-full px-1 py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold"></div>
                                 </div>
                             </div>
-                            <div class="space-y-4 dose-highlight-box p-4 md:p-6 rounded-2xl md:rounded-[2.5rem]">
-                                <div class="flex items-center justify-between"><label class="text-[10px] md:text-[11px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-2"><i data-lucide="zap" class="w-3 h-3 fill-amber-500 text-amber-600"></i> Thông số liều</label></div>
-                                <div class="space-y-4"><div class="space-y-1.5"><label class="text-[9px] md:text-[10px] font-black text-amber-600 uppercase ml-2">CTDIvol (mGy)</label><input type="number" step="0.01" id="ctdi" placeholder="0.00" class="w-full px-4 py-3 bg-white border-2 border-amber-300 rounded-xl text-2xl font-black text-amber-600 outline-none focus:border-amber-500 text-center"></div><div class="space-y-1.5"><label class="text-[9px] md:text-[10px] font-black text-amber-600 uppercase ml-2">DLP (mGy.cm)</label><input type="number" step="0.1" id="dlp" placeholder="0.0" class="w-full px-4 py-3 bg-white border-2 border-amber-300 rounded-xl text-2xl font-black text-amber-600 outline-none focus:border-amber-500 text-center"></div></div>
+                            <div class="space-y-4 dose-highlight-box p-6 rounded-[2.5rem]">
+                                <label class="text-[10px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-2"><i data-lucide="zap" class="w-3 h-3 fill-amber-500"></i> Thông số liều</label>
+                                <div class="space-y-4">
+                                    <div class="space-y-1.5"><label class="text-[9px] md:text-[10px] font-black text-amber-600 uppercase ml-2">CTDIvol (mGy)</label><input type="number" step="0.01" id="ctdi" placeholder="0.00" class="w-full px-4 py-3 bg-white border-2 border-amber-300 rounded-xl text-2xl font-black text-amber-600 text-center focus:border-amber-500 outline-none transition-all"></div>
+                                    <div class="space-y-1.5"><label class="text-[9px] md:text-[10px] font-black text-amber-600 uppercase ml-2">DLP (mGy.cm)</label><input type="number" step="0.1" id="dlp" placeholder="0.0" class="w-full px-4 py-3 bg-white border-2 border-amber-300 rounded-xl text-2xl font-black text-amber-600 text-center focus:border-amber-500 outline-none transition-all"></div>
+                                </div>
                             </div>
                         </div>
-                        <div class="p-4 md:p-6 border-t border-slate-100 bg-white/80 backdrop-blur-xl sticky bottom-0 z-20"><div class="flex gap-3"><button type="button" id="cancelEditBtn" class="hidden flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-black text-[10px] uppercase">Hủy</button><button type="submit" id="submitBtn" class="flex-[3] py-4 bg-indigo-600 text-white rounded-xl font-black text-[11px] uppercase tracking-[0.1em] shadow-xl"> <span id="submitBtnText">Lưu Dữ Liệu</span></button></div></div>
+                        <div class="p-4 md:p-6 border-t border-slate-100 bg-white/80 sticky bottom-0 z-20"><div class="flex gap-3"><button type="button" id="cancelEditBtn" class="hidden flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-black text-[10px] uppercase">Hủy</button><button type="submit" id="submitBtn" class="flex-[3] py-4 bg-indigo-600 text-white rounded-xl font-black text-[11px] uppercase shadow-xl transition-all active:scale-95"><span id="submitBtnText">Lưu Dữ Liệu</span></button></div></div>
                     </form>
                 </aside>
 
                 <!-- DASHBOARD MAIN -->
                 <main class="dashboard-main">
-                    <!-- FILTER -->
-                    <div class="glass-card rounded-[2rem] p-6 shadow-lg border border-slate-200">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="bg-indigo-600 p-2 rounded-xl text-white shadow-md"><i data-lucide="filter" class="w-4 h-4"></i></div>
-                            <h3 class="section-label uppercase tracking-widest font-black text-slate-900">Bộ lọc phân tích Dashboard</h3>
+                    <!-- SECTION: DASHBOARD FILTERS -->
+                    <div class="glass-card rounded-[2rem] p-4 md:p-6 border border-indigo-100 shadow-xl flex flex-wrap items-end gap-4">
+                        <div class="flex-1 min-w-[150px] space-y-1.5">
+                            <label class="text-[8px] font-black text-indigo-400 uppercase tracking-widest ml-1">Bộ lọc cơ sở</label>
+                            <select id="dashFilterHospital" class="w-full px-4 py-2.5 bg-white border border-indigo-50 rounded-xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-indigo-500"></select>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                            <div class="space-y-1.5"><label class="text-[8px] font-black text-slate-400 uppercase ml-1">Bệnh viện</label><select id="filterHospital" class="w-full px-3 py-2.5 glass-input rounded-xl text-[11px] font-bold outline-none"></select></div>
-                            <div class="space-y-1.5"><label class="text-[8px] font-black text-slate-400 uppercase ml-1">Protocol</label><select id="filterProtocol" class="w-full px-3 py-2.5 glass-input rounded-xl text-[11px] font-bold outline-none"></select></div>
-                            <div class="space-y-1.5"><label class="text-[8px] font-black text-slate-400 uppercase ml-1">Hãng máy</label><select id="filterManufacturer" class="w-full px-3 py-2.5 glass-input rounded-xl text-[11px] font-bold outline-none"></select></div>
-                            <div class="space-y-1.5"><label class="text-[8px] font-black text-slate-400 uppercase ml-1">Giới tính</label><select id="filterGender" class="w-full px-3 py-2.5 glass-input rounded-xl text-[11px] font-bold outline-none"><option value="all">Tất cả</option><option value="M">Nam</option><option value="F">Nữ</option></select></div>
-                            <div class="space-y-1.5"><label class="text-[8px] font-black text-slate-400 uppercase ml-1">Kiểm soát liều</label><select id="filterModulation" class="w-full px-3 py-2.5 glass-input rounded-xl text-[11px] font-bold outline-none"><option value="all">Tất cả</option><option value="Có">Có (Bật)</option><option value="Không">Không (Tắt)</option></select></div>
+                        <div class="flex-1 min-w-[150px] space-y-1.5">
+                            <label class="text-[8px] font-black text-indigo-400 uppercase tracking-widest ml-1">Protocol vùng chụp</label>
+                            <select id="dashFilterProtocol" class="w-full px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-[11px] font-black text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500"></select>
                         </div>
-                        <div class="flex justify-end mt-4 pt-3 border-t border-slate-100">
-                            <button id="btnApplyFilter" class="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-black active:scale-95 transition-all flex items-center gap-2">
-                                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Cập nhật Dashboard
+                        <div class="flex-1 min-w-[120px] space-y-1.5">
+                            <label class="text-[8px] font-black text-indigo-400 uppercase tracking-widest ml-1">Hãng máy</label>
+                            <select id="dashFilterManufacturer" class="w-full px-4 py-2.5 bg-white border border-indigo-50 rounded-xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                        </div>
+                        <div class="w-24 space-y-1.5">
+                            <label class="text-[8px] font-black text-indigo-400 uppercase tracking-widest ml-1">Giới tính</label>
+                            <select id="dashFilterGender" class="w-full px-4 py-2.5 bg-white border border-indigo-50 rounded-xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="all">Tất cả</option>
+                                <option value="M">Nam</option>
+                                <option value="F">Nữ</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button id="btnApplyDashFilter" class="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2 active:scale-95">
+                                <i data-lucide="check-circle" class="w-4 h-4"></i> Áp dụng
+                            </button>
+                            <button id="btnResetDashFilter" class="p-2.5 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition-colors" title="Đặt lại bộ lọc">
+                                <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
                             </button>
                         </div>
                     </div>
 
-                    <!-- REF CONFIG -->
-                    <div class="section-container">
-                        <button id="btnToggleRef" class="w-full flex items-center justify-between p-5 bg-white border-2 border-indigo-500 rounded-[2rem] shadow-xl shadow-indigo-100 hover:bg-indigo-50 transition-all active:scale-[0.99] group overflow-hidden relative">
-                            <div class="flex items-center gap-4 relative z-10">
-                                <div class="bg-indigo-600 p-2.5 rounded-xl text-white shadow-lg group-hover:rotate-12 transition-transform">
-                                    <i data-lucide="settings-2" class="w-5 h-5"></i>
-                                </div>
-                                <div class="text-left">
-                                    <h3 class="text-xs font-black uppercase tracking-widest text-indigo-900">Thiết lập chuẩn kiểm định (Override)</h3>
-                                    <p id="refStatusLabel" class="text-[9px] text-indigo-500 font-bold mt-0.5">Mặc định: Thailand NDRL 2019</p>
-                                </div>
+                    <!-- SECTION 1: OVERRIDE CONFIG -->
+                    <div class="glass-card rounded-full p-2 pl-4 pr-3 border-2 border-indigo-600 flex items-center justify-between shadow-xl shadow-indigo-100">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-indigo-600 w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg">
+                                <i data-lucide="settings-2" class="w-6 h-6"></i>
                             </div>
-                            <div id="refChevron" class="p-2 bg-indigo-100 text-indigo-600 rounded-full transition-transform">
-                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                            <div class="text-left">
+                                <h3 class="text-xs font-black uppercase tracking-widest text-indigo-900 leading-tight">Thiết lập chuẩn kiểm định (Override)</h3>
+                                <p class="text-[9px] text-indigo-500 font-bold mt-0.5">Mặc định: Thailand NDRL 2019</p>
                             </div>
+                        </div>
+                        <button id="btnToggleRef" class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-100 transition-transform">
+                            <i data-lucide="chevron-down" id="refChevron" class="w-5 h-5"></i>
                         </button>
-                        <div id="refConfigContent" class="hidden p-6 bg-indigo-50/50 border-2 border-t-0 border-indigo-500 rounded-b-[2rem] -mt-10 pt-14 shadow-inner relative z-0">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="space-y-2"><label class="text-[9px] font-black text-indigo-700 uppercase ml-1">Ref CTDIvol (mGy)</label><input type="number" id="manualRefCtdi" class="w-full px-4 py-3 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-black text-indigo-600" placeholder="Tự động"></div>
-                                <div class="space-y-2"><label class="text-[9px] font-black text-indigo-700 uppercase ml-1">Ref DLP (mGy.cm)</label><input type="number" id="manualRefDlp" class="w-full px-4 py-3 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-black text-indigo-600" placeholder="Tự động"></div>
+                    </div>
+
+                    <div id="refConfigContent" class="hidden glass-card -mt-8 pt-12 pb-6 px-8 rounded-[2.5rem] border border-indigo-100 border-t-0 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="space-y-2"><label class="text-[9px] font-black text-indigo-700 uppercase ml-1">Ref CTDIvol (mGy)</label><input type="number" id="manualRefCtdi" class="w-full px-4 py-3 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-black text-indigo-600" placeholder="Auto"></div>
+                            <div class="space-y-2"><label class="text-[9px] font-black text-indigo-700 uppercase ml-1">Ref DLP (mGy.cm)</label><input type="number" id="manualRefDlp" class="w-full px-4 py-3 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-black text-indigo-600" placeholder="Auto"></div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: TOP STATS ROW -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- TỔNG MẪU -->
+                        <div class="glass-card p-8 rounded-[2.5rem] flex flex-col justify-between shadow-xl min-h-[160px]">
+                            <div class="flex justify-between items-start">
+                                <p class="section-label">Tổng mẫu lọc</p>
+                                <i data-lucide="database" class="w-5 h-5 text-indigo-400"></i>
+                            </div>
+                            <h3 id="statTotal" class="text-5xl font-black text-slate-900 tracking-tighter">0</h3>
+                            <div class="flex gap-4 mt-2">
+                                <div class="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-600 rounded-xl border border-blue-100"><i data-lucide="user" class="w-3.5 h-3.5"></i><span id="statMaleCount" class="text-[11px] font-black">0</span></div>
+                                <div class="flex items-center gap-2 px-3 py-1 bg-pink-50 text-pink-600 rounded-xl border border-pink-100"><i data-lucide="user" class="w-3.5 h-3.5"></i><span id="statFemaleCount" class="text-[11px] font-black">0</span></div>
+                            </div>
+                        </div>
+
+                        <!-- CTDIVOL -->
+                        <div class="glass-card p-8 rounded-[2.5rem] border-l-[8px] border-l-indigo-600 shadow-xl relative">
+                            <div class="flex justify-between items-start">
+                                <p class="section-label text-indigo-600">CTDIvol (mGy)</p>
+                                <div class="text-[9px] font-black px-2 py-0.5 bg-slate-100 rounded-md">p = <span id="pValCtdi">---</span></div>
+                            </div>
+                            <div class="flex items-baseline gap-2 mt-2">
+                                <h3 id="statCtdi75" class="text-5xl font-black text-slate-900 tracking-tighter">0.0</h3>
+                                <span class="text-[10px] text-slate-400 font-bold border-l pl-3 ml-2 h-6 flex items-center" id="labelRefCtdi">Chọn Protocol</span>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-4">
+                                <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase">Median</span><span id="statCtdiMedian" class="text-sm font-black text-indigo-600">0.0</span></div>
+                                <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase">Mean ± SD</span><span id="statCtdiMeanSD" class="text-[11px] font-bold text-slate-700">0.0 ± 0.0</span></div>
+                            </div>
+                        </div>
+
+                        <!-- DLP -->
+                        <div class="glass-card p-8 rounded-[2.5rem] border-l-[8px] border-l-amber-500 shadow-xl">
+                            <div class="flex justify-between items-start">
+                                <p class="section-label text-amber-600">DLP (mGy.cm)</p>
+                                <div class="text-[9px] font-black px-2 py-0.5 bg-slate-100 rounded-md">p = <span id="pValDlp">---</span></div>
+                            </div>
+                            <div class="flex items-baseline gap-2 mt-2">
+                                <h3 id="statDlp75" class="text-5xl font-black text-slate-900 tracking-tighter">0</h3>
+                                <span class="text-[10px] text-slate-400 font-bold border-l pl-3 ml-2 h-6 flex items-center" id="labelRefDlp">Chọn Protocol</span>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-4">
+                                <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase">Median</span><span id="statDlpMedian" class="text-sm font-black text-amber-600">0</span></div>
+                                <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase">Mean ± SD</span><span id="statDlpMeanSD" class="text-[11px] font-bold text-slate-700">0 ± 0</span></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- STATS CARDS -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="glass-card p-6 rounded-[1.5rem] flex flex-col justify-between shadow-lg relative overflow-hidden">
-                            <div class="flex justify-between items-start"><p class="section-label">Tổng mẫu</p><i data-lucide="database" class="w-4 h-4 text-indigo-400"></i></div>
-                            <h3 id="statTotal" class="text-3xl font-black text-slate-900 mt-2 tracking-tighter">0</h3>
-                            <div class="mt-3 flex gap-3">
-                                <div class="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-600 rounded-lg border border-blue-100"><i data-lucide="user" class="w-3 h-3"></i><span id="statMaleCount" class="text-[11px] font-black">0</span></div>
-                                <div class="flex items-center gap-1.5 px-2 py-1 bg-pink-50 text-pink-600 rounded-lg border border-pink-100"><i data-lucide="user" class="w-3 h-3"></i><span id="statFemaleCount" class="text-[11px] font-black">0</span></div>
+                    <!-- SECTION 3: CENTER GRID -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                        <div class="space-y-6">
+                            <!-- TUỔI TRUNG BÌNH -->
+                            <div class="glass-card p-8 rounded-[2.5rem] shadow-lg border-b-[6px] border-b-cyan-500 flex flex-col items-center justify-center text-center">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <i data-lucide="user-check" class="w-5 h-5 text-cyan-600"></i>
+                                    <p class="section-label text-cyan-600 mb-0">Độ tuổi trung bình</p>
+                                </div>
+                                <h4 id="statAgeMeanSD" class="text-4xl font-black text-slate-900 tracking-tighter">0.0 ± 0.0</h4>
+                            </div>
+                            <!-- CÂN NẶNG TRUNG BÌNH -->
+                            <div class="glass-card p-8 rounded-[2.5rem] shadow-lg border-b-[6px] border-b-emerald-500 flex flex-col items-center justify-center text-center">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <i data-lucide="scale" class="w-5 h-5 text-emerald-600"></i>
+                                    <p class="section-label text-emerald-600 mb-0">Cân nặng trung bình</p>
+                                </div>
+                                <h4 id="statWeightMeanSD" class="text-4xl font-black text-slate-900 tracking-tighter">0.0 ± 0.0</h4>
                             </div>
                         </div>
-                        <div class="glass-card p-6 rounded-[1.5rem] border-l-[6px] border-l-indigo-600 shadow-lg" id="cardCtdi">
-                            <div class="flex justify-between items-start"><p class="section-label text-indigo-600">CTDIvol (mGy)</p><div id="pValCtdi" class="text-[9px] font-black px-2 py-0.5 bg-slate-100 rounded-md">p = ---</div></div>
-                            <div class="flex items-baseline gap-2 mt-1"><h3 id="statCtdi75" class="text-3xl md:text-4xl font-black text-slate-900 tracking-tighter">0.0</h3><span class="text-[9px] text-slate-400 font-bold ml-1 border-l pl-2 border-slate-200" id="labelRefCtdi">Ref: ---</span></div>
-                            <div class="mt-2 pt-2 border-t border-slate-100 grid grid-cols-2 gap-2"><div class="flex flex-col"><span class="text-[7px] font-black text-slate-400 uppercase">Median</span><span id="statCtdiMedian" class="text-xs font-black text-indigo-600">0.0</span></div><div class="flex flex-col"><span class="text-[7px] font-black text-slate-400 uppercase">Mean ± SD</span><span id="statCtdiMeanSD" class="text-[10px] font-bold text-slate-700">0.0 ± 0.0</span></div></div>
-                        </div>
-                        <div class="glass-card p-6 rounded-[1.5rem] border-l-[6px] border-l-amber-500 shadow-lg" id="cardDlp">
-                            <div class="flex justify-between items-start"><p class="section-label text-amber-600">DLP (mGy.cm)</p><div id="pValDlp" class="text-[9px] font-black px-2 py-0.5 bg-slate-100 rounded-md">p = ---</div></div>
-                            <div class="flex items-baseline gap-2 mt-1"><h3 id="statDlp75" class="text-3xl md:text-4xl font-black text-slate-900 tracking-tighter">0</h3><span class="text-[9px] text-slate-400 font-bold ml-1 border-l pl-2 border-slate-200" id="labelRefDlp">Ref: ---</span></div>
-                            <div class="mt-2 pt-2 border-t border-slate-100 grid grid-cols-2 gap-2"><div class="flex flex-col"><span class="text-[7px] font-black text-slate-400 uppercase">Median</span><span id="statDlpMedian" class="text-xs font-black text-amber-600">0</span></div><div class="flex flex-col"><span class="text-[7px] font-black text-slate-400 uppercase">Mean ± SD</span><span id="statDlpMeanSD" class="text-[10px] font-bold text-slate-700">0 ± 0</span></div></div>
-                        </div>
-                    </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <div class="space-y-4">
-                            <div class="glass-card p-6 rounded-[1.5rem] shadow-lg border-b-4 border-b-cyan-500 flex flex-col justify-center text-center h-[calc(50%-0.5rem)]">
-                                <p class="section-label text-cyan-600 flex items-center justify-center gap-2 mb-2 font-black uppercase"><i data-lucide="user-check" class="w-4 h-4"></i> Độ tuổi trung bình</p>
-                                <h4 id="statAgeMeanSD" class="text-3xl font-black text-slate-900 tracking-tight">0.0 ± 0.0</h4>
+                        <!-- BẢNG HÃNG MÁY -->
+                        <div class="glass-card p-8 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col h-full min-h-[280px]">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="bg-slate-800 p-2 rounded-xl text-white shadow-lg"><i data-lucide="factory" class="w-5 h-5"></i></div>
+                                <h3 class="section-label font-black text-slate-900">Số ca theo hãng máy</h3>
                             </div>
-                            <div class="glass-card p-6 rounded-[1.5rem] shadow-lg border-b-4 border-b-emerald-500 flex flex-col justify-center text-center h-[calc(50%-0.5rem)]">
-                                <p class="section-label text-emerald-600 flex items-center justify-center gap-2 mb-2 font-black uppercase"><i data-lucide="scale" class="w-4 h-4"></i> Cân nặng trung bình</p>
-                                <h4 id="statWeightMeanSD" class="text-3xl font-black text-slate-900 tracking-tight">0.0 ± 0.0</h4>
-                            </div>
-                        </div>
-                        <div class="glass-card p-6 rounded-[1.5rem] shadow-lg border border-slate-200 flex flex-col max-h-[300px]">
-                            <div class="flex items-center gap-2 mb-4 shrink-0">
-                                <div class="bg-slate-800 p-1.5 rounded-lg text-white"><i data-lucide="factory" class="w-4 h-4"></i></div>
-                                <h3 class="section-label uppercase tracking-widest font-black text-slate-900">Số ca theo hãng máy</h3>
-                            </div>
-                            <div class="overflow-y-auto custom-scrollbar rounded-xl border border-slate-100 flex-1">
-                                <table class="w-full text-left text-[11px] font-bold">
-                                    <thead class="bg-slate-50 text-slate-400 uppercase sticky top-0">
-                                        <tr><th class="px-4 py-2">Thương hiệu</th><th class="px-4 py-2 text-right">Số ca</th></tr>
+                            <div class="overflow-y-auto flex-1 custom-scrollbar pr-2">
+                                <table class="w-full text-left text-xs font-bold">
+                                    <thead class="bg-slate-50 text-slate-400 uppercase tracking-widest sticky top-0">
+                                        <tr><th class="px-4 py-3 rounded-l-xl">Thương hiệu</th><th class="px-4 py-3 rounded-r-xl text-right">Số ca</th></tr>
                                     </thead>
-                                    <tbody id="manufacturerTableBody" class="divide-y divide-slate-50 text-slate-700"></tbody>
+                                    <tbody id="manufacturerTableBody" class="divide-y divide-slate-50 text-slate-700">
+                                    </tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
 
-                    <div class="glass-card p-6 lg:p-8 rounded-[2rem] border-2 border-amber-200 bg-amber-50/30 shadow-xl relative overflow-hidden">
-                        <div class="absolute top-0 right-0 p-4 opacity-10"><i data-lucide="shield-alert" class="w-16 h-16 text-amber-600"></i></div>
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="bg-amber-500 p-2 rounded-xl text-white shadow-lg"><i data-lucide="alert-triangle" class="w-4 h-4"></i></div>
-                            <h3 class="section-label uppercase tracking-widest font-black text-amber-900">Lưu ý chuyên môn & Độ tin cậy</h3>
+                    <!-- SECTION 4: WARNING FOOTER -->
+                    <div class="glass-card p-8 lg:p-10 rounded-[2.5rem] border-2 border-amber-400 bg-amber-50/20 shadow-xl relative overflow-hidden mt-2">
+                        <div class="absolute -right-4 -bottom-6 opacity-5 rotate-12">
+                            <i data-lucide="shield-alert" class="w-48 h-48 text-amber-600"></i>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-[11px] leading-relaxed font-semibold text-slate-600">
-                            <div class="space-y-3">
-                                <div class="flex gap-3"><div class="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0"></div><p><span class="text-amber-700 font-bold uppercase">Nhập liệu:</span> Đảm bảo đơn vị đo lường chính xác tuyệt đối.</p></div>
-                                <div class="flex gap-3"><div class="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0"></div><p><span class="text-amber-700 font-bold uppercase">Cỡ mẫu:</span> Khuyến cáo <span class="text-indigo-600 font-black">n ≥ 30</span> cho mỗi Protocol.</p></div>
+                        
+                        <div class="flex items-center gap-4 mb-8">
+                            <div class="bg-amber-500 w-12 h-12 rounded-xl text-white shadow-lg flex items-center justify-center"><i data-lucide="alert-triangle" class="w-6 h-6"></i></div>
+                            <h3 class="section-label uppercase tracking-[0.2em] font-black text-amber-900 text-sm">Lưu ý chuyên môn & Độ tin cậy</h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 text-[12px] leading-relaxed font-bold text-slate-700 relative z-10">
+                            <div class="space-y-4">
+                                <div class="flex gap-4">
+                                    <div class="w-2 h-2 rounded-full bg-amber-500 mt-2 shrink-0"></div>
+                                    <p><span class="text-amber-700 uppercase font-black">Nhập liệu:</span> Dùng dấu chấm (.) để ngăn cách các số thập phân, KHÔNG dùng dấu phẩy (,).</p>
+                                </div>
+                                <div class="flex gap-4">
+                                    <div class="w-2 h-2 rounded-full bg-amber-500 mt-2 shrink-0"></div>
+                                    <p><span class="text-amber-700 uppercase font-black">Cỡ mẫu:</span> Khuyến cáo <span class="text-indigo-600 font-black">n ≥ 30</span> cho mỗi Protocol.</p>
+                                </div>
                             </div>
-                            <div class="space-y-3">
-                                <div class="flex gap-3"><div class="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0"></div><p><span class="text-amber-700 font-bold uppercase">Tham chiếu:</span> Chuẩn Thailand NDRL 2019 là mốc so sánh.</p></div>
+                            <div class="space-y-4">
+                                <div class="flex gap-4">
+                                    <div class="w-2 h-2 rounded-full bg-amber-500 mt-2 shrink-0"></div>
+                                    <p><span class="text-amber-700 uppercase font-black">Tham chiếu:</span> Chuẩn Thailand NDRL 2019 là mốc so sánh.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </main>
             </div>
         </div>
+    </div>
 
-        <!-- LIST SECTION -->
-        <div class="section-container mt-10">
-            <div class="glass-card rounded-[2.5rem] overflow-hidden shadow-2xl">
-                <div class="p-6 md:p-8 border-b border-slate-50 flex flex-col gap-6 bg-white/40">
-                    <div class="flex flex-wrap justify-between items-center gap-4">
-                        <div class="flex items-center gap-3"><div class="bg-slate-100 p-2 rounded-xl text-slate-600"><i data-lucide="list" class="w-4 h-4 text-slate-900"></i></div><h3 class="section-label uppercase tracking-widest font-black text-slate-900">Chi tiết dữ liệu lâm sàng</h3></div>
-                        <div class="flex items-center gap-3 flex-wrap">
-                            <div class="relative group">
-                                <input type="text" id="searchPatientId" placeholder="Tìm ID Bệnh nhân..." class="pl-10 pr-4 py-2 bg-white/80 border border-slate-200 rounded-xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-indigo-500 w-48 transition-all group-hover:w-64">
-                                <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-indigo-500"></i>
-                            </div>
-                            <div class="flex items-center gap-2 px-3 py-2 bg-white/50 border border-slate-200 rounded-xl">
-                                <span class="text-[9px] text-slate-400 uppercase font-black">Hiển thị:</span>
-                                <select id="rowsPerPageSelect" class="bg-transparent text-[10px] font-black outline-none cursor-pointer">
-                                    <option value="10">10 dòng</option><option value="20">20 dòng</option><option value="50">50 dòng</option><option value="100">100 dòng</option>
-                                </select>
-                            </div>
-                            <div id="adminControls" class="hidden flex gap-2">
-                                <button id="btnImportExcel" class="px-4 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl text-[9px] font-black uppercase flex items-center gap-2 active:scale-95 transition-all"><i data-lucide="upload" class="w-3 h-3"></i> Nhập Excel</button>
-                                <button id="btnExportExcel" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase flex items-center gap-2 active:scale-95 shadow-lg shadow-emerald-100 transition-all"><i data-lucide="download" class="w-3 h-3"></i> Xuất Excel</button>
-                                <input type="file" id="excelFileInput" class="hidden" accept=".xlsx, .xls">
-                            </div>
+    <!-- TAB 2: DANH SÁCH DỮ LIỆU -->
+    <div id="data-tab" class="tab-content app-layout hidden">
+        <div class="section-container">
+            <!-- LIST FILTER -->
+            <div class="glass-card rounded-[2rem] p-5 md:p-6 shadow-xl border border-slate-200 w-full">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="bg-indigo-600 p-2 rounded-lg text-white shadow-md"><i data-lucide="filter" class="w-4 h-4"></i></div>
+                        <h3 class="section-label uppercase tracking-widest font-black text-slate-900 mb-0">Bộ lọc danh sách</h3>
+                    </div>
+                    <button id="btnApplyListFilter" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2 active:scale-95">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Cập nhật
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                    <div class="space-y-1"><label class="text-[7px] font-black text-slate-400 uppercase ml-1">Bệnh viện</label><select id="filterHospital" class="w-full px-3 py-2 glass-input rounded-xl text-[10px] font-bold"></select></div>
+                    <div class="space-y-1"><label class="text-[7px] font-black text-slate-400 uppercase ml-1">Protocol</label><select id="filterProtocol" class="w-full px-3 py-2 glass-input rounded-xl text-[10px] font-bold"></select></div>
+                    <div class="space-y-1"><label class="text-[7px] font-black text-slate-400 uppercase ml-1">Hãng máy</label><select id="filterManufacturer" class="w-full px-3 py-2 glass-input rounded-xl text-[10px] font-bold"></select></div>
+                    <div class="space-y-1"><label class="text-[7px] font-black text-slate-400 uppercase ml-1">Phái</label><select id="filterGender" class="w-full px-3 py-2 glass-input rounded-xl text-[10px] font-bold"><option value="all">Tất cả</option><option value="M">Nam</option><option value="F">Nữ</option></select></div>
+                    <div class="space-y-1"><label class="text-[7px] font-black text-slate-400 uppercase ml-1">Liều</label><select id="filterModulation" class="w-full px-3 py-2 glass-input rounded-xl text-[10px] font-bold"><option value="all">Tất cả</option><option value="Có">Có</option><option value="Không">Không</option></select></div>
+                </div>
+            </div>
+
+            <!-- DATA TABLE -->
+            <div class="glass-card rounded-[2.5rem] overflow-hidden shadow-2xl mt-2">
+                <div class="p-6 md:p-8 border-b border-slate-50 bg-white/40 flex flex-wrap justify-between items-center gap-4">
+                    <div class="flex items-center gap-3"><div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><i data-lucide="list" class="w-4 h-4"></i></div><h3 class="section-label uppercase tracking-widest font-black text-slate-900">Danh sách các ca chụp</h3></div>
+                    <div class="flex items-center gap-3 flex-wrap w-full md:w-auto">
+                        <div class="relative flex-1 md:flex-none">
+                            <input type="text" id="searchPatientId" placeholder="Tìm ID Bệnh nhân..." class="w-full md:w-64 pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        </div>
+                        <div class="flex items-center gap-2 px-3 py-2.5 bg-white/50 border border-slate-200 rounded-2xl">
+                            <span class="text-[9px] text-slate-400 uppercase font-black">Hiển thị:</span>
+                            <select id="rowsPerPageSelect" class="bg-transparent text-[10px] font-black outline-none"><option value="10">10</option><option value="20">20</option><option value="50">50</option></select>
+                        </div>
+                        <div id="adminControls" class="hidden">
+                            <button id="btnExportExcel" class="p-2.5 bg-emerald-600 text-white rounded-2xl shadow-lg hover:bg-emerald-700 transition-all active:scale-95"><i data-lucide="download" class="w-5 h-5"></i></button>
                         </div>
                     </div>
                 </div>
-                <div class="overflow-x-auto relative min-h-[500px]"><table class="w-full text-left text-xs md:text-sm text-slate-900"><thead class="bg-slate-50/50 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100"><tr><th class="px-8 py-4">Cơ sở / ID / Hãng</th><th class="px-8 py-4">Protocol Chụp</th><th class="px-8 py-4 text-center">BN Info</th><th class="px-8 py-4 text-center">Dose Modulation</th><th class="px-8 py-4">CTDIvol (mGy)</th><th class="px-8 py-4">DLP (mGy.cm)</th><th class="px-8 py-4 text-right">Quản lý</th></tr></thead><tbody id="dataTableBody" class="divide-y divide-slate-50"></tbody></table></div>
-                <div class="px-8 py-6 bg-slate-50/50 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4"><p id="paginationInfo" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Đang tải...</p><div id="paginationButtons" class="flex items-center gap-1"></div></div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs md:text-sm">
+                        <thead class="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b mobile-hide-head">
+                            <tr>
+                                <th class="px-8 py-5">Cơ sở / ID / Máy</th>
+                                <th class="px-8 py-5">Protocol</th>
+                                <th class="px-8 py-5 text-center">Info BN</th>
+                                <th class="px-8 py-5 text-center">Modulation</th>
+                                <th class="px-8 py-5">CTDIvol (mGy)</th>
+                                <th class="px-8 py-5">DLP (mGy.cm)</th>
+                                <th class="px-8 py-5 text-right">Quản lý</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody" class="divide-y divide-slate-50"></tbody>
+                    </table>
+                </div>
+                <div class="px-8 py-6 bg-slate-50/50 border-t flex flex-col md:flex-row justify-between items-center gap-4">
+                    <p id="paginationInfo" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Đang tải...</p>
+                    <div id="paginationButtons" class="flex items-center gap-2"></div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- TAB 2 CONTENT -->
+    <!-- TAB 3: REPORT -->
     <div id="report-tab" class="tab-content app-layout hidden">
         <div class="section-container">
-            <div class="glass-card p-6 md:p-10 rounded-[2.5rem] border border-indigo-100 bg-white/40 shadow-2xl">
+            <div class="glass-card p-6 md:p-10 rounded-[2.5rem] border border-indigo-100 bg-white shadow-2xl">
                 <div class="flex items-center justify-between mb-8">
-                    <div>
-                        <h2 class="text-2xl font-black text-slate-900 tracking-tighter uppercase">Phân tích trực quan sâu</h2>
-                        <p class="text-[10px] text-indigo-600 font-black uppercase tracking-[0.15em] mt-1">Dữ liệu thời gian thực được đồng bộ từ Google Sheets</p>
-                    </div>
-                    <button onclick="window.open('https://lookerstudio.google.com/reporting/2abf6a98-3a9e-47c3-88a9-f5daf9abb4cc')" class="p-3 bg-white border border-slate-200 text-slate-400 rounded-2xl hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm">
-                        <i data-lucide="external-link" class="w-5 h-5"></i>
-                    </button>
+                    <h2 class="text-2xl font-black text-slate-900 tracking-tighter uppercase">Looker Analytics Pro Sync</h2>
+                    <button onclick="window.open('https://lookerstudio.google.com/reporting/2abf6a98-3a9e-47c3-88a9-f5daf9abb4cc')" class="p-3 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-100"><i data-lucide="external-link" class="w-5 h-5"></i></button>
                 </div>
-                <div class="report-iframe-container glass-card border-none">
+                <div class="report-iframe-container bg-slate-100">
                     <iframe width="100%" height="900" src="https://lookerstudio.google.com/embed/reporting/2abf6a98-3a9e-47c3-88a9-f5daf9abb4cc/page/mTUmF" frameborder="0" style="border:0" allowfullscreen sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
-                </div>
-                <div class="mt-8 p-6 bg-indigo-50/50 rounded-3xl border border-indigo-100 flex items-center gap-4">
-                    <div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><i data-lucide="info" class="w-5 h-5"></i></div>
-                    <div>
-                        <h4 class="text-xs font-black text-indigo-900 uppercase">Hướng dẫn xem báo cáo</h4>
-                        <p class="text-[10px] font-bold text-indigo-700 mt-0.5">Sử dụng chuột để tương tác với các thành phần biểu đồ. Dữ liệu sẽ tự động cập nhật sau mỗi 1 giờ theo lịch đồng bộ của hệ thống.</p>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- FOOTER -->
+    <footer class="relative z-50 w-full py-8 mt-12 bg-white/40 backdrop-blur-sm border-t border-white/20">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Team BQT KTV 3 Miền</p>
+        </div>
+    </footer>
 
     <!-- TOAST -->
     <div id="toast" class="fixed bottom-10 right-10 p-4 bg-white border border-slate-100 rounded-[1.5rem] shadow-2xl z-[120] transform translate-y-20 opacity-0 pointer-events-none transition-all duration-500 flex items-center gap-4 text-slate-900 font-black">
-        <div id="toastIconContainer" class="p-3 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100"><i data-lucide="check"></i></div>
-        <p id="toastMessage" class="text-[10px] uppercase tracking-tight font-black"></p>
+        <div id="toastIconContainer" class="p-3 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100"><i data-lucide="check" class="w-5 h-5"></i></div>
+        <p id="toastMessage" class="text-[10px] uppercase tracking-tight"></p>
     </div>
 
     <script type="module">
@@ -487,145 +574,23 @@
         let currentPage = 1, rowsPerPage = 10;
         let isLoginMode = true;
 
-        // AUTH UI HANDLERS
-        const authModal = document.getElementById('authModal');
-        const navLoginBtn = document.getElementById('navLoginBtn');
-        const closeAuthModal = document.getElementById('closeAuthModal');
-        const authForm = document.getElementById('authForm');
-        const googleLoginBtn = document.getElementById('googleLoginBtn');
-        const userMenuBtn = document.getElementById('userMenuBtn');
-        const userDropdown = document.getElementById('userDropdown');
-        const requestAdminBtn = document.getElementById('requestAdminBtn');
-        const toggleAuthBtn = document.getElementById('toggleAuthBtn');
-        const authTitle = document.getElementById('authTitle');
-        const authSubmitBtn = document.getElementById('authSubmitBtn');
-        const toggleText = document.getElementById('toggleText');
+        const el = (id) => document.getElementById(id);
 
-        navLoginBtn.onclick = () => {
-            isLoginMode = true;
-            updateAuthUI();
-            authModal.classList.remove('hidden');
-        };
-        closeAuthModal.onclick = () => authModal.classList.add('hidden');
-        window.onclick = (e) => { if (e.target === authModal) authModal.classList.add('hidden'); };
-        
-        userMenuBtn.onclick = (e) => {
-            e.stopPropagation();
-            userDropdown.classList.toggle('hidden');
-        };
-        document.body.onclick = () => userDropdown.classList.add('hidden');
-
-        toggleAuthBtn.onclick = () => {
-            isLoginMode = !isLoginMode;
-            updateAuthUI();
-        };
-
-        function updateAuthUI() {
-            if (isLoginMode) {
-                authTitle.textContent = "Đăng Nhập";
-                authSubmitBtn.querySelector('span').textContent = "VÀO HỆ THỐNG";
-                toggleText.textContent = "Chưa có tài khoản?";
-                toggleAuthBtn.textContent = "Đăng ký ngay";
-            } else {
-                authTitle.textContent = "Đăng Ký";
-                authSubmitBtn.querySelector('span').textContent = "TẠO TÀI KHOẢN";
-                toggleText.textContent = "Đã có tài khoản?";
-                toggleAuthBtn.textContent = "Đăng nhập";
-            }
-        }
-
-        googleLoginBtn.onclick = async () => {
-            const provider = new GoogleAuthProvider();
-            try {
-                googleLoginBtn.disabled = true;
-                googleLoginBtn.textContent = "ĐANG KẾT NỐI...";
-                await signInWithPopup(auth, provider);
-                authModal.classList.add('hidden');
-                showToast("Đăng nhập Google thành công!");
-            } catch (err) {
-                console.error(err);
-                showToast("Lỗi đăng nhập Google!");
-            } finally {
-                googleLoginBtn.disabled = false;
-                googleLoginBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 18 18" class="mr-2"><path d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.79 2.71v2.24h2.91c1.71-1.57 2.68-3.88 2.68-6.58z" fill="#4285F4"/><path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.24c-.8.54-1.84.85-3.05.85-2.34 0-4.32-1.58-5.03-3.71H.95v2.3C2.43 15.89 5.5 18 9 18z" fill="#34A853"/><path d="M3.97 10.72c-.18-.54-.28-1.11-.28-1.72s.1-1.18.28-1.72V4.98H.95C.34 6.19 0 7.56 0 9s.34 2.81.95 4.02l3.02-2.3z" fill="#FBBC05"/><path d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.47.89 11.43 0 9 0 5.5 0 2.43 2.11.95 5.12l3.02 2.3c.71-2.13 2.69-3.71 5.03-3.71z" fill="#EA4335"/></svg> Tiếp tục với Google`;
-            }
-        };
-
-        requestAdminBtn.onclick = async (e) => {
-            e.preventDefault();
-            if (!user || user.isAnonymous) {
-                showToast("Vui lòng đăng nhập trước!");
-                return;
-            }
-            try {
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'admin_requests', user.uid), {
-                    email: user.email,
-                    displayName: user.displayName || 'N/A',
-                    requestedAt: new Date().toISOString(),
-                    status: 'pending'
-                });
-                showToast("Đã gửi yêu cầu Admin cho BQT!");
-            } catch (err) {
-                console.error(err);
-                showToast("Lỗi gửi yêu cầu!");
-            }
-        };
-
-        authForm.onsubmit = async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('authEmail').value;
-            const password = document.getElementById('authPassword').value;
-            const submitBtn = document.getElementById('authSubmitBtn');
-            
-            try {
-                submitBtn.disabled = true;
-                submitBtn.querySelector('span').textContent = isLoginMode ? "ĐANG ĐĂNG NHẬP..." : "ĐANG TẠO...";
-                
-                if (isLoginMode) {
-                    await signInWithEmailAndPassword(auth, email, password);
-                    showToast("Đăng nhập thành công!");
-                } else {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                    showToast("Tạo tài khoản thành công!");
-                }
-                
-                authModal.classList.add('hidden');
-                authForm.reset();
-            } catch (err) {
-                console.error(err);
-                let errorMsg = "Đã có lỗi xảy ra!";
-                if (err.code === 'auth/wrong-password') errorMsg = "Sai mật khẩu!";
-                if (err.code === 'auth/user-not-found') errorMsg = "Tài khoản không tồn tại!";
-                if (err.code === 'auth/email-already-in-use') errorMsg = "Email đã được sử dụng!";
-                if (err.code === 'auth/weak-password') errorMsg = "Mật khẩu quá yếu!";
-                showToast(errorMsg);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.querySelector('span').textContent = isLoginMode ? "VÀO HỆ THỐNG" : "TẠO TÀI KHOẢN";
-            }
-        };
-
-        window.switchTab = (tabId) => {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(tabId).classList.remove('hidden');
-            document.getElementById('btn-' + tabId).classList.add('active');
-            lucide.createIcons();
-        };
-
+        // UI HELPERS
+        function showToast(msg) { el('toastMessage').textContent = msg; el('toast').classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none'); setTimeout(() => el('toast').classList.add('translate-y-20', 'opacity-0', 'pointer-events-none'), 3000); }
+        const normalizeGender = (g) => { const s = String(g || '').toUpperCase(); return (s === 'M' || s === 'NAM') ? 'M' : 'F'; };
         const normalCDF = (x) => {
             const t = 1 / (1 + 0.2316419 * Math.abs(x)), d = 0.3989423 * Math.exp(-x * x / 2);
             const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
             return x >= 0 ? 1 - p : p;
         };
-
         const calcStats = (arr, refValue = 0) => {
-            if (!arr || arr.length === 0) return { mean: 0, sd: 0, median: 0, p75: 0, p: 1 };
+            if (!arr || arr.length === 0) return { median: 0, p75: 0, mean: 0, sd: 0, p: 1 };
             const n = arr.length, sorted = [...arr].sort((a,b) => a-b);
             const mean = arr.reduce((a, b) => a + b, 0) / n;
             const sd = n > 1 ? Math.sqrt(arr.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / (n - 1)) : 0;
             const median = sorted[Math.floor(n * 0.5)];
-            const p75 = sorted[Math.floor(n * 0.75)] || (sorted.length > 0 ? sorted[n-1] : 0);
+            const p75 = sorted[Math.floor(n * 0.75)] || sorted[n-1];
             let pVal = 1;
             if (sd > 0 && n > 1 && refValue > 0) {
                 const t = Math.abs((mean - refValue) / (sd / Math.sqrt(n)));
@@ -634,98 +599,175 @@
             return { mean, sd, median, p75, p: pVal };
         };
 
-        const normalizeGender = (g) => {
-            const s = String(g || '').toUpperCase().trim();
-            if (s === 'M' || s === 'NAM') return 'M';
-            if (s === 'F' || s === 'NỮ' || s === 'NU') return 'F';
-            return 'M';
+        // NAV & AUTH
+        el('navLoginBtn').onclick = () => { isLoginMode = true; updateAuthUI(); el('authModal').classList.remove('hidden'); };
+        el('closeAuthModal').onclick = () => el('authModal').classList.add('hidden');
+        el('toggleAuthBtn').onclick = () => { isLoginMode = !isLoginMode; updateAuthUI(); };
+        el('userMenuBtn').onclick = (e) => { e.stopPropagation(); el('userDropdown').classList.toggle('hidden'); el('onlineDropdown').classList.add('hidden'); };
+        el('onlineMenuBtn').onclick = (e) => { e.stopPropagation(); el('onlineDropdown').classList.toggle('hidden'); el('userDropdown').classList.add('hidden'); };
+        document.body.onclick = () => { el('userDropdown').classList.add('hidden'); el('onlineDropdown').classList.add('hidden'); };
+
+        function updateAuthUI() { el('authTitle').textContent = isLoginMode ? "Đăng Nhập" : "Đăng Ký"; el('authSubmitBtn').querySelector('span').textContent = isLoginMode ? "VÀO HỆ THỐNG" : "TẠO TÀI KHOẢN"; }
+
+        window.switchTab = (tabId) => {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            el(tabId).classList.remove('hidden');
+            el('btn-' + tabId).classList.add('active');
+            lucide.createIcons();
+            if(tabId === 'data-tab' || tabId === 'main-tab') renderDashboard();
         };
 
-        function showToast(msg) { 
-            const t = document.getElementById('toast');
-            document.getElementById('toastMessage').textContent = msg; 
-            t.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none'); 
-            setTimeout(() => t.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none'), 3000); 
-        }
-
-        function updateStatus(text, color) {
-            const statusBox = document.getElementById('connectionStatus'), dot = document.getElementById('statusDot'), txt = document.getElementById('statusText');
-            if (statusBox && dot && txt) {
-                txt.textContent = text;
-                dot.style.backgroundColor = color === 'emerald' ? '#10b981' : color === 'indigo' ? '#6366f1' : '#94a3b8';
-                statusBox.classList.remove('hidden');
-            }
-        }
-
         function updateHospitalDropdowns() {
-            const el = id => document.getElementById(id);
             const currH = [...new Set([...INITIAL_HOSPITALS, ...entries.map(e => e.hospitalName)])].sort();
             const currM = [...new Set([...MANUFACTURERS, ...entries.map(e => e.manufacturer).filter(m => m)])].sort();
-            const dropdowns = { hospitalSelect: currH, filterHospital: currH, manufacturer: currM, filterManufacturer: currM };
+            const dropdowns = { 
+                hospitalSelect: currH, filterHospital: currH, dashFilterHospital: currH,
+                manufacturer: currM, filterManufacturer: currM, dashFilterManufacturer: currM 
+            };
             for (let [id, list] of Object.entries(dropdowns)) {
                 const select = el(id); if (!select) continue;
                 const currentVal = select.value;
-                select.innerHTML = (id.startsWith('filter')) ? '<option value="all">Tất cả</option>' : '<option value="" disabled selected>-- Chọn --</option>';
+                select.innerHTML = (id.startsWith('filter') || id.startsWith('dashFilter')) ? '<option value="all">Tất cả</option>' : '<option value="" disabled selected>-- Chọn --</option>';
                 list.forEach(item => { select.innerHTML += `<option value="${item}">${item}</option>`; });
-                if (id === 'hospitalSelect') select.innerHTML += `<option value="other">➕ Bệnh viện khác</option>`;
+                if (id === 'hospitalSelect') select.innerHTML += `<option value="other">➕ Khác</option>`;
                 if (currentVal) select.value = currentVal;
             }
         }
 
+        // PRESENCE TRACKING
+        async function updatePresence(u) {
+            if (!u) return;
+            const presenceRef = doc(db, 'artifacts', appId, 'public', 'data', 'presence', u.uid);
+            await setDoc(presenceRef, {
+                email: u.email || (u.isAnonymous ? "Anonymous User" : "Unknown"),
+                lastSeen: new Date().toISOString(),
+                isAnonymous: u.isAnonymous
+            }, { merge: true });
+        }
+
+        function setupPresenceListener() {
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'presence'), (snap) => {
+                const now = new Date();
+                const activeUsers = snap.docs.map(d => d.data())
+                    .filter(data => {
+                        const lastSeen = new Date(data.lastSeen);
+                        return (now - lastSeen) < 300000; 
+                    });
+                
+                el('onlineCount').textContent = activeUsers.length;
+                const list = el('onlineList');
+                list.innerHTML = '';
+                
+                if (activeUsers.length === 0) {
+                    list.innerHTML = '<p class="text-[10px] text-slate-400 text-center py-4">Không có ai online</p>';
+                } else {
+                    activeUsers.forEach(u => {
+                        const isMe = user && u.email === (user.email || "Anonymous User");
+                        list.innerHTML += `
+                            <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-50 border border-slate-100">
+                                <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-[11px] font-black text-slate-800 truncate">${u.email}</p>
+                                    <p class="text-[8px] font-bold text-slate-400 uppercase">${isMe ? 'Bạn' : 'Người dùng'}</p>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            });
+        }
+
         function renderDashboard() {
-            const el = id => document.getElementById(id);
-            const fHosp = el('filterHospital').value || 'all', fProt = el('filterProtocol').value || 'all', fGend = el('filterGender').value || 'all';
-            const fManu = el('filterManufacturer').value || 'all', fMod = el('filterModulation').value || 'all';
+            const isDataTab = el('btn-data-tab').classList.contains('active');
+            let fHosp, fProt, fGend, fManu, fMod = 'all';
             const searchTerm = el('searchPatientId').value.trim().toLowerCase();
+
+            if (isDataTab) {
+                fHosp = el('filterHospital').value || 'all';
+                fProt = el('filterProtocol').value || 'all';
+                fGend = el('filterGender').value || 'all';
+                fManu = el('filterManufacturer').value || 'all';
+                fMod = el('filterModulation').value || 'all';
+            } else {
+                fHosp = el('dashFilterHospital').value || 'all';
+                fProt = el('dashFilterProtocol').value || 'all'; 
+                fGend = el('dashFilterGender').value || 'all';
+                fManu = el('dashFilterManufacturer').value || 'all';
+            }
 
             filteredDisplayEntries = entries.filter(e => {
                 if (fHosp !== 'all' && e.hospitalName !== fHosp) return false;
                 if (fProt !== 'all' && e.protocol !== fProt) return false;
                 if (fManu !== 'all' && e.manufacturer !== fManu) return false;
                 if (fGend !== 'all' && normalizeGender(e.gender) !== fGend) return false;
-                if (fMod !== 'all' && (e.doseModulation || 'Có') !== fMod) return false;
+                if (isDataTab && fMod !== 'all' && (e.doseModulation || 'Có') !== fMod) return false;
                 if (searchTerm && !(e.patientId || '').toLowerCase().includes(searchTerm)) return false;
                 return true;
             });
 
-            const activeProtocol = THAI_DRL_PROTOCOLS.find(p => p.name === fProt);
-            let manualC = parseFloat(el('manualRefCtdi').value), manualD = parseFloat(el('manualRefDlp').value);
-            let refCtdi = !isNaN(manualC) ? manualC : (activeProtocol ? activeProtocol.refCtdi : 0);
-            let refDlp = !isNaN(manualD) ? manualD : (activeProtocol ? activeProtocol.refDlp : 0);
+            const statsProtocolName = (fProt !== 'all') ? fProt : el('protocol').value;
+            const activeProtocol = THAI_DRL_PROTOCOLS.find(p => p.name === statsProtocolName);
+            
+            let refCtdi = parseFloat(el('manualRefCtdi').value) || (activeProtocol ? activeProtocol.refCtdi : 0);
+            let refDlp = parseFloat(el('manualRefDlp').value) || (activeProtocol ? activeProtocol.refDlp : 0);
 
-            if(el('labelRefCtdi')) el('labelRefCtdi').textContent = refCtdi > 0 ? `Ref: ${refCtdi}` : `Chọn Protocol`;
-            if(el('labelRefDlp')) el('labelRefDlp').textContent = refDlp > 0 ? `Ref: ${refDlp}` : `Chọn Protocol`;
+            el('labelRefCtdi').textContent = refCtdi > 0 ? `Ref: ${refCtdi}` : `Chọn Protocol`;
+            el('labelRefDlp').textContent = refDlp > 0 ? `Ref: ${refDlp}` : `Chọn Protocol`;
             
             el('statMaleCount').textContent = filteredDisplayEntries.filter(e => normalizeGender(e.gender) === 'M').length;
             el('statFemaleCount').textContent = filteredDisplayEntries.filter(e => normalizeGender(e.gender) === 'F').length;
 
             const ctdiVals = filteredDisplayEntries.map(e => parseFloat(e.ctdi)).filter(n => !isNaN(n));
             const dlpVals = filteredDisplayEntries.map(e => parseFloat(e.dlp)).filter(n => !isNaN(n));
+            const ageVals = filteredDisplayEntries.map(e => parseFloat(e.age)).filter(n => !isNaN(n));
+            const weightVals = filteredDisplayEntries.map(e => parseFloat(e.weight)).filter(n => !isNaN(n));
+
             const ctdiStats = calcStats(ctdiVals, refCtdi), dlpStats = calcStats(dlpVals, refDlp);
+            const ageStats = calcStats(ageVals), weightStats = calcStats(weightVals);
 
             el('statTotal').textContent = filteredDisplayEntries.length;
             el('statCtdi75').textContent = ctdiStats.p75.toFixed(1);
             el('statCtdiMedian').textContent = ctdiStats.median.toFixed(1);
             el('statCtdiMeanSD').textContent = `${ctdiStats.mean.toFixed(1)} ± ${ctdiStats.sd.toFixed(1)}`;
+            el('pValCtdi').textContent = ctdiStats.p < 0.001 ? "< 0.001" : ctdiStats.p.toFixed(3);
+
             el('statDlp75').textContent = Math.round(dlpStats.p75);
             el('statDlpMedian').textContent = Math.round(dlpStats.median);
             el('statDlpMeanSD').textContent = `${Math.round(dlpStats.mean)} ± ${Math.round(dlpStats.sd)}`;
+            el('pValDlp').textContent = dlpStats.p < 0.001 ? "< 0.001" : dlpStats.p.toFixed(3);
 
-            const ageVals = filteredDisplayEntries.map(e => parseFloat(e.age)).filter(n => !isNaN(n));
-            const weightVals = filteredDisplayEntries.map(e => parseFloat(e.weight)).filter(n => !isNaN(n));
-            el('statAgeMeanSD').textContent = `${calcStats(ageVals).mean.toFixed(1)} ± ${calcStats(ageVals).sd.toFixed(1)}`;
-            el('statWeightMeanSD').textContent = `${calcStats(weightVals).mean.toFixed(1)} ± ${calcStats(weightVals).sd.toFixed(1)}`;
+            el('statAgeMeanSD').textContent = `${ageStats.mean.toFixed(1)} ± ${ageStats.sd.toFixed(1)}`;
+            el('statWeightMeanSD').textContent = `${weightStats.mean.toFixed(1)} ± ${weightStats.sd.toFixed(1)}`;
 
             const mCounts = filteredDisplayEntries.reduce((acc, curr) => { const m = curr.manufacturer || 'N/A'; acc[m] = (acc[m] || 0) + 1; return acc; }, {});
             const mBody = el('manufacturerTableBody'); mBody.innerHTML = '';
-            Object.entries(mCounts).sort((a,b) => b[1] - a[1]).forEach(([m, c]) => { mBody.innerHTML += `<tr><td class="px-4 py-1.5">${m}</td><td class="px-4 py-1.5 text-right text-indigo-600">${c}</td></tr>`; });
+            Object.entries(mCounts).sort((a,b) => b[1] - a[1]).forEach(([m, c]) => { 
+                mBody.innerHTML += `<tr><td class="px-4 py-3 font-black text-slate-800">${m}</td><td class="px-4 py-3 text-right text-indigo-600 font-black">${c}</td></tr>`; 
+            });
 
             const startIndex = (currentPage - 1) * rowsPerPage, pagedEntries = filteredDisplayEntries.slice(startIndex, startIndex + rowsPerPage);
             const tbody = el('dataTableBody'); tbody.innerHTML = '';
             pagedEntries.forEach(e => {
-                const tr = document.createElement('tr'); tr.className = "hover:bg-slate-50 group border-b border-slate-50 font-bold transition-colors";
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-all group";
                 const genderLabel = normalizeGender(e.gender) === 'M' ? 'Nam' : 'Nữ';
-                tr.innerHTML = `<td class="px-8 py-4"><div class="font-black text-slate-800">${e.hospitalName}</div><div class="text-[8px] text-slate-400 font-bold uppercase mt-1">ID: ${e.patientId || '??'} • ${e.manufacturer || '?'}</div></td><td class="px-8 py-4"><span class="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[8px] uppercase border border-indigo-100">${e.protocol}</span></td><td class="px-8 py-4 text-center"><div class="text-[10px] ${genderLabel === 'Nam' ? 'text-blue-600' : 'text-pink-600'} font-bold">${genderLabel}</div><div class="text-[9px] text-slate-400">${e.age}t • ${e.weight}kg</div></td><td class="px-8 py-4 text-center"><span class="text-[10px] ${e.doseModulation === 'Không' ? 'text-orange-500' : 'text-emerald-500'} font-bold">${e.doseModulation || 'Có'}</span></td><td class="px-8 py-4 font-black text-slate-900">${e.ctdi}</td><td class="px-8 py-4 font-bold text-slate-400">${e.dlp}</td><td class="px-8 py-4 text-right"><div class="flex justify-end gap-1"><button onclick="editEntry('${e.id}')" class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="deleteEntry('${e.id}')" class="p-2 text-red-500 hover:bg-red-50 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></td>`;
+                tr.innerHTML = `
+                    <td data-label="Bệnh viện / ID" class="px-8 py-5">
+                        <div class="font-black text-slate-800 text-[11px]">${e.hospitalName}</div>
+                        <div class="text-[8px] text-slate-400 font-black uppercase mt-1">ID: ${e.patientId || '??'} • ${e.manufacturer || '?'}</div>
+                    </td>
+                    <td data-label="Protocol" class="px-8 py-5"><span class="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-black uppercase border border-indigo-100">${e.protocol}</span></td>
+                    <td data-label="BN Info" class="px-8 py-5 text-center"><div class="text-[10px] font-bold text-slate-600">${genderLabel} • ${e.age}t • ${e.weight}kg</div></td>
+                    <td data-label="Modulation" class="px-8 py-5 text-center"><span class="text-[10px] font-black ${e.doseModulation === 'Không' ? 'text-orange-500' : 'text-emerald-600'}">${e.doseModulation || 'Có'}</span></td>
+                    <td data-label="CTDIvol" class="px-8 py-5 font-black text-slate-900">${e.ctdi}</td>
+                    <td data-label="DLP" class="px-8 py-5 font-bold text-slate-400">${e.dlp}</td>
+                    <td data-label="Thao tác" class="px-8 py-5 text-right">
+                        <div class="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="editEntry('${e.id}')" class="p-2 text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                            <button onclick="deleteEntry('${e.id}')" class="p-2 text-red-500 bg-red-50 rounded-xl hover:bg-red-100"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                    </td>`;
                 tbody.appendChild(tr);
             });
             renderPagination(); lucide.createIcons();
@@ -733,102 +775,80 @@
 
         function renderPagination() {
             const total = filteredDisplayEntries.length, totalPages = Math.ceil(total / rowsPerPage);
-            const start = total === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1, end = Math.min(currentPage * rowsPerPage, total);
-            document.getElementById('paginationInfo').textContent = `Hiển thị ${start} - ${end} của ${total} ca chụp`;
-            const container = document.getElementById('paginationButtons'); container.innerHTML = '';
+            el('paginationInfo').textContent = `Hiển thị ${(currentPage-1)*rowsPerPage + 1} - ${Math.min(currentPage*rowsPerPage, total)} của ${total} ca chụp`;
+            const container = el('paginationButtons'); container.innerHTML = '';
             if (totalPages <= 1) return;
             for (let i = 1; i <= totalPages; i++) {
                 const btn = document.createElement('button');
-                btn.className = `w-8 h-8 rounded-lg border text-[10px] font-black page-btn ${i === currentPage ? 'active' : 'border-slate-200 hover:bg-white'}`;
+                btn.className = `w-9 h-9 rounded-xl border text-[11px] font-black page-btn ${i === currentPage ? 'active' : 'border-slate-100 hover:bg-white'}`;
                 btn.textContent = i; btn.onclick = () => { currentPage = i; renderDashboard(); }; container.appendChild(btn);
             }
         }
 
         window.onload = async () => {
-            const fill = (id, list) => { const el = document.getElementById(id); if (!el) return; el.innerHTML = id.startsWith('filter') ? '<option value="all">Tất cả</option>' : '<option value="" disabled selected>-- Chọn --</option>'; list.forEach(i => { el.innerHTML += `<option value="${typeof i === 'string' ? i : i.name}">${typeof i === 'string' ? i : i.name}</option>`; }); };
-            fill('sliceCount', SLICE_COUNTS); fill('protocol', THAI_DRL_PROTOCOLS); fill('filterProtocol', THAI_DRL_PROTOCOLS);
+            const fill = (id, list) => { const e = el(id); if (!e) return; e.innerHTML = (id.startsWith('filter') || id.startsWith('dashFilter')) ? '<option value="all">Tất cả</option>' : '<option value="" disabled selected>-- Chọn --</option>'; list.forEach(i => { e.innerHTML += `<option value="${typeof i === 'string' ? i : i.name}">${typeof i === 'string' ? i : i.name}</option>`; }); };
+            fill('sliceCount', SLICE_COUNTS); 
+            fill('protocol', THAI_DRL_PROTOCOLS); 
+            fill('filterProtocol', THAI_DRL_PROTOCOLS);
+            fill('dashFilterProtocol', THAI_DRL_PROTOCOLS);
             fill('manufacturer', MANUFACTURERS);
-            document.getElementById('filterProtocol').value = 'Sọ não (Head)';
+            
+            el('filterProtocol').value = 'all';
+            el('dashFilterProtocol').value = 'all';
 
-            document.getElementById('age').oninput = function() { if(this.value) document.getElementById('yob').value = currentYear - this.value; };
-            document.getElementById('yob').oninput = function() { if(this.value) document.getElementById('age').value = currentYear - this.value; };
-            document.getElementById('btnToggleRef').onclick = () => {
-                const isHidden = document.getElementById('refConfigContent').classList.toggle('hidden');
-                document.getElementById('refChevron').style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
-                lucide.createIcons();
-            };
-            document.getElementById('btnApplyFilter').onclick = () => { currentPage = 1; renderDashboard(); showToast("Cập nhật!"); };
-            document.getElementById('searchPatientId').oninput = () => { currentPage = 1; renderDashboard(); };
-            document.getElementById('rowsPerPageSelect').onchange = (e) => { rowsPerPage = parseInt(e.target.value); currentPage = 1; renderDashboard(); };
-
-            document.getElementById('hospitalSelect').onchange = (e) => {
-                document.getElementById('customHospitalName').classList.toggle('hidden', e.target.value !== 'other');
+            el('btnApplyDashFilter').onclick = () => { renderDashboard(); showToast("Đã áp dụng bộ lọc mới!"); };
+            el('btnResetDashFilter').onclick = () => {
+                ['dashFilterHospital', 'dashFilterManufacturer', 'dashFilterGender', 'dashFilterProtocol'].forEach(fid => el(fid).value = 'all');
+                renderDashboard();
+                showToast("Đã đặt lại bộ lọc Dashboard");
             };
 
-            document.getElementById('drlForm').onsubmit = async (e) => {
+            el('age').oninput = function() { if(this.value) el('yob').value = currentYear - this.value; };
+            el('yob').oninput = function() { if(this.value) el('age').value = currentYear - this.value; };
+            el('btnToggleRef').onclick = () => { 
+                const isHidden = el('refConfigContent').classList.toggle('hidden'); 
+                el('refChevron').style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+                lucide.createIcons(); 
+            };
+            el('btnApplyListFilter').onclick = () => { currentPage = 1; renderDashboard(); showToast("Đã cập nhật danh sách!"); };
+            el('protocol').onchange = () => { renderDashboard(); };
+            el('searchPatientId').oninput = () => { currentPage = 1; renderDashboard(); };
+            el('rowsPerPageSelect').onchange = (e) => { rowsPerPage = parseInt(e.target.value); currentPage = 1; renderDashboard(); };
+            el('hospitalSelect').onchange = (e) => { el('customHospitalName').classList.toggle('hidden', e.target.value !== 'other'); };
+
+            el('drlForm').onsubmit = async (e) => {
                 e.preventDefault();
-                const id = document.getElementById('editEntryId').value, hVal = document.getElementById('hospitalSelect').value;
+                const id = el('editEntryId').value, hVal = el('hospitalSelect').value;
                 const data = { 
-                    hospitalName: hVal === 'other' ? document.getElementById('customHospitalName').value : hVal,
-                    manufacturer: document.getElementById('manufacturer').value, protocol: document.getElementById('protocol').value,
-                    patientId: document.getElementById('patientId').value, age: document.getElementById('age').value,
-                    weight: document.getElementById('weight').value, gender: document.getElementById('gender').value,
+                    hospitalName: hVal === 'other' ? el('customHospitalName').value : hVal,
+                    manufacturer: el('manufacturer').value, protocol: el('protocol').value,
+                    patientId: el('patientId').value, age: el('age').value,
+                    weight: el('weight').value, gender: el('gender').value,
                     doseModulation: document.querySelector('input[name="doseModulation"]:checked').value,
-                    ctdi: document.getElementById('ctdi').value, dlp: document.getElementById('dlp').value,
-                    scanDate: document.getElementById('scanDate').value || new Date().toISOString().split('T')[0],
+                    ctdi: el('ctdi').value, dlp: el('dlp').value,
+                    scanDate: el('scanDate').value || new Date().toISOString().split('T')[0],
                     userId: user.uid, updatedAt: new Date().toISOString()
                 };
-                
-                try {
-                    if(id) {
-                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id), data);
-                    } else {
-                        data.createdAt = new Date().toISOString();
-                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), data);
-                    }
-                    
-                    showToast("Đã lưu dữ liệu thành công!");
-
-                    /**
-                     * CẬP NHẬT: Không sử dụng drlForm.reset() nữa 
-                     * Chỉ reset các trường thông tin bệnh nhân và thông số liều.
-                     * Giữ nguyên: Bệnh viện, Hãng máy, Số lát cắt, Protocol, Ngày chụp, Modulation.
-                     **/
-                    const fieldsToClear = ['patientId', 'age', 'yob', 'weight', 'ctdi', 'dlp'];
-                    fieldsToClear.forEach(fieldId => {
-                        const el = document.getElementById(fieldId);
-                        if(el) el.value = "";
-                    });
-
-                    // Reset trạng thái sửa (nếu có)
-                    document.getElementById('editEntryId').value = "";
-                    document.getElementById('submitBtnText').textContent = "Lưu Dữ Liệu";
-                    document.getElementById('cancelEditBtn').classList.add('hidden');
-                    
-                } catch (err) {
-                    console.error(err);
-                    showToast("Lỗi khi lưu dữ liệu!");
-                }
+                if(id) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id), data);
+                else { data.createdAt = new Date().toISOString(); await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), data); }
+                showToast("Dữ liệu đã được đồng bộ!");
+                ['patientId', 'age', 'yob', 'weight', 'ctdi', 'dlp'].forEach(fid => { const f = el(fid); if(f) f.value = ""; });
+                el('editEntryId').value = ""; el('submitBtnText').textContent = "Lưu Dữ Liệu"; el('cancelEditBtn').classList.add('hidden');
             };
 
             await setPersistence(auth, browserLocalPersistence);
             onAuthStateChanged(auth, async (u) => {
                 user = u;
                 if (u) {
-                    updateStatus("Đã kết nối", "emerald");
-                    document.getElementById('userEmailDisplay').textContent = u.email || "Khách truy cập";
-                    if(document.getElementById('sessionUserEmail')) document.getElementById('sessionUserEmail').textContent = u.email || "Khách (Chế độ xem)";
-                    
+                    el('sessionUserEmail').textContent = u.email || "Khách (Chế độ xem)";
                     const isAdmin = u.email && ADMIN_EMAILS.includes(u.email);
-                    if (document.getElementById('adminControls')) document.getElementById('adminControls').classList.toggle('hidden', !isAdmin);
+                    el('adminControls').classList.toggle('hidden', !isAdmin);
+                    el('navLoginBtn').classList.toggle('hidden', !u.isAnonymous);
+                    el('userMenu').classList.toggle('hidden', u.isAnonymous);
+                    el('formLockOverlay').classList.toggle('hidden', !u.isAnonymous);
                     
-                    requestAdminBtn.classList.toggle('hidden', isAdmin || u.isAnonymous);
-                    document.getElementById('userRoleDisplay').textContent = isAdmin ? 'Admin' : 'Thành viên';
-                    document.getElementById('userRoleDisplay').classList.toggle('text-emerald-500', isAdmin);
-
-                    navLoginBtn.classList.toggle('hidden', !u.isAnonymous);
-                    document.getElementById('userMenu').classList.toggle('hidden', u.isAnonymous);
-                    document.getElementById('formLockOverlay').classList.toggle('hidden', !u.isAnonymous);
+                    updatePresence(u);
+                    setInterval(() => updatePresence(user), 60000); 
                     
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), (snap) => {
                         entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -837,50 +857,26 @@
                 } else { await signInAnonymously(auth); }
             });
 
-            document.getElementById('logoutBtn').onclick = async (e) => { e.preventDefault(); await signOut(auth); location.reload(); };
-            
-            // Xử lý nút Hủy khi đang sửa
-            document.getElementById('cancelEditBtn').onclick = () => {
-                document.getElementById('editEntryId').value = "";
-                document.getElementById('submitBtnText').textContent = "Lưu Dữ Liệu";
-                document.getElementById('cancelEditBtn').classList.add('hidden');
-                // Khi hủy sửa có thể reset toàn bộ form nếu muốn, hoặc chỉ giữ nguyên
-                document.getElementById('drlForm').reset();
-                updateHospitalDropdowns();
-            };
+            setupPresenceListener();
 
+            el('logoutBtn').onclick = async (e) => { e.preventDefault(); await signOut(auth); location.reload(); };
+            el('cancelEditBtn').onclick = () => { el('editEntryId').value = ""; el('submitBtnText').textContent = "Lưu Dữ Liệu"; el('cancelEditBtn').classList.add('hidden'); el('drlForm').reset(); updateHospitalDropdowns(); };
             lucide.createIcons();
         };
 
-        window.deleteEntry = async (id) => { if(confirm("Xác nhận xóa?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id)); };
+        window.deleteEntry = async (id) => { if(confirm("Xác nhận xóa ca chụp?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id)); };
         window.editEntry = (id) => {
             const e = entries.find(x => x.id === id); if(!e) return;
-            document.getElementById('editEntryId').value = e.id;
-            document.getElementById('hospitalSelect').value = e.hospitalName;
-            
-            // Nếu là bệnh viện tự nhập, hiển thị ô input
-            if(!INITIAL_HOSPITALS.includes(e.hospitalName)) {
-                document.getElementById('hospitalSelect').value = 'other';
-                document.getElementById('customHospitalName').classList.remove('hidden');
-                document.getElementById('customHospitalName').value = e.hospitalName;
-            } else {
-                document.getElementById('customHospitalName').classList.add('hidden');
-            }
-
-            document.getElementById('patientId').value = e.patientId;
-            document.getElementById('age').value = e.age;
-            if(e.age) document.getElementById('yob').value = currentYear - e.age;
-            document.getElementById('weight').value = e.weight;
-            document.getElementById('ctdi').value = e.ctdi;
-            document.getElementById('dlp').value = e.dlp;
-            document.getElementById('protocol').value = e.protocol;
-            document.getElementById('manufacturer').value = e.manufacturer;
-            document.getElementById('gender').value = normalizeGender(e.gender);
-            document.getElementById('scanDate').value = e.scanDate;
-            document.querySelectorAll('input[name="doseModulation"]').forEach(input => { input.checked = (input.value === (e.doseModulation || 'Có')); });
-            
-            document.getElementById('submitBtnText').textContent = "Cập nhật dữ liệu";
-            document.getElementById('cancelEditBtn').classList.remove('hidden');
+            switchTab('main-tab');
+            el('editEntryId').value = e.id;
+            el('hospitalSelect').value = e.hospitalName;
+            if(!INITIAL_HOSPITALS.includes(e.hospitalName)) { el('hospitalSelect').value = 'other'; el('customHospitalName').classList.remove('hidden'); el('customHospitalName').value = e.hospitalName; }
+            el('patientId').value = e.patientId; el('age').value = e.age; if(e.age) el('yob').value = currentYear - e.age;
+            el('weight').value = e.weight; el('ctdi').value = e.ctdi; el('dlp').value = e.dlp;
+            el('protocol').value = e.protocol; el('manufacturer').value = e.manufacturer;
+            el('gender').value = normalizeGender(e.gender); el('scanDate').value = e.scanDate;
+            document.querySelectorAll('input[name="doseModulation"]').forEach(i => { i.checked = (i.value === (e.doseModulation || 'Có')); });
+            el('submitBtnText').textContent = "Cập nhật dữ liệu"; el('cancelEditBtn').classList.remove('hidden');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
     </script>
