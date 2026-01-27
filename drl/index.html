@@ -475,6 +475,19 @@
                             <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
                         </div>
                         <div class="flex items-center gap-2 px-3 py-2.5 bg-white/50 border border-slate-200 rounded-2xl">
+                            <span class="text-[9px] text-slate-400 uppercase font-black">Sắp xếp:</span>
+                            <select id="sortOrderSelect" class="bg-transparent text-[10px] font-black outline-none">
+                                <option value="newest">Mới nhất</option>
+                                <option value="oldest">Cũ nhất</option>
+                                <option value="ctdi_desc">CTDIvol cao nhất</option>
+                                <option value="ctdi_asc">CTDIvol thấp nhất</option>
+                                <option value="age_desc">Tuổi cao nhất</option>
+                                <option value="age_asc">Tuổi thấp nhất</option>
+                                <option value="weight_desc">Cân nặng cao nhất</option>
+                                <option value="weight_asc">Cân nặng thấp nhất</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2 px-3 py-2.5 bg-white/50 border border-slate-200 rounded-2xl">
                             <span class="text-[9px] text-slate-400 uppercase font-black">Hiển thị:</span>
                             <select id="rowsPerPageSelect" class="bg-transparent text-[10px] font-black outline-none"><option value="10">10</option><option value="20">20</option><option value="50">50</option></select>
                         </div>
@@ -487,6 +500,7 @@
                     <table class="w-full text-left text-xs md:text-sm">
                         <thead class="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b mobile-hide-head">
                             <tr>
+                                <th class="px-8 py-5">Thời gian</th>
                                 <th class="px-8 py-5">Cơ sở / ID / Máy</th>
                                 <th class="px-8 py-5">Protocol</th>
                                 <th class="px-8 py-5 text-center">Info BN</th>
@@ -760,6 +774,22 @@
                 return true;
             });
 
+            // Sorting Logic
+            const sortVal = el('sortOrderSelect').value;
+            filteredDisplayEntries.sort((a, b) => {
+                switch(sortVal) {
+                    case 'newest': return (b.createdAt || '').localeCompare(a.createdAt || '');
+                    case 'oldest': return (a.createdAt || '').localeCompare(b.createdAt || '');
+                    case 'ctdi_desc': return (parseFloat(b.ctdi) || 0) - (parseFloat(a.ctdi) || 0);
+                    case 'ctdi_asc': return (parseFloat(a.ctdi) || 0) - (parseFloat(b.ctdi) || 0);
+                    case 'age_desc': return (parseFloat(b.age) || 0) - (parseFloat(a.age) || 0);
+                    case 'age_asc': return (parseFloat(a.age) || 0) - (parseFloat(b.age) || 0);
+                    case 'weight_desc': return (parseFloat(b.weight) || 0) - (parseFloat(a.weight) || 0);
+                    case 'weight_asc': return (parseFloat(a.weight) || 0) - (parseFloat(b.weight) || 0);
+                    default: return 0;
+                }
+            });
+
             const statsProtocolName = (fProt !== 'all') ? fProt : el('protocol').value;
             const activeProtocol = THAI_DRL_PROTOCOLS.find(p => p.name === statsProtocolName);
             
@@ -794,26 +824,49 @@
             el('statAgeMeanSD').textContent = `${ageStats.mean.toFixed(1)} ± ${ageStats.sd.toFixed(1)}`;
             el('statWeightMeanSD').textContent = `${weightStats.mean.toFixed(1)} ± ${weightStats.sd.toFixed(1)}`;
 
-            const mCounts = filteredDisplayEntries.reduce((acc, curr) => { const m = curr.manufacturer || 'N/A'; acc[m] = (acc[m] || 0) + 1; return acc; }, {});
+            const mCounts = filteredDisplayEntries.reduce((acc, curr) => { 
+                let m = curr.manufacturer || 'N/A';
+                // Fix GE split (GE Healthcare vs GE HealthCare etc)
+                if (m.trim().toLowerCase().startsWith('ge ') || m === 'GE') m = 'GE HealthCare';
+                acc[m] = (acc[m] || 0) + 1; 
+                return acc; 
+            }, {});
             const mBody = el('manufacturerTableBody'); mBody.innerHTML = '';
             Object.entries(mCounts).sort((a,b) => b[1] - a[1]).forEach(([m, c]) => { 
                 mBody.innerHTML += `<tr><td class="px-4 py-3 font-black text-slate-800">${m}</td><td class="px-4 py-3 text-right text-indigo-600 font-black">${c}</td></tr>`; 
             });
+
+            // Get lists for edit dropdowns
+            const currH = [...new Set([...INITIAL_HOSPITALS, ...entries.map(ent => ent.hospitalName)])].sort();
+            const currM = [...new Set([...MANUFACTURERS, ...entries.map(ent => ent.manufacturer).filter(m => m)])].sort();
 
             const startIndex = (currentPage - 1) * rowsPerPage, pagedEntries = filteredDisplayEntries.slice(startIndex, startIndex + rowsPerPage);
             const tbody = el('dataTableBody'); tbody.innerHTML = '';
             pagedEntries.forEach(e => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 transition-all group border-b border-slate-50";
-                const canManage = isAdmin || (user && e.userId === user.uid);
+                
+                const isOwner = user && e.userId === user.uid;
+                const isRealUser = user && !user.isAnonymous; // Đăng nhập tài khoản
+                const canManage = isAdmin || (isRealUser && isOwner);
+
                 const isEditing = (editingRowId === e.id);
+                
+                // Format Date
+                const dateObj = new Date(e.createdAt || e.updatedAt || new Date());
+                const dateStr = dateObj.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' + dateObj.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 
                 if (isEditing) {
                     // CHẾ ĐỘ ĐANG CHỈNH SỬA (INLINE EDIT)
                     tr.innerHTML = `
+                        <td class="px-4 py-3 text-[10px] text-slate-400 font-bold">${dateStr}</td>
                         <td class="px-4 py-3">
-                            <input type="text" id="inline-hosp-${e.id}" value="${e.hospitalName}" class="w-full p-1 text-[10px] border rounded font-bold mb-1">
-                            <input type="text" id="inline-manu-${e.id}" value="${e.manufacturer || ''}" class="w-full p-1 text-[8px] border rounded" placeholder="Hãng máy">
+                            <select id="inline-hosp-${e.id}" class="w-full p-1 text-[10px] border rounded font-bold mb-1 bg-white">
+                                ${currH.map(h => `<option value="${h}" ${h === e.hospitalName ? 'selected' : ''}>${h}</option>`).join('')}
+                            </select>
+                            <select id="inline-manu-${e.id}" class="w-full p-1 text-[8px] border rounded bg-white">
+                                ${currM.map(m => `<option value="${m}" ${m === e.manufacturer ? 'selected' : ''}>${m}</option>`).join('')}
+                            </select>
                         </td>
                         <td class="px-4 py-3">
                             <select id="inline-prot-${e.id}" class="w-full p-1 text-[10px] border rounded font-black text-indigo-600">
@@ -837,14 +890,15 @@
                         <td class="px-4 py-3"><input type="number" step="0.1" id="inline-dlp-${e.id}" value="${e.dlp}" class="w-20 p-1 text-[10px] border rounded font-bold"></td>
                         <td class="px-4 py-3 text-right">
                             <div class="flex justify-end gap-1">
-                                <button onclick="saveInlineEdit('${e.id}')" class="p-2 text-emerald-600 bg-emerald-50 rounded-xl hover:bg-emerald-100" title="Lưu"><i data-lucide="check" class="w-4 h-4"></i></button>
-                                <button onclick="cancelInlineEdit()" class="p-2 text-slate-400 bg-slate-50 rounded-xl hover:bg-slate-100" title="Hủy"><i data-lucide="x" class="w-4 h-4"></i></button>
+                                <button type="button" onclick="saveInlineEdit('${e.id}', this)" class="p-2 text-emerald-600 bg-emerald-50 rounded-xl hover:bg-emerald-100" title="Lưu"><i data-lucide="check" class="w-4 h-4"></i></button>
+                                <button type="button" onclick="cancelInlineEdit()" class="p-2 text-slate-400 bg-slate-50 rounded-xl hover:bg-slate-100" title="Hủy"><i data-lucide="x" class="w-4 h-4"></i></button>
                             </div>
                         </td>`;
                 } else {
                     // CHẾ ĐỘ HIỂN THỊ
                     const genderLabel = normalizeGender(e.gender) === 'M' ? 'Nam' : 'Nữ';
                     tr.innerHTML = `
+                        <td class="px-8 py-5 text-[10px] font-bold text-slate-500 whitespace-nowrap">${dateStr}</td>
                         <td data-label="Bệnh viện / ID" class="px-8 py-5">
                             <div class="font-black text-slate-800 text-[11px]">${e.hospitalName}</div>
                             <div class="text-[8px] text-slate-400 font-black uppercase mt-1">ID: ${e.patientId || '??'} • ${e.manufacturer || '?'}</div>
@@ -855,9 +909,11 @@
                         <td data-label="CTDIvol" class="px-8 py-5 font-black text-slate-900">${e.ctdi}</td>
                         <td data-label="DLP" class="px-8 py-5 font-bold text-slate-400">${e.dlp}</td>
                         <td data-label="Thao tác" class="px-8 py-5 text-right">
-                            <div class="flex justify-end gap-1.5 ${canManage ? 'opacity-0 group-hover:opacity-100' : 'hidden'} transition-opacity">
-                                <button onclick="editEntry('${e.id}')" class="p-2 text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                                <button onclick="deleteEntry('${e.id}')" class="p-2 text-red-500 bg-red-50 rounded-xl hover:bg-red-100"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            <div class="flex justify-end gap-1.5">
+                                ${ canManage ? `
+                                <button type="button" onclick="editEntry('${e.id}')" class="p-2 text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                                <button type="button" onclick="deleteEntry('${e.id}')" class="p-2 text-red-500 bg-red-50 rounded-xl hover:bg-red-100"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                ` : '' }
                             </div>
                         </td>`;
                 }
@@ -908,6 +964,7 @@
             el('searchPatientId').oninput = () => { currentPage = 1; renderDashboard(); };
             el('rowsPerPageSelect').onchange = (e) => { rowsPerPage = parseInt(e.target.value); currentPage = 1; renderDashboard(); };
             el('hospitalSelect').onchange = (e) => { el('customHospitalName').classList.toggle('hidden', e.target.value !== 'other'); };
+            el('sortOrderSelect').onchange = () => { renderDashboard(); }; // Add listener for sort
 
             el('drlForm').onsubmit = async (e) => {
                 e.preventDefault();
@@ -943,7 +1000,11 @@
                     
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), (snap) => {
                         entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                        updateHospitalDropdowns(); renderDashboard(); 
+                        // Sort entries by createdAt descending (newest first)
+                        entries.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+                        
+                        updateHospitalDropdowns(); // <--- MISSING IN PREVIOUS VERSION
+                        renderDashboard(); 
                     });
                 } else { 
                     isAdmin = false;
@@ -973,7 +1034,8 @@
             renderDashboard();
         };
 
-        window.saveInlineEdit = async (id) => {
+        window.saveInlineEdit = async (id, btn) => {
+            if(btn) btn.disabled = true; // Disable button to prevent double click
             try {
                 const data = {
                     hospitalName: el(`inline-hosp-${id}`).value,
@@ -994,6 +1056,7 @@
                 // onSnapshot sẽ tự render lại
             } catch (err) {
                 showToast("Lỗi khi lưu: " + err.message);
+                if(btn) btn.disabled = false;
             }
         };
     </script>
