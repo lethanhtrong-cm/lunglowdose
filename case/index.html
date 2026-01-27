@@ -1,1 +1,928 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Công cụ tạo ảnh ca lâm sàng, báo cáo y khoa chuyên nghiệp (X-Quang, CT, MRI)">
+    <title>MedStudio Pro - KTV Edition (v3.0 Cloud)</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☢️</text></svg>">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+                    animation: { 
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'fade-in': 'fadeIn 0.2s ease-out'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'scale(0.95)' },
+                            '100%': { opacity: '1', transform: 'scale(1)' },
+                        }
+                    },
+                    colors: {
+                        medical: {
+                            50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc',
+                            400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1',
+                            800: '#075985', 900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- React & Babel -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Utilities -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; background-color: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.05); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); border-radius: 99px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); }
+        
+        .cropper-view-box { outline: 2px solid #0ea5e9; outline-color: #0ea5e9; }
+        .cropper-point { background-color: #0ea5e9; }
+        
+        .glass-input {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s;
+            color: #e2e8f0;
+        }
+        .glass-input:focus {
+            background: rgba(30, 41, 59, 0.95);
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+        }
+        .print-mode { background: white !important; color: black !important; }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden text-slate-800">
+    <div id="root" class="w-full h-full"></div>
+
+    <script type="text/babel" data-type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const React = window.React;
+        const ReactDOM = window.ReactDOM;
+        const { useState, useRef, useEffect, useMemo, useCallback, useLayoutEffect } = React;
+
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAtQdmDbA1BgOrvwevrG6gwuFzlUmBTbfY",
+            authDomain: "wb-idr.firebaseapp.com",
+            projectId: "wb-idr",
+            storageBucket: "wb-idr.firebasestorage.app",
+            messagingSenderId: "716649486328",
+            appId: "1:716649486328:web:5b9f34630bbc74b0e0680d",
+            measurementId: "G-FD7BE7W2BG"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'medstudio-pro';
+
+        // --- ICONS ---
+        const IconBase = ({ children, size = 18, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
+        );
+        const Icons = {
+            Activity: (p) => <IconBase {...p}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></IconBase>,
+            Upload: (p) => <IconBase {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></IconBase>,
+            Download: (p) => <IconBase {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></IconBase>,
+            Layout: (p) => <IconBase {...p}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></IconBase>,
+            Type: (p) => <IconBase {...p}><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></IconBase>,
+            Image: (p) => <IconBase {...p}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></IconBase>,
+            Move: (p) => <IconBase {...p}><polyline points="5 9 2 12 5 15"></polyline><polyline points="9 5 12 2 15 5"></polyline><polyline points="15 19 12 22 9 19"></polyline><polyline points="19 9 22 12 19 15"></polyline><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line></IconBase>,
+            Sun: (p) => <IconBase {...p}><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></IconBase>,
+            Contrast: (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 0 20"></path></IconBase>,
+            Trash2: (p) => <IconBase {...p}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></IconBase>,
+            FileText: (p) => <IconBase {...p}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></IconBase>,
+            User: (p) => <IconBase {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></IconBase>,
+            StickyNote: (p) => <IconBase {...p}><path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z"/><path d="M15 3v6h6"/></IconBase>,
+            Scissors: (p) => <IconBase {...p}><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" x2="8.12" y1="4" y2="15.88"/><line x1="14.47" x2="20" y1="14.48" y2="20"/><line x1="8.12" x2="12" y1="8.12" y2="12"/></IconBase>,
+            PenTool: (p) => <IconBase {...p}><path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="m2 2 7.586 7.586"/><circle cx="11" cy="11" r="2"/></IconBase>,
+            Star: (p) => <IconBase {...p}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></IconBase>,
+            Syringe: (p) => <IconBase {...p}><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/></IconBase>,
+            Clipboard: (p) => <IconBase {...p}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></IconBase>,
+            Maximize: (p) => <IconBase {...p}><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></IconBase>,
+            TextSize: (p) => <IconBase {...p}><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></IconBase>,
+            Check: (p) => <IconBase {...p}><path d="M20 6 9 17l-5-5"/></IconBase>,
+            X: (p) => <IconBase {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></IconBase>,
+            Zap: (p) => <IconBase {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></IconBase>,
+            Calendar: (p) => <IconBase {...p}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></IconBase>,
+            Invert: (p) => <IconBase {...p}><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/></IconBase>,
+            Plus: (p) => <IconBase {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></IconBase>,
+            LogIn: (p) => <IconBase {...p}><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></IconBase>,
+            LogOut: (p) => <IconBase {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></IconBase>,
+            Save: (p) => <IconBase {...p}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></IconBase>,
+            Folder: (p) => <IconBase {...p}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></IconBase>,
+            Google: (p) => <IconBase {...p}><path d="M17.81 8.25c.34 1.15.53 2.37.53 3.63 0 6.63-5.37 12-12 12-3.3 0-6.28-1.34-8.47-3.5L3.6 14.5c1.17 1.15 2.76 1.86 4.51 1.86 3.08 0 5.68-2.12 6.45-5.02l3.25 2.91z"/><path d="M12 4.3c1.76 0 3.36.6 4.64 1.6l3.4-3.4C17.96 1.04 15.17 0 12 0 7.37 0 3.39 2.59 1.43 6.38l3.96 3.07C6.32 6.42 8.92 4.3 12 4.3z"/></IconBase>,
+        };
+
+        // --- CONSTANTS ---
+        const DEFAULT_CONTENT = {
+            title: 'CA LÂM SÀNG: U MÀNG NÃO',
+            age: '45', gender: 'Nam', 
+            date: new Date().toLocaleDateString('vi-VN'),
+            clinicalInfo: 'Đau đầu kéo dài, yếu nửa người trái',
+            techDescription: 'Bệnh nhân hợp tác tốt. Đặt đường truyền tĩnh mạch tay phải.\nSử dụng coil sọ não đa kênh. Chụp theo protocol u não.', 
+            injectionInfo: 'Dotarem 15ml (0.1mmol/kg), Tốc độ 2ml/s, Flush 20ml NaCl.',
+            highlights: '- Khối choán chỗ ngoài trục vùng trán phải.\n- Bắt thuốc mạnh và đồng nhất sau tiêm.\n- Có dấu hiệu đuôi màng cứng (Dural tail sign).',
+            conclusion: 'TD U màng não (Meningioma) vùng trán phải.',
+            author: 'KTV. Nguyễn Văn A - Khoa CĐHA'
+        };
+
+        const DEFAULT_MACROS = {
+            clinicalInfo: ["Đau bụng vùng hố chậu phải", "Ho khạc đờm kéo dài", "Đau đầu chóng mặt", "Chấn thương sọ não kín"],
+            techDescription: ["Xung T1, T2, FLAIR, Diffusion", "Tiêm thuốc đối quang từ", "Chụp CLVT sọ não không tiêm thuốc", "Chụp X-quang phổi thẳng"],
+            injectionInfo: ["Ultravist 370 (1.5ml/kg)", "Dotarem 10ml, tốc độ 2ml/s", "Không tiêm thuốc cản quang"],
+            conclusion: ["Hình ảnh bình thường", "TD U màng não", "TD Nhồi máu não bán cầu T", "Gãy xương sườn số 4, 5"]
+        };
+
+        const DEFAULT_IMAGE_SETTINGS = { scale: 1, x: 0, y: 0, brightness: 100, contrast: 100, invert: false };
+
+        const PRESETS = {
+            brain: { brightness: 110, contrast: 120, label: "Nhu mô", invert: false },
+            bone: { brightness: 130, contrast: 150, label: "Xương", invert: false },
+            lung: { brightness: 120, contrast: 140, label: "Phổi", invert: true },
+            soft: { brightness: 100, contrast: 100, label: "Mềm", invert: false },
+        };
+
+        // --- SUB-COMPONENTS ---
+
+        const AuthModal = ({ onClose, onLoginSuccess }) => {
+            const [isRegister, setIsRegister] = useState(false);
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+            const [loading, setLoading] = useState(false);
+
+            const handleAuth = async (e) => {
+                e.preventDefault();
+                setError('');
+                setLoading(true);
+                try {
+                    if (isRegister) {
+                        await createUserWithEmailAndPassword(auth, email, password);
+                    } else {
+                        await signInWithEmailAndPassword(auth, email, password);
+                    }
+                    onLoginSuccess();
+                    onClose();
+                } catch (err) {
+                    setError(err.message.replace('Firebase: ', ''));
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleGoogle = async () => {
+                setError('');
+                try {
+                    const provider = new GoogleAuthProvider();
+                    await signInWithPopup(auth, provider);
+                    onLoginSuccess();
+                    onClose();
+                } catch (err) {
+                    setError(err.message);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm animate-fade-in p-4">
+                    <div className="bg-slate-800 rounded-2xl w-full max-w-md p-8 border border-slate-700 shadow-2xl relative">
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white"><Icons.X size={24}/></button>
+                        <h2 className="text-2xl font-bold text-white mb-6 text-center">{isRegister ? 'Đăng Ký Tài Khoản' : 'Đăng Nhập'}</h2>
+                        
+                        <button onClick={handleGoogle} className="w-full py-3 bg-white hover:bg-slate-100 text-slate-800 rounded-xl font-bold flex items-center justify-center gap-3 transition-colors mb-6">
+                            <span className="font-bold text-lg text-blue-600">G</span> Tiếp tục với Google
+                        </button>
+
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="h-px bg-slate-600 flex-1"></div>
+                            <span className="text-slate-500 text-sm">Hoặc</span>
+                            <div className="h-px bg-slate-600 flex-1"></div>
+                        </div>
+
+                        <form onSubmit={handleAuth} className="space-y-4">
+                            <div>
+                                <label className="block text-slate-400 text-xs font-bold uppercase mb-1">Email</label>
+                                <input type="email" required className="w-full p-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white outline-none focus:border-sky-500" value={email} onChange={e => setEmail(e.target.value)} />
+                            </div>
+                            <div>
+                                <label className="block text-slate-400 text-xs font-bold uppercase mb-1">Mật khẩu</label>
+                                <input type="password" required className="w-full p-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white outline-none focus:border-sky-500" value={password} onChange={e => setPassword(e.target.value)} />
+                            </div>
+                            {error && <p className="text-red-400 text-sm">{error}</p>}
+                            <button disabled={loading} className="w-full py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold transition-colors disabled:opacity-50">
+                                {loading ? 'Đang xử lý...' : (isRegister ? 'Đăng Ký' : 'Đăng Nhập')}
+                            </button>
+                        </form>
+                        <div className="mt-6 text-center">
+                            <button onClick={() => setIsRegister(!isRegister)} className="text-sky-400 hover:text-sky-300 text-sm underline">
+                                {isRegister ? 'Đã có tài khoản? Đăng nhập' : 'Chưa có tài khoản? Đăng ký ngay'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const SavedPostersModal = ({ onClose, onLoad, userId }) => {
+            const [posters, setPosters] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                const fetchPosters = async () => {
+                    try {
+                        const q = query(collection(db, 'artifacts', appId, 'users', userId, 'posters'), orderBy('createdAt', 'desc'));
+                        const querySnapshot = await getDocs(q);
+                        const list = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        setPosters(list);
+                    } catch (err) {
+                        console.error("Error fetching posters:", err);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+                fetchPosters();
+            }, [userId]);
+
+            const handleDelete = async (id, e) => {
+                e.stopPropagation();
+                if(confirm("Bạn có chắc muốn xóa bản lưu này?")) {
+                    try {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'users', userId, 'posters', id));
+                        setPosters(posters.filter(p => p.id !== id));
+                    } catch(err) { alert("Lỗi xóa: " + err.message); }
+                }
+            }
+
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm animate-fade-in p-4">
+                    <div className="bg-slate-800 rounded-2xl w-full max-w-4xl h-[80vh] flex flex-col border border-slate-700 shadow-2xl relative">
+                        <div className="p-6 border-b border-slate-700 flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-white flex items-center gap-2"><Icons.Folder size={24} className="text-sky-500"/> Ca Đã Lưu</h2>
+                            <button onClick={onClose} className="text-slate-400 hover:text-white"><Icons.X size={24}/></button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                            {loading ? <div className="text-center text-slate-400">Đang tải...</div> : (
+                                posters.length === 0 ? <div className="text-center text-slate-500 mt-10">Chưa có bản lưu nào.</div> :
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {posters.map(poster => (
+                                        <div key={poster.id} onClick={() => { onLoad(poster); onClose(); }} className="bg-slate-700/50 hover:bg-slate-700 border border-slate-600 rounded-xl p-4 cursor-pointer transition-all group relative">
+                                            <h3 className="text-white font-bold mb-1 truncate">{poster.content.title}</h3>
+                                            <p className="text-slate-400 text-xs mb-3">{poster.content.date} • {poster.modality}</p>
+                                            <div className="text-[10px] text-slate-500 bg-slate-800/50 p-2 rounded line-clamp-2 mb-2">{poster.content.conclusion}</div>
+                                            <div className="flex justify-between items-center mt-2">
+                                                <span className="text-[10px] text-sky-500 bg-sky-500/10 px-2 py-1 rounded">{poster.layoutMode}</span>
+                                                <button onClick={(e) => handleDelete(poster.id, e)} className="text-slate-500 hover:text-red-400 p-1 rounded hover:bg-slate-600 transition-colors"><Icons.Trash2 size={14}/></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const CropModal = ({ image, onClose, onSave }) => {
+            const imageRef = useRef(null);
+            const cropperRef = useRef(null);
+
+            useEffect(() => {
+                if (imageRef.current && !cropperRef.current) {
+                    cropperRef.current = new Cropper(imageRef.current, {
+                        viewMode: 1, dragMode: 'move', autoCropArea: 1, responsive: true, background: false, 
+                        modal: true, guides: true, center: true, highlight: false, cropBoxMovable: true, 
+                        cropBoxResizable: true, toggleDragModeOnDblclick: false,
+                    });
+                }
+                return () => { if (cropperRef.current) { cropperRef.current.destroy(); cropperRef.current = null; } };
+            }, [image]);
+
+            const handleCrop = () => {
+                if (cropperRef.current) {
+                    const canvas = cropperRef.current.getCroppedCanvas();
+                    if (canvas) { onSave(canvas.toDataURL()); }
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl w-full max-w-4xl h-[80vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-white/10">
+                        <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-slate-50">
+                            <h3 className="text-slate-800 font-bold uppercase tracking-wider flex items-center gap-2">
+                                <Icons.Scissors size={18} className="text-sky-600"/> Cắt ảnh
+                            </h3>
+                            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors"><Icons.X size={24}/></button>
+                        </div>
+                        <div className="flex-grow relative bg-slate-900 overflow-hidden flex items-center justify-center">
+                            <img ref={imageRef} src={image} alt="Crop Preview" className="max-w-full max-h-full block opacity-0" />
+                        </div>
+                        <div className="p-4 border-t border-slate-100 bg-white flex justify-end gap-3">
+                            <button onClick={onClose} className="px-5 py-2 rounded-lg text-slate-500 font-bold hover:bg-slate-50 transition-colors text-xs uppercase tracking-wider border border-slate-200">Hủy</button>
+                            <button onClick={handleCrop} className="px-6 py-2 rounded-lg bg-sky-500 hover:bg-sky-600 text-white font-bold transition-all text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-sky-500/20"><Icons.Check size={16}/> Áp dụng</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const GridSelector = React.memo(({ onSelect, currentR, currentC }) => {
+            const [hover, setHover] = useState({ r: 0, c: 0 });
+            return (
+                <div className="flex flex-col items-center">
+                    <div className="grid grid-cols-4 gap-1.5 w-max" onMouseLeave={() => setHover({r:0,c:0})}>
+                        {Array.from({length: 16}).map((_, i) => {
+                            const r = Math.floor(i / 4) + 1;
+                            const c = (i % 4) + 1;
+                            const isHover = r <= hover.r && c <= hover.c;
+                            const isSelected = r <= currentR && c <= currentC;
+                            return (
+                                <div key={i} 
+                                    onMouseEnter={() => setHover({r, c})} 
+                                    onClick={() => onSelect(r, c)} 
+                                    className={`w-3.5 h-3.5 rounded-sm cursor-pointer transition-all duration-150 ${isHover ? 'bg-sky-400 scale-110' : isSelected ? 'bg-sky-600' : 'bg-slate-600'}`} 
+                                />
+                            )
+                        })}
+                    </div>
+                    <div className="mt-2 text-[10px] font-bold text-slate-400">{hover.r > 0 ? `${hover.r}x${hover.c}` : `${currentR}x${currentC}`}</div>
+                </div>
+            );
+        });
+
+        const ImageSlot = React.memo(({ imgData, index, isActive, onClick }) => {
+            const imgStyle = { 
+                transform: `scale(${imgData.scale}) translate(${imgData.x}px, ${imgData.y}px)`, 
+                filter: `brightness(${imgData.brightness}%) contrast(${imgData.contrast}%) invert(${imgData.invert ? 1 : 0})`, 
+                cursor: 'move' 
+            };
+            
+            return (
+                <div 
+                    onClick={() => onClick(index)}
+                    className={`relative w-full h-full bg-slate-900 overflow-hidden flex flex-col border transition-colors ${isActive ? 'border-sky-500 z-10 shadow-[0_0_0_2px_rgba(14,165,233,0.5)]' : 'border-slate-800'}`}
+                >
+                    <div className="flex-grow relative overflow-hidden flex items-center justify-center group">
+                        {imgData.url ? 
+                            <img src={imgData.url} className="max-w-none origin-center" style={imgStyle} /> : 
+                            <div className="text-slate-700 flex flex-col items-center p-4 text-center">
+                                <Icons.Image size={24} className="mb-1 opacity-20"/>
+                            </div>
+                        }
+                        <div className="absolute top-1 left-1 bg-black/60 text-white text-[8px] w-4 h-4 flex items-center justify-center rounded font-bold backdrop-blur-sm shadow-sm z-20">{index + 1}</div>
+                    </div>
+                </div>
+            );
+        });
+
+        const ImageGrid = React.memo(({ images, gridDims, activeImgIdx, onImageClick }) => (
+            <div className="w-full h-full bg-black grid gap-0.5 border border-black" 
+                 style={{ gridTemplateColumns: `repeat(${gridDims.c}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${gridDims.r}, minmax(0, 1fr))` }}>
+                {images.slice(0, gridDims.r * gridDims.c).map((img, idx) => (
+                    <ImageSlot 
+                        key={img.id} 
+                        imgData={img} 
+                        index={idx} 
+                        isActive={idx === activeImgIdx}
+                        onClick={onImageClick}
+                    />
+                ))}
+                <div className="absolute top-4 right-4 z-20 pointer-events-none">
+                    <div className="bg-white/90 backdrop-blur-md border border-white/20 text-sky-800 text-[10px] px-2 py-1 rounded shadow-lg flex items-center gap-1.5 font-bold uppercase tracking-widest opacity-80">
+                        <div className="w-1.5 h-1.5 rounded-full bg-sky-500"></div> MedStudio
+                    </div>
+                </div>
+            </div>
+        ));
+
+        // --- MAIN APP ---
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [showAuthModal, setShowAuthModal] = useState(false);
+            const [showSavedModal, setShowSavedModal] = useState(false);
+
+            const [content, setContent] = useState(() => JSON.parse(localStorage.getItem('med_content')) || DEFAULT_CONTENT);
+            const [macros, setMacros] = useState(() => JSON.parse(localStorage.getItem('med_macros')) || DEFAULT_MACROS);
+            const [modality, setModality] = useState(() => localStorage.getItem('med_modality') || 'MRI');
+            const [layoutMode, setLayoutMode] = useState(() => localStorage.getItem('med_layout') || 'vertical');
+            const [gridDims, setGridDims] = useState({ r: 2, c: 2 });
+            const [activeImgIdx, setActiveImgIdx] = useState(0);
+            const [images, setImages] = useState(Array.from({length: 16}).map((_, i) => ({ id: i, url: null, ...DEFAULT_IMAGE_SETTINGS })));
+            const [autoCrop, setAutoCrop] = useState(true);
+            const [showCropModal, setShowCropModal] = useState(false);
+            const [tempCropImg, setTempCropImg] = useState(null);
+            const [showFullscreen, setShowFullscreen] = useState(false);
+            const [bodyFontSize, setBodyFontSize] = useState(13);
+            const [previewScale, setPreviewScale] = useState(0.5);
+            
+            const exportRef = useRef(null);
+            const previewContainerRef = useRef(null);
+
+            useEffect(() => { const unsub = onAuthStateChanged(auth, u => setUser(u)); return () => unsub(); }, []);
+            useEffect(() => { localStorage.setItem('med_content', JSON.stringify(content)); }, [content]);
+            useEffect(() => { localStorage.setItem('med_macros', JSON.stringify(macros)); }, [macros]);
+            useEffect(() => { localStorage.setItem('med_modality', modality); }, [modality]);
+            useEffect(() => { localStorage.setItem('med_layout', layoutMode); }, [layoutMode]);
+
+            const containerDims = layoutMode === 'vertical' ? { w: 794, h: 1123 } : { w: 1200, h: 675 };
+
+            useLayoutEffect(() => {
+                const handleResize = () => {
+                    if (previewContainerRef.current) {
+                        const { width, height } = previewContainerRef.current.getBoundingClientRect();
+                        const padding = 60; 
+                        const availableW = width - padding;
+                        const availableH = height - padding;
+                        const scaleW = availableW / containerDims.w;
+                        const scaleH = availableH / containerDims.h;
+                        setPreviewScale(Math.min(scaleW, scaleH, 1.2)); 
+                    }
+                };
+                handleResize();
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+            }, [containerDims.w, containerDims.h, layoutMode]);
+
+            const handleGridSelect = useCallback((r, c) => { 
+                setGridDims({ r, c }); 
+                if (activeImgIdx >= r * c) setActiveImgIdx(0); 
+            }, [activeImgIdx]);
+
+            const updateActiveImage = (updates) => { 
+                setImages(prev => prev.map((img, idx) => idx === activeImgIdx ? { ...img, ...updates } : img)); 
+            };
+            
+            const handleImageUpload = (file) => {
+                if (file && file.type.startsWith('image/')) {
+                    const url = URL.createObjectURL(file);
+                    if (autoCrop) { setTempCropImg(url); setShowCropModal(true); } 
+                    else { updateActiveImage({ url, ...DEFAULT_IMAGE_SETTINGS }); }
+                }
+            };
+            
+            const onFileChange = (e) => handleImageUpload(e.target.files[0]);
+            
+            const handleDownload = async () => { 
+                if (!window.html2canvas || !exportRef.current) return; 
+                const btn = document.getElementById('dl-btn');
+                const oldText = btn.innerHTML;
+                btn.innerHTML = `<span class="animate-spin">⏳</span>`;
+                btn.disabled = true;
+                
+                try { 
+                    const element = exportRef.current;
+                    const clone = element.cloneNode(true);
+                    const allElements = clone.querySelectorAll('*');
+                    allElements.forEach(el => { 
+                        el.style.fontVariantLigatures = 'none'; 
+                        el.style.letterSpacing = 'normal'; 
+                    });
+
+                    const container = document.createElement('div');
+                    container.style.position = 'fixed'; container.style.top = '-10000px'; 
+                    container.appendChild(clone);
+                    document.body.appendChild(container);
+
+                    const canvas = await window.html2canvas(clone, { 
+                        scale: 2.5, 
+                        useCORS: true, 
+                        backgroundColor: '#ffffff',
+                        logging: false
+                    }); 
+                    document.body.removeChild(container);
+                    
+                    const link = document.createElement('a'); 
+                    link.download = `MedStudio_Case_${Date.now()}.png`; 
+                    link.href = canvas.toDataURL('image/png', 1.0); 
+                    link.click(); 
+                } catch (error) { 
+                    console.error("Export failed:", error); 
+                    alert("Lỗi xuất ảnh."); 
+                } finally { 
+                    btn.innerHTML = oldText; 
+                    btn.disabled = false;
+                } 
+            };
+            
+            const startCrop = () => { 
+                const currentImg = images[activeImgIdx]; 
+                if (currentImg.url) { setTempCropImg(currentImg.url); setShowCropModal(true); } 
+            };
+            
+            const finishCrop = (newUrl) => { 
+                updateActiveImage({ url: newUrl, ...DEFAULT_IMAGE_SETTINGS }); 
+                setShowCropModal(false); 
+                setTempCropImg(null); 
+            };
+
+            const resetAll = () => {
+                if(confirm("Xóa toàn bộ dữ liệu?")) {
+                    localStorage.clear();
+                    window.location.reload();
+                }
+            };
+
+            const insertMacro = (field, text) => {
+                const currentText = content[field] || '';
+                const newText = currentText ? `${currentText}\n- ${text}` : `- ${text}`;
+                setContent({ ...content, [field]: newText });
+            };
+
+            const addMacro = (field) => {
+                const text = prompt("Nhập nội dung mẫu câu mới:");
+                if (text && text.trim()) {
+                    const newMacros = { ...macros, [field]: [...(macros[field] || []), text.trim()] };
+                    setMacros(newMacros);
+                }
+            };
+
+            const setToday = () => {
+                setContent({...content, date: new Date().toLocaleDateString('vi-VN')});
+            };
+
+            const applyPreset = (presetKey) => {
+                const p = PRESETS[presetKey];
+                updateActiveImage({ brightness: p.brightness, contrast: p.contrast, invert: p.invert });
+            };
+
+            // --- CLOUD OPS ---
+            const handleCloudSave = async () => {
+                if (!user) { setShowAuthModal(true); return; }
+                const saveBtn = document.getElementById('save-btn');
+                const originalText = saveBtn.innerText;
+                saveBtn.innerText = 'Lưu...';
+                
+                try {
+                    // Filter out heavy image data if possible or warn
+                    // For this version, we save settings, text, and layout. 
+                    // Images are transient unless we upload them to Storage (complex without CORS/Rules).
+                    // We will save basic data.
+                    const posterData = {
+                        content,
+                        modality,
+                        layoutMode,
+                        gridDims,
+                        createdAt: serverTimestamp(),
+                        // Note: Saving images as Base64 in Firestore is limited to 1MB total doc size.
+                        // We will skip saving 'images' array full data to avoid crashing, 
+                        // or save only lightweight metadata.
+                        // Ideally, images should be re-uploaded.
+                    };
+                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'posters'), posterData);
+                    alert("Đã lưu thành công (Chỉ lưu nội dung văn bản & bố cục)");
+                } catch (e) {
+                    console.error(e);
+                    alert("Lỗi lưu trữ: " + e.message);
+                } finally {
+                    saveBtn.innerText = originalText;
+                }
+            };
+
+            const handleCloudLoad = (data) => {
+                setContent(data.content);
+                setModality(data.modality);
+                setLayoutMode(data.layoutMode);
+                setGridDims(data.gridDims);
+                // Images are reset as they are not persisted fully in this lite version
+                setImages(Array.from({length: 16}).map((_, i) => ({ id: i, url: null, ...DEFAULT_IMAGE_SETTINGS })));
+                alert("Đã tải ca: " + data.content.title + "\n(Vui lòng tải lại hình ảnh gốc)");
+            };
+
+            const renderLayout = () => {
+                const BRAND_TEXT = "CỘNG ĐỒNG KTV HÌNH ẢNH Y HỌC 3 MIỀN";
+
+                const Container = ({ children, className = "", contentClass = "" }) => (
+                     <div className={`w-full h-full bg-white text-slate-900 flex flex-col font-sans overflow-hidden relative ${className}`}>
+                        <div className="h-5 bg-sky-900 flex items-center justify-center flex-shrink-0 z-10">
+                            <span className="text-white text-[9px] font-bold uppercase tracking-widest">{BRAND_TEXT}</span>
+                        </div>
+                        <div className={`flex-1 flex flex-col overflow-hidden relative ${contentClass}`}>
+                            {children}
+                        </div>
+                        <div className="h-5 bg-slate-100 flex items-center justify-center border-t border-slate-200 flex-shrink-0 z-10">
+                            <span className="text-slate-500 text-[9px] font-bold uppercase tracking-widest">{BRAND_TEXT}</span>
+                        </div>
+                     </div>
+                );
+
+                const SectionTitle = ({ icon: Icon, title, color = "text-sky-700", bg = "bg-sky-100" }) => (
+                    <div className="flex items-center gap-2 mb-2 pb-1 border-b border-slate-100 flex-shrink-0">
+                        <div className={`p-1 ${bg} rounded ${color}`}><Icon size={12}/></div>
+                        <span className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">{title}</span>
+                    </div>
+                );
+                
+                const TextBlock = ({ content, size }) => (
+                    <div className="w-full h-full overflow-hidden">
+                         <p style={{ fontSize: `${size}px`, lineHeight: '1.5' }} className="text-slate-600 font-medium whitespace-pre-line">{content}</p>
+                    </div>
+                );
+
+                const LayoutHeader = ({ title, gender, age, author, date }) => (
+                     <div className="border-b-2 border-slate-100 pb-4 mb-6 flex-shrink-0">
+                        <h1 className="text-3xl font-black text-slate-800 leading-tight uppercase tracking-tight mb-2">{title}</h1>
+                        <div className="flex items-center gap-3 text-sm font-semibold text-slate-500">
+                            <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600 flex items-center gap-1.5"><Icons.User size={12}/> {gender}, {age} Tuổi</span>
+                            <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600 flex items-center gap-1.5"><Icons.Calendar size={12}/> {date}</span>
+                            <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                            <span>{author}</span>
+                        </div>
+                    </div>
+                );
+
+                if (layoutMode === 'vertical') { // A4 Portrait
+                    return (
+                        <Container>
+                            <div className="h-[42%] w-full relative bg-slate-100 flex-shrink-0">
+                                <ImageGrid images={images} gridDims={gridDims} activeImgIdx={activeImgIdx} onImageClick={setActiveImgIdx} />
+                            </div>
+                            <div className="h-[58%] w-full p-8 flex flex-col overflow-hidden">
+                                <LayoutHeader {...content} />
+                                <div className="flex-grow flex gap-8 overflow-hidden">
+                                    <div className="w-1/2 flex flex-col gap-4 overflow-hidden">
+                                        <div className="h-[15%] flex flex-col min-h-[60px]">
+                                            <SectionTitle icon={Icons.Clipboard} title="Lâm sàng"/>
+                                            <TextBlock content={content.clinicalInfo} size={bodyFontSize}/>
+                                        </div>
+                                        <div className="flex-grow bg-slate-50 p-3 rounded-lg border border-slate-100 flex flex-col overflow-hidden">
+                                            <div className="flex-grow flex flex-col overflow-hidden">
+                                                <SectionTitle icon={Icons.PenTool} title="Kỹ thuật" color="text-slate-600" bg="bg-slate-200"/>
+                                                <TextBlock content={content.techDescription} size={bodyFontSize}/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="w-1/2 flex flex-col gap-4 overflow-hidden">
+                                        <div className="h-[15%] flex flex-col min-h-[60px]">
+                                            <SectionTitle icon={Icons.Syringe} title="Thuốc cản quang" color="text-slate-600" bg="bg-slate-200"/>
+                                            <TextBlock content={content.injectionInfo} size={bodyFontSize}/>
+                                        </div>
+                                        <div className="flex-grow flex flex-col overflow-hidden">
+                                            <SectionTitle icon={Icons.Star} title="Kết quả hình ảnh" color="text-amber-600" bg="bg-amber-100"/>
+                                            <div className="flex-grow bg-white rounded-lg border border-slate-100 p-4 shadow-sm mb-4 overflow-hidden">
+                                                <TextBlock content={content.highlights} size={bodyFontSize}/>
+                                            </div>
+                                        </div>
+                                        <div className="bg-sky-50 border-l-4 border-sky-500 p-4 rounded-r-lg flex-shrink-0">
+                                            <p style={{ fontSize: `${bodyFontSize + 2}px` }} className="font-bold text-sky-900 leading-tight">{content.conclusion}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </Container>
+                    );
+                }
+
+                if (layoutMode === 'poster') { // Landscape Poster
+                    return (
+                        <Container contentClass="p-4 bg-slate-50">
+                            <div className="w-full h-full bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                                <div className="h-14 bg-gradient-to-r from-sky-600 to-blue-700 flex items-center justify-between px-6 text-white flex-shrink-0">
+                                    <div><h1 className="text-xl font-bold uppercase tracking-wider">{content.title}</h1></div>
+                                    <div className="text-xs opacity-90 font-medium flex items-center gap-3">
+                                         <span>{content.gender} • {content.age} Tuổi</span><span className="w-1 h-1 bg-white rounded-full"></span><span>{content.date}</span><span className="w-1 h-1 bg-white rounded-full"></span><span>{content.author}</span><span className="px-2 py-0.5 bg-white/20 rounded backdrop-blur-md font-bold">{modality}</span>
+                                    </div>
+                                </div>
+                                <div className="flex-grow flex p-5 gap-5 overflow-hidden">
+                                    <div className="w-[60%] flex flex-col gap-4 overflow-hidden">
+                                        <div className="space-y-4 flex-grow overflow-hidden flex flex-col">
+                                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 h-[15%] flex flex-col overflow-hidden"><SectionTitle icon={Icons.Clipboard} title="Lâm sàng"/><TextBlock content={content.clinicalInfo} size={bodyFontSize}/></div>
+                                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 h-[50%] flex flex-col gap-2 overflow-hidden">
+                                                <div className="h-[75%] overflow-hidden flex flex-col"><SectionTitle icon={Icons.PenTool} title="Kỹ thuật"/><TextBlock content={content.techDescription} size={bodyFontSize}/></div>
+                                                <div className="h-[25%] overflow-hidden flex flex-col"><SectionTitle icon={Icons.Syringe} title="Thuốc"/><TextBlock content={content.injectionInfo} size={bodyFontSize}/></div>
+                                            </div>
+                                            <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex-grow flex flex-col overflow-hidden"><SectionTitle icon={Icons.Star} title="Mô tả tổn thương" color="text-amber-700" bg="bg-amber-200"/><TextBlock content={content.highlights} size={bodyFontSize}/></div>
+                                        </div>
+                                        <div className="mt-auto bg-sky-50 p-4 rounded-xl border border-sky-100 text-center flex-shrink-0"><h4 className="text-[10px] font-bold text-sky-600 uppercase mb-2">Kết luận</h4><p style={{ fontSize: `${bodyFontSize + 3}px` }} className="font-bold text-slate-800 leading-tight">{content.conclusion}</p></div>
+                                    </div>
+                                    <div className="w-[40%] h-full rounded-xl overflow-hidden shadow-lg border border-slate-200 bg-black relative"><ImageGrid images={images} gridDims={gridDims} activeImgIdx={activeImgIdx} onImageClick={setActiveImgIdx} /></div>
+                                </div>
+                            </div>
+                        </Container>
+                    );
+                }
+
+                if (layoutMode === 'modern') {
+                    return (
+                        <Container>
+                            <div className="flex h-full">
+                                <div className="w-[60%] bg-slate-900 text-slate-300 p-8 flex flex-col border-r border-slate-800">
+                                    <div className="mb-8 flex-shrink-0">
+                                        <div className="text-sky-500 font-bold tracking-[0.3em] text-[10px] uppercase mb-2">Case Study</div>
+                                        <h1 className="text-2xl font-bold text-white leading-tight mb-2">{content.title}</h1>
+                                        <div className="flex justify-between items-end border-b border-slate-800 pb-2 mb-2"><div className="text-xs text-slate-500 font-mono">{content.author}</div><div className="text-xs text-sky-500 font-bold">{content.date}</div></div>
+                                    </div>
+                                    <div className="space-y-6 flex-grow overflow-hidden flex flex-col">
+                                        <div className="h-[15%] overflow-hidden flex flex-col"><h3 className="text-[10px] font-bold text-slate-500 uppercase mb-1 flex-shrink-0">Lâm sàng</h3><p style={{ fontSize: `${bodyFontSize}px` }} className="text-slate-300 overflow-hidden">{content.clinicalInfo}</p></div>
+                                        <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700 space-y-4 h-[50%] flex flex-col overflow-hidden">
+                                            <div className="h-[75%] overflow-hidden flex flex-col"><h3 className="text-[10px] font-bold text-slate-500 uppercase mb-1 flex-shrink-0">Kỹ thuật</h3><p style={{ fontSize: `${bodyFontSize}px` }} className="text-slate-400 overflow-hidden">{content.techDescription}</p></div>
+                                            <div className="h-[25%] overflow-hidden flex flex-col"><h3 className="text-[10px] font-bold text-slate-500 uppercase mb-1 flex-shrink-0">Thuốc</h3><p style={{ fontSize: `${bodyFontSize}px` }} className="text-slate-400 overflow-hidden">{content.injectionInfo}</p></div>
+                                        </div>
+                                        <div className="flex-grow overflow-hidden flex flex-col"><h3 className="text-[10px] font-bold text-amber-500 uppercase mb-2 flex-shrink-0">Đặc điểm hình ảnh</h3><p style={{ fontSize: `${bodyFontSize}px` }} className="text-slate-200 leading-relaxed whitespace-pre-line border-l-2 border-amber-500 pl-3 overflow-hidden">{content.highlights}</p></div>
+                                    </div>
+                                    <div className="mt-6 pt-6 border-t border-slate-800 flex-shrink-0"><div className="text-xs font-bold text-sky-400 uppercase mb-2">Kết luận</div><p style={{ fontSize: `${bodyFontSize + 4}px` }} className="font-bold text-white leading-snug">{content.conclusion}</p></div>
+                                </div>
+                                <div className="w-[40%] bg-black h-full relative"><ImageGrid images={images} gridDims={gridDims} activeImgIdx={activeImgIdx} onImageClick={setActiveImgIdx} /><div className="absolute bottom-6 right-6 bg-black/60 backdrop-blur text-white px-3 py-1 text-xs font-mono rounded border border-white/10">{modality}</div></div>
+                            </div>
+                        </Container>
+                    )
+                }
+            };
+
+            return (
+                <div className="w-full h-full flex flex-col md:flex-row bg-slate-900 text-slate-200 overflow-hidden">
+                    <div className="w-full md:w-[420px] bg-slate-900 border-r border-slate-800 flex flex-col h-full z-20 shadow-2xl">
+                        {/* SIDEBAR HEADER */}
+                        <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-sky-600 p-2 rounded-lg shadow-lg shadow-sky-500/20"><Icons.Activity className="text-white" size={20} /></div>
+                                <div><h1 className="text-lg font-bold text-white tracking-wide">MedStudio</h1><p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Pro Edition</p></div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                                {user ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="text-right hidden sm:block"><p className="text-[10px] text-white font-bold">{user.email.split('@')[0]}</p></div>
+                                        <button onClick={() => setShowSavedModal(true)} className="p-2 hover:bg-slate-800 rounded text-sky-500" title="Ca đã lưu"><Icons.Folder size={18}/></button>
+                                        <button onClick={() => signOut(auth)} className="p-2 hover:bg-red-500/10 hover:text-red-500 rounded transition-colors text-slate-500" title="Đăng xuất"><Icons.LogOut size={18}/></button>
+                                    </div>
+                                ) : (
+                                    <button onClick={() => setShowAuthModal(true)} className="flex items-center gap-2 text-[10px] font-bold bg-sky-600 hover:bg-sky-500 px-3 py-1.5 rounded-lg text-white transition-colors"><Icons.LogIn size={14}/> Đăng nhập</button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* SIDEBAR CONTENT */}
+                        <div className="flex-grow overflow-y-auto custom-scrollbar p-5 space-y-8">
+                            <div className="space-y-3">
+                                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.Layout size={12}/> Bố cục</h3>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {[{ id: 'vertical', icon: Icons.StickyNote, label: 'A4 Dọc' }, { id: 'poster', icon: Icons.Layout, label: 'Poster' }, { id: 'modern', icon: Icons.Type, label: 'Modern' }].map(m => (
+                                        <button key={m.id} onClick={() => setLayoutMode(m.id)} className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${layoutMode === m.id ? 'bg-sky-600 border-sky-500 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'}`}>
+                                            <m.icon size={18} className="mb-2"/><span className="text-[9px] font-bold uppercase">{m.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-3">
+                                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.Image size={12}/> Hình ảnh</h3>
+                                <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex gap-4">
+                                    <div className="flex-1 border-r border-slate-700 pr-4 flex flex-col items-center justify-center"><span className="text-[9px] text-slate-500 uppercase font-bold mb-2">Lưới</span><GridSelector onSelect={handleGridSelect} currentR={gridDims.r} currentC={gridDims.c} /></div>
+                                    <div className="flex-1 flex flex-col items-center justify-center">
+                                        <span className="text-[9px] text-slate-500 uppercase font-bold mb-2">Tải lên</span>
+                                        <label className="w-full h-full min-h-[60px] flex flex-col items-center justify-center border-2 border-dashed border-slate-600 rounded-lg hover:border-sky-500 hover:bg-slate-700 cursor-pointer transition-colors group">
+                                            <Icons.Upload size={20} className="text-slate-500 group-hover:text-sky-400 mb-1"/>
+                                            <input type="file" className="hidden" accept="image/*" onChange={onFileChange} />
+                                        </label>
+                                    </div>
+                                </div>
+                                <div className="bg-slate-800 p-4 rounded-xl space-y-3 border border-slate-700">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-[10px] font-bold text-sky-400 uppercase">Ảnh {activeImgIdx + 1}</span>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => updateActiveImage({ invert: !images[activeImgIdx].invert })} className={`text-[9px] font-bold px-2 py-1 rounded flex items-center gap-1 transition-colors ${images[activeImgIdx].invert ? 'bg-sky-600 text-white' : 'bg-slate-700 text-slate-300'}`}><Icons.Invert size={10}/> Đảo màu</button>
+                                            <button onClick={startCrop} className="text-[9px] font-bold bg-slate-700 hover:bg-sky-600 px-2 py-1 rounded text-white flex items-center gap-1 transition-colors"><Icons.Scissors size={10}/> Cắt</button>
+                                            <button onClick={() => updateActiveImage(DEFAULT_IMAGE_SETTINGS)} className="text-[9px] font-bold bg-slate-700 hover:bg-red-500 px-2 py-1 rounded text-white transition-colors">Reset</button>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                        {[ { icon: Icons.Move, min: 0.5, max: 3, step: 0.1, key: 'scale', label: 'Zoom' }, { icon: Icons.Sun, min: 50, max: 150, step: 5, key: 'brightness', label: 'Sáng' }, { icon: Icons.Contrast, min: 50, max: 150, step: 5, key: 'contrast', label: 'Tương phản' } ].map(c => (
+                                            <div key={c.key} className="flex items-center gap-2 col-span-2">
+                                                <c.icon size={14} className="text-slate-500 w-4"/>
+                                                <input type="range" min={c.min} max={c.max} step={c.step} value={images[activeImgIdx][c.key]} onChange={(e) => updateActiveImage({ [c.key]: parseFloat(e.target.value) })} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-sky-500" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="flex justify-between gap-1 pt-1 border-t border-slate-700/50 mt-1 overflow-x-auto no-scrollbar">
+                                        {Object.entries(PRESETS).map(([key, p]) => (
+                                            <button key={key} onClick={() => applyPreset(key)} className="text-[9px] bg-slate-700 hover:bg-sky-600 hover:text-white px-2 py-1 rounded text-slate-300 whitespace-nowrap transition-colors">{p.label}</button>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-1 justify-center pt-1">
+                                        {[{l:'↑',y:-10},{l:'↓',y:10},{l:'←',x:-10},{l:'→',x:10}].map((d,i) => (
+                                            <button key={i} onClick={() => updateActiveImage({ x: (images[activeImgIdx].x + (d.x||0)), y: (images[activeImgIdx].y + (d.y||0)) })} className="bg-slate-700 hover:bg-slate-600 text-white rounded w-full py-1 flex items-center justify-center text-xs font-bold">{d.l}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.FileText size={12}/> Nội dung</h3>
+                                <div className="space-y-3">
+                                    <input className="glass-input w-full p-2.5 rounded-lg text-sm bg-slate-800 text-white border-slate-700 placeholder-slate-500" value={content.title} onChange={e => setContent({...content, title: e.target.value})} placeholder="Tiêu đề" />
+                                    <div className="flex gap-2">
+                                        <input className="glass-input w-20 p-2.5 rounded-lg text-sm bg-slate-800 text-white border-slate-700" value={content.age} onChange={e => setContent({...content, age: e.target.value})} placeholder="Tuổi" />
+                                        <select className="glass-input flex-1 p-2.5 rounded-lg text-sm bg-slate-800 text-white border-slate-700" value={content.gender} onChange={e => setContent({...content, gender: e.target.value})}>
+                                            <option value="Nam">Nam</option><option value="Nữ">Nữ</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <input className="glass-input flex-1 p-2.5 rounded-lg text-sm bg-slate-800 text-white border-slate-700" value={content.date} onChange={e => setContent({...content, date: e.target.value})} placeholder="Ngày chụp (DD/MM/YYYY)" />
+                                        <button onClick={setToday} className="px-3 rounded-lg bg-slate-700 hover:bg-sky-600 text-white text-[10px] font-bold uppercase transition-colors">Hôm nay</button>
+                                    </div>
+                                    {['clinicalInfo', 'techDescription', 'injectionInfo', 'highlights', 'conclusion'].map(field => (
+                                        <div key={field} className="relative group">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase block">{field === 'clinicalInfo' ? 'Lâm sàng' : field === 'techDescription' ? 'Kỹ thuật' : field === 'injectionInfo' ? 'Thuốc' : field === 'highlights' ? 'Kết quả' : 'Kết luận'}</label>
+                                                <button onClick={() => addMacro(field)} className="text-[9px] text-sky-500 hover:text-sky-400 flex items-center gap-1"><Icons.Plus size={10}/> Lưu mẫu</button>
+                                            </div>
+                                            <textarea className={`glass-input w-full p-3 rounded-lg text-sm bg-slate-800 text-white border-slate-700 transition-all resize-y custom-scrollbar mb-2 ${field === 'techDescription' ? 'min-h-[150px]' : 'min-h-[80px]'}`} value={content[field]} onChange={e => setContent({...content, [field]: e.target.value})} />
+                                            {macros[field] && (
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {macros[field].map((text, i) => (
+                                                        <button key={i} onClick={() => insertMacro(field, text)} className="text-[9px] px-2 py-1 rounded bg-slate-700 hover:bg-sky-600 text-slate-300 hover:text-white transition-colors border border-slate-600 text-left max-w-full truncate block">+ {text}</button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <input className="glass-input w-full p-2.5 rounded-lg text-sm bg-slate-800 text-white border-slate-700" value={content.author} onChange={e => setContent({...content, author: e.target.value})} placeholder="Tác giả" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div ref={previewContainerRef} className="flex-1 relative bg-slate-950 flex flex-col h-full overflow-hidden">
+                        {/* TOP TOOLBAR */}
+                        <div className="h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur flex items-center justify-between px-6 z-10 shrink-0">
+                            <div className="flex items-center gap-4">
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest hidden md:inline">Preview</span>
+                                <div className="h-4 w-px bg-slate-700 hidden md:block"></div>
+                                <div className="flex items-center gap-2 bg-slate-800 p-1.5 rounded-lg border border-slate-700">
+                                    <Icons.TextSize size={14} className="text-slate-400"/>
+                                    <input type="range" min="10" max="24" value={bodyFontSize} onChange={(e) => setBodyFontSize(parseInt(e.target.value))} className="w-20 h-1 bg-slate-600 rounded-full appearance-none accent-sky-500 cursor-pointer"/>
+                                    <span className="text-[10px] w-6 text-slate-400">{bodyFontSize}px</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button id="save-btn" onClick={handleCloudSave} className="flex items-center gap-2 bg-slate-800 hover:bg-sky-900 text-slate-300 hover:text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wide border border-slate-700 transition-colors">
+                                    <Icons.Save size={16}/> Lưu
+                                </button>
+                                <button onClick={() => setShowFullscreen(true)} className="p-2 bg-slate-800 text-slate-300 hover:text-white rounded-lg transition-colors border border-slate-700"><Icons.Maximize size={18}/></button>
+                                <button id="dl-btn" onClick={handleDownload} className="flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white px-5 py-2 rounded-lg font-bold text-xs uppercase tracking-wide shadow-lg shadow-sky-900/20 transition-all active:scale-95"><Icons.Download size={16}/> <span className="hidden sm:inline">Xuất Ảnh</span></button>
+                            </div>
+                        </div>
+                        
+                        {/* CANVAS AREA */}
+                        <div className="flex-1 overflow-auto flex items-center justify-center p-8 custom-scrollbar bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px]">
+                            <div className="relative shadow-2xl transition-transform duration-100 ease-linear ring-1 ring-white/10 origin-center" style={{ width: containerDims.w, height: containerDims.h, transform: `scale(${previewScale})` }}>
+                                <div ref={exportRef} style={{ width: containerDims.w, height: containerDims.h }} className="bg-white">
+                                    {renderLayout()}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onLoginSuccess={() => setShowAuthModal(false)} />}
+                    {showSavedModal && user && <SavedPostersModal onClose={() => setShowSavedModal(false)} onLoad={handleCloudLoad} userId={user.uid} />}
+                    {showCropModal && tempCropImg && <CropModal image={tempCropImg} onClose={() => setShowCropModal(false)} onSave={finishCrop} />}
+                    
+                    {showFullscreen && (
+                        <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center backdrop-blur-md animate-fade-in p-4 md:p-10">
+                            <button onClick={() => setShowFullscreen(false)} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors bg-white/10 p-3 rounded-full z-50"><Icons.X size={24}/></button>
+                            <div style={{ transform: `scale(${Math.min((window.innerHeight-40)/containerDims.h, (window.innerWidth-40)/containerDims.w)})` }} className="shadow-2xl ring-4 ring-white/10 origin-center">
+                                <div style={{ width: containerDims.w, height: containerDims.h }} className="bg-white">
+                                    {renderLayout()}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
