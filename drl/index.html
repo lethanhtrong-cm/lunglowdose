@@ -119,11 +119,19 @@
             overflow: hidden;
             box-shadow: 0 20px 50px -10px rgba(0,0,0,0.1);
         }
+        
+        /* New Chart Styles */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
     </style>
 </head>
 <body class="antialiased font-inter text-slate-900">
     <div class="mesh-bg"></div>
 
+    <!-- Auth Modals (Keep Existing) -->
     <div id="authModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md hidden p-4">
         <div class="bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl transform transition-all border border-slate-100 relative">
             <button id="closeAuthModal" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
@@ -166,20 +174,23 @@
     </div>
 
     <header class="relative z-50 px-2 md:px-4 pt-4 md:pt-10 max-w-7xl mx-auto w-full">
-        <nav class="glass-card rounded-2xl md:rounded-[2rem] px-4 md:px-8 py-2 md:py-4 flex justify-between items-center shadow-lg border-white text-slate-900">
+        <nav class="glass-card rounded-2xl md:rounded-[2rem] px-4 md:px-8 py-2 md:py-4 flex flex-wrap justify-between items-center shadow-lg border-white text-slate-900 gap-y-2">
             <div class="flex items-center gap-2 md:gap-4">
                 <div class="bg-indigo-600 p-2 md:p-2.5 rounded-xl md:rounded-2xl text-white shadow-lg"><i data-lucide="activity" class="w-4 h-4 md:w-6 md:h-6"></i></div>
                 <div><h1 class="text-xs md:text-xl font-black tracking-tighter text-slate-900 uppercase">VN-DRL <span class="text-indigo-600">STUDY</span></h1></div>
             </div>
-            <div class="flex items-center gap-2 md:gap-8">
+            <div class="flex items-center gap-1 md:gap-4 overflow-x-auto">
                 <button onclick="switchTab('main-tab')" id="btn-main-tab" class="tab-btn active px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
-                    <i data-lucide="layout-dashboard" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Dashboard & Nhập liệu</span><span class="sm:hidden">Nhập liệu</span>
+                    <i data-lucide="layout-dashboard" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Dashboard & Nhập</span><span class="sm:hidden">Nhập</span>
                 </button>
                 <button onclick="switchTab('data-tab')" id="btn-data-tab" class="tab-btn px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
-                    <i data-lucide="table-2" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Danh sách dữ liệu</span><span class="sm:hidden">Danh sách</span>
+                    <i data-lucide="table-2" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Dữ liệu</span><span class="sm:hidden">List</span>
+                </button>
+                <button onclick="switchTab('charts-tab')" id="btn-charts-tab" class="tab-btn px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
+                    <i data-lucide="pie-chart" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Biểu đồ & Thống kê</span><span class="sm:hidden">Biểu đồ</span>
                 </button>
                 <button onclick="switchTab('report-tab')" id="btn-report-tab" class="tab-btn px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
-                    <i data-lucide="bar-chart-3" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Báo cáo phân tích</span><span class="sm:hidden">Báo cáo</span>
+                    <i data-lucide="bar-chart-3" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Looker Report</span><span class="sm:hidden">Report</span>
                 </button>
             </div>
             <div class="flex items-center gap-2">
@@ -230,7 +241,13 @@
                 <aside class="sidebar-form glass-card rounded-[2.5rem] flex flex-col overflow-hidden relative">
                     <div class="p-6 md:p-8 border-b border-slate-100 bg-white/40 z-20 flex justify-between items-center">
                         <h2 id="formTitle" class="font-black text-slate-900 flex items-center gap-3 uppercase tracking-widest text-xs"><i data-lucide="plus-circle" class="text-indigo-600 w-5 h-5"></i> Nhập dữ liệu</h2>
-                        <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-lg text-[8px] font-black uppercase">Mới</span>
+                        <div class="flex items-center gap-2">
+                            <label for="importExcelInput" class="cursor-pointer px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[8px] font-black uppercase hover:bg-emerald-100 transition-colors flex items-center gap-1" title="Import Excel">
+                                <i data-lucide="upload" class="w-3 h-3"></i> Import
+                            </label>
+                            <input type="file" id="importExcelInput" accept=".xlsx, .xls" class="hidden">
+                            <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-lg text-[8px] font-black uppercase">Mới</span>
+                        </div>
                     </div>
                     <form id="drlForm" class="flex flex-col flex-1 relative h-full">
                         <div id="formLockOverlay" class="absolute inset-0 bg-white/60 backdrop-blur-md z-30 flex flex-col items-center justify-center text-center p-6 hidden">
@@ -491,7 +508,7 @@
                             <span class="text-[9px] text-slate-400 uppercase font-black">Hiển thị:</span>
                             <select id="rowsPerPageSelect" class="bg-transparent text-[10px] font-black outline-none"><option value="10">10</option><option value="20">20</option><option value="50">50</option></select>
                         </div>
-                        <div id="adminControls" class="hidden">
+                        <div id="adminControls">
                             <button id="btnExportExcel" class="p-2.5 bg-emerald-600 text-white rounded-2xl shadow-lg hover:bg-emerald-700 transition-all active:scale-95"><i data-lucide="download" class="w-5 h-5"></i></button>
                         </div>
                     </div>
@@ -501,6 +518,7 @@
                         <thead class="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b mobile-hide-head">
                             <tr>
                                 <th class="px-8 py-5">Thời gian</th>
+                                <th class="px-8 py-5">Tài khoản</th>
                                 <th class="px-8 py-5">Cơ sở / ID / Máy</th>
                                 <th class="px-8 py-5">Protocol</th>
                                 <th class="px-8 py-5 text-center">Info BN</th>
@@ -516,6 +534,97 @@
                 <div class="px-8 py-6 bg-slate-50/50 border-t flex flex-col md:flex-row justify-between items-center gap-4">
                     <p id="paginationInfo" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Đang tải...</p>
                     <div id="paginationButtons" class="flex items-center gap-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Tab -->
+    <div id="charts-tab" class="tab-content app-layout hidden">
+        <div class="section-container">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Histogram Card -->
+                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-indigo-100 bg-white col-span-1 lg:col-span-2">
+                    <div class="flex flex-col gap-4 mb-6">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-indigo-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-2" class="w-5 h-5"></i></div>
+                                <h3 class="section-label text-indigo-900 text-sm">Phân bố liều CTDIvol</h3>
+                            </div>
+                            <button onclick="downloadChart('histogramChart', 'CTDIvol_Histogram')" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors" title="Tải ảnh"><i data-lucide="download" class="w-4 h-4"></i></button>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <select id="histFilterHospital" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-indigo-500"></select>
+                            <select id="histFilterProtocol" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-indigo-500"></select>
+                            <select id="histFilterManufacturer" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-indigo-500"></select>
+                            <select id="histFilterGender" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-indigo-500">
+                                <option value="all">Tất cả giới tính</option>
+                                <option value="M">Nam</option>
+                                <option value="F">Nữ</option>
+                            </select>
+                            <select id="histFilterAge" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-indigo-500">
+                                <option value="all">Tất cả độ tuổi</option>
+                                <option value="child">&lt; 18 tuổi</option>
+                                <option value="adult">&ge; 18 tuổi</option>
+                            </select>
+                            <button id="btnRefreshChart" class="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors" title="Làm mới"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="histogramChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Scatter Chart Card: Weight vs CTDIvol -->
+                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-blue-100 bg-white">
+                    <div class="flex flex-col gap-3 mb-6">
+                         <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-blue-600 p-2 rounded-xl text-white"><i data-lucide="scatter-chart" class="w-5 h-5"></i></div>
+                                <h3 class="section-label text-blue-900 text-sm">Tương quan Cân nặng - CTDIvol</h3>
+                            </div>
+                            <button onclick="downloadChart('scatterCtdiChart', 'Weight_CTDIvol_Scatter')" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors" title="Tải ảnh"><i data-lucide="download" class="w-4 h-4"></i></button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                             <span class="text-[9px] font-bold text-slate-500 uppercase">Phân nhóm theo:</span>
+                             <select id="scatterCtdiGroup" class="px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-blue-500">
+                                 <option value="none">Không</option>
+                                 <option value="protocol">Bộ phận</option>
+                                 <option value="gender">Giới tính</option>
+                                 <option value="hospital">Bệnh viện</option>
+                                 <option value="manufacturer">Hãng máy</option>
+                             </select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="scatterCtdiChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Scatter Chart Card: Weight vs DLP -->
+                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-emerald-100 bg-white">
+                    <div class="flex flex-col gap-3 mb-6">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-emerald-600 p-2 rounded-xl text-white"><i data-lucide="scatter-chart" class="w-5 h-5"></i></div>
+                                <h3 class="section-label text-emerald-900 text-sm">Tương quan Cân nặng - DLP</h3>
+                            </div>
+                            <button onclick="downloadChart('scatterDlpChart', 'Weight_DLP_Scatter')" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors" title="Tải ảnh"><i data-lucide="download" class="w-4 h-4"></i></button>
+                        </div>
+                         <div class="flex items-center gap-2">
+                             <span class="text-[9px] font-bold text-slate-500 uppercase">Phân nhóm theo:</span>
+                             <select id="scatterDlpGroup" class="px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-emerald-500">
+                                 <option value="none">Không</option>
+                                 <option value="protocol">Bộ phận</option>
+                                 <option value="gender">Giới tính</option>
+                                 <option value="hospital">Bệnh viện</option>
+                                 <option value="manufacturer">Hãng máy</option>
+                             </select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="scatterDlpChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -582,7 +691,12 @@
         let user = null, isAdmin = false, entries = [], filteredDisplayEntries = [];
         let currentPage = 1, rowsPerPage = 10;
         let isLoginMode = true;
-        let editingRowId = null; // Trạng thái dòng đang chỉnh sửa trực tiếp
+        let editingRowId = null; 
+        
+        // Chart instances
+        let histogramChartInstance = null;
+        let scatterDlpChartInstance = null;
+        let scatterCtdiChartInstance = null;
 
         const el = (id) => document.getElementById(id);
 
@@ -685,6 +799,10 @@
             el('btn-' + tabId).classList.add('active');
             lucide.createIcons();
             if(tabId === 'data-tab' || tabId === 'main-tab') renderDashboard();
+            if(tabId === 'charts-tab') {
+                populateChartFilters();
+                renderCharts();
+            }
         };
 
         function updateHospitalDropdowns() {
@@ -744,6 +862,18 @@
                     });
                 }
             });
+        }
+
+        function renderPagination() {
+            const total = filteredDisplayEntries.length, totalPages = Math.ceil(total / rowsPerPage);
+            el('paginationInfo').textContent = `Hiển thị ${(currentPage-1)*rowsPerPage + 1} - ${Math.min(currentPage*rowsPerPage, total)} của ${total} ca chụp`;
+            const container = el('paginationButtons'); container.innerHTML = '';
+            if (totalPages <= 1) return;
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.className = `w-9 h-9 rounded-xl border text-[11px] font-black page-btn ${i === currentPage ? 'active' : 'border-slate-100 hover:bg-white'}`;
+                btn.textContent = i; btn.onclick = () => { currentPage = i; renderDashboard(); }; container.appendChild(btn);
+            }
         }
 
         function renderDashboard() {
@@ -826,7 +956,6 @@
 
             const mCounts = filteredDisplayEntries.reduce((acc, curr) => { 
                 let m = curr.manufacturer || 'N/A';
-                // Fix GE split (GE Healthcare vs GE HealthCare etc)
                 if (m.trim().toLowerCase().startsWith('ge ') || m === 'GE') m = 'GE HealthCare';
                 acc[m] = (acc[m] || 0) + 1; 
                 return acc; 
@@ -860,6 +989,7 @@
                     // CHẾ ĐỘ ĐANG CHỈNH SỬA (INLINE EDIT)
                     tr.innerHTML = `
                         <td class="px-4 py-3 text-[10px] text-slate-400 font-bold">${dateStr}</td>
+                        <td class="px-4 py-3 text-[10px] text-indigo-600 font-bold">${e.userEmail || '---'}</td>
                         <td class="px-4 py-3">
                             <select id="inline-hosp-${e.id}" class="w-full p-1 text-[10px] border rounded font-bold mb-1 bg-white">
                                 ${currH.map(h => `<option value="${h}" ${h === e.hospitalName ? 'selected' : ''}>${h}</option>`).join('')}
@@ -899,6 +1029,7 @@
                     const genderLabel = normalizeGender(e.gender) === 'M' ? 'Nam' : 'Nữ';
                     tr.innerHTML = `
                         <td class="px-8 py-5 text-[10px] font-bold text-slate-500 whitespace-nowrap">${dateStr}</td>
+                        <td class="px-8 py-5 text-[10px] font-bold text-indigo-600">${e.userEmail || '---'}</td>
                         <td data-label="Bệnh viện / ID" class="px-8 py-5">
                             <div class="font-black text-slate-800 text-[11px]">${e.hospitalName}</div>
                             <div class="text-[8px] text-slate-400 font-black uppercase mt-1">ID: ${e.patientId || '??'} • ${e.manufacturer || '?'}</div>
@@ -922,16 +1053,273 @@
             renderPagination(); lucide.createIcons();
         }
 
-        function renderPagination() {
-            const total = filteredDisplayEntries.length, totalPages = Math.ceil(total / rowsPerPage);
-            el('paginationInfo').textContent = `Hiển thị ${(currentPage-1)*rowsPerPage + 1} - ${Math.min(currentPage*rowsPerPage, total)} của ${total} ca chụp`;
-            const container = el('paginationButtons'); container.innerHTML = '';
-            if (totalPages <= 1) return;
-            for (let i = 1; i <= totalPages; i++) {
-                const btn = document.createElement('button');
-                btn.className = `w-9 h-9 rounded-xl border text-[11px] font-black page-btn ${i === currentPage ? 'active' : 'border-slate-100 hover:bg-white'}`;
-                btn.textContent = i; btn.onclick = () => { currentPage = i; renderDashboard(); }; container.appendChild(btn);
+        // --- NEW: Populate Chart Filters ---
+        function populateChartFilters() {
+            const hospitals = [...new Set([...INITIAL_HOSPITALS, ...entries.map(e => e.hospitalName)])].sort();
+            const manufacturers = [...new Set([...MANUFACTURERS, ...entries.map(e => e.manufacturer).filter(m => m)])].sort();
+            
+            const hospSelect = el('histFilterHospital');
+            const protSelect = el('histFilterProtocol');
+            const manuSelect = el('histFilterManufacturer');
+
+            if (hospSelect && hospSelect.options.length <= 1) { // Populate only if empty/initial
+                hospSelect.innerHTML = '<option value="all">Tất cả bệnh viện</option>';
+                hospitals.forEach(h => hospSelect.innerHTML += `<option value="${h}">${h}</option>`);
             }
+            if (protSelect && protSelect.options.length <= 1) {
+                protSelect.innerHTML = '<option value="all">Tất cả bộ phận</option>';
+                THAI_DRL_PROTOCOLS.forEach(p => protSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`);
+            }
+            if (manuSelect && manuSelect.options.length <= 1) {
+                manuSelect.innerHTML = '<option value="all">Tất cả hãng máy</option>';
+                manufacturers.forEach(m => manuSelect.innerHTML += `<option value="${m}">${m}</option>`);
+            }
+        }
+
+        // --- NEW: Download Chart Helper ---
+        window.downloadChart = (chartId, title) => {
+            const canvas = el(chartId);
+            if (!canvas) return;
+            const link = document.createElement('a');
+            link.download = `${title}_${new Date().toISOString().slice(0,10)}.png`;
+            
+            // Create a dummy canvas to fill background white
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const ctx = tempCanvas.getContext('2d');
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            ctx.drawImage(canvas, 0, 0);
+            
+            link.href = tempCanvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // --- NEW: Chart Rendering Logic ---
+        function renderCharts() {
+            if (histogramChartInstance) histogramChartInstance.destroy();
+            if (scatterDlpChartInstance) scatterDlpChartInstance.destroy();
+            if (scatterCtdiChartInstance) scatterCtdiChartInstance.destroy();
+
+            // 1. Get Filter Values
+            const fHosp = el('histFilterHospital')?.value || 'all';
+            const fProt = el('histFilterProtocol')?.value || 'all';
+            const fManu = el('histFilterManufacturer')?.value || 'all';
+            const fGend = el('histFilterGender')?.value || 'all';
+            const fAge = el('histFilterAge')?.value || 'all';
+
+            // 2. Filter Data
+            const chartData = entries.filter(e => {
+                if (fHosp !== 'all' && e.hospitalName !== fHosp) return false;
+                if (fProt !== 'all' && e.protocol !== fProt) return false;
+                if (fManu !== 'all' && e.manufacturer !== fManu) return false;
+                if (fGend !== 'all' && normalizeGender(e.gender) !== fGend) return false;
+                
+                const age = parseFloat(e.age);
+                if (fAge === 'child' && age >= 18) return false;
+                if (fAge === 'adult' && age < 18) return false;
+                
+                return true;
+            });
+
+            // 3. Prepare Data for Histogram (CTDIvol)
+            const ctdiValues = chartData.map(e => parseFloat(e.ctdi)).filter(n => !isNaN(n));
+            const binSize = 5; 
+            const bins = {};
+            ctdiValues.forEach(val => {
+                const bin = Math.floor(val / binSize) * binSize;
+                bins[bin] = (bins[bin] || 0) + 1;
+            });
+            const labels = Object.keys(bins).sort((a,b) => a-b).map(k => `${k}-${parseInt(k)+binSize}`);
+            const data = Object.keys(bins).sort((a,b) => a-b).map(k => bins[k]);
+
+            const ctxHist = el('histogramChart').getContext('2d');
+            histogramChartInstance = new Chart(ctxHist, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Số ca chụp',
+                        data: data,
+                        backgroundColor: 'rgba(79, 70, 229, 0.6)',
+                        borderColor: 'rgba(79, 70, 229, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, title: {display: true, text: 'Số lượng'} }, x: { title: {display: true, text: 'CTDIvol (mGy)'} } }
+                }
+            });
+
+            // Helper to generate color based on category
+            const getColorsForGroup = (dataset, groupKey) => {
+                if(groupKey === 'none') return 'rgba(16, 185, 129, 0.6)'; // Default green
+                
+                const palette = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'];
+                const groups = [...new Set(dataset.map(d => d[groupKey]))];
+                return dataset.map(d => {
+                    const idx = groups.indexOf(d[groupKey]);
+                    return palette[idx % palette.length];
+                });
+            }
+            
+            // Helper for scatter datasets
+            const createScatterConfig = (ctx, entriesData, xKey, yKey, labelX, labelY, groupSelectId) => {
+                const groupKey = el(groupSelectId)?.value || 'none';
+                
+                const scatterData = entriesData.map(e => ({
+                    x: parseFloat(e[xKey]),
+                    y: parseFloat(e[yKey]),
+                    raw: e // keep ref for grouping
+                })).filter(p => !isNaN(p.x) && !isNaN(p.y));
+
+                // Map 'groupKey' to actual data property
+                let propMap = { 'protocol': 'protocol', 'gender': 'gender', 'hospital': 'hospitalName', 'manufacturer': 'manufacturer' };
+                let actualProp = propMap[groupKey] || 'none';
+                
+                const pointColors = getColorsForGroup(entriesData, actualProp);
+
+                return new Chart(ctx, {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: 'Ca chụp',
+                            data: scatterData,
+                            backgroundColor: actualProp === 'none' ? 'rgba(16, 185, 129, 0.6)' : pointColors
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { 
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (ctx) => {
+                                        let label = `(${ctx.raw.x}, ${ctx.raw.y})`;
+                                        if(actualProp !== 'none') {
+                                           label += ` [${entriesData[ctx.dataIndex][actualProp]}]`;
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: { 
+                            x: { title: {display: true, text: labelX} },
+                            y: { title: {display: true, text: labelY} }
+                        }
+                    }
+                });
+            };
+
+            // 4. Scatter: Weight vs CTDIvol
+            const ctxScatCtdi = el('scatterCtdiChart').getContext('2d');
+            scatterCtdiChartInstance = createScatterConfig(ctxScatCtdi, chartData, 'weight', 'ctdi', 'Cân nặng (Kg)', 'CTDIvol (mGy)', 'scatterCtdiGroup');
+
+            // 5. Scatter: Weight vs DLP
+            const ctxScatDlp = el('scatterDlpChart').getContext('2d');
+            scatterDlpChartInstance = createScatterConfig(ctxScatDlp, chartData, 'weight', 'dlp', 'Cân nặng (Kg)', 'DLP (mGy.cm)', 'scatterDlpGroup');
+        }
+        
+        // Listeners for Scatter Grouping
+        const scatGroup1 = el('scatterCtdiGroup');
+        if(scatGroup1) scatGroup1.onchange = renderCharts;
+        
+        const scatGroup2 = el('scatterDlpGroup');
+        if(scatGroup2) scatGroup2.onchange = renderCharts;
+
+
+        // --- NEW: Export Excel Logic ---
+        function exportToExcel() {
+            if (filteredDisplayEntries.length === 0) { showToast("Không có dữ liệu để xuất!"); return; }
+            
+            const exportData = filteredDisplayEntries.map(e => ({
+                "Thời gian": new Date(e.createdAt || e.updatedAt).toLocaleString('vi-VN'),
+                "Tài khoản": e.userEmail || '---',
+                "Bệnh viện": e.hospitalName,
+                "Hãng máy": e.manufacturer,
+                "Protocol": e.protocol,
+                "ID Bệnh nhân": e.patientId,
+                "Tuổi": e.age,
+                "Giới tính": e.gender,
+                "Cân nặng": e.weight,
+                "Modulation": e.doseModulation,
+                "CTDIvol (mGy)": e.ctdi,
+                "DLP (mGy.cm)": e.dlp
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "VN-DRL Data");
+            XLSX.writeFile(wb, `VN_DRL_Data_${new Date().toISOString().slice(0,10)}.xlsx`);
+            showToast("Đang tải file Excel...");
+        }
+
+        // --- NEW: Import Excel Logic ---
+        async function handleImportExcel(e) {
+            if (!user || user.isAnonymous) { showToast("Vui lòng đăng nhập để Import!"); e.target.value = ''; return; }
+            
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    if (jsonData.length === 0) { showToast("File rỗng!"); return; }
+
+                    let count = 0;
+                    const batch = []; 
+                    
+                    // Simple Mapping & Validation Loop
+                    for (const row of jsonData) {
+                        // Basic mapping based on potential headers - Adapt as needed
+                        const entry = {
+                            hospitalName: row['Bệnh viện'] || row['Hospital'] || el('hospitalSelect').value || 'Imported',
+                            manufacturer: row['Hãng máy'] || row['Manufacturer'] || '',
+                            protocol: row['Protocol'] || row['Vùng chụp'] || 'Sọ não (Head)', // Default fallback
+                            patientId: String(row['ID Bệnh nhân'] || row['PatientID'] || `IMP-${Date.now()}-${count}`),
+                            age: row['Tuổi'] || row['Age'] || 0,
+                            gender: (row['Giới tính'] || row['Sex'] || 'M').toString().toUpperCase().startsWith('N') ? 'F' : 'M', // Rough check
+                            weight: row['Cân nặng'] || row['Weight'] || 0,
+                            doseModulation: (row['Modulation'] || 'Có'),
+                            ctdi: row['CTDIvol'] || row['CTDI'] || 0,
+                            dlp: row['DLP'] || 0,
+                            userId: user.uid,
+                            userEmail: user.email,
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString()
+                        };
+                        
+                        // Basic Validation check inside import
+                        if (entry.ctdi > 100 || entry.dlp > 2500) {
+                            console.warn(`Skipping row ${count}: High dose detected`, row);
+                            continue; 
+                        }
+
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), entry);
+                        count++;
+                    }
+                    showToast(`Đã import thành công ${count} dòng!`);
+                    renderDashboard(); // Refresh
+                } catch (err) {
+                    console.error(err);
+                    showToast("Lỗi đọc file: " + err.message);
+                }
+                e.target.value = ''; // Reset input
+            };
+            reader.readAsArrayBuffer(file);
         }
 
         window.onload = async () => {
@@ -964,10 +1352,37 @@
             el('searchPatientId').oninput = () => { currentPage = 1; renderDashboard(); };
             el('rowsPerPageSelect').onchange = (e) => { rowsPerPage = parseInt(e.target.value); currentPage = 1; renderDashboard(); };
             el('hospitalSelect').onchange = (e) => { el('customHospitalName').classList.toggle('hidden', e.target.value !== 'other'); };
-            el('sortOrderSelect').onchange = () => { renderDashboard(); }; // Add listener for sort
+            el('sortOrderSelect').onchange = () => { renderDashboard(); }; 
+
+            // Connect Export Button
+            el('btnExportExcel').onclick = exportToExcel;
+            
+            // Connect Import Button
+            el('importExcelInput').onchange = handleImportExcel;
+
+            // Connect Chart Filters
+            ['histFilterHospital', 'histFilterProtocol', 'histFilterManufacturer', 'histFilterGender', 'histFilterAge'].forEach(id => {
+                const elem = el(id);
+                if(elem) elem.onchange = renderCharts;
+            });
+            el('btnRefreshChart').onclick = () => { 
+                ['histFilterHospital', 'histFilterProtocol', 'histFilterManufacturer', 'histFilterGender', 'histFilterAge'].forEach(id => el(id).value = 'all');
+                renderCharts(); 
+            };
 
             el('drlForm').onsubmit = async (e) => {
                 e.preventDefault();
+                
+                // --- NEW: Validation ---
+                const ctdiVal = parseFloat(el('ctdi').value);
+                const dlpVal = parseFloat(el('dlp').value);
+                const ageVal = parseFloat(el('age').value);
+
+                if (ctdiVal > 100) { if(!confirm(`Cảnh báo: Giá trị CTDIvol ${ctdiVal} mGy có vẻ rất cao. Bạn có chắc chắn muốn lưu?`)) return; }
+                if (dlpVal > 2500) { if(!confirm(`Cảnh báo: Giá trị DLP ${dlpVal} mGy.cm có vẻ rất cao. Bạn có chắc chắn muốn lưu?`)) return; }
+                if (ageVal > 120) { showToast("Lỗi: Tuổi bệnh nhân không hợp lệ (>120)."); return; }
+                // -----------------------
+
                 const id = el('editEntryId').value, hVal = el('hospitalSelect').value;
                 const data = { 
                     hospitalName: hVal === 'other' ? el('customHospitalName').value : hVal,
@@ -977,7 +1392,9 @@
                     doseModulation: document.querySelector('input[name="doseModulation"]:checked').value,
                     ctdi: el('ctdi').value, dlp: el('dlp').value,
                     scanDate: el('scanDate').value || new Date().toISOString().split('T')[0],
-                    userId: user.uid, updatedAt: new Date().toISOString()
+                    userId: user.uid,
+                    userEmail: user.isAnonymous ? "Khách" : (user.email || "Unknown"), 
+                    updatedAt: new Date().toISOString()
                 };
                 if(id) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id), data);
                 else { data.createdAt = new Date().toISOString(); await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), data); }
@@ -1003,8 +1420,12 @@
                         // Sort entries by createdAt descending (newest first)
                         entries.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
                         
-                        updateHospitalDropdowns(); // <--- MISSING IN PREVIOUS VERSION
+                        updateHospitalDropdowns(); 
                         renderDashboard(); 
+                        if (!el('charts-tab').classList.contains('hidden')) {
+                            populateChartFilters();
+                            renderCharts(); 
+                        }
                     });
                 } else { 
                     isAdmin = false;
