@@ -242,6 +242,19 @@
 
     <div id="main-tab" class="tab-content app-layout">
         <div class="section-container">
+            <!-- NEW: Progress Chart Section moved here (Top Level) -->
+            <div id="progressChartSection" class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-slate-100 bg-white hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-indigo-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-horizontal" class="w-5 h-5"></i></div>
+                        <h3 class="section-label text-indigo-900 text-sm">Tiến độ nhập liệu theo Bệnh viện</h3>
+                    </div>
+                </div>
+                <div class="chart-container h-[250px]">
+                    <canvas id="progressChart"></canvas>
+                </div>
+            </div>
+
             <div class="top-grid">
                 <aside class="sidebar-form glass-card rounded-[2.5rem] flex flex-col overflow-hidden relative">
                     <div class="p-6 md:p-8 border-b border-slate-100 bg-white/40 z-20 flex justify-between items-center">
@@ -359,19 +372,6 @@
                                 <button id="btnResetDashFilter" class="p-2.5 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition-colors" title="Đặt lại bộ lọc">
                                     <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
                                 </button>
-                            </div>
-                        </div>
-
-                        <!-- NEW: Progress Chart Section -->
-                        <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-slate-100 bg-white">
-                            <div class="flex items-center justify-between mb-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="bg-indigo-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-horizontal" class="w-5 h-5"></i></div>
-                                    <h3 class="section-label text-indigo-900 text-sm">Tiến độ nhập liệu theo Bệnh viện</h3>
-                                </div>
-                            </div>
-                            <div class="chart-container h-[250px]">
-                                <canvas id="progressChart"></canvas>
                             </div>
                         </div>
 
@@ -1037,29 +1037,40 @@
             const dashContent = el('dashboardContent');
             const dataLock = el('dataLock');
             const dataContent = el('dataContent');
+            const progSection = el('progressChartSection'); // Get Progress Chart section
 
             if (isGuest) {
+                // Show Lock Screens, Hide Content
                 dashLock.classList.remove('hidden');
                 dashContent.classList.add('hidden', 'pointer-events-none', 'opacity-20');
                 
                 dataLock.classList.remove('hidden');
                 dataContent.classList.add('hidden', 'pointer-events-none', 'opacity-20');
                 
+                // Also hide/lock the progress chart
+                if(progSection) progSection.classList.add('hidden');
+                
+                // Clear sensitive data from DOM just in case (optional but safer)
                 el('statTotal').textContent = '-';
                 el('dataTableBody').innerHTML = '';
                 return;
             } else {
+                // Restore Content
                 dashLock.classList.add('hidden');
                 dashContent.classList.remove('hidden', 'pointer-events-none', 'opacity-20');
                 
                 dataLock.classList.add('hidden');
                 dataContent.classList.remove('hidden', 'pointer-events-none', 'opacity-20');
+
+                // Show progress chart
+                if(progSection) progSection.classList.remove('hidden');
             }
 
             const isDataTab = el('btn-data-tab').classList.contains('active');
             let fHosp, fProt, fGend, fManu, fMod = 'all';
             let fStart = '', fEnd = '';
             
+            // Expanded Search Logic
             const searchTerm = el('searchPatientId').value.trim().toLowerCase();
 
             if (isDataTab) {
@@ -1073,8 +1084,8 @@
                 fProt = el('dashFilterProtocol').value || 'all'; 
                 fGend = el('dashFilterGender').value || 'all';
                 fManu = el('dashFilterManufacturer').value || 'all';
-                fStart = el('dashFilterStart').value;
-                fEnd = el('dashFilterEnd').value;
+                fStart = el('dashFilterStart').value; // New
+                fEnd = el('dashFilterEnd').value;     // New
             }
 
             filteredDisplayEntries = entries.filter(e => {
@@ -1084,6 +1095,7 @@
                 if (fGend !== 'all' && normalizeGender(e.gender) !== fGend) return false;
                 if (isDataTab && fMod !== 'all' && (e.doseModulation || 'Có') !== fMod) return false;
                 
+                // Date Range Check for Dashboard (New)
                 if (!isDataTab && fStart) {
                     const d = new Date(e.createdAt || e.updatedAt).toISOString().split('T')[0];
                     if (d < fStart) return false;
@@ -1093,6 +1105,7 @@
                      if (d > fEnd) return false;
                 }
 
+                // Enhanced Search
                 if (searchTerm) {
                     const searchStr = `${e.patientId || ''} ${e.hospitalName || ''} ${e.userEmail || ''} ${e.manufacturer || ''}`.toLowerCase();
                     if (!searchStr.includes(searchTerm)) return false;
@@ -1100,6 +1113,7 @@
                 return true;
             });
 
+            // Sorting Logic
             const sortVal = el('sortOrderSelect').value;
             filteredDisplayEntries.sort((a, b) => {
                 switch(sortVal) {
@@ -1164,10 +1178,7 @@
             if(progressChartInstance) progressChartInstance.destroy();
             const progData = {};
             const protocols = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))];
-            // Use full entries for global comparison, or filteredDisplayEntries for context?
-            // "so sánh tiến độ nhập ca giữa các viện" -> Usually implies ALL data.
-            // Let's use filteredDisplayEntries so the date filter works (e.g. "Entries in 2024").
-            // But if specific hospital selected, it will show only one bar. That is correct behavior.
+            // Use filteredDisplayEntries so filters (like Date) apply to this chart too.
             
             filteredDisplayEntries.forEach(e => {
                 const hosp = e.hospitalName || 'Unknown';
