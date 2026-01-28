@@ -113,14 +113,6 @@
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-
-        .report-iframe-container {
-            width: 100%;
-            height: 900px;
-            border-radius: 2rem;
-            overflow: hidden;
-            box-shadow: 0 20px 50px -10px rgba(0,0,0,0.1);
-        }
         
         .chart-container {
             position: relative;
@@ -204,9 +196,6 @@
                 </button>
                 <button onclick="switchTab('charts-tab')" id="btn-charts-tab" class="tab-btn px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
                     <i data-lucide="pie-chart" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Biểu đồ & Thống kê</span><span class="sm:hidden">Biểu đồ</span>
-                </button>
-                <button onclick="switchTab('report-tab')" id="btn-report-tab" class="tab-btn px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
-                    <i data-lucide="bar-chart-3" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Looker Report</span><span class="sm:hidden">Report</span>
                 </button>
             </div>
             <div class="flex items-center gap-2">
@@ -370,6 +359,19 @@
                                 <button id="btnResetDashFilter" class="p-2.5 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition-colors" title="Đặt lại bộ lọc">
                                     <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
                                 </button>
+                            </div>
+                        </div>
+
+                        <!-- NEW: Progress Chart Section -->
+                        <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-slate-100 bg-white">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="bg-indigo-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-horizontal" class="w-5 h-5"></i></div>
+                                    <h3 class="section-label text-indigo-900 text-sm">Tiến độ nhập liệu theo Bệnh viện</h3>
+                                </div>
+                            </div>
+                            <div class="chart-container h-[250px]">
+                                <canvas id="progressChart"></canvas>
                             </div>
                         </div>
 
@@ -759,10 +761,9 @@
                             </div>
                             <button onclick="downloadChart('scatterCtdiChart', 'Weight_CTDIvol_Scatter')" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors" title="Tải ảnh"><i data-lucide="download" class="w-4 h-4"></i></button>
                         </div>
-                        <div class="flex items-center gap-2">
-                             <span class="text-[9px] font-bold text-slate-500 uppercase">Lọc theo Protocol:</span>
-                             <select id="scatterFilterProtocol_CTDI" class="px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-blue-500">
-                             </select>
+                        <div class="flex flex-wrap items-center gap-2">
+                             <select id="scatterFilterProtocol_CTDI" class="px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-blue-500"></select>
+                             <select id="scatterFilterHospital_CTDI" class="px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-blue-500"></select>
                         </div>
                     </div>
                     <div class="chart-container">
@@ -780,29 +781,14 @@
                             </div>
                             <button onclick="downloadChart('scatterDlpChart', 'Weight_DLP_Scatter')" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors" title="Tải ảnh"><i data-lucide="download" class="w-4 h-4"></i></button>
                         </div>
-                         <div class="flex items-center gap-2">
-                             <span class="text-[9px] font-bold text-slate-500 uppercase">Lọc theo Protocol:</span>
-                             <select id="scatterFilterProtocol_DLP" class="px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-emerald-500">
-                             </select>
+                         <div class="flex flex-wrap items-center gap-2">
+                             <select id="scatterFilterProtocol_DLP" class="px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-emerald-500"></select>
+                             <select id="scatterFilterHospital_DLP" class="px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-emerald-500"></select>
                         </div>
                     </div>
                     <div class="chart-container">
                         <canvas id="scatterDlpChart"></canvas>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="report-tab" class="tab-content app-layout hidden">
-        <div class="section-container">
-            <div class="glass-card p-6 md:p-10 rounded-[2.5rem] border border-indigo-100 bg-white shadow-2xl">
-                <div class="flex items-center justify-between mb-8">
-                    <h2 class="text-2xl font-black text-slate-900 tracking-tighter uppercase">Looker Analytics Pro Sync</h2>
-                    <button onclick="window.open('https://lookerstudio.google.com/reporting/2abf6a98-3a9e-47c3-88a9-f5daf9abb4cc')" class="p-3 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-100"><i data-lucide="external-link" class="w-5 h-5"></i></button>
-                </div>
-                <div class="report-iframe-container bg-slate-100">
-                    <iframe width="100%" height="900" src="https://lookerstudio.google.com/embed/reporting/2abf6a98-3a9e-47c3-88a9-f5daf9abb4cc/page/mTUmF" frameborder="0" style="border:0" allowfullscreen sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
                 </div>
             </div>
         </div>
@@ -858,6 +844,7 @@
         let editingRowId = null; 
         
         // Chart instances
+        let progressChartInstance = null;
         let histogramChartInstance = null;
         let scatterDlpChartInstance = null;
         let scatterCtdiChartInstance = null;
@@ -1052,19 +1039,16 @@
             const dataContent = el('dataContent');
 
             if (isGuest) {
-                // Show Lock Screens, Hide Content
                 dashLock.classList.remove('hidden');
                 dashContent.classList.add('hidden', 'pointer-events-none', 'opacity-20');
                 
                 dataLock.classList.remove('hidden');
                 dataContent.classList.add('hidden', 'pointer-events-none', 'opacity-20');
                 
-                // Clear sensitive data from DOM just in case (optional but safer)
                 el('statTotal').textContent = '-';
                 el('dataTableBody').innerHTML = '';
                 return;
             } else {
-                // Restore Content
                 dashLock.classList.add('hidden');
                 dashContent.classList.remove('hidden', 'pointer-events-none', 'opacity-20');
                 
@@ -1076,7 +1060,6 @@
             let fHosp, fProt, fGend, fManu, fMod = 'all';
             let fStart = '', fEnd = '';
             
-            // Expanded Search Logic
             const searchTerm = el('searchPatientId').value.trim().toLowerCase();
 
             if (isDataTab) {
@@ -1090,8 +1073,8 @@
                 fProt = el('dashFilterProtocol').value || 'all'; 
                 fGend = el('dashFilterGender').value || 'all';
                 fManu = el('dashFilterManufacturer').value || 'all';
-                fStart = el('dashFilterStart').value; // New
-                fEnd = el('dashFilterEnd').value;     // New
+                fStart = el('dashFilterStart').value;
+                fEnd = el('dashFilterEnd').value;
             }
 
             filteredDisplayEntries = entries.filter(e => {
@@ -1101,7 +1084,6 @@
                 if (fGend !== 'all' && normalizeGender(e.gender) !== fGend) return false;
                 if (isDataTab && fMod !== 'all' && (e.doseModulation || 'Có') !== fMod) return false;
                 
-                // Date Range Check for Dashboard (New)
                 if (!isDataTab && fStart) {
                     const d = new Date(e.createdAt || e.updatedAt).toISOString().split('T')[0];
                     if (d < fStart) return false;
@@ -1111,7 +1093,6 @@
                      if (d > fEnd) return false;
                 }
 
-                // Enhanced Search
                 if (searchTerm) {
                     const searchStr = `${e.patientId || ''} ${e.hospitalName || ''} ${e.userEmail || ''} ${e.manufacturer || ''}`.toLowerCase();
                     if (!searchStr.includes(searchTerm)) return false;
@@ -1119,7 +1100,6 @@
                 return true;
             });
 
-            // Sorting Logic
             const sortVal = el('sortOrderSelect').value;
             filteredDisplayEntries.sort((a, b) => {
                 switch(sortVal) {
@@ -1177,10 +1157,56 @@
             }, {});
             const mBody = el('manufacturerTableBody'); mBody.innerHTML = '';
             Object.entries(mCounts).sort((a,b) => b[1] - a[1]).forEach(([m, c]) => { 
-                mBody.innerHTML += `<tr><td class="px-4 py-3 font-black text-slate-800">${m}</td><td class="px-4 py-3 text-right text-indigo-600 font-black">${c}</td></tr>`; 
+                mBody.innerHTML += `<tr><td class="px-4 py-3.5 rounded-l-xl font-black text-[9px]">${m}</td><td class="px-4 py-3.5 rounded-r-xl text-right font-black text-[9px]">${c}</td></tr>`; 
             });
 
-            // Get lists for edit dropdowns
+            // NEW: Progress Chart Logic
+            if(progressChartInstance) progressChartInstance.destroy();
+            const progData = {};
+            const protocols = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))];
+            // Use full entries for global comparison, or filteredDisplayEntries for context?
+            // "so sánh tiến độ nhập ca giữa các viện" -> Usually implies ALL data.
+            // Let's use filteredDisplayEntries so the date filter works (e.g. "Entries in 2024").
+            // But if specific hospital selected, it will show only one bar. That is correct behavior.
+            
+            filteredDisplayEntries.forEach(e => {
+                const hosp = e.hospitalName || 'Unknown';
+                if (!progData[hosp]) progData[hosp] = {};
+                const prot = e.protocol || 'Other';
+                progData[hosp][prot] = (progData[hosp][prot] || 0) + 1;
+            });
+            
+            const hospitals = Object.keys(progData).sort();
+            const datasets = protocols.map((prot, index) => {
+                const colorPalette = ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#a855f7']; // Colors matching scatter contrast
+                return {
+                    label: prot,
+                    data: hospitals.map(h => progData[h][prot] || 0),
+                    backgroundColor: colorPalette[index % colorPalette.length],
+                    borderRadius: 4,
+                    barThickness: 20
+                };
+            });
+            
+            const ctxProg = el('progressChart').getContext('2d');
+            progressChartInstance = new Chart(ctxProg, {
+                type: 'bar',
+                data: { labels: hospitals, datasets: datasets },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'top', labels: { font: { size: 9, weight: 'bold' }, usePointStyle: true, boxWidth: 6 } }
+                    },
+                    scales: { 
+                        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 9, weight: 'bold' } } }, 
+                        y: { stacked: true, grid: { display: false }, ticks: { font: { size: 9, weight: 'bold' } } } 
+                    }
+                }
+            });
+
+
             const currH = [...new Set([...INITIAL_HOSPITALS, ...entries.map(ent => ent.hospitalName)])].sort();
             const currM = [...new Set([...MANUFACTURERS, ...entries.map(ent => ent.manufacturer).filter(m => m)])].sort();
 
@@ -1317,12 +1343,20 @@
                 manufacturers.forEach(m => manuSelect.innerHTML += `<option value="${m}">${m}</option>`);
             }
 
-            // Scatter Filters
+            // Scatter Filters - Now include Hospital
             ['scatterFilterProtocol_CTDI', 'scatterFilterProtocol_DLP'].forEach(id => {
                 const s = el(id);
                 if (s && s.options.length === 0) {
                      s.innerHTML = '<option value="all">Tất cả (So sánh các bộ phận)</option>';
                      protocols.forEach(p => s.innerHTML += `<option value="${p}">${p}</option>`);
+                }
+            });
+            
+             ['scatterFilterHospital_CTDI', 'scatterFilterHospital_DLP'].forEach(id => {
+                const s = el(id);
+                if (s && s.options.length === 0) {
+                     s.innerHTML = '<option value="all">Tất cả Bệnh viện</option>';
+                     hospitals.forEach(h => s.innerHTML += `<option value="${h}">${h}</option>`);
                 }
             });
         }
@@ -1487,12 +1521,14 @@
                 return '#a855f7'; // Purple (Other)
             };
 
-            const createScatter = (ctx, yKey, labelY, filterId) => {
-                const filterVal = el(filterId)?.value || 'all';
+            const createScatter = (ctx, yKey, labelY, filterIdProtocol, filterIdHospital) => {
+                const filterValProtocol = el(filterIdProtocol)?.value || 'all';
+                const filterValHospital = el(filterIdHospital)?.value || 'all';
                 
                 // Filter data specifically for this chart
                 const scatterDataRaw = entries.filter(e => {
-                    if (filterVal !== 'all' && e.protocol !== filterVal) return false;
+                    if (filterValProtocol !== 'all' && e.protocol !== filterValProtocol) return false;
+                    if (filterValHospital !== 'all' && e.hospitalName !== filterValHospital) return false;
                     return !isNaN(parseFloat(e.weight)) && !isNaN(parseFloat(e[yKey]));
                 });
 
@@ -1534,18 +1570,16 @@
                 });
             };
 
-            scatterCtdiChartInstance = createScatter(el('scatterCtdiChart').getContext('2d'), 'ctdi', 'CTDIvol (mGy)', 'scatterFilterProtocol_CTDI');
-            scatterDlpChartInstance = createScatter(el('scatterDlpChart').getContext('2d'), 'dlp', 'DLP (mGy.cm)', 'scatterFilterProtocol_DLP');
+            scatterCtdiChartInstance = createScatter(el('scatterCtdiChart').getContext('2d'), 'ctdi', 'CTDIvol (mGy)', 'scatterFilterProtocol_CTDI', 'scatterFilterHospital_CTDI');
+            scatterDlpChartInstance = createScatter(el('scatterDlpChart').getContext('2d'), 'dlp', 'DLP (mGy.cm)', 'scatterFilterProtocol_DLP', 'scatterFilterHospital_DLP');
         }
         
         // Listeners
-        const s1 = el('scatterFilterProtocol_CTDI'); if(s1) s1.onchange = () => { if(scatterCtdiChartInstance) scatterCtdiChartInstance.destroy(); scatterCtdiChartInstance = createScatter(el('scatterCtdiChart').getContext('2d'), 'ctdi', 'CTDIvol (mGy)', 'scatterFilterProtocol_CTDI'); }; // Re-render specific chart
-        const s2 = el('scatterFilterProtocol_DLP'); if(s2) s2.onchange = () => { if(scatterDlpChartInstance) scatterDlpChartInstance.destroy(); scatterDlpChartInstance = createScatter(el('scatterDlpChart').getContext('2d'), 'dlp', 'DLP (mGy.cm)', 'scatterFilterProtocol_DLP'); }; // Re-render specific chart
-        
-        // Use the general renderCharts for specific scatter updates? No, easier to just hook up renderCharts to everything for simplicity in this context, although optimization is possible.
-        // Re-hook all listeners to main renderCharts to keep it simple and ensure data consistency.
-        if(s1) s1.onchange = renderCharts;
-        if(s2) s2.onchange = renderCharts;
+        const s1 = el('scatterFilterProtocol_CTDI'); if(s1) s1.onchange = renderCharts;
+        const s2 = el('scatterFilterProtocol_DLP'); if(s2) s2.onchange = renderCharts;
+        const s1_h = el('scatterFilterHospital_CTDI'); if(s1_h) s1_h.onchange = renderCharts;
+        const s2_h = el('scatterFilterHospital_DLP'); if(s2_h) s2_h.onchange = renderCharts;
+
         const stGroup = el('statsGroupBy'); if(stGroup) stGroup.onchange = renderCharts;
         const mStGroup = el('meanStatsGroupBy'); if(mStGroup) mStGroup.onchange = renderCharts;
 
