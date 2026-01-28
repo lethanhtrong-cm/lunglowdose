@@ -725,6 +725,7 @@
                                 <option value="hospitalName">Bệnh viện</option>
                                 <option value="gender">Giới tính</option>
                                 <option value="manufacturer">Hãng máy</option>
+                                <option value="bmi">BMI</option>
                             </select>
                         </div>
                      </div>
@@ -1519,7 +1520,19 @@
                     if (key.toLowerCase().startsWith('ge ') || key.toUpperCase() === 'GE') key = 'GE HealthCare';
                 } else if (groupBy2 === 'gender') {
                     key = normalizeGender(key) === 'M' ? 'Nam' : 'Nữ';
-                } 
+                } else if (groupBy2 === 'bmi') {
+                     const h = parseFloat(e.height)/100;
+                     const w = parseFloat(e.weight);
+                     if (h > 0 && w > 0) {
+                         const bmi = w/(h*h);
+                         if (bmi < 18.5) key = 'Gầy (<18.5)';
+                         else if (bmi < 23) key = 'Bình thường (18.5-22.9)';
+                         else if (bmi < 25) key = 'Thừa cân (23-24.9)';
+                         else key = 'Béo phì (≥25)';
+                     } else {
+                         key = 'N/A';
+                     }
+                }
 
                 if (!key) key = 'N/A';
                 if (!groupedData2[key]) groupedData2[key] = { ctdi: [], dlp: [] };
