@@ -642,6 +642,40 @@
             </div>
 
             <div id="chartsContent" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Multi-dimensional Analysis -->
+                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-purple-100 bg-white col-span-1 lg:col-span-2">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-purple-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-horizontal" class="w-5 h-5"></i></div>
+                            <h3 class="section-label text-purple-900 text-sm">So sánh Đa chiều (Theo Bộ phận)</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                             <span class="text-[9px] font-bold text-slate-500 uppercase">Thông số:</span>
+                             <select id="multiCompMetric" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-purple-500">
+                                 <option value="ctdi">CTDIvol (mGy)</option>
+                                 <option value="dlp">DLP (mGy.cm)</option>
+                             </select>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Hospital by Protocol -->
+                        <div class="flex flex-col gap-2">
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Theo Bệnh viện</h4>
+                            <div class="chart-container h-[350px]">
+                                <canvas id="multiHospChart"></canvas>
+                            </div>
+                        </div>
+                        <!-- Manufacturer by Protocol -->
+                        <div class="flex flex-col gap-2">
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Theo Hãng máy</h4>
+                            <div class="chart-container h-[350px]">
+                                <canvas id="multiManuChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Histogram Card -->
                 <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-indigo-100 bg-white col-span-1 lg:col-span-2">
                     <div class="flex flex-col gap-4 mb-6">
@@ -852,6 +886,8 @@
         let p50ChartInstance = null;
         let meanCtdiChartInstance = null;
         let meanDlpChartInstance = null;
+        let multiHospChartInstance = null;
+        let multiManuChartInstance = null;
 
         const el = (id) => document.getElementById(id);
 
@@ -1418,6 +1454,48 @@
             ];
         }
 
+        // --- NEW: Helper for Multi-Group Data ---
+        function getMultiGroupMean(data, primaryKey, secondaryKey, metricKey) {
+            // primaryKey: 'hospitalName' or 'manufacturer'
+            // secondaryKey: 'protocol'
+            
+            const primaryLabels = [...new Set(data.map(e => {
+                let v = e[primaryKey];
+                if (primaryKey === 'manufacturer') {
+                     v = v ? v.trim() : 'N/A';
+                     if (v.toLowerCase().startsWith('ge ') || v.toUpperCase() === 'GE') v = 'GE HealthCare';
+                }
+                return v || 'Unknown';
+            }))].sort();
+
+            const secondaryLabels = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))]; 
+
+            const datasets = secondaryLabels.map((prot, idx) => {
+                const colorPalette = ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#a855f7'];
+                return {
+                    label: prot,
+                    data: primaryLabels.map(pLabel => {
+                        const subset = data.filter(e => {
+                            let ePrim = e[primaryKey];
+                            if (primaryKey === 'manufacturer') {
+                                 ePrim = ePrim ? ePrim.trim() : 'N/A';
+                                 if (ePrim.toLowerCase().startsWith('ge ') || ePrim.toUpperCase() === 'GE') ePrim = 'GE HealthCare';
+                            }
+                            return (ePrim || 'Unknown') === pLabel && e[secondaryKey] === prot;
+                        });
+                        const stats = calcStats(subset.map(x => parseFloat(x[metricKey])).filter(n => !isNaN(n)));
+                        return stats.mean; 
+                    }),
+                    backgroundColor: colorPalette[idx % colorPalette.length],
+                    borderRadius: 3,
+                    barPercentage: 0.7,
+                    categoryPercentage: 0.8
+                };
+            });
+
+            return { labels: primaryLabels, datasets };
+        }
+
         // --- NEW: Chart Rendering Logic ---
         function renderCharts() {
             if (histogramChartInstance) histogramChartInstance.destroy();
@@ -1427,6 +1505,8 @@
             if (p50ChartInstance) p50ChartInstance.destroy();
             if (meanCtdiChartInstance) meanCtdiChartInstance.destroy();
             if (meanDlpChartInstance) meanDlpChartInstance.destroy();
+            if (multiHospChartInstance) multiHospChartInstance.destroy();
+            if (multiManuChartInstance) multiManuChartInstance.destroy();
 
             const isGuest = !user || user.isAnonymous;
             const chartsLock = el('chartsLock');
@@ -1440,6 +1520,40 @@
                 chartsLock.classList.add('hidden');
                 chartsContent.classList.remove('hidden', 'pointer-events-none', 'opacity-20');
             }
+
+            // --- 0. MULTI-DIMENSIONAL CHARTS ---
+            const multiMetric = el('multiCompMetric')?.value || 'ctdi';
+            const multiHospData = getMultiGroupMean(entries, 'hospitalName', 'protocol', multiMetric);
+            const multiManuData = getMultiGroupMean(entries, 'manufacturer', 'protocol', multiMetric);
+
+            multiHospChartInstance = new Chart(el('multiHospChart').getContext('2d'), {
+                type: 'bar',
+                data: multiHospData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: false, ticks: { font: { size: 9, weight: 'bold' } } },
+                        y: { beginAtZero: true, title: { display: true, text: multiMetric.toUpperCase() } }
+                    },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } }
+                }
+            });
+
+            multiManuChartInstance = new Chart(el('multiManuChart').getContext('2d'), {
+                type: 'bar',
+                data: multiManuData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: false, ticks: { font: { size: 9, weight: 'bold' } } },
+                        y: { beginAtZero: true, title: { display: true, text: multiMetric.toUpperCase() } }
+                    },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } }
+                }
+            });
+
 
             // --- 1. HISTOGRAM LOGIC ---
             // Local filters for Histogram only
@@ -1639,6 +1753,7 @@
 
         const stGroup = el('statsGroupBy'); if(stGroup) stGroup.onchange = renderCharts;
         const mStGroup = el('meanStatsGroupBy'); if(mStGroup) mStGroup.onchange = renderCharts;
+        const multiMet = el('multiCompMetric'); if(multiMet) multiMet.onchange = renderCharts;
 
 
         // --- NEW: Export Excel Logic ---
