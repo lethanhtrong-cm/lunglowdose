@@ -165,7 +165,8 @@
             Share2: (p) => <IconBase {...p}><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></IconBase>,
             ArrowsOut: (p) => <IconBase {...p}><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></IconBase>,
             ArrowsIn: (p) => <IconBase {...p}><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></IconBase>,
-            MapPin: (p) => <IconBase {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></IconBase>
+            MapPin: (p) => <IconBase {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></IconBase>,
+            Minimize: (p) => <IconBase {...p}><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></IconBase>,
         };
 
         // --- CONSTANTS & HELPERS ---
@@ -503,17 +504,11 @@
         });
 
         const ImageSlot = React.memo(({ imgData, index, isActive, onClick }) => {
-            // Use background-image to fix html2canvas object-fit issues
-            const slotStyle = { 
-                backgroundImage: imgData.url ? `url(${imgData.url})` : 'none',
-                backgroundSize: imgData.objectFit || 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
+            const imgStyle = { 
                 transform: `scale(${imgData.scale}) translate(${imgData.x}px, ${imgData.y}px)`, 
                 filter: `brightness(${imgData.brightness}%) contrast(${imgData.contrast}%) invert(${imgData.invert ? 1 : 0})`, 
-                cursor: 'move',
-                width: '100%',
-                height: '100%'
+                objectFit: imgData.objectFit || 'cover',
+                cursor: 'move' 
             };
             
             return (
@@ -523,12 +518,12 @@
                 >
                     <div className="flex-grow relative overflow-hidden flex items-center justify-center group w-full h-full">
                         {imgData.url ? 
-                            <div style={slotStyle} className="w-full h-full" /> : 
+                            <img src={imgData.url} className="w-full h-full block" style={imgStyle} draggable={false} /> : 
                             <div className="text-slate-700 flex flex-col items-center p-4 text-center">
                                 <Icons.Image size={24} className="mb-1 opacity-20"/>
                             </div>
                         }
-                        <div className="absolute top-1 left-1 bg-black/60 text-white text-[8px] w-4 h-4 flex items-center justify-center rounded font-bold backdrop-blur-sm shadow-sm z-20 pointer-events-none">{index + 1}</div>
+                        <div className="absolute top-1 left-1 bg-black/60 text-white text-[8px] w-4 h-4 flex items-center justify-center rounded font-bold backdrop-blur-sm shadow-sm z-20">{index + 1}</div>
                     </div>
                 </div>
             );
@@ -576,10 +571,10 @@
             const [isSaving, setIsSaving] = useState(false);
             const [posterTheme, setPosterTheme] = useState(() => localStorage.getItem('med_theme') || 'dark');
             const [showBrand, setShowBrand] = useState(true);
+            const [isCompact, setIsCompact] = useState(false); // New Compact Mode State
             
             const exportRef = useRef(null);
             const previewContainerRef = useRef(null);
-            const prevFontSizeRef = useRef(13); // Initialize with default
 
             useEffect(() => { const unsub = onAuthStateChanged(auth, u => setUser(u)); return () => unsub(); }, []);
             useEffect(() => { localStorage.setItem('med_content', JSON.stringify(content)); }, [content]);
@@ -611,25 +606,24 @@
                 return () => window.removeEventListener('resize', handleResize);
             }, [containerDims, layoutMode]);
 
+            // Auto-clamp font size if overflow detected
             useLayoutEffect(() => {
-                if (!exportRef.current) return;
+                const containers = document.querySelectorAll('.text-container');
+                let isOverflowing = false;
                 
-                // Check overflow
-                const wrappers = exportRef.current.querySelectorAll('.text-block-wrapper');
-                let isOverflow = false;
-                for (let el of wrappers) {
-                    if (el.scrollHeight > el.clientHeight + 1) { // +1 buffer
-                        isOverflow = true;
+                for (const container of containers) {
+                    const content = container.firstElementChild; // The <p> tag
+                    if (content && content.offsetHeight > container.clientHeight) {
+                        isOverflowing = true;
                         break;
                     }
                 }
 
-                if (isOverflow && bodyFontSize > prevFontSizeRef.current) {
-                    setBodyFontSize(prevFontSizeRef.current);
-                } else {
-                    prevFontSizeRef.current = bodyFontSize;
+                if (isOverflowing && bodyFontSize > 9) {
+                    // Reduce font size to fit
+                    setBodyFontSize(prev => prev - 1);
                 }
-            }, [bodyFontSize, content, layoutMode, gridDims]);
+            }, [bodyFontSize, content, layoutMode, isCompact, gridDims, images]); 
 
             const handleGridSelect = useCallback((r, c) => { 
                 setGridDims({ r, c }); 
@@ -918,15 +912,15 @@
                 const TextBlock = ({ content, size, sectionType = 'general', className = "" }) => {
                     const st = th.section[sectionType] || th.section.general;
                     return (
-                        <div className="w-full h-full overflow-hidden text-block-wrapper">
-                             <p style={{ fontSize: `${size}px`, lineHeight: '1.5' }} className={`font-sans font-medium whitespace-pre-line ${st.text} ${className}`}>{content}</p>
+                        <div className="w-full h-full overflow-hidden text-container">
+                             <p style={{ fontSize: `${size}px`, lineHeight: isCompact ? '1.3' : '1.5' }} className={`font-sans font-medium whitespace-pre-line ${st.text} ${className}`}>{content}</p>
                         </div>
                     );
                 };
 
                 const LayoutHeader = ({ title, gender, age, author, date, facility }) => (
-                     <div className={`border-b-2 ${th.border} pb-4 mb-6 flex-shrink-0`}>
-                        <h1 className={`text-3xl font-black leading-tight uppercase tracking-tight mb-2 font-rounded ${th.headerText}`} style={{ fontFamily: "'Nunito', sans-serif" }}>{title}</h1>
+                     <div className={`border-b-2 ${th.border} ${isCompact ? 'pb-2 mb-3' : 'pb-4 mb-6'} flex-shrink-0`}>
+                        <h1 className={`${isCompact ? 'text-2xl mb-1' : 'text-3xl mb-2'} font-black leading-tight uppercase tracking-tight font-rounded ${th.headerText}`} style={{ fontFamily: "'Nunito', sans-serif" }}>{title}</h1>
                         <div className={`flex items-center gap-3 text-sm font-medium font-mono ${th.textDim}`}>
                              <span className={`${th.card} border ${th.border} px-2 py-0.5 rounded flex items-center gap-1.5 ${th.textDim}`}><Icons.Calendar size={12}/> {date}</span>
                              <span className={`w-1 h-1 rounded-full ${posterTheme === 'dark' ? 'bg-slate-700' : 'bg-slate-300'}`}></span>
@@ -944,11 +938,11 @@
                 // FIXED Patient Info Box (Modern Layout Adjusted) - Split into 2 small boxes
                 const PatientInfoBox = () => (
                     <div className={`h-full w-full flex items-center px-4 rounded-lg border ${th.section.general.bg} ${th.border} overflow-hidden`}>
-                        <div className="flex-1 border-r border-slate-700/50 pr-2 flex flex-col justify-center overflow-hidden text-block-wrapper">
+                        <div className="flex-1 border-r border-slate-700/50 pr-2 flex flex-col justify-center">
                              <div className={`text-[8px] uppercase opacity-70 mb-1 ${th.textDim}`}>Tuổi</div>
                              <div style={{ fontSize: `${bodyFontSize * 1.5}px` }} className={`font-bold ${th.text}`}>{content.age}</div>
                         </div>
-                        <div className="flex-1 pl-4 flex flex-col justify-center overflow-hidden text-block-wrapper">
+                        <div className="flex-1 pl-4 flex flex-col justify-center">
                              <div className={`text-[8px] uppercase opacity-70 mb-1 ${th.textDim}`}>Giới</div>
                              <div style={{ fontSize: `${bodyFontSize * 1.5}px` }} className={`font-bold ${th.text}`}>{content.gender}</div>
                         </div>
@@ -963,7 +957,7 @@
                                  <ImageGrid images={images} gridDims={gridDims} activeImgIdx={activeImgIdx} onImageClick={setActiveImgIdx} />
                              </div>
                              {/* Bottom 20% Text */}
-                             <div className={`h-[20%] w-full p-4 flex gap-4 ${th.bg} overflow-hidden`}>
+                             <div className={`h-[20%] w-full ${isCompact ? 'p-2 gap-2' : 'p-4 gap-4'} flex ${th.bg} overflow-hidden`}>
                                  {/* Col 1: Title & Patient */}
                                  <div className={`w-[30%] flex flex-col border-r ${th.border} pr-3`}>
                                      <div className="flex-1 flex flex-col justify-center">
@@ -973,14 +967,14 @@
                                      </div>
                                  </div>
                                  {/* Col 2: Tech */}
-                                 <div className={`w-[35%] flex flex-col border-r ${th.border} pr-3 overflow-hidden text-block-wrapper`}>
+                                 <div className={`w-[35%] flex flex-col border-r ${th.border} pr-3 overflow-hidden`}>
                                      <SectionTitle icon={Icons.PenTool} title="Kỹ thuật" sectionType="tech"/>
-                                     <p style={{ fontSize: `${bodyFontSize}px` }} className={`leading-snug ${th.section.tech.text}`}>{content.techDescription}</p>
+                                     <p style={{ fontSize: `${bodyFontSize}px` }} className={`leading-snug line-clamp-4 ${th.section.tech.text}`}>{content.techDescription}</p>
                                  </div>
                                  {/* Col 3: Diagnosis */}
-                                 <div className="w-[35%] flex flex-col overflow-hidden text-block-wrapper">
+                                 <div className="w-[35%] flex flex-col overflow-hidden">
                                      <SectionTitle icon={Icons.Check} title="Chẩn đoán" sectionType="conclusion"/>
-                                     <p style={{ fontSize: `${bodyFontSize}px` }} className={`font-bold leading-snug ${th.section.conclusion.text}`}>{content.conclusion}</p>
+                                     <p style={{ fontSize: `${bodyFontSize}px` }} className={`font-bold leading-snug line-clamp-4 ${th.section.conclusion.text}`}>{content.conclusion}</p>
                                  </div>
                              </div>
                         </Container>
@@ -993,10 +987,10 @@
                             <div className={`h-[42%] w-full relative bg-black border-b ${th.border} flex-shrink-0`}>
                                 <ImageGrid images={images} gridDims={gridDims} activeImgIdx={activeImgIdx} onImageClick={setActiveImgIdx} />
                             </div>
-                            <div className={`h-[58%] w-full p-8 flex flex-col overflow-hidden ${th.bg}`}>
+                            <div className={`h-[58%] w-full ${isCompact ? 'p-6' : 'p-8'} flex flex-col overflow-hidden ${th.bg}`}>
                                 <LayoutHeader {...content} />
-                                <div className="flex-grow flex gap-8 overflow-hidden">
-                                    <div className="w-1/2 flex flex-col gap-4 overflow-hidden">
+                                <div className={`flex-grow flex ${isCompact ? 'gap-4' : 'gap-8'} overflow-hidden`}>
+                                    <div className={`w-1/2 flex flex-col ${isCompact ? 'gap-2' : 'gap-4'} overflow-hidden`}>
                                         <div className="h-[25%] flex gap-3 overflow-hidden min-h-[80px]">
                                             <div className="w-[40%] h-full overflow-hidden shrink-0"><PatientInfoBox/></div>
                                             <div className={`w-[60%] h-full overflow-hidden flex flex-col p-3 rounded-lg border ${th.section.clinical.bg} ${th.section.clinical.border}`}>
@@ -1012,7 +1006,7 @@
                                         </div>
                                     </div>
                                     
-                                    <div className="w-1/2 flex flex-col gap-4 overflow-hidden">
+                                    <div className={`w-1/2 flex flex-col ${isCompact ? 'gap-2' : 'gap-4'} overflow-hidden`}>
                                         <div className={`h-[20%] flex flex-col min-h-[60px] p-3 rounded-lg border ${th.section.injection.bg} ${th.section.injection.border}`}>
                                             <SectionTitle icon={Icons.Syringe} title="Thuốc cản quang" sectionType="injection"/>
                                             <TextBlock content={content.injectionInfo} size={bodyFontSize} sectionType="injection"/>
@@ -1035,7 +1029,7 @@
 
                 if (layoutMode === 'poster') { // Landscape Poster
                     return (
-                        <Container contentClass={`p-4 ${th.bg}`}>
+                        <Container contentClass={`${isCompact ? 'p-3' : 'p-4'} ${th.bg}`}>
                             <div className={`w-full h-full rounded-2xl shadow-sm border ${th.border} ${th.card} overflow-hidden flex flex-col`}>
                                 <div className={`h-14 border-b ${th.border} flex items-center justify-between px-6 flex-shrink-0 ${th.header}`}>
                                     <div><h1 className={`text-xl font-bold uppercase tracking-wider font-rounded ${th.headerText}`} style={{ fontFamily: "'Nunito', sans-serif" }}>{content.title}</h1></div>
@@ -1050,17 +1044,17 @@
                                          <span className={`px-2 py-0.5 border rounded font-bold ${th.border} ${th.section.general.text} ${th.section.general.bg}`}>{modality}</span>
                                     </div>
                                 </div>
-                                <div className="flex-grow flex p-5 gap-5 overflow-hidden">
-                                    <div className="w-[60%] flex flex-col gap-4 overflow-hidden">
+                                <div className={`flex-grow flex ${isCompact ? 'p-3 gap-3' : 'p-5 gap-5'} overflow-hidden`}>
+                                    <div className={`w-[60%] flex flex-col ${isCompact ? 'gap-2' : 'gap-4'} overflow-hidden`}>
                                         <div className="space-y-4 flex-grow overflow-hidden flex flex-col">
-                                            <div className="h-[25%] flex gap-4 overflow-hidden">
+                                            <div className={`h-[25%] flex ${isCompact ? 'gap-2' : 'gap-4'} overflow-hidden`}>
                                                 <div className="w-[40%] h-full overflow-hidden shrink-0"><PatientInfoBox/></div>
                                                 <div className={`w-[60%] h-full p-4 rounded-xl border overflow-hidden flex flex-col ${th.section.clinical.bg} ${th.section.clinical.border}`}>
                                                     <SectionTitle icon={Icons.Clipboard} title="Lâm sàng" sectionType="clinical"/>
                                                     <TextBlock content={content.clinicalInfo} size={bodyFontSize} sectionType="clinical"/>
                                                 </div>
                                             </div>
-                                            <div className="h-[35%] flex gap-4 overflow-hidden">
+                                            <div className={`h-[35%] flex ${isCompact ? 'gap-2' : 'gap-4'} overflow-hidden`}>
                                                 <div className={`w-[70%] h-full p-4 rounded-xl border overflow-hidden flex flex-col ${th.section.tech.bg} ${th.section.tech.border}`}>
                                                     <SectionTitle icon={Icons.PenTool} title="Kỹ thuật" sectionType="tech"/>
                                                     <TextBlock content={content.techDescription} size={bodyFontSize} sectionType="tech"/>
@@ -1093,7 +1087,7 @@
                     return (
                         <Container>
                             <div className={`flex h-full ${th.bg}`}>
-                                <div className={`w-[60%] ${th.bg} p-8 flex flex-col border-r ${th.border}`}>
+                                <div className={`w-[60%] ${th.bg} ${isCompact ? 'p-5' : 'p-8'} flex flex-col border-r ${th.border}`}>
                                     <div className="mb-8 flex-shrink-0">
                                         <div className={`font-bold tracking-[0.3em] text-[10px] uppercase mb-2 font-mono ${th.section.general.text}`}>Case Study</div>
                                         <h1 className={`text-2xl font-bold leading-tight mb-2 ${th.headerText}`} style={{ fontFamily: "'Nunito', sans-serif" }}>{content.title}</h1>
@@ -1105,40 +1099,34 @@
                                             <div className={`text-xs font-bold font-mono ${th.section.general.text}`}>{content.date}</div>
                                         </div>
                                     </div>
-                                    <div className="space-y-6 flex-grow overflow-hidden flex flex-col">
+                                    <div className={`${isCompact ? 'space-y-3' : 'space-y-6'} flex-grow overflow-hidden flex flex-col`}>
                                         <div className="h-[22%] flex gap-4 overflow-hidden shrink-0">
                                              <div className="w-[40%] h-full overflow-hidden shrink-0"><PatientInfoBox/></div>
                                              <div className={`w-[60%] h-full p-4 rounded border overflow-hidden flex flex-col ${th.section.clinical.bg} ${th.section.clinical.border}`}>
                                                 <h3 className={`text-[10px] font-bold uppercase mb-1 flex-shrink-0 ${th.section.clinical.icon}`}>Lâm sàng</h3>
-                                                <div className="flex-1 overflow-hidden text-block-wrapper">
-                                                    <p style={{ fontSize: `${bodyFontSize}px`, lineHeight: '1.5' }} className={`font-sans font-medium whitespace-pre-line ${th.section.clinical.text}`}>{content.clinicalInfo}</p>
-                                                </div>
+                                                <div className="flex-1 min-h-0 overflow-hidden"><TextBlock content={content.clinicalInfo} size={bodyFontSize} sectionType="clinical"/></div>
                                             </div>
                                         </div>
                                         <div className="h-[38%] flex gap-4 overflow-hidden shrink-0">
                                             <div className={`w-[70%] h-full p-4 rounded border overflow-hidden flex flex-col ${th.section.tech.bg} ${th.section.tech.border}`}>
                                                 <h3 className={`text-[10px] font-bold uppercase mb-1 flex-shrink-0 ${th.section.tech.icon}`}>Kỹ thuật</h3>
-                                                <div className="flex-1 overflow-hidden text-block-wrapper">
-                                                    <p style={{ fontSize: `${bodyFontSize}px`, lineHeight: '1.5' }} className={`font-sans font-medium whitespace-pre-line ${th.section.tech.text}`}>{content.techDescription}</p>
-                                                </div>
+                                                <div className="flex-1 min-h-0 overflow-hidden"><TextBlock content={content.techDescription} size={bodyFontSize} sectionType="tech"/></div>
                                             </div>
                                             <div className={`w-[30%] h-full p-4 rounded border overflow-hidden flex flex-col ${th.section.injection.bg} ${th.section.injection.border}`}>
                                                 <h3 className={`text-[10px] font-bold uppercase mb-1 flex-shrink-0 ${th.section.injection.icon}`}>Thuốc</h3>
-                                                <div className="flex-1 overflow-hidden text-block-wrapper">
-                                                    <p style={{ fontSize: `${bodyFontSize}px`, lineHeight: '1.5' }} className={`font-sans font-medium whitespace-pre-line ${th.section.injection.text}`}>{content.injectionInfo}</p>
-                                                </div>
+                                                <div className="flex-1 min-h-0 overflow-hidden"><TextBlock content={content.injectionInfo} size={bodyFontSize} sectionType="injection"/></div>
                                             </div>
                                         </div>
                                         <div className={`flex-grow overflow-hidden flex flex-col p-3 rounded border ${th.section.highlights.bg} ${th.section.highlights.border}`}>
                                             <h3 className={`text-[10px] font-bold uppercase mb-2 flex-shrink-0 ${th.section.highlights.icon}`}>Đặc điểm hình ảnh</h3>
-                                            <div className="flex-1 overflow-hidden text-block-wrapper">
-                                                <p style={{ fontSize: `${bodyFontSize}px`, lineHeight: '1.5' }} className={`font-sans font-medium whitespace-pre-line ${th.section.highlights.text}`}>{content.highlights}</p>
-                                            </div>
+                                            <div className="flex-1 min-h-0 overflow-hidden"><TextBlock content={content.highlights} size={bodyFontSize} sectionType="highlights"/></div>
                                         </div>
                                     </div>
                                     <div className={`mt-6 pt-6 border-t ${th.border} flex-shrink-0`}>
                                         <div className={`text-xs font-bold uppercase mb-2 ${th.section.conclusion.text}`}>Kết luận</div>
-                                        <p style={{ fontSize: `${bodyFontSize + 4}px` }} className={`font-bold leading-snug ${th.section.conclusion.text}`}>{content.conclusion}</p>
+                                        <div className="text-container">
+                                            <p style={{ fontSize: `${bodyFontSize + 4}px`, lineHeight: isCompact ? '1.2' : '1.4' }} className={`font-bold leading-snug ${th.section.conclusion.text}`}>{content.conclusion}</p>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="w-[40%] bg-black h-full relative">
@@ -1354,9 +1342,12 @@
                                     <div className="h-4 w-px bg-slate-700 hidden md:block"></div>
                                     <div className="flex items-center gap-2 bg-slate-800 p-1.5 rounded-lg border border-slate-700">
                                         <Icons.TextSize size={14} className="text-slate-400"/>
-                                        <input type="range" min="10" max="24" value={bodyFontSize} onChange={(e) => setBodyFontSize(parseInt(e.target.value))} className="w-20 h-1 bg-slate-600 rounded-full appearance-none accent-sky-500 cursor-pointer"/>
+                                        <input type="range" min="9" max="24" value={bodyFontSize} onChange={(e) => setBodyFontSize(parseInt(e.target.value))} className="w-20 h-1 bg-slate-600 rounded-full appearance-none accent-sky-500 cursor-pointer"/>
                                         <span className="text-[10px] w-6 text-slate-400">{bodyFontSize}px</span>
                                     </div>
+                                    <button onClick={() => setIsCompact(!isCompact)} className={`p-2 rounded-lg transition-colors border ${isCompact ? 'bg-sky-600 text-white border-sky-500' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'}`} title="Chế độ chống tràn (Thu gọn)">
+                                        <Icons.Minimize size={18}/>
+                                    </button>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <button id="share-btn" onClick={handleShare} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wide border border-slate-700 transition-colors">
