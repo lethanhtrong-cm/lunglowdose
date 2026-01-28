@@ -672,21 +672,6 @@
                     </div>
                 </div>
 
-                <!-- NEW: Time Series Chart -->
-                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-purple-100 bg-white col-span-1 lg:col-span-2">
-                     <div class="flex flex-col gap-4 mb-6">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="bg-purple-600 p-2 rounded-xl text-white"><i data-lucide="trending-up" class="w-5 h-5"></i></div>
-                                <h3 class="section-label text-purple-900 text-sm">Xu hướng CTDIvol theo thời gian (Tháng)</h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="timeSeriesChart"></canvas>
-                    </div>
-                </div>
-
                 <!-- NEW Grouped Stats Row -->
                 <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-orange-100 bg-white col-span-1 lg:col-span-2">
                      <!-- Header and Controls -->
@@ -728,9 +713,20 @@
 
                 <!-- NEW: Mean Stats Row -->
                 <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-sky-100 bg-white col-span-1 lg:col-span-2">
-                     <div class="flex items-center gap-3 mb-6">
-                        <div class="bg-sky-600 p-2 rounded-xl text-white"><i data-lucide="activity" class="w-5 h-5"></i></div>
-                        <h3 class="section-label text-sky-900 text-sm">Phân tích Giá trị Trung bình (Mean)</h3>
+                     <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-sky-600 p-2 rounded-xl text-white"><i data-lucide="activity" class="w-5 h-5"></i></div>
+                            <h3 class="section-label text-sky-900 text-sm">Phân tích Giá trị Trung bình (Mean)</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[9px] font-bold text-slate-500 uppercase">Phân nhóm theo:</span>
+                            <select id="meanStatsGroupBy" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-sky-500">
+                                <option value="protocol">Bộ phận</option>
+                                <option value="hospitalName">Bệnh viện</option>
+                                <option value="gender">Giới tính</option>
+                                <option value="manufacturer">Hãng máy</option>
+                            </select>
+                        </div>
                      </div>
                      
                      <!-- Charts Grid -->
@@ -874,7 +870,6 @@
         let histogramChartInstance = null;
         let scatterDlpChartInstance = null;
         let scatterCtdiChartInstance = null;
-        let timeSeriesChartInstance = null;
         let p75ChartInstance = null;
         let p50ChartInstance = null;
         let meanCtdiChartInstance = null;
@@ -1356,7 +1351,6 @@
             if (histogramChartInstance) histogramChartInstance.destroy();
             if (scatterDlpChartInstance) scatterDlpChartInstance.destroy();
             if (scatterCtdiChartInstance) scatterCtdiChartInstance.destroy();
-            if (timeSeriesChartInstance) timeSeriesChartInstance.destroy();
             if (p75ChartInstance) p75ChartInstance.destroy();
             if (p50ChartInstance) p50ChartInstance.destroy();
             if (meanCtdiChartInstance) meanCtdiChartInstance.destroy();
@@ -1429,59 +1423,19 @@
                 }
             });
 
-            // 4. NEW: Time Series Chart (Trend by Month)
-            const timeData = {};
+            // 5. Grouped Stats (P75 & P50)
+            const groupBy1 = el('statsGroupBy').value || 'hospitalName';
+            const groupedData1 = {};
             chartData.forEach(e => {
-                const date = new Date(e.createdAt || e.updatedAt);
-                const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                if (!timeData[key]) timeData[key] = { sum: 0, count: 0 };
-                timeData[key].sum += parseFloat(e.ctdi || 0);
-                timeData[key].count++;
-            });
-            
-            const timeLabels = Object.keys(timeData).sort();
-            const timeValues = timeLabels.map(k => (timeData[k].sum / timeData[k].count).toFixed(2));
-
-            const ctxTime = el('timeSeriesChart').getContext('2d');
-            timeSeriesChartInstance = new Chart(ctxTime, {
-                type: 'line',
-                data: {
-                    labels: timeLabels,
-                    datasets: [{
-                        label: 'CTDIvol Trung bình (mGy)',
-                        data: timeValues,
-                        borderColor: 'rgba(147, 51, 234, 1)',
-                        backgroundColor: 'rgba(147, 51, 234, 0.1)',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        fill: true,
-                        pointRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: true } },
-                    scales: { 
-                        y: { beginAtZero: true, title: {display: true, text: 'mGy'} }, 
-                        x: { title: {display: true, text: 'Thời gian'} } 
-                    }
-                }
-            });
-
-            // 5 & 6. NEW: Grouped Stats (P75 & P50 & Mean)
-            const groupBy = el('statsGroupBy').value || 'hospitalName';
-            const groupedData = {};
-            chartData.forEach(e => {
-                let key = e[groupBy];
+                let key = e[groupBy1];
                 
-                // Normalization Logic for Manufacturer
-                if (groupBy === 'manufacturer') {
-                    key = key ? key.trim() : 'N/A'; // Trim first
+                // Normalization Logic
+                if (groupBy1 === 'manufacturer') {
+                    key = key ? key.trim() : 'N/A';
                     if (key.toLowerCase().startsWith('ge ') || key.toUpperCase() === 'GE') key = 'GE HealthCare';
-                } else if (groupBy === 'gender') {
+                } else if (groupBy1 === 'gender') {
                     key = normalizeGender(key) === 'M' ? 'Nam' : 'Nữ';
-                } else if (groupBy === 'bmi') {
+                } else if (groupBy1 === 'bmi') {
                      const h = parseFloat(e.height)/100;
                      const w = parseFloat(e.weight);
                      if (h > 0 && w > 0) {
@@ -1496,30 +1450,28 @@
                 }
 
                 if (!key) key = 'N/A';
-                if (!groupedData[key]) groupedData[key] = { ctdi: [], dlp: [] };
-                if (e.ctdi) groupedData[key].ctdi.push(parseFloat(e.ctdi));
-                if (e.dlp) groupedData[key].dlp.push(parseFloat(e.dlp));
+                if (!groupedData1[key]) groupedData1[key] = { ctdi: [], dlp: [] };
+                if (e.ctdi) groupedData1[key].ctdi.push(parseFloat(e.ctdi));
+                if (e.dlp) groupedData1[key].dlp.push(parseFloat(e.dlp));
             });
 
-            const groupLabels = Object.keys(groupedData).sort();
-            const p75Ctdi = [], p75Dlp = [], p50Ctdi = [], p50Dlp = [], meanCtdi = [], meanDlp = [];
+            const groupLabels1 = Object.keys(groupedData1).sort();
+            const p75Ctdi = [], p75Dlp = [], p50Ctdi = [], p50Dlp = [];
 
-            groupLabels.forEach(k => {
-                const cStats = calcStats(groupedData[k].ctdi);
-                const dStats = calcStats(groupedData[k].dlp);
+            groupLabels1.forEach(k => {
+                const cStats = calcStats(groupedData1[k].ctdi);
+                const dStats = calcStats(groupedData1[k].dlp);
                 p75Ctdi.push(cStats.p75);
                 p75Dlp.push(dStats.p75);
                 p50Ctdi.push(cStats.median);
                 p50Dlp.push(dStats.median);
-                meanCtdi.push(cStats.mean);
-                meanDlp.push(dStats.mean);
             });
 
             // P75 Chart Config
             p75ChartInstance = new Chart(el('p75Chart').getContext('2d'), {
                 type: 'bar',
                 data: {
-                    labels: groupLabels,
+                    labels: groupLabels1,
                     datasets: [
                         { label: 'CTDIvol (mGy)', data: p75Ctdi, yAxisID: 'y', backgroundColor: 'rgba(99, 102, 241, 0.7)' },
                         { label: 'DLP (mGy.cm)', data: p75Dlp, yAxisID: 'y1', type: 'line', borderColor: 'rgba(249, 115, 22, 1)', backgroundColor: 'rgba(249, 115, 22, 0.5)', borderWidth: 2, pointStyle: 'circle', pointRadius: 4 }
@@ -1539,7 +1491,7 @@
             p50ChartInstance = new Chart(el('p50Chart').getContext('2d'), {
                 type: 'bar',
                 data: {
-                    labels: groupLabels,
+                    labels: groupLabels1,
                     datasets: [
                         { label: 'CTDIvol (mGy)', data: p50Ctdi, yAxisID: 'y', backgroundColor: 'rgba(16, 185, 129, 0.7)' },
                         { label: 'DLP (mGy.cm)', data: p50Dlp, yAxisID: 'y1', type: 'line', borderColor: 'rgba(236, 72, 153, 1)', backgroundColor: 'rgba(236, 72, 153, 0.5)', borderWidth: 2, pointStyle: 'circle', pointRadius: 4 }
@@ -1555,11 +1507,41 @@
                 }
             });
 
+            // 6. Grouped Stats (Mean) - Separate Logic
+            const groupBy2 = el('meanStatsGroupBy').value || 'protocol';
+            const groupedData2 = {};
+            chartData.forEach(e => {
+                let key = e[groupBy2];
+                
+                // Normalization Logic
+                if (groupBy2 === 'manufacturer') {
+                    key = key ? key.trim() : 'N/A';
+                    if (key.toLowerCase().startsWith('ge ') || key.toUpperCase() === 'GE') key = 'GE HealthCare';
+                } else if (groupBy2 === 'gender') {
+                    key = normalizeGender(key) === 'M' ? 'Nam' : 'Nữ';
+                } 
+
+                if (!key) key = 'N/A';
+                if (!groupedData2[key]) groupedData2[key] = { ctdi: [], dlp: [] };
+                if (e.ctdi) groupedData2[key].ctdi.push(parseFloat(e.ctdi));
+                if (e.dlp) groupedData2[key].dlp.push(parseFloat(e.dlp));
+            });
+            
+            const groupLabels2 = Object.keys(groupedData2).sort();
+            const meanCtdi = [], meanDlp = [];
+            
+             groupLabels2.forEach(k => {
+                const cStats = calcStats(groupedData2[k].ctdi);
+                const dStats = calcStats(groupedData2[k].dlp);
+                meanCtdi.push(cStats.mean);
+                meanDlp.push(dStats.mean);
+            });
+
             // Mean CTDI Chart Config
             meanCtdiChartInstance = new Chart(el('meanCtdiChart').getContext('2d'), {
                 type: 'bar',
                 data: {
-                    labels: groupLabels,
+                    labels: groupLabels2,
                     datasets: [
                         { label: 'Mean CTDIvol (mGy)', data: meanCtdi, backgroundColor: 'rgba(14, 165, 233, 0.7)' }
                     ]
@@ -1577,7 +1559,7 @@
             meanDlpChartInstance = new Chart(el('meanDlpChart').getContext('2d'), {
                 type: 'bar',
                 data: {
-                    labels: groupLabels,
+                    labels: groupLabels2,
                     datasets: [
                         { label: 'Mean DLP (mGy.cm)', data: meanDlp, backgroundColor: 'rgba(245, 158, 11, 0.7)' }
                     ]
@@ -1672,6 +1654,9 @@
 
         const statsGroup = el('statsGroupBy');
         if(statsGroup) statsGroup.onchange = renderCharts;
+
+        const meanStatsGroup = el('meanStatsGroupBy');
+        if(meanStatsGroup) meanStatsGroup.onchange = renderCharts;
 
 
         // --- NEW: Export Excel Logic ---
