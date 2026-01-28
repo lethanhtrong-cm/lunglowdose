@@ -700,7 +700,9 @@
                             <select id="statsGroupBy" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-orange-500">
                                 <option value="hospitalName">Bệnh viện</option>
                                 <option value="manufacturer">Hãng máy</option>
+                                <option value="protocol">Bộ phận</option>
                                 <option value="gender">Giới tính</option>
+                                <option value="bmi">BMI</option>
                             </select>
                         </div>
                      </div>
@@ -719,6 +721,32 @@
                             <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Giá trị Trung vị (Median)</h4>
                             <div class="chart-container h-[300px]">
                                 <canvas id="p50Chart"></canvas>
+                            </div>
+                        </div>
+                     </div>
+                </div>
+
+                <!-- NEW: Mean Stats Row -->
+                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-sky-100 bg-white col-span-1 lg:col-span-2">
+                     <div class="flex items-center gap-3 mb-6">
+                        <div class="bg-sky-600 p-2 rounded-xl text-white"><i data-lucide="activity" class="w-5 h-5"></i></div>
+                        <h3 class="section-label text-sky-900 text-sm">Phân tích Giá trị Trung bình (Mean)</h3>
+                     </div>
+                     
+                     <!-- Charts Grid -->
+                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Mean CTDI Chart -->
+                        <div class="flex flex-col gap-2">
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Mean CTDIvol (mGy)</h4>
+                            <div class="chart-container h-[300px]">
+                                <canvas id="meanCtdiChart"></canvas>
+                            </div>
+                        </div>
+                        <!-- Mean DLP Chart -->
+                        <div class="flex flex-col gap-2">
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Mean DLP (mGy.cm)</h4>
+                            <div class="chart-container h-[300px]">
+                                <canvas id="meanDlpChart"></canvas>
                             </div>
                         </div>
                      </div>
@@ -849,6 +877,8 @@
         let timeSeriesChartInstance = null;
         let p75ChartInstance = null;
         let p50ChartInstance = null;
+        let meanCtdiChartInstance = null;
+        let meanDlpChartInstance = null;
 
         const el = (id) => document.getElementById(id);
 
@@ -1329,6 +1359,8 @@
             if (timeSeriesChartInstance) timeSeriesChartInstance.destroy();
             if (p75ChartInstance) p75ChartInstance.destroy();
             if (p50ChartInstance) p50ChartInstance.destroy();
+            if (meanCtdiChartInstance) meanCtdiChartInstance.destroy();
+            if (meanDlpChartInstance) meanDlpChartInstance.destroy();
 
             const isGuest = !user || user.isAnonymous;
             const chartsLock = el('chartsLock');
@@ -1437,12 +1469,32 @@
                 }
             });
 
-            // 5 & 6. NEW: Grouped Stats (P75 & P50)
+            // 5 & 6. NEW: Grouped Stats (P75 & P50 & Mean)
             const groupBy = el('statsGroupBy').value || 'hospitalName';
             const groupedData = {};
             chartData.forEach(e => {
                 let key = e[groupBy];
-                if (groupBy === 'gender') key = normalizeGender(key) === 'M' ? 'Nam' : 'Nữ';
+                
+                // Normalization Logic for Manufacturer
+                if (groupBy === 'manufacturer') {
+                    key = key ? key.trim() : 'N/A'; // Trim first
+                    if (key.toLowerCase().startsWith('ge ') || key.toUpperCase() === 'GE') key = 'GE HealthCare';
+                } else if (groupBy === 'gender') {
+                    key = normalizeGender(key) === 'M' ? 'Nam' : 'Nữ';
+                } else if (groupBy === 'bmi') {
+                     const h = parseFloat(e.height)/100;
+                     const w = parseFloat(e.weight);
+                     if (h > 0 && w > 0) {
+                         const bmi = w/(h*h);
+                         if (bmi < 18.5) key = 'Gầy (<18.5)';
+                         else if (bmi < 23) key = 'Bình thường (18.5-22.9)';
+                         else if (bmi < 25) key = 'Thừa cân (23-24.9)';
+                         else key = 'Béo phì (≥25)';
+                     } else {
+                         key = 'N/A';
+                     }
+                }
+
                 if (!key) key = 'N/A';
                 if (!groupedData[key]) groupedData[key] = { ctdi: [], dlp: [] };
                 if (e.ctdi) groupedData[key].ctdi.push(parseFloat(e.ctdi));
@@ -1450,7 +1502,7 @@
             });
 
             const groupLabels = Object.keys(groupedData).sort();
-            const p75Ctdi = [], p75Dlp = [], p50Ctdi = [], p50Dlp = [];
+            const p75Ctdi = [], p75Dlp = [], p50Ctdi = [], p50Dlp = [], meanCtdi = [], meanDlp = [];
 
             groupLabels.forEach(k => {
                 const cStats = calcStats(groupedData[k].ctdi);
@@ -1459,6 +1511,8 @@
                 p75Dlp.push(dStats.p75);
                 p50Ctdi.push(cStats.median);
                 p50Dlp.push(dStats.median);
+                meanCtdi.push(cStats.mean);
+                meanDlp.push(dStats.mean);
             });
 
             // P75 Chart Config
@@ -1497,6 +1551,42 @@
                     scales: {
                         y: { type: 'linear', display: true, position: 'left', title: {display: true, text: 'CTDIvol (mGy)'} },
                         y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, title: {display: true, text: 'DLP (mGy.cm)'} }
+                    }
+                }
+            });
+
+            // Mean CTDI Chart Config
+            meanCtdiChartInstance = new Chart(el('meanCtdiChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: groupLabels,
+                    datasets: [
+                        { label: 'Mean CTDIvol (mGy)', data: meanCtdi, backgroundColor: 'rgba(14, 165, 233, 0.7)' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, title: {display: true, text: 'mGy'} }
+                    }
+                }
+            });
+
+            // Mean DLP Chart Config
+            meanDlpChartInstance = new Chart(el('meanDlpChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: groupLabels,
+                    datasets: [
+                        { label: 'Mean DLP (mGy.cm)', data: meanDlp, backgroundColor: 'rgba(245, 158, 11, 0.7)' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, title: {display: true, text: 'mGy.cm'} }
                     }
                 }
             });
