@@ -503,11 +503,17 @@
         });
 
         const ImageSlot = React.memo(({ imgData, index, isActive, onClick }) => {
-            const imgStyle = { 
+            // Use background-image to fix html2canvas object-fit issues
+            const slotStyle = { 
+                backgroundImage: imgData.url ? `url(${imgData.url})` : 'none',
+                backgroundSize: imgData.objectFit || 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
                 transform: `scale(${imgData.scale}) translate(${imgData.x}px, ${imgData.y}px)`, 
                 filter: `brightness(${imgData.brightness}%) contrast(${imgData.contrast}%) invert(${imgData.invert ? 1 : 0})`, 
-                objectFit: imgData.objectFit || 'cover',
-                cursor: 'move' 
+                cursor: 'move',
+                width: '100%',
+                height: '100%'
             };
             
             return (
@@ -517,12 +523,12 @@
                 >
                     <div className="flex-grow relative overflow-hidden flex items-center justify-center group w-full h-full">
                         {imgData.url ? 
-                            <img src={imgData.url} className="w-full h-full block" style={imgStyle} draggable={false} /> : 
+                            <div style={slotStyle} className="w-full h-full" /> : 
                             <div className="text-slate-700 flex flex-col items-center p-4 text-center">
                                 <Icons.Image size={24} className="mb-1 opacity-20"/>
                             </div>
                         }
-                        <div className="absolute top-1 left-1 bg-black/60 text-white text-[8px] w-4 h-4 flex items-center justify-center rounded font-bold backdrop-blur-sm shadow-sm z-20">{index + 1}</div>
+                        <div className="absolute top-1 left-1 bg-black/60 text-white text-[8px] w-4 h-4 flex items-center justify-center rounded font-bold backdrop-blur-sm shadow-sm z-20 pointer-events-none">{index + 1}</div>
                     </div>
                 </div>
             );
@@ -573,6 +579,7 @@
             
             const exportRef = useRef(null);
             const previewContainerRef = useRef(null);
+            const prevFontSizeRef = useRef(13); // Initialize with default
 
             useEffect(() => { const unsub = onAuthStateChanged(auth, u => setUser(u)); return () => unsub(); }, []);
             useEffect(() => { localStorage.setItem('med_content', JSON.stringify(content)); }, [content]);
@@ -603,6 +610,26 @@
                 window.addEventListener('resize', handleResize);
                 return () => window.removeEventListener('resize', handleResize);
             }, [containerDims, layoutMode]);
+
+            useLayoutEffect(() => {
+                if (!exportRef.current) return;
+                
+                // Check overflow
+                const wrappers = exportRef.current.querySelectorAll('.text-block-wrapper');
+                let isOverflow = false;
+                for (let el of wrappers) {
+                    if (el.scrollHeight > el.clientHeight + 1) { // +1 buffer
+                        isOverflow = true;
+                        break;
+                    }
+                }
+
+                if (isOverflow && bodyFontSize > prevFontSizeRef.current) {
+                    setBodyFontSize(prevFontSizeRef.current);
+                } else {
+                    prevFontSizeRef.current = bodyFontSize;
+                }
+            }, [bodyFontSize, content, layoutMode, gridDims]);
 
             const handleGridSelect = useCallback((r, c) => { 
                 setGridDims({ r, c }); 
@@ -891,7 +918,7 @@
                 const TextBlock = ({ content, size, sectionType = 'general', className = "" }) => {
                     const st = th.section[sectionType] || th.section.general;
                     return (
-                        <div className="w-full h-full overflow-hidden">
+                        <div className="w-full h-full overflow-hidden text-block-wrapper">
                              <p style={{ fontSize: `${size}px`, lineHeight: '1.5' }} className={`font-sans font-medium whitespace-pre-line ${st.text} ${className}`}>{content}</p>
                         </div>
                     );
@@ -917,11 +944,11 @@
                 // FIXED Patient Info Box (Modern Layout Adjusted) - Split into 2 small boxes
                 const PatientInfoBox = () => (
                     <div className={`h-full w-full flex items-center px-4 rounded-lg border ${th.section.general.bg} ${th.border} overflow-hidden`}>
-                        <div className="flex-1 border-r border-slate-700/50 pr-2 flex flex-col justify-center">
+                        <div className="flex-1 border-r border-slate-700/50 pr-2 flex flex-col justify-center overflow-hidden text-block-wrapper">
                              <div className={`text-[8px] uppercase opacity-70 mb-1 ${th.textDim}`}>Tuổi</div>
                              <div style={{ fontSize: `${bodyFontSize * 1.5}px` }} className={`font-bold ${th.text}`}>{content.age}</div>
                         </div>
-                        <div className="flex-1 pl-4 flex flex-col justify-center">
+                        <div className="flex-1 pl-4 flex flex-col justify-center overflow-hidden text-block-wrapper">
                              <div className={`text-[8px] uppercase opacity-70 mb-1 ${th.textDim}`}>Giới</div>
                              <div style={{ fontSize: `${bodyFontSize * 1.5}px` }} className={`font-bold ${th.text}`}>{content.gender}</div>
                         </div>
@@ -946,14 +973,14 @@
                                      </div>
                                  </div>
                                  {/* Col 2: Tech */}
-                                 <div className={`w-[35%] flex flex-col border-r ${th.border} pr-3 overflow-hidden`}>
+                                 <div className={`w-[35%] flex flex-col border-r ${th.border} pr-3 overflow-hidden text-block-wrapper`}>
                                      <SectionTitle icon={Icons.PenTool} title="Kỹ thuật" sectionType="tech"/>
-                                     <p style={{ fontSize: `${bodyFontSize}px` }} className={`leading-snug line-clamp-4 ${th.section.tech.text}`}>{content.techDescription}</p>
+                                     <p style={{ fontSize: `${bodyFontSize}px` }} className={`leading-snug ${th.section.tech.text}`}>{content.techDescription}</p>
                                  </div>
                                  {/* Col 3: Diagnosis */}
-                                 <div className="w-[35%] flex flex-col overflow-hidden">
+                                 <div className="w-[35%] flex flex-col overflow-hidden text-block-wrapper">
                                      <SectionTitle icon={Icons.Check} title="Chẩn đoán" sectionType="conclusion"/>
-                                     <p style={{ fontSize: `${bodyFontSize}px` }} className={`font-bold leading-snug line-clamp-4 ${th.section.conclusion.text}`}>{content.conclusion}</p>
+                                     <p style={{ fontSize: `${bodyFontSize}px` }} className={`font-bold leading-snug ${th.section.conclusion.text}`}>{content.conclusion}</p>
                                  </div>
                              </div>
                         </Container>
@@ -1083,22 +1110,30 @@
                                              <div className="w-[40%] h-full overflow-hidden shrink-0"><PatientInfoBox/></div>
                                              <div className={`w-[60%] h-full p-4 rounded border overflow-hidden flex flex-col ${th.section.clinical.bg} ${th.section.clinical.border}`}>
                                                 <h3 className={`text-[10px] font-bold uppercase mb-1 flex-shrink-0 ${th.section.clinical.icon}`}>Lâm sàng</h3>
-                                                <p style={{ fontSize: `${bodyFontSize}px` }} className={`${th.section.clinical.text} overflow-hidden`}>{content.clinicalInfo}</p>
+                                                <div className="flex-1 overflow-hidden text-block-wrapper">
+                                                    <p style={{ fontSize: `${bodyFontSize}px`, lineHeight: '1.5' }} className={`font-sans font-medium whitespace-pre-line ${th.section.clinical.text}`}>{content.clinicalInfo}</p>
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="h-[38%] flex gap-4 overflow-hidden shrink-0">
                                             <div className={`w-[70%] h-full p-4 rounded border overflow-hidden flex flex-col ${th.section.tech.bg} ${th.section.tech.border}`}>
                                                 <h3 className={`text-[10px] font-bold uppercase mb-1 flex-shrink-0 ${th.section.tech.icon}`}>Kỹ thuật</h3>
-                                                <p style={{ fontSize: `${bodyFontSize}px` }} className={`${th.section.tech.text} overflow-hidden`}>{content.techDescription}</p>
+                                                <div className="flex-1 overflow-hidden text-block-wrapper">
+                                                    <p style={{ fontSize: `${bodyFontSize}px`, lineHeight: '1.5' }} className={`font-sans font-medium whitespace-pre-line ${th.section.tech.text}`}>{content.techDescription}</p>
+                                                </div>
                                             </div>
                                             <div className={`w-[30%] h-full p-4 rounded border overflow-hidden flex flex-col ${th.section.injection.bg} ${th.section.injection.border}`}>
                                                 <h3 className={`text-[10px] font-bold uppercase mb-1 flex-shrink-0 ${th.section.injection.icon}`}>Thuốc</h3>
-                                                <p style={{ fontSize: `${bodyFontSize}px` }} className={`${th.section.injection.text} overflow-hidden`}>{content.injectionInfo}</p>
+                                                <div className="flex-1 overflow-hidden text-block-wrapper">
+                                                    <p style={{ fontSize: `${bodyFontSize}px`, lineHeight: '1.5' }} className={`font-sans font-medium whitespace-pre-line ${th.section.injection.text}`}>{content.injectionInfo}</p>
+                                                </div>
                                             </div>
                                         </div>
                                         <div className={`flex-grow overflow-hidden flex flex-col p-3 rounded border ${th.section.highlights.bg} ${th.section.highlights.border}`}>
                                             <h3 className={`text-[10px] font-bold uppercase mb-2 flex-shrink-0 ${th.section.highlights.icon}`}>Đặc điểm hình ảnh</h3>
-                                            <p style={{ fontSize: `${bodyFontSize}px` }} className={`${th.section.highlights.text} leading-relaxed whitespace-pre-line pl-1 overflow-hidden`}>{content.highlights}</p>
+                                            <div className="flex-1 overflow-hidden text-block-wrapper">
+                                                <p style={{ fontSize: `${bodyFontSize}px`, lineHeight: '1.5' }} className={`font-sans font-medium whitespace-pre-line ${th.section.highlights.text}`}>{content.highlights}</p>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className={`mt-6 pt-6 border-t ${th.border} flex-shrink-0`}>
