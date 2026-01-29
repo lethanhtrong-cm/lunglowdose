@@ -964,7 +964,6 @@
         import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ... (Javascript logic remains identical to previous version, just adding About Modal logic below)
         const currentYear = 2026;
         const ADMIN_PASSWORD = "ktv3mien"; 
         
@@ -997,6 +996,8 @@
         let currentPage = 1, rowsPerPage = 10;
         let isLoginMode = true;
         let editingRowId = null; 
+        let dataUnsubscribe = null; // Quản lý listener dữ liệu
+        let presenceInterval = null; // Quản lý interval online
         
         // Chart instances
         let progressChartInstance = null;
@@ -1753,7 +1754,7 @@
                 const scatterData = scatterDataRaw.map(e => ({ x: parseFloat(e.weight), y: parseFloat(e[yKey]), protocol: e.protocol }));
                 const trendlineData = calculateLinearRegression(scatterData);
                 const pointColors = scatterData.map(d => getContrastColor(d.protocol));
-                return new Chart(ctx, { type: 'scatter', data: { datasets: [ { label: 'Ca chụp', data: scatterData, backgroundColor: pointColors, pointRadius: 5, pointHoverRadius: 7, order: 2 }, { label: 'Xu hướng (Trendline)', data: trendlineData, type: 'line', borderColor: 'rgba(100, 116, 139, 0.8)', borderDash: [5, 5], borderWidth: 2, pointRadius: 0, fill: false, order: 1, tooltip: { enabled: false } } ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true }, tooltip: { callbacks: { label: (ctx) => { if (ctx.datasetIndex === 1) return null; return `(${ctx.raw.x}kg, ${ctx.raw.y}) [${ctx.raw.protocol}]`; } } } }, scales: { x: { title: {display: true, text: 'Cân nặng (Kg)'} }, y: { title: {display: true, text: labelY} } } } });
+                return new Chart(ctx, { type: 'scatter', data: { datasets: [ { label: 'Ca chụp', data: scatterData, backgroundColor: pointColors, pointRadius: 5, pointHoverRadius: 7, order: 2 }, { label: 'Xu hướng (Trendline)', data: trendlineData, type: 'line', borderColor: 'rgba(100, 116, 139, 0.8)', borderDash: [5, 5], borderWidth: 2, pointRadius: 0, fill: false, order: 1, tooltip: { enabled: false } } ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true }, tooltip: { callbacks: { label: (ctx) => { if (ctx.datasetIndex === 1) return null; return `(${ctx.raw.x}kg, ${ctx.raw.y}) [${ctx.raw.protocol}]`; } } } }, scales: { x: { title: {display: true, text: 'Cân nặng (Kg)'} }, y: { title: {display: true, text: 'CTDIvol (mGy)'}, type: 'linear', position: 'left' } } } });
             };
             scatterCtdiChartInstance = createScatter(el('scatterCtdiChart').getContext('2d'), 'ctdi', 'CTDIvol (mGy)', 'scatterFilterProtocol_CTDI', 'scatterFilterHospital_CTDI');
             scatterDlpChartInstance = createScatter(el('scatterDlpChart').getContext('2d'), 'dlp', 'DLP (mGy.cm)', 'scatterFilterProtocol_DLP', 'scatterFilterHospital_DLP');
@@ -1770,6 +1771,50 @@
         const multiStatM = el('multiStatMetric'); if(multiStatM) multiStatM.onchange = renderCharts;
         ['meanFilterHospital', 'meanFilterProtocol', 'meanFilterManufacturer', 'meanFilterGender'].forEach(id => { const e = el(id); if(e) e.onchange = renderCharts; });
         el('btnRefreshMeanChart').onclick = () => { ['meanFilterHospital', 'meanFilterProtocol', 'meanFilterManufacturer', 'meanFilterGender'].forEach(id => el(id).value = 'all'); renderCharts(); };
+
+        await setPersistence(auth, browserLocalPersistence);
+        onAuthStateChanged(auth, async (u) => {
+            user = u;
+            if (u) {
+                el('sessionUserEmail').textContent = u.email || "Guest User";
+                el('navLoginBtn').classList.toggle('hidden', !u.isAnonymous);
+                el('userMenu').classList.toggle('hidden', u.isAnonymous);
+                el('formLockOverlay').classList.toggle('hidden', !u.isAnonymous);
+                
+                if(!u.isAnonymous && el('welcomeBanner').classList.contains('hidden')) {
+                     el('welcomeBanner').classList.remove('hidden');
+                }
+
+                updatePresence(u);
+                if(presenceInterval) clearInterval(presenceInterval);
+                presenceInterval = setInterval(() => updatePresence(user), 60000); 
+
+                renderDashboard(); // Force UI unlock immediately
+
+                if(dataUnsubscribe) dataUnsubscribe(); // Cleanup old listener
+                dataUnsubscribe = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), (snap) => {
+                    entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    entries.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+                    updateHospitalDropdowns(); 
+                    renderDashboard(); 
+                    if (!el('charts-tab').classList.contains('hidden')) {
+                        populateChartFilters();
+                        renderCharts(); 
+                    }
+                });
+            } else { 
+                isAdmin = false;
+                updateAdminUI();
+                if(dataUnsubscribe) dataUnsubscribe();
+                await signInAnonymously(auth); 
+            }
+        });
+
+        setupPresenceListener();
+
+        el('logoutBtn').onclick = async (e) => { e.preventDefault(); await signOut(auth); location.reload(); };
+        el('cancelEditBtn').onclick = () => { el('editEntryId').value = ""; el('submitBtnText').textContent = "Lưu Dữ Liệu"; el('cancelEditBtn').classList.add('hidden'); el('drlForm').reset(); updateHospitalDropdowns(); };
+        lucide.createIcons();
     </script>
 </body>
 </html>
