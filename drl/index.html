@@ -749,20 +749,35 @@
 
                 <!-- NEW: Mean Stats Row -->
                 <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-sky-100 bg-white col-span-1 lg:col-span-2">
-                      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-sky-600 p-2 rounded-xl text-white"><i data-lucide="activity" class="w-5 h-5"></i></div>
-                            <h3 class="section-label text-sky-900 text-sm">Phân tích Giá trị Trung bình (Mean)</h3>
+                      <div class="flex flex-col gap-4 mb-6">
+                        <div class="flex flex-wrap items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-sky-600 p-2 rounded-xl text-white"><i data-lucide="activity" class="w-5 h-5"></i></div>
+                                <h3 class="section-label text-sky-900 text-sm">Phân tích Giá trị Trung bình (Mean)</h3>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[9px] font-bold text-slate-500 uppercase">Phân nhóm (Trục X):</span>
+                                <select id="meanStatsGroupBy" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-sky-500">
+                                    <option value="protocol">Bộ phận</option>
+                                    <option value="hospitalName">Bệnh viện</option>
+                                    <option value="manufacturer">Hãng máy</option>
+                                    <option value="gender">Giới tính</option>
+                                    <option value="bmi">BMI</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-[9px] font-bold text-slate-500 uppercase">Phân nhóm theo:</span>
-                            <select id="meanStatsGroupBy" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-sky-500">
-                                <option value="protocol">Bộ phận</option>
-                                <option value="hospitalName">Bệnh viện</option>
-                                <option value="gender">Giới tính</option>
-                                <option value="manufacturer">Hãng máy</option>
-                                <option value="bmi">BMI</option>
+                        <!-- New Filter Row -->
+                        <div class="flex flex-wrap items-center gap-2 p-3 bg-sky-50/50 rounded-2xl border border-sky-100">
+                            <span class="text-[9px] font-black text-sky-700 uppercase mr-1"><i data-lucide="filter" class="w-3 h-3 inline mb-0.5"></i> Lọc dữ liệu:</span>
+                            <select id="meanFilterHospital" class="px-2 py-1.5 text-[10px] border border-slate-200 rounded-lg bg-white font-bold outline-none focus:ring-1 focus:ring-sky-500 max-w-[150px]"></select>
+                            <select id="meanFilterProtocol" class="px-2 py-1.5 text-[10px] border border-slate-200 rounded-lg bg-white font-bold outline-none focus:ring-1 focus:ring-sky-500"></select>
+                            <select id="meanFilterManufacturer" class="px-2 py-1.5 text-[10px] border border-slate-200 rounded-lg bg-white font-bold outline-none focus:ring-1 focus:ring-sky-500"></select>
+                            <select id="meanFilterGender" class="px-2 py-1.5 text-[10px] border border-slate-200 rounded-lg bg-white font-bold outline-none focus:ring-1 focus:ring-sky-500">
+                                <option value="all">Tất cả giới tính</option>
+                                <option value="M">Nam</option>
+                                <option value="F">Nữ</option>
                             </select>
+                            <button id="btnRefreshMeanChart" class="p-1.5 bg-white text-sky-600 border border-sky-200 rounded-lg hover:bg-sky-100 transition-colors" title="Đặt lại"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i></button>
                         </div>
                       </div>
                       
@@ -1390,7 +1405,7 @@
                 manufacturers.forEach(m => manuSelect.innerHTML += `<option value="${m}">${m}</option>`);
             }
 
-            // Scatter Filters - Now include Hospital
+            // Scatter Filters
             ['scatterFilterProtocol_CTDI', 'scatterFilterProtocol_DLP'].forEach(id => {
                 const s = el(id);
                 if (s && s.options.length === 0) {
@@ -1398,7 +1413,6 @@
                       protocols.forEach(p => s.innerHTML += `<option value="${p}">${p}</option>`);
                 }
             });
-            
              ['scatterFilterHospital_CTDI', 'scatterFilterHospital_DLP'].forEach(id => {
                 const s = el(id);
                 if (s && s.options.length === 0) {
@@ -1406,6 +1420,24 @@
                       hospitals.forEach(h => s.innerHTML += `<option value="${h}">${h}</option>`);
                 }
             });
+
+            // --- MEAN Chart Filters ---
+            const mHosp = el('meanFilterHospital');
+            const mProt = el('meanFilterProtocol');
+            const mManu = el('meanFilterManufacturer');
+            
+            if (mHosp && mHosp.options.length === 0) {
+                mHosp.innerHTML = '<option value="all">Tất cả Bệnh viện</option>';
+                hospitals.forEach(h => mHosp.innerHTML += `<option value="${h}">${h}</option>`);
+            }
+            if (mProt && mProt.options.length === 0) {
+                mProt.innerHTML = '<option value="all">Tất cả Bộ phận</option>';
+                protocols.forEach(p => mProt.innerHTML += `<option value="${p}">${p}</option>`);
+            }
+            if (mManu && mManu.options.length === 0) {
+                mManu.innerHTML = '<option value="all">Tất cả Hãng máy</option>';
+                manufacturers.forEach(m => mManu.innerHTML += `<option value="${m}">${m}</option>`);
+            }
         }
 
         // --- NEW: Download Chart Helper ---
@@ -1606,7 +1638,7 @@
                 }
             });
 
-            // --- 2. STATS LOGIC (P75/P50/Mean) - Uses FULL Dataset (entries) ---
+            // --- 2. STATS LOGIC (P75/P50) ---
             const groupByStats = el('statsGroupBy').value || 'hospitalName';
             const groupedDataStats = {};
             entries.forEach(e => {
@@ -1639,10 +1671,23 @@
             p75ChartInstance = new Chart(el('p75Chart').getContext('2d'), { type: 'bar', data: { labels: statsLabels, datasets: [{ label: 'CTDIvol (mGy)', data: p75Ctdi, yAxisID: 'y', backgroundColor: 'rgba(99, 102, 241, 0.7)' }, { label: 'DLP (mGy.cm)', data: p75Dlp, yAxisID: 'y1', type: 'line', borderColor: 'rgba(249, 115, 22, 1)', backgroundColor: 'rgba(249, 115, 22, 0.5)', borderWidth: 2, pointStyle: 'circle' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { type: 'linear', display: true, position: 'left', title: {display: true, text: 'CTDIvol'} }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, title: {display: true, text: 'DLP'} } } } });
             p50ChartInstance = new Chart(el('p50Chart').getContext('2d'), { type: 'bar', data: { labels: statsLabels, datasets: [{ label: 'CTDIvol (mGy)', data: p50Ctdi, yAxisID: 'y', backgroundColor: 'rgba(16, 185, 129, 0.7)' }, { label: 'DLP (mGy.cm)', data: p50Dlp, yAxisID: 'y1', type: 'line', borderColor: 'rgba(236, 72, 153, 1)', backgroundColor: 'rgba(236, 72, 153, 0.5)', borderWidth: 2, pointStyle: 'circle' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { type: 'linear', display: true, position: 'left', title: {display: true, text: 'CTDIvol'} }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, title: {display: true, text: 'DLP'} } } } });
 
-            // --- 3. MEAN STATS LOGIC - Uses FULL Dataset ---
+            // --- 3. MEAN STATS LOGIC - With Filters ---
             const groupByMean = el('meanStatsGroupBy').value || 'protocol';
+            const mFilterH = el('meanFilterHospital')?.value || 'all';
+            const mFilterP = el('meanFilterProtocol')?.value || 'all';
+            const mFilterM = el('meanFilterManufacturer')?.value || 'all';
+            const mFilterG = el('meanFilterGender')?.value || 'all';
+
+            const filteredMeanEntries = entries.filter(e => {
+                if (mFilterH !== 'all' && e.hospitalName !== mFilterH) return false;
+                if (mFilterP !== 'all' && e.protocol !== mFilterP) return false;
+                if (mFilterM !== 'all' && e.manufacturer !== mFilterM) return false;
+                if (mFilterG !== 'all' && normalizeGender(e.gender) !== mFilterG) return false;
+                return true;
+            });
+
             const groupedDataMean = {};
-            entries.forEach(e => {
+            filteredMeanEntries.forEach(e => {
                 let key = e[groupByMean];
                 if (groupByMean === 'manufacturer') { key = key ? key.trim() : 'N/A'; if (key.toLowerCase().startsWith('ge ') || key.toUpperCase() === 'GE') key = 'GE HealthCare'; } 
                 else if (groupByMean === 'gender') { key = normalizeGender(key) === 'M' ? 'Nam' : 'Nữ'; }
@@ -1754,6 +1799,15 @@
         const stGroup = el('statsGroupBy'); if(stGroup) stGroup.onchange = renderCharts;
         const mStGroup = el('meanStatsGroupBy'); if(mStGroup) mStGroup.onchange = renderCharts;
         const multiMet = el('multiCompMetric'); if(multiMet) multiMet.onchange = renderCharts;
+        
+        // Mean Filter Listeners
+        ['meanFilterHospital', 'meanFilterProtocol', 'meanFilterManufacturer', 'meanFilterGender'].forEach(id => {
+            const e = el(id); if(e) e.onchange = renderCharts;
+        });
+        el('btnRefreshMeanChart').onclick = () => {
+             ['meanFilterHospital', 'meanFilterProtocol', 'meanFilterManufacturer', 'meanFilterGender'].forEach(id => el(id).value = 'all');
+             renderCharts();
+        };
 
 
         // --- NEW: Export Excel Logic ---
