@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Nghiên cứu mức tham chiếu chẩn đoán quốc gia (VN-DRL) cho Cắt lớp vi tính.">
     <title>VN-DRL Study - Phân tích Độc lập & Chính xác</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -62,7 +63,8 @@
             gap: 2.5rem; /* Tăng khoảng cách dọc giữa các hàng dashboard */
             position: relative;
         }
-        .glass-card { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05); }
+        .glass-card { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .glass-card:hover { transform: translateY(-2px); box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1); } /* Hover effect added */
         .glass-input { background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.08); color: #1e293b; transition: all 0.3s ease; }
         .glass-input:focus { border-color: #4f46e5; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); outline: none; }
         .section-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: #64748b; }
@@ -134,10 +136,45 @@
             text-align: center;
             padding: 2rem;
         }
+        
+        /* Modal Animation */
+        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .modal-content { animation: modalFadeIn 0.2s ease-out; }
     </style>
 </head>
 <body class="antialiased font-inter text-slate-900">
     <div class="mesh-bg"></div>
+
+    <!-- About Modal (New) -->
+    <div id="aboutModal" class="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-2xl p-8 shadow-2xl modal-content border border-indigo-50 relative max-h-[90vh] overflow-y-auto">
+            <button id="closeAboutModal" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <div class="flex items-center gap-4 mb-6">
+                <div class="bg-indigo-100 p-3 rounded-2xl text-indigo-600"><i data-lucide="info" class="w-6 h-6"></i></div>
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900 uppercase">Về dự án VN-DRL</h2>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Vietnam Diagnostic Reference Levels</p>
+                </div>
+            </div>
+            <div class="space-y-6 text-sm text-slate-600 leading-relaxed">
+                <div>
+                    <h3 class="font-bold text-slate-900 flex items-center gap-2 mb-2"><i data-lucide="target" class="w-4 h-4 text-indigo-500"></i> Mục tiêu</h3>
+                    <p>Dự án nhằm mục đích thu thập và phân tích dữ liệu liều chiếu xạ trong Cắt lớp vi tính (CT) tại Việt Nam, hướng tới việc thiết lập <strong>Mức tham chiếu chẩn đoán quốc gia (National DRLs)</strong>. Điều này giúp tối ưu hóa an toàn bức xạ cho bệnh nhân theo nguyên tắc ALARA.</p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-900 flex items-center gap-2 mb-2"><i data-lucide="book-open" class="w-4 h-4 text-indigo-500"></i> Phương pháp & Tiêu chuẩn</h3>
+                    <p>Hệ thống sử dụng các chỉ số <strong>CTDIvol</strong> và <strong>DLP</strong> làm thước đo chính. Dữ liệu được so sánh thời gian thực với các chuẩn tham chiếu quốc tế (như Thailand NDRL 2019, ICRP 135) để đưa ra cảnh báo và khuyến nghị.</p>
+                </div>
+                <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                    <h3 class="font-bold text-indigo-900 flex items-center gap-2 mb-2"><i data-lucide="shield-check" class="w-4 h-4 text-indigo-600"></i> Bảo mật & Riêng tư</h3>
+                    <p class="text-xs">Dữ liệu bệnh nhân được <strong>ẩn danh hoàn toàn</strong> (không thu thập tên, địa chỉ). ID bệnh nhân chỉ được sử dụng nội bộ để tránh trùng lặp bản ghi. Mọi dữ liệu chỉ phục vụ mục đích nghiên cứu khoa học và quản lý chất lượng.</p>
+                </div>
+            </div>
+            <div class="mt-8 pt-6 border-t border-slate-100 text-center">
+                <button id="closeAboutBtn" class="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold uppercase text-xs hover:bg-slate-800 transition-colors">Đã hiểu</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Auth Modals -->
     <div id="authModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md hidden p-4">
@@ -186,6 +223,7 @@
             <div class="flex items-center gap-2 md:gap-4">
                 <div class="bg-indigo-600 p-2 md:p-2.5 rounded-xl md:rounded-2xl text-white shadow-lg"><i data-lucide="activity" class="w-4 h-4 md:w-6 md:h-6"></i></div>
                 <div><h1 class="text-xs md:text-xl font-black tracking-tighter text-slate-900 uppercase">VN-DRL <span class="text-indigo-600">STUDY</span></h1></div>
+                <span class="px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-md text-[8px] font-black uppercase tracking-wider border border-indigo-100 hidden md:inline-block">Beta</span>
             </div>
             <div class="flex items-center gap-1 md:gap-4 overflow-x-auto">
                 <button onclick="switchTab('main-tab')" id="btn-main-tab" class="tab-btn active px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
@@ -199,6 +237,10 @@
                 </button>
             </div>
             <div class="flex items-center gap-2">
+                <button id="aboutBtn" class="w-8 h-8 md:w-10 md:h-10 bg-slate-50 text-slate-500 border border-slate-100 rounded-xl md:rounded-2xl flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-all" title="Thông tin dự án">
+                    <i data-lucide="info" class="w-4 h-4"></i>
+                </button>
+
                 <div class="relative">
                     <button id="onlineMenuBtn" class="w-8 h-8 md:w-10 md:h-10 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl md:rounded-2xl flex items-center justify-center hover:bg-indigo-100 relative transition-all">
                         <span class="relative flex h-2 w-2">
@@ -242,7 +284,19 @@
 
     <div id="main-tab" class="tab-content app-layout">
         <div class="section-container">
-            <!-- NEW: Progress Chart Section moved here (Top Level) -->
+            <!-- Banner Welcome (New) -->
+            <div id="welcomeBanner" class="hidden glass-card p-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg mb-2 relative">
+                <button onclick="el('welcomeBanner').classList.add('hidden')" class="absolute top-2 right-2 text-white/60 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 p-2 rounded-xl"><i data-lucide="sparkles" class="w-5 h-5"></i></div>
+                    <div>
+                        <h3 class="text-sm font-bold">Chào mừng đến với VN-DRL Study!</h3>
+                        <p class="text-[10px] opacity-90">Nền tảng phân tích mức tham chiếu chẩn đoán quốc gia đầu tiên.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Chart Section -->
             <div id="progressChartSection" class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-slate-100 bg-white hidden">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-3">
@@ -310,10 +364,14 @@
                             <div class="space-y-4 dose-highlight-box p-6 rounded-[2.5rem]">
                                 <label class="text-[10px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-2"><i data-lucide="zap" class="w-3 h-3 fill-amber-500"></i> Thông số liều</label>
                                 <div class="space-y-4">
-                                    <div class="space-y-1.5"><label class="text-[9px] md:text-[10px] font-black text-amber-600 uppercase ml-2">CTDIvol (mGy)</label><input type="number" step="0.01" id="ctdi" placeholder="0.00" class="w-full px-4 py-3 bg-white border-2 border-amber-300 rounded-xl text-2xl font-black text-amber-600 text-center focus:border-amber-500 outline-none transition-all" min="0"></div>
-                                    <div class="space-y-1.5"><label class="text-[9px] md:text-[10px] font-black text-amber-600 uppercase ml-2">DLP (mGy.cm)</label><input type="number" step="0.1" id="dlp" placeholder="0.0" class="w-full px-4 py-3 bg-white border-2 border-amber-300 rounded-xl text-2xl font-black text-amber-600 text-center focus:border-amber-500 outline-none transition-all" min="0"></div>
+                                    <div class="space-y-1.5"><label class="text-[9px] md:text-[10px] font-black text-amber-600 uppercase ml-2 flex items-center gap-1">CTDIvol (mGy) <i data-lucide="help-circle" class="w-3 h-3 text-amber-400 cursor-help" title="Computed Tomography Dose Index volume"></i></label><input type="number" step="0.01" id="ctdi" placeholder="0.00" class="w-full px-4 py-3 bg-white border-2 border-amber-300 rounded-xl text-2xl font-black text-amber-600 text-center focus:border-amber-500 outline-none transition-all" min="0"></div>
+                                    <div class="space-y-1.5"><label class="text-[9px] md:text-[10px] font-black text-amber-600 uppercase ml-2 flex items-center gap-1">DLP (mGy.cm) <i data-lucide="help-circle" class="w-3 h-3 text-amber-400 cursor-help" title="Dose Length Product"></i></label><input type="number" step="0.1" id="dlp" placeholder="0.0" class="w-full px-4 py-3 bg-white border-2 border-amber-300 rounded-xl text-2xl font-black text-amber-600 text-center focus:border-amber-500 outline-none transition-all" min="0"></div>
                                 </div>
                             </div>
+                        </div>
+                        <div class="px-6 py-2 bg-emerald-50 border-t border-emerald-100 flex items-center justify-center gap-2">
+                            <i data-lucide="shield" class="w-3 h-3 text-emerald-600"></i>
+                            <span class="text-[8px] font-bold text-emerald-600 uppercase tracking-wider">Dữ liệu ẩn danh & Bảo mật</span>
                         </div>
                         <div class="p-4 md:p-6 border-t border-slate-100 bg-white/80"><div class="flex gap-3"><button type="button" id="cancelEditBtn" class="hidden flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-black text-[10px] uppercase">Hủy</button><button type="submit" id="submitBtn" class="flex-[3] py-4 bg-indigo-600 text-white rounded-xl font-black text-[11px] uppercase shadow-xl transition-all active:scale-95"><span id="submitBtnText">Lưu Dữ Liệu</span></button></div></div>
                     </form>
@@ -334,6 +392,7 @@
                     </div>
 
                     <div id="dashboardContent" class="flex flex-col gap-10">
+                        <!-- Filters -->
                         <div class="glass-card rounded-[2rem] p-4 md:p-6 border border-indigo-100 shadow-xl flex flex-wrap items-end gap-4">
                             <!-- ... existing filters ... -->
                             <div class="flex-1 min-w-[150px] space-y-1.5">
@@ -422,7 +481,7 @@
                             <div class="glass-card p-8 rounded-[2.5rem] border-l-[8px] border-l-indigo-600 shadow-xl flex flex-col justify-between min-h-[220px] h-full">
                                 <div class="flex justify-between items-start">
                                     <p class="section-label text-indigo-600">CTDIvol (mGy)</p>
-                                    <div class="text-[9px] font-black px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg">p = <span id="pValCtdi">---</span></div>
+                                    <div class="text-[9px] font-black px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg" title="Giá trị P-value so sánh với chuẩn">p = <span id="pValCtdi">---</span></div>
                                 </div>
                                 <div>
                                     <div class="flex items-baseline gap-2 mt-2">
@@ -455,6 +514,7 @@
                             </div>
                         </div>
 
+                        <!-- ... other dashboard sections ... -->
                         <!-- RESTRUCTURED: Grid không đối xứng (1/3 và 2/3) cho hàng dưới -->
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
                             <!-- Cột trái: Tuổi & Cân nặng (Xếp chồng) -->
@@ -532,6 +592,7 @@
         </div>
     </div>
 
+    <!-- Data Tab Content (Same as before) -->
     <div id="data-tab" class="tab-content app-layout hidden">
         <div class="section-container relative">
             <div id="dataLock" class="hidden absolute inset-0 z-50 rounded-[2.5rem] overflow-hidden">
@@ -625,7 +686,7 @@
         </div>
     </div>
 
-    <!-- Charts Tab -->
+    <!-- Charts Tab Content (Same as before) -->
     <div id="charts-tab" class="tab-content app-layout hidden">
         <div class="section-container relative">
             <div id="chartsLock" class="hidden absolute inset-0 z-50 rounded-[2.5rem] overflow-hidden">
@@ -673,6 +734,7 @@
                             </div>
                         </div>
                     </div>
+                    <p class="mt-4 text-[10px] text-slate-400 italic text-center">Biểu đồ này giúp so sánh đối chuẩn giữa các cơ sở và hãng thiết bị để tìm ra sự tối ưu.</p>
                 </div>
 
                 <!-- NEW: Multi-dimensional P75/Median Analysis -->
@@ -749,7 +811,7 @@
                     </div>
                 </div>
 
-                <!-- NEW Grouped Stats Row -->
+                <!-- Grouped Stats Row -->
                 <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-orange-100 bg-white col-span-1 lg:col-span-2">
                       <!-- Header and Controls -->
                       <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -778,7 +840,7 @@
                       </div>
                 </div>
 
-                <!-- NEW: Mean Stats Row -->
+                <!-- Mean Stats Row -->
                 <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-sky-100 bg-white col-span-1 lg:col-span-2">
                       <div class="flex flex-col gap-4 mb-6">
                         <div class="flex flex-wrap items-center justify-between">
@@ -874,9 +936,21 @@
         </div>
     </div>
 
-    <footer class="relative z-50 w-full py-8 mt-12 bg-white/40 backdrop-blur-sm border-t border-white/20">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-            <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Team BQT KTV 3 Miền</p>
+    <!-- Enhanced Footer -->
+    <footer class="relative z-50 w-full py-8 mt-12 bg-white/60 backdrop-blur-md border-t border-white/20">
+        <div class="max-w-7xl mx-auto px-6 text-center space-y-4">
+            <div class="flex justify-center items-center gap-4">
+                <a href="#" class="text-[10px] font-bold text-slate-500 hover:text-indigo-600 uppercase tracking-widest transition-colors">Điều khoản sử dụng</a>
+                <span class="text-slate-300">•</span>
+                <a href="#" class="text-[10px] font-bold text-slate-500 hover:text-indigo-600 uppercase tracking-widest transition-colors">Chính sách bảo mật</a>
+                <span class="text-slate-300">•</span>
+                <a href="#" class="text-[10px] font-bold text-slate-500 hover:text-indigo-600 uppercase tracking-widest transition-colors">Liên hệ</a>
+            </div>
+            <p class="text-[9px] text-slate-400 font-medium">
+                Dữ liệu trên hệ thống này được thu thập cho mục đích nghiên cứu và thiết lập mức tham chiếu quốc gia.<br>
+                Mọi thông tin bệnh nhân đều được mã hóa và ẩn danh theo tiêu chuẩn y tế.
+            </p>
+            <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">© 2026 Team BQT KTV 3 Miền</p>
         </div>
     </footer>
 
@@ -890,6 +964,7 @@
         import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // ... (Javascript logic remains identical to previous version, just adding About Modal logic below)
         const currentYear = 2026;
         const ADMIN_PASSWORD = "ktv3mien"; 
         
@@ -969,6 +1044,11 @@
         el('userMenuBtn').onclick = (e) => { e.stopPropagation(); el('userDropdown').classList.toggle('hidden'); el('onlineDropdown').classList.add('hidden'); };
         el('onlineMenuBtn').onclick = (e) => { e.stopPropagation(); el('onlineDropdown').classList.toggle('hidden'); el('userDropdown').classList.add('hidden'); };
         document.body.onclick = () => { el('userDropdown').classList.add('hidden'); el('onlineDropdown').classList.add('hidden'); };
+
+        // NEW: About Modal Logic
+        el('aboutBtn').onclick = () => el('aboutModal').classList.remove('hidden');
+        el('closeAboutModal').onclick = () => el('aboutModal').classList.add('hidden');
+        el('closeAboutBtn').onclick = () => el('aboutModal').classList.add('hidden');
 
         // ADMIN PASS LOGIC
         el('requestAdminBtn').onclick = (e) => {
@@ -1415,7 +1495,8 @@
             renderPagination(); lucide.createIcons();
         }
 
-        // --- NEW: Populate Chart Filters ---
+        // --- Chart Functions remain same as previous version ---
+        // (populateChartFilters, downloadChart, calculateLinearRegression, getMultiGroupData, renderCharts)
         function populateChartFilters() {
             const hospitals = [...new Set([...INITIAL_HOSPITALS, ...entries.map(e => e.hospitalName)])].sort();
             const manufacturers = [...new Set([...MANUFACTURERS, ...entries.map(e => e.manufacturer).filter(m => m)])].sort();
@@ -1473,14 +1554,11 @@
             }
         }
 
-        // --- NEW: Download Chart Helper ---
         window.downloadChart = (chartId, title) => {
             const canvas = el(chartId);
             if (!canvas) return;
             const link = document.createElement('a');
             link.download = `${title}_${new Date().toISOString().slice(0,10)}.png`;
-            
-            // Create a dummy canvas to fill background white
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = canvas.width;
             tempCanvas.height = canvas.height;
@@ -1488,53 +1566,29 @@
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
             ctx.drawImage(canvas, 0, 0);
-            
             link.href = tempCanvas.toDataURL('image/png');
             link.click();
         }
 
-        // --- NEW: Linear Regression Helper ---
         function calculateLinearRegression(data) {
             const n = data.length;
             if (n === 0) return [];
-            
             let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-            data.forEach(p => {
-                sumX += p.x;
-                sumY += p.y;
-                sumXY += p.x * p.y;
-                sumXX += p.x * p.x;
-            });
-            
+            data.forEach(p => { sumX += p.x; sumY += p.y; sumXY += p.x * p.y; sumXX += p.x * p.x; });
             const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
             const intercept = (sumY - slope * sumX) / n;
-            
-            // Create two points for the line (min X and max X)
             const minX = Math.min(...data.map(p => p.x));
             const maxX = Math.max(...data.map(p => p.x));
-            
-            return [
-                { x: minX, y: slope * minX + intercept },
-                { x: maxX, y: slope * maxX + intercept }
-            ];
+            return [{ x: minX, y: slope * minX + intercept }, { x: maxX, y: slope * maxX + intercept }];
         }
 
-        // --- NEW: Helper for Multi-Group Data ---
         function getMultiGroupData(data, primaryKey, secondaryKey, metricKey, statType) {
-            // primaryKey: 'hospitalName' or 'manufacturer'
-            // secondaryKey: 'protocol'
-            
             const primaryLabels = [...new Set(data.map(e => {
                 let v = e[primaryKey];
-                if (primaryKey === 'manufacturer') {
-                     v = v ? v.trim() : 'N/A';
-                     if (v.toLowerCase().startsWith('ge ') || v.toUpperCase() === 'GE') v = 'GE HealthCare';
-                }
+                if (primaryKey === 'manufacturer') { v = v ? v.trim() : 'N/A'; if (v.toLowerCase().startsWith('ge ') || v.toUpperCase() === 'GE') v = 'GE HealthCare'; }
                 return v || 'Unknown';
             }))].sort();
-
             const secondaryLabels = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))]; 
-
             const datasets = secondaryLabels.map((prot, idx) => {
                 const colorPalette = ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#a855f7'];
                 return {
@@ -1542,10 +1596,7 @@
                     data: primaryLabels.map(pLabel => {
                         const subset = data.filter(e => {
                             let ePrim = e[primaryKey];
-                            if (primaryKey === 'manufacturer') {
-                                 ePrim = ePrim ? ePrim.trim() : 'N/A';
-                                 if (ePrim.toLowerCase().startsWith('ge ') || ePrim.toUpperCase() === 'GE') ePrim = 'GE HealthCare';
-                            }
+                            if (primaryKey === 'manufacturer') { ePrim = ePrim ? ePrim.trim() : 'N/A'; if (ePrim.toLowerCase().startsWith('ge ') || ePrim.toUpperCase() === 'GE') ePrim = 'GE HealthCare'; }
                             return (ePrim || 'Unknown') === pLabel && e[secondaryKey] === prot;
                         });
                         const stats = calcStats(subset.map(x => parseFloat(x[metricKey])).filter(n => !isNaN(n)));
@@ -1557,11 +1608,9 @@
                     categoryPercentage: 0.8
                 };
             });
-
             return { labels: primaryLabels, datasets };
         }
 
-        // --- NEW: Chart Rendering Logic ---
         function renderCharts() {
             if (histogramChartInstance) histogramChartInstance.destroy();
             if (scatterDlpChartInstance) scatterDlpChartInstance.destroy();
@@ -1593,33 +1642,8 @@
             const multiHospData = getMultiGroupData(entries, 'hospitalName', 'protocol', multiMetric, 'mean');
             const multiManuData = getMultiGroupData(entries, 'manufacturer', 'protocol', multiMetric, 'mean');
 
-            multiHospChartInstance = new Chart(el('multiHospChart').getContext('2d'), {
-                type: 'bar',
-                data: multiHospData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { stacked: false, ticks: { font: { size: 9, weight: 'bold' } } },
-                        y: { beginAtZero: true, title: { display: true, text: multiMetric.toUpperCase() } }
-                    },
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } }
-                }
-            });
-
-            multiManuChartInstance = new Chart(el('multiManuChart').getContext('2d'), {
-                type: 'bar',
-                data: multiManuData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { stacked: false, ticks: { font: { size: 9, weight: 'bold' } } },
-                        y: { beginAtZero: true, title: { display: true, text: multiMetric.toUpperCase() } }
-                    },
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } }
-                }
-            });
+            multiHospChartInstance = new Chart(el('multiHospChart').getContext('2d'), { type: 'bar', data: multiHospData, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false, ticks: { font: { size: 9, weight: 'bold' } } }, y: { beginAtZero: true, title: { display: true, text: multiMetric.toUpperCase() } } }, plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } } } });
+            multiManuChartInstance = new Chart(el('multiManuChart').getContext('2d'), { type: 'bar', data: multiManuData, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false, ticks: { font: { size: 9, weight: 'bold' } } }, y: { beginAtZero: true, title: { display: true, text: multiMetric.toUpperCase() } } }, plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } } } });
 
             // --- 0.5 MULTI-DIMENSIONAL CHARTS (P75 & Median) ---
             const multiStatType = el('multiStatType')?.value || 'p75';
@@ -1627,37 +1651,10 @@
             const multiHospStatData = getMultiGroupData(entries, 'hospitalName', 'protocol', multiStatMetric, multiStatType);
             const multiManuStatData = getMultiGroupData(entries, 'manufacturer', 'protocol', multiStatMetric, multiStatType);
 
-            multiHospStatChartInstance = new Chart(el('multiHospStatChart').getContext('2d'), {
-                type: 'bar',
-                data: multiHospStatData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { stacked: false, ticks: { font: { size: 9, weight: 'bold' } } },
-                        y: { beginAtZero: true, title: { display: true, text: `${multiStatMetric.toUpperCase()} (${multiStatType === 'p75' ? 'P75' : 'Median'})` } }
-                    },
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } }
-                }
-            });
-
-            multiManuStatChartInstance = new Chart(el('multiManuStatChart').getContext('2d'), {
-                type: 'bar',
-                data: multiManuStatData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { stacked: false, ticks: { font: { size: 9, weight: 'bold' } } },
-                        y: { beginAtZero: true, title: { display: true, text: `${multiStatMetric.toUpperCase()} (${multiStatType === 'p75' ? 'P75' : 'Median'})` } }
-                    },
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } }
-                }
-            });
-
+            multiHospStatChartInstance = new Chart(el('multiHospStatChart').getContext('2d'), { type: 'bar', data: multiHospStatData, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false, ticks: { font: { size: 9, weight: 'bold' } } }, y: { beginAtZero: true, title: { display: true, text: `${multiStatMetric.toUpperCase()} (${multiStatType === 'p75' ? 'P75' : 'Median'})` } } }, plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } } } });
+            multiManuStatChartInstance = new Chart(el('multiManuStatChart').getContext('2d'), { type: 'bar', data: multiManuStatData, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false, ticks: { font: { size: 9, weight: 'bold' } } }, y: { beginAtZero: true, title: { display: true, text: `${multiStatMetric.toUpperCase()} (${multiStatType === 'p75' ? 'P75' : 'Median'})` } } }, plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } } } });
 
             // --- 1. HISTOGRAM LOGIC ---
-            // Local filters for Histogram only
             const fHosp = el('histFilterHospital')?.value || 'all';
             const fProt = el('histFilterProtocol')?.value || 'all';
             const fManu = el('histFilterManufacturer')?.value || 'all';
@@ -1678,56 +1675,28 @@
             const ctdiValues = histData.map(e => parseFloat(e.ctdi)).filter(n => !isNaN(n));
             const binSize = 5; 
             const bins = {};
-            ctdiValues.forEach(val => {
-                const bin = Math.floor(val / binSize) * binSize;
-                bins[bin] = (bins[bin] || 0) + 1;
-            });
+            ctdiValues.forEach(val => { const bin = Math.floor(val / binSize) * binSize; bins[bin] = (bins[bin] || 0) + 1; });
             const labels = Object.keys(bins).sort((a,b) => a-b).map(k => `${k}-${parseInt(k)+binSize}`);
             const data = Object.keys(bins).sort((a,b) => a-b).map(k => bins[k]);
 
             const ctxHist = el('histogramChart').getContext('2d');
-            histogramChartInstance = new Chart(ctxHist, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Số ca chụp',
-                        data: data,
-                        backgroundColor: 'rgba(79, 70, 229, 0.6)',
-                        borderColor: 'rgba(79, 70, 229, 1)',
-                        borderWidth: 1,
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, title: {display: true, text: 'Số lượng'} }, x: { title: {display: true, text: 'CTDIvol (mGy)'} } }
-                }
-            });
+            histogramChartInstance = new Chart(ctxHist, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Số ca chụp', data: data, backgroundColor: 'rgba(79, 70, 229, 0.6)', borderColor: 'rgba(79, 70, 229, 1)', borderWidth: 1, borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, title: {display: true, text: 'Số lượng'} }, x: { title: {display: true, text: 'CTDIvol (mGy)'} } } } });
 
             // --- 2. STATS LOGIC (P75/P50) - FIXED TO PROTOCOL ---
-            const groupByStats = 'protocol'; // Fixed
+            const groupByStats = 'protocol'; 
             const groupedDataStats = {};
             entries.forEach(e => {
-                let key = e[groupByStats];
-                if (!key) key = 'N/A';
+                let key = e[groupByStats]; if (!key) key = 'N/A';
                 if (!groupedDataStats[key]) groupedDataStats[key] = { ctdi: [], dlp: [] };
                 if (e.ctdi) groupedDataStats[key].ctdi.push(parseFloat(e.ctdi));
                 if (e.dlp) groupedDataStats[key].dlp.push(parseFloat(e.dlp));
             });
-
             const statsLabels = Object.keys(groupedDataStats).sort();
             const p75Ctdi = [], p75Dlp = [], p50Ctdi = [], p50Dlp = [];
-
             statsLabels.forEach(k => {
-                const cStats = calcStats(groupedDataStats[k].ctdi);
-                const dStats = calcStats(groupedDataStats[k].dlp);
-                p75Ctdi.push(cStats.p75); p75Dlp.push(dStats.p75);
-                p50Ctdi.push(cStats.median); p50Dlp.push(dStats.median);
+                const cStats = calcStats(groupedDataStats[k].ctdi); const dStats = calcStats(groupedDataStats[k].dlp);
+                p75Ctdi.push(cStats.p75); p75Dlp.push(dStats.p75); p50Ctdi.push(cStats.median); p50Dlp.push(dStats.median);
             });
-
             p75ChartInstance = new Chart(el('p75Chart').getContext('2d'), { type: 'bar', data: { labels: statsLabels, datasets: [{ label: 'CTDIvol (mGy)', data: p75Ctdi, yAxisID: 'y', backgroundColor: 'rgba(99, 102, 241, 0.7)' }, { label: 'DLP (mGy.cm)', data: p75Dlp, yAxisID: 'y1', type: 'line', borderColor: 'rgba(249, 115, 22, 1)', backgroundColor: 'rgba(249, 115, 22, 0.5)', borderWidth: 2, pointStyle: 'circle' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { type: 'linear', display: true, position: 'left', title: {display: true, text: 'CTDIvol'} }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, title: {display: true, text: 'DLP'} } } } });
             p50ChartInstance = new Chart(el('p50Chart').getContext('2d'), { type: 'bar', data: { labels: statsLabels, datasets: [{ label: 'CTDIvol (mGy)', data: p50Ctdi, yAxisID: 'y', backgroundColor: 'rgba(16, 185, 129, 0.7)' }, { label: 'DLP (mGy.cm)', data: p50Dlp, yAxisID: 'y1', type: 'line', borderColor: 'rgba(236, 72, 153, 1)', backgroundColor: 'rgba(236, 72, 153, 0.5)', borderWidth: 2, pointStyle: 'circle' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { type: 'linear', display: true, position: 'left', title: {display: true, text: 'CTDIvol'} }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, title: {display: true, text: 'DLP'} } } } });
 
@@ -1737,7 +1706,6 @@
             const mFilterP = el('meanFilterProtocol')?.value || 'all';
             const mFilterM = el('meanFilterManufacturer')?.value || 'all';
             const mFilterG = el('meanFilterGender')?.value || 'all';
-
             const filteredMeanEntries = entries.filter(e => {
                 if (mFilterH !== 'all' && e.hospitalName !== mFilterH) return false;
                 if (mFilterP !== 'all' && e.protocol !== mFilterP) return false;
@@ -1745,7 +1713,6 @@
                 if (mFilterG !== 'all' && normalizeGender(e.gender) !== mFilterG) return false;
                 return true;
             });
-
             const groupedDataMean = {};
             filteredMeanEntries.forEach(e => {
                 let key = e[groupByMean];
@@ -1760,391 +1727,49 @@
             const meanLabels = Object.keys(groupedDataMean).sort();
             const meanCtdi = [], meanDlp = [];
              meanLabels.forEach(k => {
-                const cStats = calcStats(groupedDataMean[k].ctdi);
-                const dStats = calcStats(groupedDataMean[k].dlp);
+                const cStats = calcStats(groupedDataMean[k].ctdi); const dStats = calcStats(groupedDataMean[k].dlp);
                 meanCtdi.push(cStats.mean); meanDlp.push(dStats.mean);
             });
             meanCtdiChartInstance = new Chart(el('meanCtdiChart').getContext('2d'), { type: 'bar', data: { labels: meanLabels, datasets: [{ label: 'Mean CTDIvol (mGy)', data: meanCtdi, backgroundColor: 'rgba(14, 165, 233, 0.7)' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
             meanDlpChartInstance = new Chart(el('meanDlpChart').getContext('2d'), { type: 'bar', data: { labels: meanLabels, datasets: [{ label: 'Mean DLP (mGy.cm)', data: meanDlp, backgroundColor: 'rgba(245, 158, 11, 0.7)' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
 
-            // --- 4. SCATTER LOGIC (With Specific Filter & Contrast Colors & TRENDLINE) ---
+            // --- 4. SCATTER LOGIC ---
             const getContrastColor = (protocol) => {
                 const p = protocol || '';
-                if(p.includes('Head') || p.includes('Sọ')) return '#ef4444'; // Red
-                if(p.includes('Chest') || p.includes('Ngực')) return '#3b82f6'; // Blue
-                if(p.includes('Abdomen') || p.includes('Bụng')) return '#eab308'; // Yellow
-                if(p.includes('LDCT') || p.includes('Phổi')) return '#22c55e'; // Green
-                return '#a855f7'; // Purple (Other)
+                if(p.includes('Head') || p.includes('Sọ')) return '#ef4444';
+                if(p.includes('Chest') || p.includes('Ngực')) return '#3b82f6';
+                if(p.includes('Abdomen') || p.includes('Bụng')) return '#eab308';
+                if(p.includes('LDCT') || p.includes('Phổi')) return '#22c55e';
+                return '#a855f7';
             };
-
             const createScatter = (ctx, yKey, labelY, filterIdProtocol, filterIdHospital) => {
                 const filterValProtocol = el(filterIdProtocol)?.value || 'all';
                 const filterValHospital = el(filterIdHospital)?.value || 'all';
-                
-                // Filter data specifically for this chart
                 const scatterDataRaw = entries.filter(e => {
                     if (filterValProtocol !== 'all' && e.protocol !== filterValProtocol) return false;
                     if (filterValHospital !== 'all' && e.hospitalName !== filterValHospital) return false;
                     return !isNaN(parseFloat(e.weight)) && !isNaN(parseFloat(e[yKey]));
                 });
-
-                const scatterData = scatterDataRaw.map(e => ({
-                    x: parseFloat(e.weight),
-                    y: parseFloat(e[yKey]),
-                    protocol: e.protocol // Store for color logic
-                }));
-
-                // Calculate Trendline
+                const scatterData = scatterDataRaw.map(e => ({ x: parseFloat(e.weight), y: parseFloat(e[yKey]), protocol: e.protocol }));
                 const trendlineData = calculateLinearRegression(scatterData);
                 const pointColors = scatterData.map(d => getContrastColor(d.protocol));
-
-                return new Chart(ctx, {
-                    type: 'scatter',
-                    data: {
-                        datasets: [
-                            {
-                                label: 'Ca chụp',
-                                data: scatterData,
-                                backgroundColor: pointColors,
-                                pointRadius: 5,
-                                pointHoverRadius: 7,
-                                order: 2
-                            },
-                            {
-                                label: 'Xu hướng (Trendline)',
-                                data: trendlineData,
-                                type: 'line',
-                                borderColor: 'rgba(100, 116, 139, 0.8)',
-                                borderDash: [5, 5],
-                                borderWidth: 2,
-                                pointRadius: 0,
-                                fill: false,
-                                order: 1,
-                                tooltip: { enabled: false }
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { 
-                            legend: { display: true },
-                            tooltip: {
-                                callbacks: {
-                                    label: (ctx) => {
-                                        if (ctx.datasetIndex === 1) return null; // Hide tooltip for trendline
-                                        return `(${ctx.raw.x}kg, ${ctx.raw.y}) [${ctx.raw.protocol}]`;
-                                    }
-                                }
-                            }
-                        },
-                        scales: { 
-                            x: { title: {display: true, text: 'Cân nặng (Kg)'} },
-                            y: { title: {display: true, text: labelY} }
-                        }
-                    }
-                });
+                return new Chart(ctx, { type: 'scatter', data: { datasets: [ { label: 'Ca chụp', data: scatterData, backgroundColor: pointColors, pointRadius: 5, pointHoverRadius: 7, order: 2 }, { label: 'Xu hướng (Trendline)', data: trendlineData, type: 'line', borderColor: 'rgba(100, 116, 139, 0.8)', borderDash: [5, 5], borderWidth: 2, pointRadius: 0, fill: false, order: 1, tooltip: { enabled: false } } ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true }, tooltip: { callbacks: { label: (ctx) => { if (ctx.datasetIndex === 1) return null; return `(${ctx.raw.x}kg, ${ctx.raw.y}) [${ctx.raw.protocol}]`; } } } }, scales: { x: { title: {display: true, text: 'Cân nặng (Kg)'} }, y: { title: {display: true, text: labelY} } } } });
             };
-
             scatterCtdiChartInstance = createScatter(el('scatterCtdiChart').getContext('2d'), 'ctdi', 'CTDIvol (mGy)', 'scatterFilterProtocol_CTDI', 'scatterFilterHospital_CTDI');
             scatterDlpChartInstance = createScatter(el('scatterDlpChart').getContext('2d'), 'dlp', 'DLP (mGy.cm)', 'scatterFilterProtocol_DLP', 'scatterFilterHospital_DLP');
         }
         
-        // Listeners
         const s1 = el('scatterFilterProtocol_CTDI'); if(s1) s1.onchange = renderCharts;
         const s2 = el('scatterFilterProtocol_DLP'); if(s2) s2.onchange = renderCharts;
         const s1_h = el('scatterFilterHospital_CTDI'); if(s1_h) s1_h.onchange = renderCharts;
         const s2_h = el('scatterFilterHospital_DLP'); if(s2_h) s2_h.onchange = renderCharts;
-
         const stGroup = el('statsGroupBy'); if(stGroup) stGroup.onchange = renderCharts;
         const mStGroup = el('meanStatsGroupBy'); if(mStGroup) mStGroup.onchange = renderCharts;
         const multiMet = el('multiCompMetric'); if(multiMet) multiMet.onchange = renderCharts;
         const multiStatT = el('multiStatType'); if(multiStatT) multiStatT.onchange = renderCharts;
         const multiStatM = el('multiStatMetric'); if(multiStatM) multiStatM.onchange = renderCharts;
-        
-        // Mean Filter Listeners
-        ['meanFilterHospital', 'meanFilterProtocol', 'meanFilterManufacturer', 'meanFilterGender'].forEach(id => {
-            const e = el(id); if(e) e.onchange = renderCharts;
-        });
-        el('btnRefreshMeanChart').onclick = () => {
-             ['meanFilterHospital', 'meanFilterProtocol', 'meanFilterManufacturer', 'meanFilterGender'].forEach(id => el(id).value = 'all');
-             renderCharts();
-        };
-
-
-        // --- NEW: Export Excel Logic ---
-        function exportToExcel() {
-            if (!isAdmin) { showToast("Chỉ Admin mới có quyền xuất file!"); return; }
-            if (filteredDisplayEntries.length === 0) { showToast("Không có dữ liệu để xuất!"); return; }
-            
-            const exportData = filteredDisplayEntries.map(e => {
-                let bmi = "N/A";
-                if(e.height && e.weight) {
-                     const h = parseFloat(e.height)/100;
-                     if(h>0) bmi = (parseFloat(e.weight)/(h*h)).toFixed(2);
-                }
-
-                return {
-                    "Thời gian": new Date(e.createdAt || e.updatedAt).toLocaleString('vi-VN'),
-                    "Tài khoản": e.userEmail || '---',
-                    "Bệnh viện": e.hospitalName,
-                    "Hãng máy": e.manufacturer,
-                    "Protocol": e.protocol,
-                    "ID Bệnh nhân": e.patientId,
-                    "Tuổi": e.age,
-                    "Giới tính": e.gender,
-                    "Cân nặng (kg)": e.weight,
-                    "Chiều cao (cm)": e.height,
-                    "BMI": bmi,
-                    "Modulation": e.doseModulation,
-                    "CTDIvol (mGy)": e.ctdi,
-                    "DLP (mGy.cm)": e.dlp,
-                    "L (cm)": (parseFloat(e.ctdi) > 0) ? (parseFloat(e.dlp)/parseFloat(e.ctdi)).toFixed(1) : "0"
-                };
-            });
-
-            const ws = XLSX.utils.json_to_sheet(exportData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "VN-DRL Data");
-            XLSX.writeFile(wb, `VN_DRL_Data_${new Date().toISOString().slice(0,10)}.xlsx`);
-            showToast("Đang tải file Excel...");
-        }
-
-        // --- NEW: Import Excel Logic ---
-        async function handleImportExcel(e) {
-            if (!user || user.isAnonymous) { showToast("Vui lòng đăng nhập để Import!"); e.target.value = ''; return; }
-            
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async (evt) => {
-                try {
-                    const data = new Uint8Array(evt.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-                    if (jsonData.length === 0) { showToast("File rỗng!"); return; }
-
-                    let count = 0;
-                    const batch = []; 
-                    
-                    // Simple Mapping & Validation Loop
-                    for (const row of jsonData) {
-                        // Basic mapping based on potential headers - Adapt as needed
-                        const entry = {
-                            hospitalName: row['Bệnh viện'] || row['Hospital'] || el('hospitalSelect').value || 'Imported',
-                            manufacturer: row['Hãng máy'] || row['Manufacturer'] || '',
-                            protocol: row['Protocol'] || row['Vùng chụp'] || 'Sọ não (Head)', // Default fallback
-                            patientId: String(row['ID Bệnh nhân'] || row['PatientID'] || `IMP-${Date.now()}-${count}`),
-                            age: row['Tuổi'] || row['Age'] || 0,
-                            gender: (row['Giới tính'] || row['Sex'] || row['Phái'] || 'M').toString().toUpperCase().startsWith('N') ? 'F' : 'M', // Rough check
-                            weight: row['Cân nặng'] || row['Weight'] || 0,
-                            height: row['Chiều cao'] || row['Height'] || 0,
-                            doseModulation: (row['Modulation'] || 'Có'),
-                            ctdi: row['CTDIvol'] || row['CTDI'] || 0,
-                            dlp: row['DLP'] || 0,
-                            userId: user.uid,
-                            userEmail: user.email,
-                            createdAt: new Date().toISOString(),
-                            updatedAt: new Date().toISOString()
-                        };
-                        
-                        // Basic Validation check inside import
-                        if (entry.ctdi > 100 || entry.dlp > 2500) {
-                            console.warn(`Skipping row ${count}: High dose detected`, row);
-                            continue; 
-                        }
-
-                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), entry);
-                        count++;
-                    }
-                    showToast(`Đã import thành công ${count} dòng!`);
-                    renderDashboard(); // Refresh
-                } catch (err) {
-                    console.error(err);
-                    showToast("Lỗi đọc file: " + err.message);
-                }
-                e.target.value = ''; // Reset input
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        window.onload = async () => {
-            const fill = (id, list) => { const e = el(id); if (!e) return; e.innerHTML = (id.startsWith('filter') || id.startsWith('dashFilter')) ? '<option value="all">Tất cả</option>' : '<option value="" disabled selected>-- Chọn --</option>'; list.forEach(i => { e.innerHTML += `<option value="${typeof i === 'string' ? i : i.name}">${typeof i === 'string' ? i : i.name}</option>`; }); };
-            fill('sliceCount', SLICE_COUNTS); 
-            fill('protocol', THAI_DRL_PROTOCOLS); 
-            fill('filterProtocol', THAI_DRL_PROTOCOLS);
-            fill('dashFilterProtocol', THAI_DRL_PROTOCOLS);
-            fill('manufacturer', MANUFACTURERS);
-            
-            el('filterProtocol').value = 'all';
-            el('dashFilterProtocol').value = 'all';
-
-            el('btnApplyDashFilter').onclick = () => { renderDashboard(); showToast("Đã áp dụng bộ lọc mới!"); };
-            el('btnResetDashFilter').onclick = () => {
-                ['dashFilterHospital', 'dashFilterManufacturer', 'dashFilterGender', 'dashFilterProtocol'].forEach(fid => el(fid).value = 'all');
-                ['dashFilterStart', 'dashFilterEnd'].forEach(fid => el(fid).value = ''); // Reset date
-                renderDashboard();
-                showToast("Đã đặt lại bộ lọc Dashboard");
-            };
-
-            el('age').oninput = function() { if(this.value) el('yob').value = currentYear - this.value; };
-            el('yob').oninput = function() { if(this.value) el('age').value = currentYear - this.value; };
-            el('btnToggleRef').onclick = () => { 
-                const isHidden = el('refConfigContent').classList.toggle('hidden'); 
-                el('refChevron').style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
-                lucide.createIcons(); 
-            };
-            el('btnApplyListFilter').onclick = () => { currentPage = 1; renderDashboard(); showToast("Đã cập nhật danh sách!"); };
-            el('protocol').onchange = () => { renderDashboard(); };
-            el('searchPatientId').oninput = () => { currentPage = 1; renderDashboard(); };
-            el('rowsPerPageSelect').onchange = (e) => { rowsPerPage = parseInt(e.target.value); currentPage = 1; renderDashboard(); };
-            el('hospitalSelect').onchange = (e) => { el('customHospitalName').classList.toggle('hidden', e.target.value !== 'other'); };
-            el('sortOrderSelect').onchange = () => { renderDashboard(); }; 
-
-            // Connect Export Button
-            el('btnExportExcel').onclick = exportToExcel;
-            
-            // Connect Import Button
-            el('importExcelInput').onchange = handleImportExcel;
-
-            // Connect Chart Filters
-            ['histFilterHospital', 'histFilterProtocol', 'histFilterManufacturer', 'histFilterGender', 'histFilterAge'].forEach(id => {
-                const elem = el(id);
-                if(elem) elem.onchange = renderCharts;
-            });
-            el('btnRefreshChart').onclick = () => { 
-                ['histFilterHospital', 'histFilterProtocol', 'histFilterManufacturer', 'histFilterGender', 'histFilterAge'].forEach(id => el(id).value = 'all');
-                renderCharts(); 
-            };
-
-            // BMI Calc Listener
-            const updateBMI = () => {
-                const w = parseFloat(el('weight').value);
-                const h = parseFloat(el('height').value) / 100; // cm to m
-                if (w > 0 && h > 0) {
-                    el('bmi').value = (w / (h * h)).toFixed(1);
-                } else {
-                    el('bmi').value = '';
-                }
-            };
-            el('weight').addEventListener('input', updateBMI);
-            el('height').addEventListener('input', updateBMI);
-
-            el('drlForm').onsubmit = async (e) => {
-                e.preventDefault();
-                
-                // --- NEW: Validation ---
-                const ctdiVal = parseFloat(el('ctdi').value);
-                const dlpVal = parseFloat(el('dlp').value);
-                const ageVal = parseFloat(el('age').value);
-
-                if (ctdiVal > 100) { if(!confirm(`Cảnh báo: Giá trị CTDIvol ${ctdiVal} mGy có vẻ rất cao. Bạn có chắc chắn muốn lưu?`)) return; }
-                if (dlpVal > 2500) { if(!confirm(`Cảnh báo: Giá trị DLP ${dlpVal} mGy.cm có vẻ rất cao. Bạn có chắc chắn muốn lưu?`)) return; }
-                if (ageVal > 120) { showToast("Lỗi: Tuổi bệnh nhân không hợp lệ (>120)."); return; }
-                // -----------------------
-
-                const id = el('editEntryId').value, hVal = el('hospitalSelect').value;
-                const data = { 
-                    hospitalName: hVal === 'other' ? el('customHospitalName').value : hVal,
-                    manufacturer: el('manufacturer').value, protocol: el('protocol').value,
-                    patientId: el('patientId').value, age: el('age').value,
-                    weight: el('weight').value, height: el('height').value, gender: el('gender').value,
-                    doseModulation: document.querySelector('input[name="doseModulation"]:checked').value,
-                    ctdi: el('ctdi').value, dlp: el('dlp').value,
-                    scanDate: el('scanDate').value || new Date().toISOString().split('T')[0],
-                    userId: user.uid,
-                    userEmail: user.isAnonymous ? "Khách" : (user.email || "Unknown"), 
-                    updatedAt: new Date().toISOString()
-                };
-                if(id) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id), data);
-                else { data.createdAt = new Date().toISOString(); await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), data); }
-                showToast("Dữ liệu đã được đồng bộ!");
-                ['patientId', 'age', 'yob', 'weight', 'height', 'bmi', 'ctdi', 'dlp'].forEach(fid => { const f = el(fid); if(f) f.value = ""; });
-                el('editEntryId').value = ""; el('submitBtnText').textContent = "Lưu Dữ Liệu"; el('cancelEditBtn').classList.add('hidden');
-            };
-
-            await setPersistence(auth, browserLocalPersistence);
-            onAuthStateChanged(auth, async (u) => {
-                user = u;
-                if (u) {
-                    el('sessionUserEmail').textContent = u.email || "Guest User";
-                    el('navLoginBtn').classList.toggle('hidden', !u.isAnonymous);
-                    el('userMenu').classList.toggle('hidden', u.isAnonymous);
-                    el('formLockOverlay').classList.toggle('hidden', !u.isAnonymous);
-                    
-                    updatePresence(u);
-                    setInterval(() => updatePresence(user), 60000); 
-                    
-                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), (snap) => {
-                        entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                        // Sort entries by createdAt descending (newest first)
-                        entries.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-                        
-                        updateHospitalDropdowns(); 
-                        renderDashboard(); 
-                        if (!el('charts-tab').classList.contains('hidden')) {
-                            populateChartFilters();
-                            renderCharts(); 
-                        }
-                    });
-                } else { 
-                    isAdmin = false;
-                    updateAdminUI();
-                    await signInAnonymously(auth); 
-                }
-            });
-
-            setupPresenceListener();
-
-            el('logoutBtn').onclick = async (e) => { e.preventDefault(); await signOut(auth); location.reload(); };
-            el('cancelEditBtn').onclick = () => { el('editEntryId').value = ""; el('submitBtnText').textContent = "Lưu Dữ Liệu"; el('cancelEditBtn').classList.add('hidden'); el('drlForm').reset(); updateHospitalDropdowns(); };
-            lucide.createIcons();
-        };
-
-        window.deleteEntry = async (id) => { if(confirm("Xác nhận xóa ca chụp?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id)); };
-        
-        // Cập nhật hàm editEntry để bật chế độ Inline Edit
-        window.editEntry = (id) => {
-            editingRowId = id;
-            renderDashboard();
-            lucide.createIcons();
-        };
-
-        window.cancelInlineEdit = () => {
-            editingRowId = null;
-            renderDashboard();
-        };
-
-        window.saveInlineEdit = async (id, btn) => {
-            if(btn) btn.disabled = true; // Disable button to prevent double click
-            try {
-                const data = {
-                    hospitalName: el(`inline-hosp-${id}`).value,
-                    manufacturer: el(`inline-manu-${id}`).value,
-                    protocol: el(`inline-prot-${id}`).value,
-                    gender: el(`inline-gen-${id}`).value,
-                    age: el(`inline-age-${id}`).value,
-                    weight: el(`inline-weight-${id}`).value,
-                    height: el(`inline-height-${id}`).value,
-                    doseModulation: el(`inline-mod-${id}`).value,
-                    ctdi: el(`inline-ctdi-${id}`).value,
-                    dlp: el(`inline-dlp-${id}`).value,
-                    updatedAt: new Date().toISOString()
-                };
-
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id), data);
-                showToast("Đã cập nhật dữ liệu!");
-                editingRowId = null;
-                // onSnapshot sẽ tự render lại
-            } catch (err) {
-                showToast("Lỗi khi lưu: " + err.message);
-                if(btn) btn.disabled = false;
-            }
-        };
+        ['meanFilterHospital', 'meanFilterProtocol', 'meanFilterManufacturer', 'meanFilterGender'].forEach(id => { const e = el(id); if(e) e.onchange = renderCharts; });
+        el('btnRefreshMeanChart').onclick = () => { ['meanFilterHospital', 'meanFilterProtocol', 'meanFilterManufacturer', 'meanFilterGender'].forEach(id => el(id).value = 'all'); renderCharts(); };
     </script>
 </body>
 </html>
