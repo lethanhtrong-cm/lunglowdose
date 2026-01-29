@@ -504,13 +504,7 @@
         });
 
         const ImageSlot = React.memo(({ imgData, index, isActive, onClick }) => {
-            const imgStyle = { 
-                transform: `scale(${imgData.scale}) translate(${imgData.x}px, ${imgData.y}px)`, 
-                filter: `brightness(${imgData.brightness}%) contrast(${imgData.contrast}%) invert(${imgData.invert ? 1 : 0})`, 
-                objectFit: imgData.objectFit || 'cover',
-                cursor: 'move' 
-            };
-            
+            // Updated ImageSlot using background-image to fix object-fit stretching issues with html2canvas
             return (
                 <div 
                     onClick={() => onClick(index)}
@@ -518,7 +512,17 @@
                 >
                     <div className="flex-grow relative overflow-hidden flex items-center justify-center group w-full h-full">
                         {imgData.url ? 
-                            <img src={imgData.url} className="w-full h-full block" style={imgStyle} draggable={false} /> : 
+                            <div 
+                                className="w-full h-full"
+                                style={{
+                                    backgroundImage: `url(${imgData.url})`,
+                                    backgroundSize: imgData.objectFit || 'cover',
+                                    backgroundPosition: 'center',
+                                    backgroundRepeat: 'no-repeat',
+                                    transform: `scale(${imgData.scale}) translate(${imgData.x}px, ${imgData.y}px)`,
+                                    filter: `brightness(${imgData.brightness}%) contrast(${imgData.contrast}%) invert(${imgData.invert ? 1 : 0})`
+                                }}
+                            /> : 
                             <div className="text-slate-700 flex flex-col items-center p-4 text-center">
                                 <Icons.Image size={24} className="mb-1 opacity-20"/>
                             </div>
