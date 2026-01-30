@@ -75,6 +75,46 @@
         .tab-btn { transition: all 0.3s ease; border-bottom: 2px solid transparent; }
         .tab-btn.active { color: #4f46e5; border-bottom-color: #4f46e5; }
 
+        /* Highlighted Row Style */
+        tr.row-selected {
+            background-color: #eff6ff !important; /* indigo-50 */
+            border-left: 4px solid #4f46e5;
+        }
+        
+        /* Custom Checkbox */
+        .custom-checkbox {
+            appearance: none;
+            background-color: #fff;
+            margin: 0;
+            font: inherit;
+            color: currentColor;
+            width: 1.15em;
+            height: 1.15em;
+            border: 2px solid #cbd5e1;
+            border-radius: 0.35em;
+            display: grid;
+            place-content: center;
+            cursor: pointer;
+            transition: 0.2s all;
+        }
+        .custom-checkbox::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em white;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .custom-checkbox:checked {
+            background-color: #4f46e5;
+            border-color: #4f46e5;
+        }
+        .custom-checkbox:checked::before {
+            transform: scale(1);
+        }
+
         @media (max-width: 1024px) {
             .top-grid { flex-direction: column; }
             .sidebar-form { width: 100%; min-width: 100%; }
@@ -108,6 +148,11 @@
                 text-align: left;
             }
             .mobile-hide-head { display: none; }
+            .mobile-checkbox-container {
+                display: flex !important;
+                justify-content: flex-end;
+                margin-bottom: 0.5rem;
+            }
         }
 
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
@@ -161,6 +206,35 @@
                 <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.79 2.71v2.24h2.91c1.71-1.57 2.68-3.88 2.68-6.58z" fill="#4285F4"/><path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.24c-.8.54-1.84.85-3.05.85-2.34 0-4.32-1.58-5.03-3.71H.95v2.3C2.43 15.89 5.5 18 9 18z" fill="#34A853"/><path d="M3.97 10.72c-.18-.54-.28-1.11-.28-1.72s.1-1.18.28-1.72V4.98H.95C.34 6.19 0 7.56 0 9s.34 2.81.95 4.02l3.02-2.3z" fill="#FBBC05"/><path d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.47.89 11.43 0 9 0 5.5 0 2.43 2.11.95 5.12l3.02 2.3c.71-2.13 2.69-3.71 5.03-3.71z" fill="#EA4335"/></svg>
                 Tiếp tục với Google
             </button>
+        </div>
+    </div>
+
+    <!-- Bulk Edit Modal -->
+    <div id="bulkEditModal" class="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-lg p-8 shadow-2xl border border-indigo-100">
+            <div class="text-center mb-6">
+                <div class="bg-indigo-600 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 text-white shadow-lg"><i data-lucide="layers" class="w-6 h-6"></i></div>
+                <h3 class="text-lg font-black text-slate-900 uppercase">Chỉnh sửa hàng loạt</h3>
+                <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Đang chọn: <span id="bulkEditCount" class="text-indigo-600">0</span> ca</p>
+                <p class="text-[10px] text-red-400 italic mt-1">* Chỉ điền các trường cần thay đổi</p>
+            </div>
+            <form id="bulkEditForm" class="space-y-4">
+                <div class="space-y-1"><label class="text-[9px] font-black text-slate-400 uppercase ml-1">Bệnh viện</label><select id="bulkHospital" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium"></select></div>
+                <div class="space-y-1"><label class="text-[9px] font-black text-slate-400 uppercase ml-1">Protocol</label><select id="bulkProtocol" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium"></select></div>
+                <div class="space-y-1"><label class="text-[9px] font-black text-slate-400 uppercase ml-1">Hãng máy</label><select id="bulkManufacturer" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium"></select></div>
+                <div class="space-y-1">
+                    <label class="text-[9px] font-black text-slate-400 uppercase ml-1">Modulation</label>
+                    <select id="bulkModulation" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium">
+                        <option value="">-- Không thay đổi --</option>
+                        <option value="Có">Có</option>
+                        <option value="Không">Không</option>
+                    </select>
+                </div>
+                <div class="flex gap-2 pt-4">
+                    <button type="button" onclick="el('bulkEditModal').classList.add('hidden')" class="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-black text-[10px] uppercase">Hủy</button>
+                    <button type="submit" class="flex-[2] py-3 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95">Lưu thay đổi</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -260,6 +334,9 @@
                     <div class="p-6 md:p-8 border-b border-slate-100 bg-white/40 z-20 flex justify-between items-center">
                         <h2 id="formTitle" class="font-black text-slate-900 flex items-center gap-3 uppercase tracking-widest text-xs"><i data-lucide="plus-circle" class="text-indigo-600 w-5 h-5"></i> Nhập dữ liệu</h2>
                         <div class="flex items-center gap-2">
+                            <button onclick="downloadTemplate()" class="px-2 py-1 bg-slate-50 text-slate-600 rounded-lg text-[8px] font-black uppercase hover:bg-slate-100 transition-colors flex items-center gap-1" title="Tải mẫu Excel">
+                                <i data-lucide="download" class="w-3 h-3"></i> Tải mẫu
+                            </button>
                             <label for="importExcelInput" class="cursor-pointer px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[8px] font-black uppercase hover:bg-emerald-100 transition-colors flex items-center gap-1" title="Import Excel">
                                 <i data-lucide="upload" class="w-3 h-3"></i> Import
                             </label>
@@ -373,6 +450,12 @@
                                     <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
                                 </button>
                             </div>
+                            <!-- NEW: Quick Date Filters -->
+                            <div class="w-full flex gap-2 pt-2 border-t border-indigo-50">
+                                <button onclick="setQuickDateFilter(0)" class="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-bold text-slate-600 hover:bg-slate-50">Hôm nay</button>
+                                <button onclick="setQuickDateFilter(7)" class="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-bold text-slate-600 hover:bg-slate-50">7 ngày</button>
+                                <button onclick="setQuickDateFilter(30)" class="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-bold text-slate-600 hover:bg-slate-50">30 ngày</button>
+                            </div>
                         </div>
 
                         <div class="flex flex-col relative z-20">
@@ -400,10 +483,10 @@
                             </div>
                         </div>
 
-                        <!-- RESTRUCTURED: Grid 3 cột đều cho hàng trên -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+                        <!-- RESTRUCTURED: Grid 4 cột đều cho hàng trên (Updated for E dose) -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
                             <!-- Card 1: Tổng mẫu -->
-                            <div class="glass-card p-8 rounded-[2.5rem] flex flex-col justify-between shadow-xl min-h-[220px] h-full relative overflow-hidden group">
+                            <div class="glass-card p-6 rounded-[2.5rem] flex flex-col justify-between shadow-xl min-h-[220px] h-full relative overflow-hidden group">
                                 <div class="absolute right-0 top-0 w-32 h-32 bg-indigo-50 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
                                 <div class="flex justify-between items-start relative z-10">
                                     <p class="section-label">Tổng mẫu lọc</p>
@@ -419,37 +502,54 @@
                             </div>
 
                             <!-- Card 2: CTDI -->
-                            <div class="glass-card p-8 rounded-[2.5rem] border-l-[8px] border-l-indigo-600 shadow-xl flex flex-col justify-between min-h-[220px] h-full">
+                            <div class="glass-card p-6 rounded-[2.5rem] border-l-[6px] border-l-indigo-600 shadow-xl flex flex-col justify-between min-h-[220px] h-full">
                                 <div class="flex justify-between items-start">
                                     <p class="section-label text-indigo-600">CTDIvol (mGy)</p>
                                     <div class="text-[9px] font-black px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg">p = <span id="pValCtdi">---</span></div>
                                 </div>
                                 <div>
                                     <div class="flex items-baseline gap-2 mt-2">
-                                        <h3 id="statCtdi75" class="text-5xl font-black text-slate-900 tracking-tighter">0.0</h3>
-                                        <span class="text-[10px] text-slate-400 font-bold border-l pl-3 ml-2 h-6 flex items-center" id="labelRefCtdi">Ref: --</span>
+                                        <h3 id="statCtdi75" class="text-4xl font-black text-slate-900 tracking-tighter">0.0</h3>
+                                        <span class="text-[10px] text-slate-400 font-bold border-l pl-2 ml-1 h-6 flex items-center" id="labelRefCtdi">Ref: --</span>
                                     </div>
-                                    <div class="mt-6 pt-4 border-t border-slate-100 grid grid-cols-2 gap-4">
+                                    <div class="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
                                         <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Median</span><span id="statCtdiMedian" class="text-sm font-black text-indigo-600">0.0</span></div>
-                                        <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Mean ± SD</span><span id="statCtdiMeanSD" class="text-[11px] font-bold text-slate-700">0.0 ± 0.0</span></div>
+                                        <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Mean ± SD</span><span id="statCtdiMeanSD" class="text-[10px] font-bold text-slate-700">0.0 ± 0.0</span></div>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Card 3: DLP -->
-                            <div class="glass-card p-8 rounded-[2.5rem] border-l-[8px] border-l-amber-500 shadow-xl flex flex-col justify-between min-h-[220px] h-full">
+                            <div class="glass-card p-6 rounded-[2.5rem] border-l-[6px] border-l-amber-500 shadow-xl flex flex-col justify-between min-h-[220px] h-full">
                                 <div class="flex justify-between items-start">
                                     <p class="section-label text-amber-600">DLP (mGy.cm)</p>
                                     <div class="text-[9px] font-black px-3 py-1 bg-amber-50 text-amber-700 rounded-lg">p = <span id="pValDlp">---</span></div>
                                 </div>
                                 <div>
                                     <div class="flex items-baseline gap-2 mt-2">
-                                        <h3 id="statDlp75" class="text-5xl font-black text-slate-900 tracking-tighter">0</h3>
-                                        <span class="text-[10px] text-slate-400 font-bold border-l pl-3 ml-2 h-6 flex items-center" id="labelRefDlp">Ref: --</span>
+                                        <h3 id="statDlp75" class="text-4xl font-black text-slate-900 tracking-tighter">0</h3>
+                                        <span class="text-[10px] text-slate-400 font-bold border-l pl-2 ml-1 h-6 flex items-center" id="labelRefDlp">Ref: --</span>
                                     </div>
-                                    <div class="mt-6 pt-4 border-t border-slate-100 grid grid-cols-2 gap-4">
+                                    <div class="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
                                         <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Median</span><span id="statDlpMedian" class="text-sm font-black text-amber-600">0</span></div>
-                                        <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Mean ± SD</span><span id="statDlpMeanSD" class="text-[11px] font-bold text-slate-700">0 ± 0</span></div>
+                                        <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Mean ± SD</span><span id="statDlpMeanSD" class="text-[10px] font-bold text-slate-700">0 ± 0</span></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card 4: NEW Effective Dose -->
+                            <div class="glass-card p-6 rounded-[2.5rem] border-l-[6px] border-l-emerald-500 shadow-xl flex flex-col justify-between min-h-[220px] h-full">
+                                <div class="flex justify-between items-start">
+                                    <p class="section-label text-emerald-600">Eff. Dose (mSv)</p>
+                                    <div class="bg-emerald-50 p-1.5 rounded-lg text-emerald-600"><i data-lucide="activity" class="w-4 h-4"></i></div>
+                                </div>
+                                <div>
+                                    <div class="flex flex-col mt-2">
+                                        <h3 id="statEffMedian" class="text-4xl font-black text-slate-900 tracking-tighter">0.0</h3>
+                                        <span class="text-[9px] text-emerald-600 font-bold uppercase tracking-wider">Median E</span>
+                                    </div>
+                                    <div class="mt-4 pt-3 border-t border-slate-100">
+                                        <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Mean ± SD</span><span id="statEffMeanSD" class="text-[11px] font-bold text-slate-700">0.0 ± 0.0</span></div>
                                     </div>
                                 </div>
                             </div>
@@ -548,7 +648,8 @@
             </div>
 
             <div id="dataContent">
-                <div class="glass-card rounded-[2rem] p-5 md:p-6 shadow-xl border border-slate-200 w-full">
+                <div class="glass-card rounded-[2rem] p-5 md:p-6 shadow-xl border-2 border-indigo-100 w-full relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-2.5">
                             <div class="bg-indigo-600 p-2 rounded-lg text-white shadow-md"><i data-lucide="filter" class="w-4 h-4"></i></div>
@@ -567,7 +668,27 @@
                     </div>
                 </div>
 
-                <div class="glass-card rounded-[2.5rem] overflow-hidden shadow-2xl mt-2">
+                <!-- Bulk Actions Toolbar -->
+                <div id="bulkActionOverlay" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] glass-card px-6 py-4 rounded-full shadow-2xl border border-indigo-200 hidden flex-col md:flex-row items-center gap-4 animate-in slide-in-from-bottom-4 duration-300">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" id="selectedCountDisplay">0</div>
+                        <span class="text-xs font-black uppercase text-indigo-900 tracking-wider">Đã chọn</span>
+                    </div>
+                    <div class="h-8 w-px bg-slate-200 hidden md:block"></div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="openBulkEditModal()" class="px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl text-[10px] font-black uppercase flex items-center gap-2 transition-colors">
+                            <i data-lucide="edit" class="w-4 h-4"></i> Sửa nhanh
+                        </button>
+                        <button onclick="deleteSelected()" class="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-[10px] font-black uppercase flex items-center gap-2 transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i> Xóa
+                        </button>
+                        <button onclick="cancelSelection()" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-[2.5rem] overflow-hidden shadow-2xl mt-2 border border-slate-100">
                     <div class="p-6 md:p-8 border-b border-slate-50 bg-white/40 flex flex-wrap justify-between items-center gap-4">
                         <div class="flex items-center gap-3"><div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><i data-lucide="list" class="w-4 h-4"></i></div><h3 class="section-label uppercase tracking-widest font-black text-slate-900">Danh sách các ca chụp</h3></div>
                         <div class="flex items-center gap-3 flex-wrap w-full md:w-auto">
@@ -599,21 +720,25 @@
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs md:text-sm">
-                            <thead class="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b mobile-hide-head">
+                            <thead class="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 mobile-hide-head">
                                 <tr>
-                                    <th class="px-8 py-5">Thời gian</th>
-                                    <th class="px-8 py-5">Tài khoản</th>
-                                    <th class="px-8 py-5">Cơ sở / ID / Máy</th>
-                                    <th class="px-8 py-5">Protocol</th>
-                                    <th class="px-8 py-5 text-center">Info BN</th>
-                                    <th class="px-8 py-5 text-center">Modulation</th>
-                                    <th class="px-8 py-5">CTDIvol (mGy)</th>
-                                    <th class="px-8 py-5">DLP (mGy.cm)</th>
-                                    <th class="px-8 py-5">L (cm)</th> <!-- New Column -->
-                                    <th class="px-8 py-5 text-right">Quản lý</th>
+                                    <th class="pl-6 pr-2 py-5 w-10 text-center">
+                                        <input type="checkbox" id="selectAllCheckbox" onchange="toggleAllRows(this)" class="custom-checkbox">
+                                    </th>
+                                    <th class="px-4 py-5">Thời gian</th>
+                                    <th class="px-4 py-5">Tài khoản</th>
+                                    <th class="px-4 py-5">Cơ sở / ID / Máy</th>
+                                    <th class="px-4 py-5">Protocol</th>
+                                    <th class="px-4 py-5 text-center">Info BN</th>
+                                    <th class="px-4 py-5 text-center">Modulation</th>
+                                    <th class="px-4 py-5">CTDIvol (mGy)</th>
+                                    <th class="px-4 py-5">DLP (mGy.cm)</th>
+                                    <th class="px-4 py-5">L (cm)</th>
+                                    <th class="px-4 py-5 text-emerald-600">E (mSv)</th>
+                                    <th class="px-6 py-5 text-right">Quản lý</th>
                                 </tr>
                             </thead>
-                            <tbody id="dataTableBody" class="divide-y divide-slate-50"></tbody>
+                            <tbody id="dataTableBody" class="divide-y divide-slate-100"></tbody>
                         </table>
                     </div>
                     <div class="px-8 py-6 bg-slate-50/50 border-t flex flex-col md:flex-row justify-between items-center gap-4">
@@ -888,16 +1013,17 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const currentYear = 2026;
         const ADMIN_PASSWORD = "ktv3mien"; 
         
+        // ADDED k coefficients for Effective Dose (approximate typical values for adults, ICRP 103)
         const THAI_DRL_PROTOCOLS = [
-            { name: 'Sọ não (Head)', refCtdi: 65, refDlp: 1000 },
-            { name: 'Ngực không thuốc (Chest)', refCtdi: 9, refDlp: 350 },
-            { name: 'Bụng không thuốc (Abdomen)', refCtdi: 11, refDlp: 500 },
-            { name: 'Phổi liều thấp (LDCT)', refCtdi: 3, refDlp: 150 }
+            { name: 'Sọ não (Head)', refCtdi: 65, refDlp: 1000, k: 0.0021 },
+            { name: 'Ngực không thuốc (Chest)', refCtdi: 9, refDlp: 350, k: 0.014 },
+            { name: 'Bụng không thuốc (Abdomen)', refCtdi: 11, refDlp: 500, k: 0.015 },
+            { name: 'Phổi liều thấp (LDCT)', refCtdi: 3, refDlp: 150, k: 0.014 }
         ];
         const INITIAL_HOSPITALS = ["Bệnh viện đa khoa tỉnh Quảng Ninh", "Bệnh viện đa khoa tỉnh Bắc Ninh", "Bệnh viện hữu nghị Việt Tiệp", "Bệnh viện 30 - 04, Bộ Công An", "Bệnh viện Gia An 115"];
         const MANUFACTURERS = ["GE HealthCare", "Siemens Healthineers", "Philips Healthcare", "Canon Medical Systems", "Fujifilm", "Neusoft", "United Imaging"];
@@ -923,6 +1049,9 @@
         let isLoginMode = true;
         let editingRowId = null; 
         
+        // New: Selection Set
+        let selectedIds = new Set();
+
         // Chart instances
         let progressChartInstance = null;
         let histogramChartInstance = null;
@@ -962,6 +1091,13 @@
             return { mean, sd, median, p75, p: pVal };
         };
 
+        // NEW: Helper to get Effective Dose
+        const getEffectiveDose = (dlp, protocolName) => {
+            const p = THAI_DRL_PROTOCOLS.find(x => x.name === protocolName);
+            const k = p ? (p.k || 0.015) : 0.015; // default fallback
+            return (parseFloat(dlp) * k) || 0;
+        };
+
         // UI ACTIONS
         el('navLoginBtn').onclick = () => { isLoginMode = true; updateAuthUI(); el('authModal').classList.remove('hidden'); };
         el('closeAuthModal').onclick = () => el('authModal').classList.add('hidden');
@@ -969,6 +1105,39 @@
         el('userMenuBtn').onclick = (e) => { e.stopPropagation(); el('userDropdown').classList.toggle('hidden'); el('onlineDropdown').classList.add('hidden'); };
         el('onlineMenuBtn').onclick = (e) => { e.stopPropagation(); el('onlineDropdown').classList.toggle('hidden'); el('userDropdown').classList.add('hidden'); };
         document.body.onclick = () => { el('userDropdown').classList.add('hidden'); el('onlineDropdown').classList.add('hidden'); };
+
+        // NEW: Quick Date Filter Logic
+        window.setQuickDateFilter = (days) => {
+            const today = new Date();
+            const endStr = today.toISOString().split('T')[0];
+            let startStr = "";
+            
+            if (days > 0) {
+                const past = new Date(today);
+                past.setDate(today.getDate() - days);
+                startStr = past.toISOString().split('T')[0];
+            } else {
+                startStr = endStr; // Today
+            }
+            
+            el('dashFilterStart').value = startStr;
+            el('dashFilterEnd').value = endStr;
+            renderDashboard();
+            showToast(`Đã lọc dữ liệu: ${days === 0 ? 'Hôm nay' : days + ' ngày qua'}`);
+        };
+
+        // NEW: Download Template
+        window.downloadTemplate = () => {
+             const wb = XLSX.utils.book_new();
+             const ws_data = [
+                ["Bệnh viện", "Hãng máy", "Protocol", "ID Bệnh nhân", "Tuổi", "Giới tính", "Cân nặng", "Chiều cao", "Modulation", "CTDIvol", "DLP"],
+                ["Bệnh viện A", "Siemens Healthineers", "Sọ não (Head)", "BN12345", 45, "M", 65, 170, "Có", 55.5, 900],
+                ["Bệnh viện B", "GE HealthCare", "Ngực không thuốc (Chest)", "BN67890", 60, "F", 55, 155, "Không", 8.2, 320]
+             ];
+             const ws = XLSX.utils.aoa_to_sheet(ws_data);
+             XLSX.utils.book_append_sheet(wb, ws, "Mau_Import");
+             XLSX.writeFile(wb, "Template_Nhap_Lieu_VNDRL.xlsx");
+        };
 
         // ADMIN PASS LOGIC
         el('requestAdminBtn').onclick = (e) => {
@@ -1049,15 +1218,23 @@
             const currM = [...new Set([...MANUFACTURERS, ...entries.map(e => e.manufacturer).filter(m => m)])].sort();
             const dropdowns = { 
                 hospitalSelect: currH, filterHospital: currH, dashFilterHospital: currH,
-                manufacturer: currM, filterManufacturer: currM, dashFilterManufacturer: currM 
+                manufacturer: currM, filterManufacturer: currM, dashFilterManufacturer: currM,
+                bulkHospital: currH, bulkManufacturer: currM // Added for Bulk Edit
             };
             for (let [id, list] of Object.entries(dropdowns)) {
                 const select = el(id); if (!select) continue;
                 const currentVal = select.value;
                 select.innerHTML = (id.startsWith('filter') || id.startsWith('dashFilter')) ? '<option value="all">Tất cả</option>' : '<option value="" disabled selected>-- Chọn --</option>';
+                if(id.startsWith('bulk')) select.innerHTML = '<option value="">-- Không thay đổi --</option>'; // Specific for Bulk
                 list.forEach(item => { select.innerHTML += `<option value="${item}">${item}</option>`; });
                 if (id === 'hospitalSelect') select.innerHTML += `<option value="other">➕ Khác</option>`;
                 if (currentVal) select.value = currentVal;
+            }
+            // Populate bulk Protocol separately
+            const bulkProt = el('bulkProtocol');
+            if(bulkProt) {
+                bulkProt.innerHTML = '<option value="">-- Không thay đổi --</option>';
+                THAI_DRL_PROTOCOLS.forEach(p => bulkProt.innerHTML += `<option value="${p.name}">${p.name}</option>`);
             }
         }
 
@@ -1114,6 +1291,115 @@
                 btn.textContent = i; btn.onclick = () => { currentPage = i; renderDashboard(); }; container.appendChild(btn);
             }
         }
+
+        // --- NEW: Selection Logic ---
+        window.toggleRow = (checkbox, id) => {
+            if (checkbox.checked) selectedIds.add(id);
+            else selectedIds.delete(id);
+            updateSelectionUI();
+        };
+
+        window.toggleAllRows = (checkbox) => {
+            const visibleIds = filteredDisplayEntries.map(e => e.id);
+            if (checkbox.checked) {
+                visibleIds.forEach(id => selectedIds.add(id));
+            } else {
+                visibleIds.forEach(id => selectedIds.delete(id));
+            }
+            // Sync with current view checkboxes
+            const boxes = document.querySelectorAll('#dataTableBody input[type="checkbox"]');
+            boxes.forEach(box => box.checked = checkbox.checked);
+            updateSelectionUI();
+        };
+
+        window.updateSelectionUI = () => {
+            // Update Select All Checkbox state
+            const selectAll = el('selectAllCheckbox');
+            const visibleIds = filteredDisplayEntries.map(e => e.id);
+            // Check if all currently visible items are selected
+            const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id));
+            if(selectAll) selectAll.checked = allSelected;
+
+            // Highlight Rows
+            document.querySelectorAll('#dataTableBody tr').forEach(tr => {
+                const checkbox = tr.querySelector('input[type="checkbox"]');
+                if (checkbox && checkbox.checked) tr.classList.add('row-selected');
+                else tr.classList.remove('row-selected');
+            });
+
+            // Show/Hide Toolbar
+            const toolbar = el('bulkActionOverlay');
+            if (selectedIds.size > 0) {
+                toolbar.classList.remove('hidden');
+                toolbar.classList.add('flex');
+                el('selectedCountDisplay').textContent = selectedIds.size;
+            } else {
+                toolbar.classList.add('hidden');
+                toolbar.classList.remove('flex');
+            }
+        };
+
+        window.cancelSelection = () => {
+            selectedIds.clear();
+            renderDashboard();
+        };
+
+        window.deleteSelected = async () => {
+            if (!selectedIds.size) return;
+            if (!confirm(`Bạn có chắc muốn xóa ${selectedIds.size} ca chụp đã chọn?`)) return;
+            
+            const batch = writeBatch(db);
+            selectedIds.forEach(id => {
+                const ref = doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id);
+                batch.delete(ref);
+            });
+            
+            try {
+                await batch.commit();
+                showToast(`Đã xóa ${selectedIds.size} ca chụp thành công!`);
+                selectedIds.clear();
+            } catch (err) {
+                showToast("Lỗi xóa hàng loạt: " + err.message);
+            }
+        };
+
+        window.openBulkEditModal = () => {
+            if (!selectedIds.size) return;
+            el('bulkEditCount').textContent = selectedIds.size;
+            el('bulkEditForm').reset();
+            el('bulkEditModal').classList.remove('hidden');
+        };
+
+        el('bulkEditForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const updates = {};
+            const hosp = el('bulkHospital').value; if(hosp) updates.hospitalName = hosp;
+            const prot = el('bulkProtocol').value; if(prot) updates.protocol = prot;
+            const manu = el('bulkManufacturer').value; if(manu) updates.manufacturer = manu;
+            const mod = el('bulkModulation').value; if(mod) updates.doseModulation = mod;
+
+            if (Object.keys(updates).length === 0) {
+                showToast("Không có thông tin nào được chọn để thay đổi.");
+                return;
+            }
+
+            updates.updatedAt = new Date().toISOString();
+
+            const batch = writeBatch(db);
+            selectedIds.forEach(id => {
+                const ref = doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id);
+                batch.update(ref, updates);
+            });
+
+            try {
+                await batch.commit();
+                showToast(`Đã cập nhật ${selectedIds.size} ca chụp!`);
+                el('bulkEditModal').classList.add('hidden');
+                selectedIds.clear();
+            } catch (err) {
+                showToast("Lỗi cập nhật: " + err.message);
+            }
+        };
 
         function renderDashboard() {
             const isGuest = !user || user.isAnonymous;
@@ -1229,9 +1515,13 @@
             const dlpVals = filteredDisplayEntries.map(e => parseFloat(e.dlp)).filter(n => !isNaN(n));
             const ageVals = filteredDisplayEntries.map(e => parseFloat(e.age)).filter(n => !isNaN(n));
             const weightVals = filteredDisplayEntries.map(e => parseFloat(e.weight)).filter(n => !isNaN(n));
+            
+            // NEW: Calculate Effective Dose Stats
+            const effVals = filteredDisplayEntries.map(e => getEffectiveDose(e.dlp, e.protocol)).filter(n => !isNaN(n));
 
             const ctdiStats = calcStats(ctdiVals, refCtdi), dlpStats = calcStats(dlpVals, refDlp);
             const ageStats = calcStats(ageVals), weightStats = calcStats(weightVals);
+            const effStats = calcStats(effVals);
 
             el('statTotal').textContent = filteredDisplayEntries.length;
             el('statCtdi75').textContent = ctdiStats.p75.toFixed(1);
@@ -1243,6 +1533,10 @@
             el('statDlpMedian').textContent = Math.round(dlpStats.median);
             el('statDlpMeanSD').textContent = `${Math.round(dlpStats.mean)} ± ${Math.round(dlpStats.sd)}`;
             el('pValDlp').textContent = dlpStats.p < 0.001 ? "< 0.001" : dlpStats.p.toFixed(3);
+            
+            // UPDATE: Effective Dose Card
+            el('statEffMedian').textContent = effStats.median.toFixed(1);
+            el('statEffMeanSD').textContent = `${effStats.mean.toFixed(1)} ± ${effStats.sd.toFixed(1)}`;
 
             el('statAgeMeanSD').textContent = `${ageStats.mean.toFixed(1)} ± ${ageStats.sd.toFixed(1)}`;
             el('statWeightMeanSD').textContent = `${weightStats.mean.toFixed(1)} ± ${weightStats.sd.toFixed(1)}`;
@@ -1309,7 +1603,11 @@
             const tbody = el('dataTableBody'); tbody.innerHTML = '';
             pagedEntries.forEach(e => {
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 transition-all group border-b border-slate-50";
+                // Check if row is selected
+                if (selectedIds.has(e.id)) {
+                    tr.classList.add('row-selected');
+                }
+                tr.className += " hover:bg-slate-50 transition-all group border-b border-slate-50";
                 
                 const isOwner = user && e.userId === user.uid;
                 const isRealUser = user && !user.isAnonymous; // Đăng nhập tài khoản
@@ -1331,17 +1629,28 @@
                     }
                 }
 
-                // Calculate Scan Length
+                // Calculate Scan Length & Effective Dose
                 let scanLengthDisplay = "-";
+                let effDoseDisplay = "-";
                 const dlp = parseFloat(e.dlp);
                 const ctdi = parseFloat(e.ctdi);
                 if (!isNaN(dlp) && !isNaN(ctdi) && ctdi > 0) {
                     scanLengthDisplay = (dlp / ctdi).toFixed(1);
                 }
+                const effDose = getEffectiveDose(dlp, e.protocol);
+                if (effDose > 0) effDoseDisplay = effDose.toFixed(2);
+                
+                // Highlight High Dose
+                const protRef = THAI_DRL_PROTOCOLS.find(p => p.name === e.protocol);
+                const isHighDose = protRef && ctdi > protRef.refCtdi;
+                const ctdiClass = isHighDose ? "text-red-500 font-black" : "text-slate-900 font-black";
+
 
                 if (isEditing) {
                     // CHẾ ĐỘ ĐANG CHỈNH SỬA (INLINE EDIT)
+                    // Note: No checkbox in inline edit mode
                     tr.innerHTML = `
+                        <td class="pl-6 pr-2 py-3 text-center"><input type="checkbox" disabled class="custom-checkbox opacity-50"></td>
                         <td class="px-4 py-3 text-[10px] text-slate-400 font-bold">${dateStr}</td>
                         <td class="px-4 py-3 text-[10px] text-indigo-600 font-bold">${e.userEmail || '---'}</td>
                         <td class="px-4 py-3">
@@ -1376,6 +1685,7 @@
                         <td class="px-4 py-3"><input type="number" step="0.01" id="inline-ctdi-${e.id}" value="${e.ctdi}" class="w-16 p-1 text-[10px] border rounded font-black" min="0"></td>
                         <td class="px-4 py-3"><input type="number" step="0.1" id="inline-dlp-${e.id}" value="${e.dlp}" class="w-20 p-1 text-[10px] border rounded font-bold" min="0"></td>
                         <td class="px-4 py-3 text-center font-bold text-slate-400 text-[10px]">${scanLengthDisplay}</td>
+                        <td class="px-4 py-3 text-center font-bold text-emerald-600 text-[10px]">${effDoseDisplay}</td>
                         <td class="px-4 py-3 text-right">
                             <div class="flex justify-end gap-1">
                                 <button type="button" onclick="saveInlineEdit('${e.id}', this)" class="p-2 text-emerald-600 bg-emerald-50 rounded-xl hover:bg-emerald-100" title="Lưu"><i data-lucide="check" class="w-4 h-4"></i></button>
@@ -1385,23 +1695,29 @@
                 } else {
                     // CHẾ ĐỘ HIỂN THỊ
                     const genderLabel = normalizeGender(e.gender) === 'M' ? 'Nam' : 'Nữ';
+                    const isChecked = selectedIds.has(e.id) ? 'checked' : '';
+                    
                     tr.innerHTML = `
-                        <td class="px-8 py-5 text-[10px] font-bold text-slate-500 whitespace-nowrap">${dateStr}</td>
-                        <td class="px-8 py-5 text-[10px] font-bold text-indigo-600">${e.userEmail || '---'}</td>
-                        <td data-label="Bệnh viện / ID" class="px-8 py-5">
+                        <td class="pl-6 pr-2 py-5 text-center mobile-checkbox-container">
+                            ${canManage ? `<input type="checkbox" class="custom-checkbox" onchange="toggleRow(this, '${e.id}')" ${isChecked}>` : ''}
+                        </td>
+                        <td class="px-4 py-5 text-[10px] font-bold text-slate-500 whitespace-nowrap">${dateStr}</td>
+                        <td class="px-4 py-5 text-[10px] font-bold text-indigo-600">${e.userEmail || '---'}</td>
+                        <td data-label="Bệnh viện / ID" class="px-4 py-5">
                             <div class="font-black text-slate-800 text-[11px]">${e.hospitalName}</div>
                             <div class="text-[8px] text-slate-400 font-black uppercase mt-1">ID: ${e.patientId || '??'} • ${e.manufacturer || '?'}</div>
                         </td>
-                        <td data-label="Protocol" class="px-8 py-5"><span class="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-black uppercase border border-indigo-100">${e.protocol}</span></td>
-                        <td data-label="BN Info" class="px-8 py-5 text-center">
+                        <td data-label="Protocol" class="px-4 py-5"><span class="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-black uppercase border border-indigo-100">${e.protocol}</span></td>
+                        <td data-label="BN Info" class="px-4 py-5 text-center">
                             <div class="text-[10px] font-bold text-slate-600">${genderLabel} • ${e.age}t • ${e.weight}kg ${e.height ? '• ' + e.height + 'cm' : ''}</div>
                             ${bmiDisplay}
                         </td>
-                        <td data-label="Modulation" class="px-8 py-5 text-center"><span class="text-[10px] font-black ${e.doseModulation === 'Không' ? 'text-orange-500' : 'text-emerald-600'}">${e.doseModulation || 'Có'}</span></td>
-                        <td data-label="CTDIvol" class="px-8 py-5 font-black text-slate-900">${e.ctdi}</td>
-                        <td data-label="DLP" class="px-8 py-5 font-bold text-slate-400">${e.dlp}</td>
-                        <td data-label="L (cm)" class="px-8 py-5 font-bold text-slate-500 text-center">${scanLengthDisplay}</td>
-                        <td data-label="Thao tác" class="px-8 py-5 text-right">
+                        <td data-label="Modulation" class="px-4 py-5 text-center"><span class="text-[10px] font-black ${e.doseModulation === 'Không' ? 'text-orange-500' : 'text-emerald-600'}">${e.doseModulation || 'Có'}</span></td>
+                        <td data-label="CTDIvol" class="px-4 py-5 ${ctdiClass}">${e.ctdi}</td>
+                        <td data-label="DLP" class="px-4 py-5 font-bold text-slate-400">${e.dlp}</td>
+                        <td data-label="L (cm)" class="px-4 py-5 font-bold text-slate-500 text-center">${scanLengthDisplay}</td>
+                        <td data-label="E (mSv)" class="px-4 py-5 font-black text-emerald-600 text-center">${effDoseDisplay}</td>
+                        <td data-label="Thao tác" class="px-6 py-5 text-right">
                             <div class="flex justify-end gap-1.5">
                                 ${ canManage ? `
                                 <button type="button" onclick="editEntry('${e.id}')" class="p-2 text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
@@ -1412,7 +1728,9 @@
                 }
                 tbody.appendChild(tr);
             });
-            renderPagination(); lucide.createIcons();
+            renderPagination(); 
+            updateSelectionUI(); // Ensure select all state is correct
+            lucide.createIcons();
         }
 
         // --- NEW: Populate Chart Filters ---
@@ -1527,8 +1845,8 @@
             const primaryLabels = [...new Set(data.map(e => {
                 let v = e[primaryKey];
                 if (primaryKey === 'manufacturer') {
-                     v = v ? v.trim() : 'N/A';
-                     if (v.toLowerCase().startsWith('ge ') || v.toUpperCase() === 'GE') v = 'GE HealthCare';
+                      v = v ? v.trim() : 'N/A';
+                      if (v.toLowerCase().startsWith('ge ') || v.toUpperCase() === 'GE') v = 'GE HealthCare';
                 }
                 return v || 'Unknown';
             }))].sort();
@@ -1880,8 +2198,8 @@
             const exportData = filteredDisplayEntries.map(e => {
                 let bmi = "N/A";
                 if(e.height && e.weight) {
-                     const h = parseFloat(e.height)/100;
-                     if(h>0) bmi = (parseFloat(e.weight)/(h*h)).toFixed(2);
+                      const h = parseFloat(e.height)/100;
+                      if(h>0) bmi = (parseFloat(e.weight)/(h*h)).toFixed(2);
                 }
 
                 return {
@@ -1899,7 +2217,8 @@
                     "Modulation": e.doseModulation,
                     "CTDIvol (mGy)": e.ctdi,
                     "DLP (mGy.cm)": e.dlp,
-                    "L (cm)": (parseFloat(e.ctdi) > 0) ? (parseFloat(e.dlp)/parseFloat(e.ctdi)).toFixed(1) : "0"
+                    "L (cm)": (parseFloat(e.ctdi) > 0) ? (parseFloat(e.dlp)/parseFloat(e.ctdi)).toFixed(1) : "0",
+                    "E (mSv)": getEffectiveDose(e.dlp, e.protocol).toFixed(2) // NEW
                 };
             });
 
@@ -1973,7 +2292,10 @@
         }
 
         window.onload = async () => {
-            const fill = (id, list) => { const e = el(id); if (!e) return; e.innerHTML = (id.startsWith('filter') || id.startsWith('dashFilter')) ? '<option value="all">Tất cả</option>' : '<option value="" disabled selected>-- Chọn --</option>'; list.forEach(i => { e.innerHTML += `<option value="${typeof i === 'string' ? i : i.name}">${typeof i === 'string' ? i : i.name}</option>`; }); };
+            const fill = (id, list) => { const e = el(id); if (!e) return; e.innerHTML = (id.startsWith('filter') || id.startsWith('dashFilter')) ? '<option value="all">Tất cả</option>' : '<option value="" disabled selected>-- Chọn --</option>'; 
+                if(id.startsWith('bulk')) e.innerHTML = '<option value="">-- Không thay đổi --</option>'; // Specific for Bulk
+                list.forEach(i => { e.innerHTML += `<option value="${typeof i === 'string' ? i : i.name}">${typeof i === 'string' ? i : i.name}</option>`; }); 
+            };
             fill('sliceCount', SLICE_COUNTS); 
             fill('protocol', THAI_DRL_PROTOCOLS); 
             fill('filterProtocol', THAI_DRL_PROTOCOLS);
