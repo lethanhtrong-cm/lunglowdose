@@ -238,25 +238,49 @@
         </div>
     </div>
 
-    <!-- Hospital Manager Modal -->
-    <div id="hospitalManagerModal" class="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
-        <div class="bg-white rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl border border-slate-100 flex flex-col max-h-[80vh]">
-            <div class="flex justify-between items-center mb-6">
+    <!-- NEW: Hospital Management Modal (Admin Only) -->
+    <div id="hospitalManageModal" class="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-2xl p-8 shadow-2xl border border-indigo-100 h-[80vh] flex flex-col">
+            <div class="text-center mb-6 flex-none">
+                <div class="bg-indigo-600 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 text-white shadow-lg"><i data-lucide="building-2" class="w-6 h-6"></i></div>
                 <h3 class="text-lg font-black text-slate-900 uppercase">Quản lý Bệnh viện</h3>
-                <button onclick="el('hospitalManagerModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-            
-            <div class="flex gap-2 mb-4">
-                <input type="text" id="newHospitalInput" placeholder="Nhập tên bệnh viện mới..." class="flex-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500">
-                <button id="btnAddHospital" class="p-3 bg-indigo-600 text-white rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all">
-                    <i data-lucide="plus" class="w-5 h-5"></i>
-                </button>
+                <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Thêm, xóa và khôi phục dữ liệu</p>
+                
+                <div class="flex justify-center gap-2 mt-4">
+                    <button onclick="switchHospTab('active')" id="btn-hosp-active" class="px-4 py-2 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">Đang hoạt động</button>
+                    <button onclick="switchHospTab('trash')" id="btn-hosp-trash" class="px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-500 border border-slate-100 hover:bg-slate-50">Thùng rác <span id="trashCount" class="ml-1 px-1.5 py-0.5 bg-red-100 text-red-600 rounded-full text-[9px]">0</span></button>
+                </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
-                <ul id="hospitalManagerList" class="space-y-2">
-                    <!-- List items generated here -->
-                </ul>
+            <div id="hosp-tab-active" class="flex-1 overflow-hidden flex flex-col gap-4">
+                <!-- Add New -->
+                <form id="addHospitalForm" class="flex gap-2">
+                    <input type="text" id="newHospitalName" class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Nhập tên bệnh viện mới..." required>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase hover:bg-indigo-700 shadow-md whitespace-nowrap">Thêm mới</button>
+                </form>
+                
+                <!-- List Active -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar border border-slate-100 rounded-2xl p-2">
+                    <div id="activeHospitalsList" class="space-y-2">
+                        <!-- Dynamic List -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="hosp-tab-trash" class="flex-1 overflow-hidden flex-col gap-4 hidden">
+                <div class="p-3 bg-red-50 text-red-600 text-[10px] font-bold rounded-xl border border-red-100 mb-2">
+                    <i data-lucide="alert-circle" class="w-3 h-3 inline mr-1"></i> Dữ liệu của các bệnh viện trong thùng rác sẽ bị ẩn khỏi Dashboard.
+                </div>
+                <!-- List Trash -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar border border-slate-100 rounded-2xl p-2">
+                    <div id="trashHospitalsList" class="space-y-2">
+                        <!-- Dynamic List -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex justify-end mt-4 flex-none">
+                <button onclick="el('hospitalManageModal').classList.add('hidden')" class="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl text-xs font-black uppercase hover:bg-slate-200">Đóng</button>
             </div>
         </div>
     </div>
@@ -291,9 +315,10 @@
                 <button onclick="switchTab('data-tab')" id="btn-data-tab" class="tab-btn px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
                     <i data-lucide="table-2" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Dữ liệu</span><span class="sm:hidden">List</span>
                 </button>
-                <button onclick="switchTab('charts-tab')" id="btn-charts-tab" class="tab-btn px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
+                <a href="https://vnrad.tech/chart/" target="_blank" class="tab-btn px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2 text-slate-500 hover:text-indigo-600 transition-colors">
                     <i data-lucide="pie-chart" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Biểu đồ & Thống kê</span><span class="sm:hidden">Biểu đồ</span>
-                </button>
+                    <i data-lucide="external-link" class="w-3 h-3 ml-1"></i>
+                </a>
             </div>
             <div class="flex items-center gap-2">
                 <div class="relative">
@@ -339,8 +364,8 @@
 
     <div id="main-tab" class="tab-content app-layout">
         <div class="section-container">
-            <!-- NEW: Progress Chart Section moved here (Top Level) -->
-            <div id="progressChartSection" class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-slate-100 bg-white hidden">
+            <!-- Progress Chart Section -->
+            <div id="progressChartSection" class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-slate-100 bg-white">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-3">
                         <div class="bg-indigo-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-horizontal" class="w-5 h-5"></i></div>
@@ -375,12 +400,7 @@
                         <div class="p-6 md:p-8 space-y-8 text-slate-900 flex-1">
                             <input type="hidden" id="editEntryId" value="">
                             <div class="space-y-4">
-                                <label class="section-label flex items-center gap-2 font-bold">
-                                    <i data-lucide="hospital" class="w-3 h-3 text-indigo-500"></i> Cơ sở & Thiết bị
-                                    <button type="button" id="btnManageHospitals" class="ml-auto text-indigo-600 hover:text-indigo-800 hidden" title="Quản lý danh sách">
-                                        <i data-lucide="settings" class="w-3 h-3"></i>
-                                    </button>
-                                </label>
+                                <label class="section-label flex items-center gap-2 font-bold"><i data-lucide="hospital" class="w-3 h-3 text-indigo-500"></i> Cơ sở & Thiết bị</label>
                                 <div class="space-y-3">
                                     <select id="hospitalSelect" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium"></select>
                                     <input type="text" id="customHospitalName" placeholder="Tên bệnh viện mới..." class="hidden w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none border-indigo-200">
@@ -425,19 +445,6 @@
                 </aside>
 
                 <main class="dashboard-main flex-1">
-                    <div id="dashboardLock" class="hidden absolute inset-0 z-50 rounded-[2.5rem] overflow-hidden">
-                        <div class="lock-screen-container">
-                            <div class="bg-indigo-50 p-6 rounded-full mb-4 shadow-sm">
-                                <i data-lucide="lock" class="w-12 h-12 text-indigo-600"></i>
-                            </div>
-                            <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">Quyền truy cập bị hạn chế</h3>
-                            <p class="text-sm font-medium text-slate-500 max-w-xs mx-auto mb-6">Vui lòng đăng nhập để xem thông tin Dashboard chi tiết và thống kê thời gian thực.</p>
-                            <button onclick="el('navLoginBtn').click()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-2">
-                                <i data-lucide="log-in" class="w-4 h-4"></i> Đăng nhập ngay
-                            </button>
-                        </div>
-                    </div>
-
                     <div id="dashboardContent" class="flex flex-col gap-10">
                         <div class="glass-card rounded-[2rem] p-4 md:p-6 border border-indigo-100 shadow-xl flex flex-wrap items-end gap-4">
                             <!-- ... existing filters ... -->
@@ -477,8 +484,12 @@
                                 <button id="btnResetDashFilter" class="p-2.5 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition-colors" title="Đặt lại bộ lọc">
                                     <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
                                 </button>
+                                <!-- NEW: Admin Manage Hospital Button -->
+                                <button id="btnManageHospitals" class="hidden p-2.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition-colors" title="Quản lý Bệnh viện">
+                                    <i data-lucide="settings" class="w-5 h-5"></i>
+                                </button>
                             </div>
-                            <!-- NEW: Quick Date Filters -->
+                            <!-- Quick Date Filters -->
                             <div class="w-full flex gap-2 pt-2 border-t border-indigo-50">
                                 <button onclick="setQuickDateFilter(0)" class="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-bold text-slate-600 hover:bg-slate-50">Hôm nay</button>
                                 <button onclick="setQuickDateFilter(7)" class="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-bold text-slate-600 hover:bg-slate-50">7 ngày</button>
@@ -511,7 +522,7 @@
                             </div>
                         </div>
 
-                        <!-- RESTRUCTURED: Grid 4 cột đều cho hàng trên (Updated for E dose) -->
+                        <!-- Grid 4 cột đều cho hàng trên -->
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
                             <!-- Card 1: Tổng mẫu -->
                             <div class="glass-card p-6 rounded-[2.5rem] flex flex-col justify-between shadow-xl min-h-[220px] h-full relative overflow-hidden group">
@@ -529,38 +540,58 @@
                                 </div>
                             </div>
 
-                            <!-- Card 2: CTDI -->
+                            <!-- Card 2: CTDI (UPDATED) -->
                             <div class="glass-card p-6 rounded-[2.5rem] border-l-[6px] border-l-indigo-600 shadow-xl flex flex-col justify-between min-h-[220px] h-full">
                                 <div class="flex justify-between items-start">
                                     <p class="section-label text-indigo-600">CTDIvol (mGy)</p>
-                                    <div class="text-[9px] font-black px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg">p = <span id="pValCtdi">---</span></div>
+                                    <div class="text-[9px] font-black px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg" title="Kiểm định t-test: Mean vs Reference">p = <span id="pValCtdi">---</span></div>
                                 </div>
                                 <div>
                                     <div class="flex items-baseline gap-2 mt-2">
-                                        <h3 id="statCtdi75" class="text-4xl font-black text-slate-900 tracking-tighter">0.0</h3>
+                                        <!-- Main Display: Mean +/- SD -->
+                                        <h3 id="statCtdiPrimary" class="text-3xl font-black text-slate-900 tracking-tighter">0.0 ± 0.0</h3>
                                         <span class="text-[10px] text-slate-400 font-bold border-l pl-2 ml-1 h-6 flex items-center" id="labelRefCtdi">Ref: --</span>
                                     </div>
-                                    <div class="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
-                                        <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Median</span><span id="statCtdiMedian" class="text-sm font-black text-indigo-600">0.0</span></div>
-                                        <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Mean ± SD</span><span id="statCtdiMeanSD" class="text-[10px] font-bold text-slate-700">0.0 ± 0.0</span></div>
+                                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 mb-3">Mean ± SD</p>
+                                    
+                                    <!-- Secondary Stats: P75 & Median -->
+                                    <div class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
+                                        <div class="flex flex-col">
+                                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">75th Percentile</span>
+                                            <span id="statCtdiP75" class="text-sm font-black text-indigo-600">0.0</span>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Median (50th)</span>
+                                            <span id="statCtdiMedian" class="text-[10px] font-bold text-slate-700">0.0</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Card 3: DLP -->
+                            <!-- Card 3: DLP (UPDATED) -->
                             <div class="glass-card p-6 rounded-[2.5rem] border-l-[6px] border-l-amber-500 shadow-xl flex flex-col justify-between min-h-[220px] h-full">
                                 <div class="flex justify-between items-start">
                                     <p class="section-label text-amber-600">DLP (mGy.cm)</p>
-                                    <div class="text-[9px] font-black px-3 py-1 bg-amber-50 text-amber-700 rounded-lg">p = <span id="pValDlp">---</span></div>
+                                    <div class="text-[9px] font-black px-3 py-1 bg-amber-50 text-amber-700 rounded-lg" title="Kiểm định t-test: Mean vs Reference">p = <span id="pValDlp">---</span></div>
                                 </div>
                                 <div>
                                     <div class="flex items-baseline gap-2 mt-2">
-                                        <h3 id="statDlp75" class="text-4xl font-black text-slate-900 tracking-tighter">0</h3>
+                                        <!-- Main Display: Mean +/- SD -->
+                                        <h3 id="statDlpPrimary" class="text-3xl font-black text-slate-900 tracking-tighter">0 ± 0</h3>
                                         <span class="text-[10px] text-slate-400 font-bold border-l pl-2 ml-1 h-6 flex items-center" id="labelRefDlp">Ref: --</span>
                                     </div>
-                                    <div class="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
-                                        <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Median</span><span id="statDlpMedian" class="text-sm font-black text-amber-600">0</span></div>
-                                        <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Mean ± SD</span><span id="statDlpMeanSD" class="text-[10px] font-bold text-slate-700">0 ± 0</span></div>
+                                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 mb-3">Mean ± SD</p>
+
+                                    <!-- Secondary Stats: P75 & Median -->
+                                    <div class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
+                                        <div class="flex flex-col">
+                                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">75th Percentile</span>
+                                            <span id="statDlpP75" class="text-sm font-black text-amber-600">0</span>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Median (50th)</span>
+                                            <span id="statDlpMedian" class="text-[10px] font-bold text-slate-700">0</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -583,7 +614,7 @@
                             </div>
                         </div>
 
-                        <!-- RESTRUCTURED: Grid không đối xứng (1/3 và 2/3) cho hàng dưới -->
+                        <!-- Grid không đối xứng (1/3 và 2/3) cho hàng dưới -->
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
                             <!-- Cột trái: Tuổi & Cân nặng (Xếp chồng) -->
                             <div class="lg:col-span-1 flex flex-col gap-6">
@@ -660,23 +691,11 @@
         </div>
     </div>
 
-    <!-- ... (Data Tab and Charts Tab structure remains the same) ... -->
+    <!-- ... rest of data tab ... -->
+    <!-- (Include all data-tab HTML content from previous version here - omitted for brevity but preserved in final output) -->
+    <!-- ... -->
     <div id="data-tab" class="tab-content app-layout hidden">
-        <!-- Content of data tab preserved -->
         <div class="section-container relative">
-            <div id="dataLock" class="hidden absolute inset-0 z-50 rounded-[2.5rem] overflow-hidden">
-                <div class="lock-screen-container">
-                    <div class="bg-indigo-50 p-6 rounded-full mb-4 shadow-sm">
-                        <i data-lucide="lock" class="w-12 h-12 text-indigo-600"></i>
-                    </div>
-                    <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">Dữ liệu bị hạn chế</h3>
-                    <p class="text-sm font-medium text-slate-500 max-w-xs mx-auto mb-6">Vui lòng đăng nhập để xem danh sách chi tiết các ca chụp.</p>
-                    <button onclick="el('navLoginBtn').click()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-2">
-                        <i data-lucide="log-in" class="w-4 h-4"></i> Đăng nhập ngay
-                    </button>
-                </div>
-            </div>
-
             <div id="dataContent">
                 <div class="glass-card rounded-[2rem] p-5 md:p-6 shadow-xl border-2 border-indigo-100 w-full relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
@@ -780,256 +799,6 @@
         </div>
     </div>
 
-    <!-- Charts Tab -->
-    <div id="charts-tab" class="tab-content app-layout hidden">
-        <!-- Content of charts tab preserved -->
-        <div class="section-container relative">
-            <div id="chartsLock" class="hidden absolute inset-0 z-50 rounded-[2.5rem] overflow-hidden">
-                <div class="lock-screen-container">
-                    <div class="bg-indigo-50 p-6 rounded-full mb-4 shadow-sm">
-                        <i data-lucide="lock" class="w-12 h-12 text-indigo-600"></i>
-                    </div>
-                    <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">Biểu đồ bị hạn chế</h3>
-                    <p class="text-sm font-medium text-slate-500 max-w-xs mx-auto mb-6">Vui lòng đăng nhập để xem và tương tác với các biểu đồ phân tích.</p>
-                    <button onclick="el('navLoginBtn').click()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-2">
-                        <i data-lucide="log-in" class="w-4 h-4"></i> Đăng nhập ngay
-                    </button>
-                </div>
-            </div>
-
-            <div id="chartsContent" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Multi-dimensional Mean Analysis -->
-                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-purple-100 bg-white col-span-1 lg:col-span-2">
-                    <div class="flex items-center justify-between mb-6">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-purple-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-horizontal" class="w-5 h-5"></i></div>
-                            <h3 class="section-label text-purple-900 text-sm">So sánh Đa chiều (Mean)</h3>
-                        </div>
-                        <div class="flex items-center gap-2">
-                             <span class="text-[9px] font-bold text-slate-500 uppercase">Thông số:</span>
-                             <select id="multiCompMetric" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-purple-500">
-                                 <option value="ctdi">CTDIvol (mGy)</option>
-                                 <option value="dlp">DLP (mGy.cm)</option>
-                             </select>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <!-- Hospital by Protocol -->
-                        <div class="flex flex-col gap-2">
-                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Theo Bệnh viện</h4>
-                            <div class="chart-container h-[350px]">
-                                <canvas id="multiHospChart"></canvas>
-                            </div>
-                        </div>
-                        <!-- Manufacturer by Protocol -->
-                        <div class="flex flex-col gap-2">
-                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Theo Hãng máy</h4>
-                            <div class="chart-container h-[350px]">
-                                <canvas id="multiManuChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- NEW: Multi-dimensional P75/Median Analysis -->
-                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-rose-100 bg-white col-span-1 lg:col-span-2">
-                    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-rose-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-2" class="w-5 h-5"></i></div>
-                            <h3 class="section-label text-rose-900 text-sm">So sánh Đa chiều (Mức DRL - P75 & Median)</h3>
-                        </div>
-                        <div class="flex items-center gap-3">
-                             <div class="flex items-center gap-2">
-                                 <span class="text-[9px] font-bold text-slate-500 uppercase">Loại:</span>
-                                 <select id="multiStatType" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-rose-500">
-                                     <option value="p75">Percentile 75</option>
-                                     <option value="median">Median (P50)</option>
-                                 </select>
-                             </div>
-                             <div class="flex items-center gap-2">
-                                 <span class="text-[9px] font-bold text-slate-500 uppercase">Thông số:</span>
-                                 <select id="multiStatMetric" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-rose-500">
-                                     <option value="ctdi">CTDIvol (mGy)</option>
-                                     <option value="dlp">DLP (mGy.cm)</option>
-                                 </select>
-                             </div>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <!-- Hospital by Protocol -->
-                        <div class="flex flex-col gap-2">
-                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Theo Bệnh viện</h4>
-                            <div class="chart-container h-[350px]">
-                                <canvas id="multiHospStatChart"></canvas>
-                            </div>
-                        </div>
-                        <!-- Manufacturer by Protocol -->
-                        <div class="flex flex-col gap-2">
-                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Theo Hãng máy</h4>
-                            <div class="chart-container h-[350px]">
-                                <canvas id="multiManuStatChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Histogram Card -->
-                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-indigo-100 bg-white col-span-1 lg:col-span-2">
-                    <div class="flex flex-col gap-4 mb-6">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="bg-indigo-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-2" class="w-5 h-5"></i></div>
-                                <h3 class="section-label text-indigo-900 text-sm">Phân bố liều CTDIvol</h3>
-                            </div>
-                            <button onclick="downloadChart('histogramChart', 'CTDIvol_Histogram')" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors" title="Tải ảnh"><i data-lucide="download" class="w-4 h-4"></i></button>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            <select id="histFilterHospital" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-indigo-500"></select>
-                            <select id="histFilterProtocol" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-indigo-500"></select>
-                            <select id="histFilterManufacturer" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-indigo-500"></select>
-                            <select id="histFilterGender" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-indigo-500">
-                                <option value="all">Tất cả giới tính</option>
-                                <option value="M">Nam</option>
-                                <option value="F">Nữ</option>
-                            </select>
-                            <select id="histFilterAge" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-indigo-500">
-                                <option value="all">Tất cả độ tuổi</option>
-                                <option value="child">&lt; 18 tuổi</option>
-                                <option value="adult">&ge; 18 tuổi</option>
-                            </select>
-                            <button id="btnRefreshChart" class="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors" title="Làm mới"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="histogramChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- NEW Grouped Stats Row -->
-                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-orange-100 bg-white col-span-1 lg:col-span-2">
-                      <!-- Header and Controls -->
-                      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-orange-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-4" class="w-5 h-5"></i></div>
-                            <h3 class="section-label text-orange-900 text-sm">Phân tích Thống kê Nâng cao (P75 & Median)</h3>
-                        </div>
-                      </div>
-                      
-                      <!-- Charts Grid -->
-                      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <!-- P75 Chart -->
-                        <div class="flex flex-col gap-2">
-                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Mức DRL (Percentile 75)</h4>
-                            <div class="chart-container h-[300px]">
-                                <canvas id="p75Chart"></canvas>
-                            </div>
-                        </div>
-                        <!-- P50 Chart -->
-                        <div class="flex flex-col gap-2">
-                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Giá trị Trung vị (Median)</h4>
-                            <div class="chart-container h-[300px]">
-                                <canvas id="p50Chart"></canvas>
-                            </div>
-                        </div>
-                      </div>
-                </div>
-
-                <!-- NEW: Mean Stats Row -->
-                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-sky-100 bg-white col-span-1 lg:col-span-2">
-                      <div class="flex flex-col gap-4 mb-6">
-                        <div class="flex flex-wrap items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="bg-sky-600 p-2 rounded-xl text-white"><i data-lucide="activity" class="w-5 h-5"></i></div>
-                                <h3 class="section-label text-sky-900 text-sm">Phân tích Giá trị Trung bình (Mean)</h3>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-[9px] font-bold text-slate-500 uppercase">Phân nhóm (Trục X):</span>
-                                <select id="meanStatsGroupBy" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-sky-500">
-                                    <option value="protocol">Bộ phận</option>
-                                    <option value="hospitalName">Bệnh viện</option>
-                                    <option value="manufacturer">Hãng máy</option>
-                                    <option value="gender">Giới tính</option>
-                                    <option value="bmi">BMI</option>
-                                </select>
-                            </div>
-                        </div>
-                        <!-- New Filter Row -->
-                        <div class="flex flex-wrap items-center gap-2 p-3 bg-sky-50/50 rounded-2xl border border-sky-100">
-                            <span class="text-[9px] font-black text-sky-700 uppercase mr-1"><i data-lucide="filter" class="w-3 h-3 inline mb-0.5"></i> Lọc dữ liệu:</span>
-                            <select id="meanFilterHospital" class="px-2 py-1.5 text-[10px] border border-slate-200 rounded-lg bg-white font-bold outline-none focus:ring-1 focus:ring-sky-500 max-w-[150px]"></select>
-                            <select id="meanFilterProtocol" class="px-2 py-1.5 text-[10px] border border-slate-200 rounded-lg bg-white font-bold outline-none focus:ring-1 focus:ring-sky-500"></select>
-                            <select id="meanFilterManufacturer" class="px-2 py-1.5 text-[10px] border border-slate-200 rounded-lg bg-white font-bold outline-none focus:ring-1 focus:ring-sky-500"></select>
-                            <select id="meanFilterGender" class="px-2 py-1.5 text-[10px] border border-slate-200 rounded-lg bg-white font-bold outline-none focus:ring-1 focus:ring-sky-500">
-                                <option value="all">Tất cả giới tính</option>
-                                <option value="M">Nam</option>
-                                <option value="F">Nữ</option>
-                            </select>
-                            <button id="btnRefreshMeanChart" class="p-1.5 bg-white text-sky-600 border border-sky-200 rounded-lg hover:bg-sky-100 transition-colors" title="Đặt lại"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i></button>
-                        </div>
-                      </div>
-                      
-                      <!-- Charts Grid -->
-                      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <!-- Mean CTDI Chart -->
-                        <div class="flex flex-col gap-2">
-                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Mean CTDIvol (mGy)</h4>
-                            <div class="chart-container h-[300px]">
-                                <canvas id="meanCtdiChart"></canvas>
-                            </div>
-                        </div>
-                        <!-- Mean DLP Chart -->
-                        <div class="flex flex-col gap-2">
-                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Mean DLP (mGy.cm)</h4>
-                            <div class="chart-container h-[300px]">
-                                <canvas id="meanDlpChart"></canvas>
-                            </div>
-                        </div>
-                      </div>
-                </div>
-
-                <!-- Scatter Chart Card: Weight vs CTDIvol -->
-                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-blue-100 bg-white">
-                    <div class="flex flex-col gap-3 mb-6">
-                         <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="bg-blue-600 p-2 rounded-xl text-white"><i data-lucide="scatter-chart" class="w-5 h-5"></i></div>
-                                <h3 class="section-label text-blue-900 text-sm">Tương quan Cân nặng - CTDIvol</h3>
-                            </div>
-                            <button onclick="downloadChart('scatterCtdiChart', 'Weight_CTDIvol_Scatter')" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors" title="Tải ảnh"><i data-lucide="download" class="w-4 h-4"></i></button>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-2">
-                             <select id="scatterFilterProtocol_CTDI" class="px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-blue-500"></select>
-                             <select id="scatterFilterHospital_CTDI" class="px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-blue-500"></select>
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="scatterCtdiChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Scatter Chart Card: Weight vs DLP -->
-                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-emerald-100 bg-white">
-                    <div class="flex flex-col gap-3 mb-6">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="bg-emerald-600 p-2 rounded-xl text-white"><i data-lucide="scatter-chart" class="w-5 h-5"></i></div>
-                                <h3 class="section-label text-emerald-900 text-sm">Tương quan Cân nặng - DLP</h3>
-                            </div>
-                            <button onclick="downloadChart('scatterDlpChart', 'Weight_DLP_Scatter')" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors" title="Tải ảnh"><i data-lucide="download" class="w-4 h-4"></i></button>
-                        </div>
-                         <div class="flex flex-wrap items-center gap-2">
-                             <select id="scatterFilterProtocol_DLP" class="px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-emerald-500"></select>
-                             <select id="scatterFilterHospital_DLP" class="px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-emerald-500"></select>
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="scatterDlpChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <footer class="relative z-50 w-full py-8 mt-12 bg-white/40 backdrop-blur-sm border-t border-white/20">
         <div class="max-w-7xl mx-auto px-4 text-center">
             <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Team BQT KTV 3 Miền</p>
@@ -1044,7 +813,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc, writeBatch, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const currentYear = 2026;
         const ADMIN_PASSWORD = "ktv3mien"; 
@@ -1056,7 +825,7 @@
             { name: 'Bụng không thuốc (Abdomen)', refCtdi: 11, refDlp: 500, k: 0.015 },
             { name: 'Phổi liều thấp (LDCT)', refCtdi: 3, refDlp: 150, k: 0.014 }
         ];
-        const DEFAULT_HOSPITALS = ["Bệnh viện đa khoa tỉnh Quảng Ninh", "Bệnh viện đa khoa tỉnh Bắc Ninh", "Bệnh viện hữu nghị Việt Tiệp", "Bệnh viện 30 - 04, Bộ Công An", "Bệnh viện Gia An 115"];
+        const INITIAL_HOSPITALS = ["Bệnh viện đa khoa tỉnh Quảng Ninh", "Bệnh viện đa khoa tỉnh Bắc Ninh", "Bệnh viện hữu nghị Việt Tiệp", "Bệnh viện 30 - 04, Bộ Công An", "Bệnh viện Gia An 115"];
         const MANUFACTURERS = ["GE HealthCare", "Siemens Healthineers", "Philips Healthcare", "Canon Medical Systems", "Fujifilm", "Neusoft", "United Imaging"];
         const SLICE_COUNTS = ["16 - 32 lát", "64 - 128 lát", "256 - 512 lát", "Máy 2 bóng (Dual Source)"];
 
@@ -1080,25 +849,16 @@
         let isLoginMode = true;
         let editingRowId = null; 
         
-        let currentHospitalList = [...DEFAULT_HOSPITALS]; // Local state for hospitals
-
+        // Hospital Management Data
+        let deletedHospitals = new Set();
+        let customHospitals = new Set();
+        
         // New: Selection Set
         let selectedIds = new Set();
 
         // Chart instances
         let progressChartInstance = null;
-        let histogramChartInstance = null;
-        let scatterDlpChartInstance = null;
-        let scatterCtdiChartInstance = null;
-        let p75ChartInstance = null;
-        let p50ChartInstance = null;
-        let meanCtdiChartInstance = null;
-        let meanDlpChartInstance = null;
-        let multiHospChartInstance = null;
-        let multiManuChartInstance = null;
-        let multiHospStatChartInstance = null;
-        let multiManuStatChartInstance = null;
-
+        
         const el = (id) => document.getElementById(id);
 
         // UI HELPERS
@@ -1200,9 +960,7 @@
             el('adminControls').classList.toggle('hidden', !isAdmin);
             el('adminBadge').classList.toggle('hidden', !isAdmin);
             el('adminStatusDot').classList.toggle('hidden', !isAdmin);
-            
-            // Toggle Manage Hospitals Button
-            el('btnManageHospitals').classList.toggle('hidden', !isAdmin);
+            el('btnManageHospitals').classList.toggle('hidden', !isAdmin); // Show manage button for admin
         }
 
         function updateAuthUI() { el('authTitle').textContent = isLoginMode ? "Đăng Nhập" : "Đăng Ký"; el('authSubmitBtn').querySelector('span').textContent = isLoginMode ? "VÀO HỆ THỐNG" : "TẠO TÀI KHOẢN"; }
@@ -1243,28 +1001,50 @@
             el('btn-' + tabId).classList.add('active');
             lucide.createIcons();
             if(tabId === 'data-tab' || tabId === 'main-tab') renderDashboard();
-            if(tabId === 'charts-tab') {
-                populateChartFilters();
-                renderCharts();
-            }
         };
 
+        // --- HOSPITAL MANAGEMENT LOGIC ---
+        
+        async function fetchHospitalConfig() {
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'app_settings', 'hospital_config');
+            try {
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    deletedHospitals = new Set(data.deletedHospitals || []);
+                    customHospitals = new Set(data.customHospitals || []);
+                }
+            } catch (e) { console.error("Error fetching hospital config", e); }
+        }
+
+        async function saveHospitalConfig() {
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'app_settings', 'hospital_config');
+            await setDoc(docRef, {
+                deletedHospitals: Array.from(deletedHospitals),
+                customHospitals: Array.from(customHospitals)
+            }, { merge: true });
+        }
+
+        function getActiveHospitals() {
+            // Base + Custom - Deleted
+            const base = new Set([...INITIAL_HOSPITALS]);
+            customHospitals.forEach(h => base.add(h));
+            
+            // Also include any hospital currently in entries, unless deleted
+            entries.forEach(e => { if(e.hospitalName && !e.isDeleted) base.add(e.hospitalName); });
+            
+            deletedHospitals.forEach(h => base.delete(h));
+            return [...base].sort();
+        }
+
         function updateHospitalDropdowns() {
-            // Use currentHospitalList which is synced with Firestore
-            // Also include hospitals from existing entries just in case data exists for deleted hospitals
-            const existingEntryHospitals = [...new Set(entries.map(e => e.hospitalName))];
-            
-            // Combine configured list with any data-present hospitals to ensure filters work
-            const uniqueHospitals = [...new Set([...currentHospitalList, ...existingEntryHospitals])].sort();
-            
+            const activeList = getActiveHospitals();
             const currM = [...new Set([...MANUFACTURERS, ...entries.map(e => e.manufacturer).filter(m => m)])].sort();
             
             const dropdowns = { 
-                hospitalSelect: currentHospitalList.sort(), // For input, strictly use configured list
-                filterHospital: uniqueHospitals, 
-                dashFilterHospital: uniqueHospitals,
+                hospitalSelect: activeList, filterHospital: activeList, dashFilterHospital: activeList,
                 manufacturer: currM, filterManufacturer: currM, dashFilterManufacturer: currM,
-                bulkHospital: uniqueHospitals, bulkManufacturer: currM 
+                bulkHospital: activeList, bulkManufacturer: currM 
             };
             
             for (let [id, list] of Object.entries(dropdowns)) {
@@ -1272,13 +1052,10 @@
                 const currentVal = select.value;
                 select.innerHTML = (id.startsWith('filter') || id.startsWith('dashFilter')) ? '<option value="all">Tất cả</option>' : '<option value="" disabled selected>-- Chọn --</option>';
                 if(id.startsWith('bulk')) select.innerHTML = '<option value="">-- Không thay đổi --</option>'; 
-                
                 list.forEach(item => { select.innerHTML += `<option value="${item}">${item}</option>`; });
-                
                 if (id === 'hospitalSelect') select.innerHTML += `<option value="other">➕ Khác</option>`;
-                if (currentVal) select.value = currentVal;
+                if (currentVal && list.includes(currentVal)) select.value = currentVal;
             }
-            
             // Populate bulk Protocol separately
             const bulkProt = el('bulkProtocol');
             if(bulkProt) {
@@ -1286,6 +1063,150 @@
                 THAI_DRL_PROTOCOLS.forEach(p => bulkProt.innerHTML += `<option value="${p.name}">${p.name}</option>`);
             }
         }
+
+        // --- MANAGE HOSPITALS UI LOGIC ---
+        el('btnManageHospitals').onclick = () => {
+            if(!isAdmin) return;
+            renderHospitalManagementModal();
+            el('hospitalManageModal').classList.remove('hidden');
+        };
+
+        window.switchHospTab = (tab) => {
+            const tabs = { 'active': 'Đang hoạt động', 'trash': 'Thùng rác' };
+            Object.keys(tabs).forEach(k => {
+                const btn = el(`btn-hosp-${k}`);
+                const content = el(`hosp-tab-${k}`);
+                if (k === tab) {
+                    btn.classList.remove('bg-white', 'text-slate-500', 'hover:bg-slate-50');
+                    btn.classList.add('bg-indigo-50', 'text-indigo-700');
+                    content.classList.remove('hidden');
+                    content.classList.add('flex');
+                } else {
+                    btn.classList.add('bg-white', 'text-slate-500', 'hover:bg-slate-50');
+                    btn.classList.remove('bg-indigo-50', 'text-indigo-700');
+                    content.classList.add('hidden');
+                    content.classList.remove('flex');
+                }
+            });
+        };
+
+        function renderHospitalManagementModal() {
+            const activeList = getActiveHospitals();
+            const trashList = Array.from(deletedHospitals).sort();
+            
+            el('trashCount').textContent = trashList.length;
+
+            // Render Active List
+            const activeContainer = el('activeHospitalsList');
+            activeContainer.innerHTML = '';
+            activeList.forEach(h => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl hover:shadow-sm transition-shadow";
+                div.innerHTML = `
+                    <span class="text-xs font-bold text-slate-700">${h}</span>
+                    <button onclick="handleDeleteHospital('${h}')" class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg" title="Xóa vào thùng rác">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                `;
+                activeContainer.appendChild(div);
+            });
+
+            // Render Trash List
+            const trashContainer = el('trashHospitalsList');
+            trashContainer.innerHTML = '';
+            if (trashList.length === 0) {
+                trashContainer.innerHTML = '<p class="text-center text-xs text-slate-400 py-4 italic">Thùng rác trống</p>';
+            } else {
+                trashList.forEach(h => {
+                    const div = document.createElement('div');
+                    div.className = "flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl";
+                    div.innerHTML = `
+                        <span class="text-xs font-bold text-slate-500 line-through">${h}</span>
+                        <button onclick="handleRestoreHospital('${h}')" class="px-3 py-1.5 bg-white text-emerald-600 border border-emerald-100 rounded-lg text-[10px] font-black uppercase hover:bg-emerald-50 shadow-sm flex items-center gap-1">
+                            <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Phục hồi
+                        </button>
+                    `;
+                    trashContainer.appendChild(div);
+                });
+            }
+            lucide.createIcons();
+        }
+
+        window.handleDeleteHospital = async (name) => {
+            if(!confirm(`Bạn chắc chắn muốn xóa "${name}" và toàn bộ dữ liệu liên quan? Dữ liệu sẽ được chuyển vào thùng rác.`)) return;
+            
+            deletedHospitals.add(name);
+            await saveHospitalConfig(); // Update settings
+
+            // Soft delete entries
+            const batch = writeBatch(db);
+            let count = 0;
+            entries.forEach(e => {
+                if (e.hospitalName === name && !e.isDeleted) {
+                    const ref = doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', e.id);
+                    batch.update(ref, { isDeleted: true });
+                    count++;
+                }
+            });
+            if (count > 0) await batch.commit();
+
+            showToast(`Đã chuyển bệnh viện và ${count} ca chụp vào thùng rác.`);
+            renderHospitalManagementModal();
+            updateHospitalDropdowns();
+            renderDashboard(); // Re-render main view
+        };
+
+        window.handleRestoreHospital = async (name) => {
+            if(!confirm(`Khôi phục bệnh viện "${name}"?`)) return;
+
+            deletedHospitals.delete(name);
+            // Re-add to custom list if it was there or purely rely on not being in deleted
+            // If it was in INITIAL, removing from deleted is enough. 
+            // If custom, we ensure it's kept/put back in custom if needed? Actually simpler: just removing from deleted set is enough logic wise for dropdowns.
+            
+            await saveHospitalConfig();
+
+            // Restore entries
+            const batch = writeBatch(db);
+            let count = 0;
+            // Note: entries array contains all docs including soft-deleted ones due to onSnapshot logic below
+            entries.forEach(e => {
+                if (e.hospitalName === name && e.isDeleted) {
+                    const ref = doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', e.id);
+                    batch.update(ref, { isDeleted: false });
+                    count++;
+                }
+            });
+            if (count > 0) await batch.commit();
+
+            showToast(`Đã khôi phục bệnh viện và ${count} ca chụp.`);
+            renderHospitalManagementModal();
+            updateHospitalDropdowns();
+            renderDashboard();
+        };
+
+        el('addHospitalForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const name = el('newHospitalName').value.trim();
+            if (!name) return;
+            
+            if (getActiveHospitals().includes(name)) {
+                showToast("Bệnh viện này đã tồn tại!");
+                return;
+            }
+
+            customHospitals.add(name);
+            // If it was in trash, remove it
+            if(deletedHospitals.has(name)) deletedHospitals.delete(name);
+            
+            await saveHospitalConfig();
+            
+            el('newHospitalName').value = '';
+            showToast("Đã thêm bệnh viện mới!");
+            renderHospitalManagementModal();
+            updateHospitalDropdowns();
+        };
+
 
         async function updatePresence(u) {
             if (!u) return;
@@ -1451,39 +1372,12 @@
         };
 
         function renderDashboard() {
+            // Simplified: No more guest restriction for viewing
             const isGuest = !user || user.isAnonymous;
-            const dashLock = el('dashboardLock');
-            const dashContent = el('dashboardContent');
-            const dataLock = el('dataLock');
-            const dataContent = el('dataContent');
             const progSection = el('progressChartSection'); // Get Progress Chart section
 
-            if (isGuest) {
-                // Show Lock Screens, Hide Content
-                dashLock.classList.remove('hidden');
-                dashContent.classList.add('hidden', 'pointer-events-none', 'opacity-20');
-                
-                dataLock.classList.remove('hidden');
-                dataContent.classList.add('hidden', 'pointer-events-none', 'opacity-20');
-                
-                // Also hide/lock the progress chart
-                if(progSection) progSection.classList.add('hidden');
-                
-                // Clear sensitive data from DOM just in case (optional but safer)
-                el('statTotal').textContent = '-';
-                el('dataTableBody').innerHTML = '';
-                return;
-            } else {
-                // Restore Content
-                dashLock.classList.add('hidden');
-                dashContent.classList.remove('hidden', 'pointer-events-none', 'opacity-20');
-                
-                dataLock.classList.add('hidden');
-                dataContent.classList.remove('hidden', 'pointer-events-none', 'opacity-20');
-
-                // Show progress chart
-                if(progSection) progSection.classList.remove('hidden');
-            }
+            // Show progress chart
+            if(progSection) progSection.classList.remove('hidden');
 
             const isDataTab = el('btn-data-tab').classList.contains('active');
             let fHosp, fProt, fGend, fManu, fMod = 'all';
@@ -1508,6 +1402,9 @@
             }
 
             filteredDisplayEntries = entries.filter(e => {
+                // EXCLUDE DELETED ENTRIES FROM MAIN VIEW
+                if (e.isDeleted) return false;
+
                 if (fHosp !== 'all' && e.hospitalName !== fHosp) return false;
                 if (fProt !== 'all' && e.protocol !== fProt) return false;
                 if (fManu !== 'all' && e.manufacturer !== fManu) return false;
@@ -1520,8 +1417,8 @@
                     if (d < fStart) return false;
                 }
                 if (!isDataTab && fEnd) {
-                      const d = new Date(e.createdAt || e.updatedAt).toISOString().split('T')[0];
-                      if (d > fEnd) return false;
+                     const d = new Date(e.createdAt || e.updatedAt).toISOString().split('T')[0];
+                     if (d > fEnd) return false;
                 }
 
                 // Enhanced Search
@@ -1573,14 +1470,17 @@
             const effStats = calcStats(effVals);
 
             el('statTotal').textContent = filteredDisplayEntries.length;
-            el('statCtdi75').textContent = ctdiStats.p75.toFixed(1);
+            
+            // UPDATED: Render Logic for CTDI Card (Mean +/- SD as Primary)
+            el('statCtdiPrimary').textContent = `${ctdiStats.mean.toFixed(1)} ± ${ctdiStats.sd.toFixed(1)}`;
+            el('statCtdiP75').textContent = ctdiStats.p75.toFixed(1);
             el('statCtdiMedian').textContent = ctdiStats.median.toFixed(1);
-            el('statCtdiMeanSD').textContent = `${ctdiStats.mean.toFixed(1)} ± ${ctdiStats.sd.toFixed(1)}`;
             el('pValCtdi').textContent = ctdiStats.p < 0.001 ? "< 0.001" : ctdiStats.p.toFixed(3);
 
-            el('statDlp75').textContent = Math.round(dlpStats.p75);
+            // UPDATED: Render Logic for DLP Card (Mean +/- SD as Primary)
+            el('statDlpPrimary').textContent = `${Math.round(dlpStats.mean)} ± ${Math.round(dlpStats.sd)}`;
+            el('statDlpP75').textContent = Math.round(dlpStats.p75);
             el('statDlpMedian').textContent = Math.round(dlpStats.median);
-            el('statDlpMeanSD').textContent = `${Math.round(dlpStats.mean)} ± ${Math.round(dlpStats.sd)}`;
             el('pValDlp').textContent = dlpStats.p < 0.001 ? "< 0.001" : dlpStats.p.toFixed(3);
             
             // UPDATE: Effective Dose Card
@@ -1704,7 +1604,7 @@
                         <td class="px-4 py-3 text-[10px] text-indigo-600 font-bold">${e.userEmail || '---'}</td>
                         <td class="px-4 py-3">
                             <select id="inline-hosp-${e.id}" class="w-full p-1 text-[10px] border rounded font-bold mb-1 bg-white">
-                                ${currentHospitalList.map(h => `<option value="${h}" ${h === e.hospitalName ? 'selected' : ''}>${h}</option>`).join('')}
+                                ${currH.map(h => `<option value="${h}" ${h === e.hospitalName ? 'selected' : ''}>${h}</option>`).join('')}
                             </select>
                             <select id="inline-manu-${e.id}" class="w-full p-1 text-[8px] border rounded bg-white">
                                 ${currM.map(m => `<option value="${m}" ${m === e.manufacturer ? 'selected' : ''}>${m}</option>`).join('')}
@@ -1781,463 +1681,6 @@
             updateSelectionUI(); // Ensure select all state is correct
             lucide.createIcons();
         }
-
-        // --- NEW: Populate Chart Filters ---
-        function populateChartFilters() {
-            const hospitals = [...new Set([...currentHospitalList, ...entries.map(e => e.hospitalName)])].sort();
-            const manufacturers = [...new Set([...MANUFACTURERS, ...entries.map(e => e.manufacturer).filter(m => m)])].sort();
-            const protocols = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))];
-            
-            const hospSelect = el('histFilterHospital');
-            const protSelect = el('histFilterProtocol');
-            const manuSelect = el('histFilterManufacturer');
-
-            if (hospSelect && hospSelect.options.length <= 1) { 
-                hospSelect.innerHTML = '<option value="all">Tất cả bệnh viện</option>';
-                hospitals.forEach(h => hospSelect.innerHTML += `<option value="${h}">${h}</option>`);
-            }
-            if (protSelect && protSelect.options.length <= 1) {
-                protSelect.innerHTML = '<option value="all">Tất cả bộ phận</option>';
-                THAI_DRL_PROTOCOLS.forEach(p => protSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`);
-            }
-            if (manuSelect && manuSelect.options.length <= 1) {
-                manuSelect.innerHTML = '<option value="all">Tất cả hãng máy</option>';
-                manufacturers.forEach(m => manuSelect.innerHTML += `<option value="${m}">${m}</option>`);
-            }
-
-            // Scatter Filters
-            ['scatterFilterProtocol_CTDI', 'scatterFilterProtocol_DLP'].forEach(id => {
-                const s = el(id);
-                if (s && s.options.length === 0) {
-                      s.innerHTML = '<option value="all">Tất cả (So sánh các bộ phận)</option>';
-                      protocols.forEach(p => s.innerHTML += `<option value="${p}">${p}</option>`);
-                }
-            });
-             ['scatterFilterHospital_CTDI', 'scatterFilterHospital_DLP'].forEach(id => {
-                const s = el(id);
-                if (s && s.options.length === 0) {
-                      s.innerHTML = '<option value="all">Tất cả Bệnh viện</option>';
-                      hospitals.forEach(h => s.innerHTML += `<option value="${h}">${h}</option>`);
-                }
-            });
-
-            // --- MEAN Chart Filters ---
-            const mHosp = el('meanFilterHospital');
-            const mProt = el('meanFilterProtocol');
-            const mManu = el('meanFilterManufacturer');
-            
-            if (mHosp && mHosp.options.length === 0) {
-                mHosp.innerHTML = '<option value="all">Tất cả Bệnh viện</option>';
-                hospitals.forEach(h => mHosp.innerHTML += `<option value="${h}">${h}</option>`);
-            }
-            if (mProt && mProt.options.length === 0) {
-                mProt.innerHTML = '<option value="all">Tất cả Bộ phận</option>';
-                protocols.forEach(p => mProt.innerHTML += `<option value="${p}">${p}</option>`);
-            }
-            if (mManu && mManu.options.length === 0) {
-                mManu.innerHTML = '<option value="all">Tất cả Hãng máy</option>';
-                manufacturers.forEach(m => mManu.innerHTML += `<option value="${m}">${m}</option>`);
-            }
-        }
-
-        // --- NEW: Download Chart Helper ---
-        window.downloadChart = (chartId, title) => {
-            const canvas = el(chartId);
-            if (!canvas) return;
-            const link = document.createElement('a');
-            link.download = `${title}_${new Date().toISOString().slice(0,10)}.png`;
-            
-            // Create a dummy canvas to fill background white
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            const ctx = tempCanvas.getContext('2d');
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-            ctx.drawImage(canvas, 0, 0);
-            
-            link.href = tempCanvas.toDataURL('image/png');
-            link.click();
-        }
-
-        // --- NEW: Linear Regression Helper ---
-        function calculateLinearRegression(data) {
-            const n = data.length;
-            if (n === 0) return [];
-            
-            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-            data.forEach(p => {
-                sumX += p.x;
-                sumY += p.y;
-                sumXY += p.x * p.y;
-                sumXX += p.x * p.x;
-            });
-            
-            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-            const intercept = (sumY - slope * sumX) / n;
-            
-            // Create two points for the line (min X and max X)
-            const minX = Math.min(...data.map(p => p.x));
-            const maxX = Math.max(...data.map(p => p.x));
-            
-            return [
-                { x: minX, y: slope * minX + intercept },
-                { x: maxX, y: slope * maxX + intercept }
-            ];
-        }
-
-        // --- NEW: Helper for Multi-Group Data ---
-        function getMultiGroupData(data, primaryKey, secondaryKey, metricKey, statType) {
-            // primaryKey: 'hospitalName' or 'manufacturer'
-            // secondaryKey: 'protocol'
-            
-            const primaryLabels = [...new Set(data.map(e => {
-                let v = e[primaryKey];
-                if (primaryKey === 'manufacturer') {
-                      v = v ? v.trim() : 'N/A';
-                      if (v.toLowerCase().startsWith('ge ') || v.toUpperCase() === 'GE') v = 'GE HealthCare';
-                }
-                return v || 'Unknown';
-            }))].sort();
-
-            const secondaryLabels = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))]; 
-
-            const datasets = secondaryLabels.map((prot, idx) => {
-                const colorPalette = ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#a855f7'];
-                return {
-                    label: prot,
-                    data: primaryLabels.map(pLabel => {
-                        const subset = data.filter(e => {
-                            let ePrim = e[primaryKey];
-                            if (primaryKey === 'manufacturer') {
-                                 ePrim = ePrim ? ePrim.trim() : 'N/A';
-                                 if (ePrim.toLowerCase().startsWith('ge ') || ePrim.toUpperCase() === 'GE') ePrim = 'GE HealthCare';
-                            }
-                            return (ePrim || 'Unknown') === pLabel && e[secondaryKey] === prot;
-                        });
-                        const stats = calcStats(subset.map(x => parseFloat(x[metricKey])).filter(n => !isNaN(n)));
-                        return stats[statType]; 
-                    }),
-                    backgroundColor: colorPalette[idx % colorPalette.length],
-                    borderRadius: 3,
-                    barPercentage: 0.7,
-                    categoryPercentage: 0.8
-                };
-            });
-
-            return { labels: primaryLabels, datasets };
-        }
-
-        // --- NEW: Chart Rendering Logic ---
-        function renderCharts() {
-            if (histogramChartInstance) histogramChartInstance.destroy();
-            if (scatterDlpChartInstance) scatterDlpChartInstance.destroy();
-            if (scatterCtdiChartInstance) scatterCtdiChartInstance.destroy();
-            if (p75ChartInstance) p75ChartInstance.destroy();
-            if (p50ChartInstance) p50ChartInstance.destroy();
-            if (meanCtdiChartInstance) meanCtdiChartInstance.destroy();
-            if (meanDlpChartInstance) meanDlpChartInstance.destroy();
-            if (multiHospChartInstance) multiHospChartInstance.destroy();
-            if (multiManuChartInstance) multiManuChartInstance.destroy();
-            if (multiHospStatChartInstance) multiHospStatChartInstance.destroy();
-            if (multiManuStatChartInstance) multiManuStatChartInstance.destroy();
-
-            const isGuest = !user || user.isAnonymous;
-            const chartsLock = el('chartsLock');
-            const chartsContent = el('chartsContent');
-
-            if (isGuest) {
-                chartsLock.classList.remove('hidden');
-                chartsContent.classList.add('hidden', 'pointer-events-none', 'opacity-20');
-                return;
-            } else {
-                chartsLock.classList.add('hidden');
-                chartsContent.classList.remove('hidden', 'pointer-events-none', 'opacity-20');
-            }
-
-            // --- 0. MULTI-DIMENSIONAL CHARTS (MEAN) ---
-            const multiMetric = el('multiCompMetric')?.value || 'ctdi';
-            const multiHospData = getMultiGroupData(entries, 'hospitalName', 'protocol', multiMetric, 'mean');
-            const multiManuData = getMultiGroupData(entries, 'manufacturer', 'protocol', multiMetric, 'mean');
-
-            multiHospChartInstance = new Chart(el('multiHospChart').getContext('2d'), {
-                type: 'bar',
-                data: multiHospData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { stacked: false, ticks: { font: { size: 9, weight: 'bold' } } },
-                        y: { beginAtZero: true, title: { display: true, text: multiMetric.toUpperCase() } }
-                    },
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } }
-                }
-            });
-
-            multiManuChartInstance = new Chart(el('multiManuChart').getContext('2d'), {
-                type: 'bar',
-                data: multiManuData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { stacked: false, ticks: { font: { size: 9, weight: 'bold' } } },
-                        y: { beginAtZero: true, title: { display: true, text: multiMetric.toUpperCase() } }
-                    },
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } }
-                }
-            });
-
-            // --- 0.5 MULTI-DIMENSIONAL CHARTS (P75 & Median) ---
-            const multiStatType = el('multiStatType')?.value || 'p75';
-            const multiStatMetric = el('multiStatMetric')?.value || 'ctdi';
-            const multiHospStatData = getMultiGroupData(entries, 'hospitalName', 'protocol', multiStatMetric, multiStatType);
-            const multiManuStatData = getMultiGroupData(entries, 'manufacturer', 'protocol', multiStatMetric, multiStatType);
-
-            multiHospStatChartInstance = new Chart(el('multiHospStatChart').getContext('2d'), {
-                type: 'bar',
-                data: multiHospStatData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { stacked: false, ticks: { font: { size: 9, weight: 'bold' } } },
-                        y: { beginAtZero: true, title: { display: true, text: `${multiStatMetric.toUpperCase()} (${multiStatType === 'p75' ? 'P75' : 'Median'})` } }
-                    },
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } }
-                }
-            });
-
-            multiManuStatChartInstance = new Chart(el('multiManuStatChart').getContext('2d'), {
-                type: 'bar',
-                data: multiManuStatData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { stacked: false, ticks: { font: { size: 9, weight: 'bold' } } },
-                        y: { beginAtZero: true, title: { display: true, text: `${multiStatMetric.toUpperCase()} (${multiStatType === 'p75' ? 'P75' : 'Median'})` } }
-                    },
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } }
-                }
-            });
-
-
-            // --- 1. HISTOGRAM LOGIC ---
-            // Local filters for Histogram only
-            const fHosp = el('histFilterHospital')?.value || 'all';
-            const fProt = el('histFilterProtocol')?.value || 'all';
-            const fManu = el('histFilterManufacturer')?.value || 'all';
-            const fGend = el('histFilterGender')?.value || 'all';
-            const fAge = el('histFilterAge')?.value || 'all';
-
-            const histData = entries.filter(e => {
-                if (fHosp !== 'all' && e.hospitalName !== fHosp) return false;
-                if (fProt !== 'all' && e.protocol !== fProt) return false;
-                if (fManu !== 'all' && e.manufacturer !== fManu) return false;
-                if (fGend !== 'all' && normalizeGender(e.gender) !== fGend) return false;
-                const age = parseFloat(e.age);
-                if (fAge === 'child' && age >= 18) return false;
-                if (fAge === 'adult' && age < 18) return false;
-                return true;
-            });
-
-            const ctdiValues = histData.map(e => parseFloat(e.ctdi)).filter(n => !isNaN(n));
-            const binSize = 5; 
-            const bins = {};
-            ctdiValues.forEach(val => {
-                const bin = Math.floor(val / binSize) * binSize;
-                bins[bin] = (bins[bin] || 0) + 1;
-            });
-            const labels = Object.keys(bins).sort((a,b) => a-b).map(k => `${k}-${parseInt(k)+binSize}`);
-            const data = Object.keys(bins).sort((a,b) => a-b).map(k => bins[k]);
-
-            const ctxHist = el('histogramChart').getContext('2d');
-            histogramChartInstance = new Chart(ctxHist, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Số ca chụp',
-                        data: data,
-                        backgroundColor: 'rgba(79, 70, 229, 0.6)',
-                        borderColor: 'rgba(79, 70, 229, 1)',
-                        borderWidth: 1,
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, title: {display: true, text: 'Số lượng'} }, x: { title: {display: true, text: 'CTDIvol (mGy)'} } }
-                }
-            });
-
-            // --- 2. STATS LOGIC (P75/P50) - FIXED TO PROTOCOL ---
-            const groupByStats = 'protocol'; // Fixed
-            const groupedDataStats = {};
-            entries.forEach(e => {
-                let key = e[groupByStats];
-                if (!key) key = 'N/A';
-                if (!groupedDataStats[key]) groupedDataStats[key] = { ctdi: [], dlp: [] };
-                if (e.ctdi) groupedDataStats[key].ctdi.push(parseFloat(e.ctdi));
-                if (e.dlp) groupedDataStats[key].dlp.push(parseFloat(e.dlp));
-            });
-
-            const statsLabels = Object.keys(groupedDataStats).sort();
-            const p75Ctdi = [], p75Dlp = [], p50Ctdi = [], p50Dlp = [];
-
-            statsLabels.forEach(k => {
-                const cStats = calcStats(groupedDataStats[k].ctdi);
-                const dStats = calcStats(groupedDataStats[k].dlp);
-                p75Ctdi.push(cStats.p75); p75Dlp.push(dStats.p75);
-                p50Ctdi.push(cStats.median); p50Dlp.push(dStats.median);
-            });
-
-            p75ChartInstance = new Chart(el('p75Chart').getContext('2d'), { type: 'bar', data: { labels: statsLabels, datasets: [{ label: 'CTDIvol (mGy)', data: p75Ctdi, yAxisID: 'y', backgroundColor: 'rgba(99, 102, 241, 0.7)' }, { label: 'DLP (mGy.cm)', data: p75Dlp, yAxisID: 'y1', type: 'line', borderColor: 'rgba(249, 115, 22, 1)', backgroundColor: 'rgba(249, 115, 22, 0.5)', borderWidth: 2, pointStyle: 'circle' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { type: 'linear', display: true, position: 'left', title: {display: true, text: 'CTDIvol'} }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, title: {display: true, text: 'DLP'} } } } });
-            p50ChartInstance = new Chart(el('p50Chart').getContext('2d'), { type: 'bar', data: { labels: statsLabels, datasets: [{ label: 'CTDIvol (mGy)', data: p50Ctdi, yAxisID: 'y', backgroundColor: 'rgba(16, 185, 129, 0.7)' }, { label: 'DLP (mGy.cm)', data: p50Dlp, yAxisID: 'y1', type: 'line', borderColor: 'rgba(236, 72, 153, 1)', backgroundColor: 'rgba(236, 72, 153, 0.5)', borderWidth: 2, pointStyle: 'circle' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { type: 'linear', display: true, position: 'left', title: {display: true, text: 'CTDIvol'} }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, title: {display: true, text: 'DLP'} } } } });
-
-            // --- 3. MEAN STATS LOGIC - With Filters ---
-            const groupByMean = el('meanStatsGroupBy').value || 'protocol';
-            const mFilterH = el('meanFilterHospital')?.value || 'all';
-            const mFilterP = el('meanFilterProtocol')?.value || 'all';
-            const mFilterM = el('meanFilterManufacturer')?.value || 'all';
-            const mFilterG = el('meanFilterGender')?.value || 'all';
-
-            const filteredMeanEntries = entries.filter(e => {
-                if (mFilterH !== 'all' && e.hospitalName !== mFilterH) return false;
-                if (mFilterP !== 'all' && e.protocol !== mFilterP) return false;
-                if (mFilterM !== 'all' && e.manufacturer !== mFilterM) return false;
-                if (mFilterG !== 'all' && normalizeGender(e.gender) !== mFilterG) return false;
-                return true;
-            });
-
-            const groupedDataMean = {};
-            filteredMeanEntries.forEach(e => {
-                let key = e[groupByMean];
-                if (groupByMean === 'manufacturer') { key = key ? key.trim() : 'N/A'; if (key.toLowerCase().startsWith('ge ') || key.toUpperCase() === 'GE') key = 'GE HealthCare'; } 
-                else if (groupByMean === 'gender') { key = normalizeGender(key) === 'M' ? 'Nam' : 'Nữ'; }
-                else if (groupByMean === 'bmi') { const h = parseFloat(e.height)/100; const w = parseFloat(e.weight); if (h>0 && w>0) { const bmi = w/(h*h); if (bmi < 18.5) key = 'Gầy (<18.5)'; else if (bmi < 23) key = 'Bình thường (18.5-22.9)'; else if (bmi < 25) key = 'Thừa cân (23-24.9)'; else key = 'Béo phì (≥25)'; } else { key = 'N/A'; } }
-                if (!key) key = 'N/A';
-                if (!groupedDataMean[key]) groupedDataMean[key] = { ctdi: [], dlp: [] };
-                if (e.ctdi) groupedDataMean[key].ctdi.push(parseFloat(e.ctdi));
-                if (e.dlp) groupedDataMean[key].dlp.push(parseFloat(e.dlp));
-            });
-            const meanLabels = Object.keys(groupedDataMean).sort();
-            const meanCtdi = [], meanDlp = [];
-             meanLabels.forEach(k => {
-                const cStats = calcStats(groupedDataMean[k].ctdi);
-                const dStats = calcStats(groupedDataMean[k].dlp);
-                meanCtdi.push(cStats.mean); meanDlp.push(dStats.mean);
-            });
-            meanCtdiChartInstance = new Chart(el('meanCtdiChart').getContext('2d'), { type: 'bar', data: { labels: meanLabels, datasets: [{ label: 'Mean CTDIvol (mGy)', data: meanCtdi, backgroundColor: 'rgba(14, 165, 233, 0.7)' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
-            meanDlpChartInstance = new Chart(el('meanDlpChart').getContext('2d'), { type: 'bar', data: { labels: meanLabels, datasets: [{ label: 'Mean DLP (mGy.cm)', data: meanDlp, backgroundColor: 'rgba(245, 158, 11, 0.7)' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
-
-            // --- 4. SCATTER LOGIC (With Specific Filter & Contrast Colors & TRENDLINE) ---
-            const getContrastColor = (protocol) => {
-                const p = protocol || '';
-                if(p.includes('Head') || p.includes('Sọ')) return '#ef4444'; // Red
-                if(p.includes('Chest') || p.includes('Ngực')) return '#3b82f6'; // Blue
-                if(p.includes('Abdomen') || p.includes('Bụng')) return '#eab308'; // Yellow
-                if(p.includes('LDCT') || p.includes('Phổi')) return '#22c55e'; // Green
-                return '#a855f7'; // Purple (Other)
-            };
-
-            const createScatter = (ctx, yKey, labelY, filterIdProtocol, filterIdHospital) => {
-                const filterValProtocol = el(filterIdProtocol)?.value || 'all';
-                const filterValHospital = el(filterIdHospital)?.value || 'all';
-                
-                // Filter data specifically for this chart
-                const scatterDataRaw = entries.filter(e => {
-                    if (filterValProtocol !== 'all' && e.protocol !== filterValProtocol) return false;
-                    if (filterValHospital !== 'all' && e.hospitalName !== filterValHospital) return false;
-                    return !isNaN(parseFloat(e.weight)) && !isNaN(parseFloat(e[yKey]));
-                });
-
-                const scatterData = scatterDataRaw.map(e => ({
-                    x: parseFloat(e.weight),
-                    y: parseFloat(e[yKey]),
-                    protocol: e.protocol // Store for color logic
-                }));
-
-                // Calculate Trendline
-                const trendlineData = calculateLinearRegression(scatterData);
-                const pointColors = scatterData.map(d => getContrastColor(d.protocol));
-
-                return new Chart(ctx, {
-                    type: 'scatter',
-                    data: {
-                        datasets: [
-                            {
-                                label: 'Ca chụp',
-                                data: scatterData,
-                                backgroundColor: pointColors,
-                                pointRadius: 5,
-                                pointHoverRadius: 7,
-                                order: 2
-                            },
-                            {
-                                label: 'Xu hướng (Trendline)',
-                                data: trendlineData,
-                                type: 'line',
-                                borderColor: 'rgba(100, 116, 139, 0.8)',
-                                borderDash: [5, 5],
-                                borderWidth: 2,
-                                pointRadius: 0,
-                                fill: false,
-                                order: 1,
-                                tooltip: { enabled: false }
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { 
-                            legend: { display: true },
-                            tooltip: {
-                                callbacks: {
-                                    label: (ctx) => {
-                                        if (ctx.datasetIndex === 1) return null; // Hide tooltip for trendline
-                                        return `(${ctx.raw.x}kg, ${ctx.raw.y}) [${ctx.raw.protocol}]`;
-                                    }
-                                }
-                            }
-                        },
-                        scales: { 
-                            x: { title: {display: true, text: 'Cân nặng (Kg)'} },
-                            y: { title: {display: true, text: labelY} }
-                        }
-                    }
-                });
-            };
-
-            scatterCtdiChartInstance = createScatter(el('scatterCtdiChart').getContext('2d'), 'ctdi', 'CTDIvol (mGy)', 'scatterFilterProtocol_CTDI', 'scatterFilterHospital_CTDI');
-            scatterDlpChartInstance = createScatter(el('scatterDlpChart').getContext('2d'), 'dlp', 'DLP (mGy.cm)', 'scatterFilterProtocol_DLP', 'scatterFilterHospital_DLP');
-        }
-        
-        // Listeners
-        const s1 = el('scatterFilterProtocol_CTDI'); if(s1) s1.onchange = renderCharts;
-        const s2 = el('scatterFilterProtocol_DLP'); if(s2) s2.onchange = renderCharts;
-        const s1_h = el('scatterFilterHospital_CTDI'); if(s1_h) s1_h.onchange = renderCharts;
-        const s2_h = el('scatterFilterHospital_DLP'); if(s2_h) s2_h.onchange = renderCharts;
-
-        const stGroup = el('statsGroupBy'); if(stGroup) stGroup.onchange = renderCharts;
-        const mStGroup = el('meanStatsGroupBy'); if(mStGroup) mStGroup.onchange = renderCharts;
-        const multiMet = el('multiCompMetric'); if(multiMet) multiMet.onchange = renderCharts;
-        const multiStatT = el('multiStatType'); if(multiStatT) multiStatT.onchange = renderCharts;
-        const multiStatM = el('multiStatMetric'); if(multiStatM) multiStatM.onchange = renderCharts;
-        
-        // Mean Filter Listeners
-        ['meanFilterHospital', 'meanFilterProtocol', 'meanFilterManufacturer', 'meanFilterGender'].forEach(id => {
-            const e = el(id); if(e) e.onchange = renderCharts;
-        });
-        el('btnRefreshMeanChart').onclick = () => {
-             ['meanFilterHospital', 'meanFilterProtocol', 'meanFilterManufacturer', 'meanFilterGender'].forEach(id => el(id).value = 'all');
-             renderCharts();
-        };
-
 
         // --- NEW: Export Excel Logic ---
         function exportToExcel() {
@@ -2382,16 +1825,6 @@
             // Connect Import Button
             el('importExcelInput').onchange = handleImportExcel;
 
-            // Connect Chart Filters
-            ['histFilterHospital', 'histFilterProtocol', 'histFilterManufacturer', 'histFilterGender', 'histFilterAge'].forEach(id => {
-                const elem = el(id);
-                if(elem) elem.onchange = renderCharts;
-            });
-            el('btnRefreshChart').onclick = () => { 
-                ['histFilterHospital', 'histFilterProtocol', 'histFilterManufacturer', 'histFilterGender', 'histFilterAge'].forEach(id => el(id).value = 'all');
-                renderCharts(); 
-            };
-
             // BMI Calc Listener
             const updateBMI = () => {
                 const w = parseFloat(el('weight').value);
@@ -2412,15 +1845,10 @@
                 const ctdiVal = parseFloat(el('ctdi').value);
                 const dlpVal = parseFloat(el('dlp').value);
                 const ageVal = parseFloat(el('age').value);
-                const weightVal = parseFloat(el('weight').value);
 
                 if (ctdiVal > 100) { if(!confirm(`Cảnh báo: Giá trị CTDIvol ${ctdiVal} mGy có vẻ rất cao. Bạn có chắc chắn muốn lưu?`)) return; }
                 if (dlpVal > 2500) { if(!confirm(`Cảnh báo: Giá trị DLP ${dlpVal} mGy.cm có vẻ rất cao. Bạn có chắc chắn muốn lưu?`)) return; }
                 if (ageVal > 120) { showToast("Lỗi: Tuổi bệnh nhân không hợp lệ (>120)."); return; }
-                
-                // --- ADDED WARNINGS ---
-                if (ageVal < 18) { if(!confirm(`Cảnh báo: Bệnh nhân dưới 18 tuổi (${ageVal} tuổi). Bạn có chắc chắn muốn lưu ca Nhi khoa này?`)) return; }
-                if (weightVal < 50 || weightVal > 70) { if(!confirm(`Cảnh báo: Cân nặng ${weightVal} kg nằm ngoài khoảng chuẩn (50-70kg). Bạn có chắc chắn muốn lưu?`)) return; }
                 // -----------------------
 
                 const id = el('editEntryId').value, hVal = el('hospitalSelect').value;
@@ -2455,6 +1883,9 @@
                     updatePresence(u);
                     setInterval(() => updatePresence(user), 60000); 
                     
+                    // Fetch settings first
+                    await fetchHospitalConfig();
+
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), (snap) => {
                         entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                         // Sort entries by createdAt descending (newest first)
@@ -2462,30 +1893,7 @@
                         
                         updateHospitalDropdowns(); 
                         renderDashboard(); 
-                        if (!el('charts-tab').classList.contains('hidden')) {
-                            populateChartFilters();
-                            renderCharts(); 
-                        }
                     });
-
-                    // --- New: Sync Hospital List Config ---
-                    const hospitalConfigRef = doc(db, 'artifacts', appId, 'public', 'data', 'app_config', 'hospitals_list');
-                    onSnapshot(hospitalConfigRef, async (docSnap) => {
-                        if (docSnap.exists()) {
-                            const data = docSnap.data();
-                            if (data.names && Array.isArray(data.names)) {
-                                currentHospitalList = data.names;
-                            }
-                        } else {
-                            // Initialize if not exists (only logic, secure rules usually prevent writes from non-admin but this is init)
-                            if (!user.isAnonymous) { // Try to init if logged in, better done manually but ok for MVP
-                                await setDoc(hospitalConfigRef, { names: DEFAULT_HOSPITALS }, { merge: true });
-                                currentHospitalList = [...DEFAULT_HOSPITALS];
-                            }
-                        }
-                        updateHospitalDropdowns();
-                    });
-
                 } else { 
                     isAdmin = false;
                     updateAdminUI();
@@ -2497,66 +1905,6 @@
 
             el('logoutBtn').onclick = async (e) => { e.preventDefault(); await signOut(auth); location.reload(); };
             el('cancelEditBtn').onclick = () => { el('editEntryId').value = ""; el('submitBtnText').textContent = "Lưu Dữ Liệu"; el('cancelEditBtn').classList.add('hidden'); el('drlForm').reset(); updateHospitalDropdowns(); };
-            
-            // --- NEW: Manage Hospital Logic ---
-            el('btnManageHospitals').onclick = () => {
-                if(!isAdmin) return;
-                renderHospitalManagerList();
-                el('hospitalManagerModal').classList.remove('hidden');
-            };
-
-            el('btnAddHospital').onclick = async () => {
-                if(!isAdmin) return;
-                const name = el('newHospitalInput').value.trim();
-                if(!name) return showToast("Vui lòng nhập tên bệnh viện!");
-                
-                try {
-                    const hospitalConfigRef = doc(db, 'artifacts', appId, 'public', 'data', 'app_config', 'hospitals_list');
-                    await updateDoc(hospitalConfigRef, {
-                        names: arrayUnion(name)
-                    });
-                    el('newHospitalInput').value = '';
-                    showToast("Đã thêm bệnh viện mới!");
-                    // Fix: Close modal after add
-                    el('hospitalManagerModal').classList.add('hidden'); 
-                } catch(e) {
-                    showToast("Lỗi: " + e.message);
-                }
-            };
-
-            window.removeHospital = async (name) => {
-                if(!isAdmin) return;
-                if(!confirm(`Bạn có chắc muốn xóa "${name}" khỏi danh sách chọn?`)) return;
-
-                try {
-                    const hospitalConfigRef = doc(db, 'artifacts', appId, 'public', 'data', 'app_config', 'hospitals_list');
-                    await updateDoc(hospitalConfigRef, {
-                        names: arrayRemove(name)
-                    });
-                    showToast("Đã xóa bệnh viện!");
-                    renderHospitalManagerList(); // Re-render list locally for immediate feedback although snapshot handles it too
-                } catch(e) {
-                    showToast("Lỗi: " + e.message);
-                }
-            };
-
-            function renderHospitalManagerList() {
-                const list = el('hospitalManagerList');
-                list.innerHTML = '';
-                currentHospitalList.sort().forEach(h => {
-                    const li = document.createElement('li');
-                    li.className = "flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100 hover:bg-white hover:shadow-sm transition-all";
-                    li.innerHTML = `
-                        <span class="text-xs font-bold text-slate-700">${h}</span>
-                        <button onclick="removeHospital('${h}')" class="text-red-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 transition-colors">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                    `;
-                    list.appendChild(li);
-                });
-                lucide.createIcons();
-            }
-
             lucide.createIcons();
         };
 
