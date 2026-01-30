@@ -818,7 +818,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc, writeBatch, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const currentYear = 2026;
         const ADMIN_PASSWORD = "ktv3mien"; 
@@ -1095,6 +1095,8 @@
             });
         };
 
+        let editingHospitalName = null;
+
         function renderHospitalManagementModal() {
             const activeList = getActiveHospitals();
             const trashList = Array.from(deletedHospitals).sort();
@@ -1107,12 +1109,30 @@
             activeList.forEach(h => {
                 const div = document.createElement('div');
                 div.className = "flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl hover:shadow-sm transition-shadow";
-                div.innerHTML = `
-                    <span class="text-xs font-bold text-slate-700">${h}</span>
-                    <button onclick="handleDeleteHospital('${h}')" class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg" title="Xóa vào thùng rác">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
-                `;
+                
+                const isEditing = editingHospitalName === h;
+                
+                if (isEditing) {
+                    div.innerHTML = `
+                        <input type="text" id="edit-hosp-input" value="${h}" class="flex-1 px-3 py-1.5 bg-slate-50 border border-indigo-300 rounded-lg text-xs font-bold outline-none text-indigo-700 mr-2">
+                        <div class="flex items-center gap-1">
+                            <button onclick="confirmEditHospital('${h}')" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"><i data-lucide="check" class="w-4 h-4"></i></button>
+                            <button onclick="cancelEditHospital()" class="p-1.5 text-slate-400 hover:bg-slate-50 rounded-lg"><i data-lucide="x" class="w-4 h-4"></i></button>
+                        </div>
+                    `;
+                } else {
+                    div.innerHTML = `
+                        <span class="text-xs font-bold text-slate-700">${h}</span>
+                        <div class="flex items-center gap-1">
+                            <button onclick="startEditHospital('${h}')" class="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg" title="Đổi tên">
+                                <i data-lucide="edit-2" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="handleDeleteHospital('${h}')" class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg" title="Xóa vào thùng rác">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    `;
+                }
                 activeContainer.appendChild(div);
             });
 
@@ -1135,6 +1155,58 @@
                 });
             }
             lucide.createIcons();
+        }
+
+        window.startEditHospital = (name) => {
+            editingHospitalName = name;
+            renderHospitalManagementModal();
+        }
+
+        window.cancelEditHospital = () => {
+            editingHospitalName = null;
+            renderHospitalManagementModal();
+        }
+
+        window.confirmEditHospital = async (oldName) => {
+            const input = document.getElementById('edit-hosp-input');
+            const newName = input.value.trim();
+            
+            if (!newName || newName === oldName) { cancelEditHospital(); return; }
+            if (getActiveHospitals().includes(newName)) { showToast("Tên bệnh viện đã tồn tại!"); return; }
+
+            if(!confirm(`Bạn có chắc muốn đổi tên "${oldName}" thành "${newName}"? Tất cả dữ liệu cũ sẽ được cập nhật.`)) return;
+
+            // 1. Update Config Sets
+            // Remove old from custom if exists
+            if (customHospitals.has(oldName)) customHospitals.delete(oldName);
+            // Add old to deleted (to hide if it was initial)
+            deletedHospitals.add(oldName);
+            
+            // Add new to custom
+            customHospitals.add(newName);
+            // Remove new from deleted if it was there
+            if (deletedHospitals.has(newName)) deletedHospitals.delete(newName);
+
+            await saveHospitalConfig();
+
+            // 2. Batch Update Documents
+            const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), where("hospitalName", "==", oldName));
+            const querySnapshot = await getDocs(q);
+            
+            const batch = writeBatch(db);
+            let count = 0;
+            querySnapshot.forEach((doc) => {
+                batch.update(doc.ref, { hospitalName: newName });
+                count++;
+            });
+            
+            if (count > 0) await batch.commit();
+
+            showToast(`Đã đổi tên và cập nhật ${count} ca chụp.`);
+            editingHospitalName = null;
+            renderHospitalManagementModal();
+            updateHospitalDropdowns();
+            renderDashboard();
         }
 
         window.handleDeleteHospital = async (name) => {
