@@ -1,1 +1,1391 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Nghiên cứu mức tham chiếu chẩn đoán quốc gia (VN-DRL) cho Cắt lớp vi tính.">
+    <title>VN-DRL Study - Phân tích Độc lập & Chính xác</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: #f8fafc; 
+            color: #1e293b; 
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .mesh-bg { 
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100%; 
+            z-index: -1; 
+            background: radial-gradient(at 0% 0%, hsla(220,100%,95%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(260,100%,92%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(190,100%,92%,1) 0, transparent 50%), radial-gradient(at 0% 100%, hsla(260,100%,92%,1) 0, transparent 50%); 
+        }
+        .app-layout { 
+            margin-top: 1rem; 
+            padding: 0 1rem 1rem 1rem; 
+            max-width: 80rem; 
+            width: 100%; 
+            margin-left: auto; 
+            margin-right: auto; 
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            flex: 1;
+        }
+        .section-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            height: 100%;
+        }
+        .top-grid {
+            display: flex;
+            gap: 1.5rem;
+            align-items: stretch;
+        }
+        .sidebar-form {
+            width: 380px;
+            min-width: 380px;
+        }
+        .dashboard-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem; 
+            position: relative;
+        }
+        .glass-card { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .glass-card:hover { transform: translateY(-2px); box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1); }
+        .glass-input { background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.08); color: #1e293b; transition: all 0.3s ease; }
+        .glass-input:focus { border-color: #4f46e5; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); outline: none; }
+        .section-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: #64748b; }
+        .dose-highlight-box { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 2px solid #f59e0b; }
+        
+        .page-btn { transition: all 0.2s; }
+        .page-btn.active { background-color: #4f46e5; color: white; border-color: #4f46e5; }
+        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .tab-btn { transition: all 0.3s ease; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+
+        @media (max-width: 1024px) {
+            .top-grid { flex-direction: column; }
+            .sidebar-form { width: 100%; min-width: 100%; }
+        }
+
+        @media (max-width: 768px) {
+            #dataTableBody tr {
+                display: block;
+                padding: 1.25rem;
+                margin-bottom: 1rem;
+                background: white;
+                border-radius: 1.5rem;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+            #dataTableBody td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.5rem 0;
+                border: none;
+                width: 100% !important;
+            }
+            #dataTableBody td::before {
+                content: attr(data-label);
+                font-size: 8px;
+                text-transform: uppercase;
+                font-weight: 800;
+                color: #94a3b8;
+                flex: 1;
+                text-align: left;
+            }
+            .mobile-hide-head { display: none; }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .lock-screen-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .modal-content { animation: modalFadeIn 0.2s ease-out; }
+    </style>
+</head>
+<body class="antialiased font-inter text-slate-900">
+    <div class="mesh-bg"></div>
+
+    <!-- About Modal -->
+    <div id="aboutModal" class="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-2xl p-8 shadow-2xl modal-content border border-indigo-50 relative max-h-[90vh] overflow-y-auto">
+            <button id="closeAboutModal" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <div class="flex items-center gap-4 mb-6">
+                <div class="bg-indigo-100 p-3 rounded-2xl text-indigo-600"><i data-lucide="info" class="w-6 h-6"></i></div>
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900 uppercase">Về dự án VN-DRL</h2>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Vietnam Diagnostic Reference Levels</p>
+                </div>
+            </div>
+            <div class="space-y-6 text-sm text-slate-600 leading-relaxed">
+                <div>
+                    <h3 class="font-bold text-slate-900 flex items-center gap-2 mb-2"><i data-lucide="target" class="w-4 h-4 text-indigo-500"></i> Mục tiêu</h3>
+                    <p>Dự án nhằm mục đích thu thập và phân tích dữ liệu liều chiếu xạ trong Cắt lớp vi tính (CT) tại Việt Nam, hướng tới việc thiết lập <strong>Mức tham chiếu chẩn đoán quốc gia (National DRLs)</strong>.</p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-900 flex items-center gap-2 mb-2"><i data-lucide="book-open" class="w-4 h-4 text-indigo-500"></i> Phương pháp & Tiêu chuẩn</h3>
+                    <p>Hệ thống sử dụng các chỉ số <strong>CTDIvol</strong> và <strong>DLP</strong> làm thước đo chính. Dữ liệu được so sánh thời gian thực với các chuẩn quốc tế.</p>
+                </div>
+                <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                    <h3 class="font-bold text-indigo-900 flex items-center gap-2 mb-2"><i data-lucide="shield-check" class="w-4 h-4 text-indigo-600"></i> Bảo mật & Riêng tư</h3>
+                    <p class="text-xs">Dữ liệu bệnh nhân được <strong>ẩn danh hoàn toàn</strong>.</p>
+                </div>
+            </div>
+            <div class="mt-8 pt-6 border-t border-slate-100 text-center">
+                <button id="closeAboutBtn" class="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold uppercase text-xs hover:bg-slate-800 transition-colors">Đã hiểu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modals -->
+    <div id="authModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md hidden p-4">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl transform transition-all border border-slate-100 relative">
+            <button id="closeAuthModal" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <div class="text-center mb-8">
+                <div class="bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white shadow-xl rotate-3"><i data-lucide="shield-check" class="w-8 h-8"></i></div>
+                <h2 id="authTitle" class="text-2xl md:text-3xl font-black tracking-tight text-indigo-900">Đăng Nhập</h2>
+            </div>
+            <form id="authForm" class="space-y-4">
+                <div><label class="section-label mb-2 block ml-1">Email Tài Khoản</label><input type="email" id="authEmail" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" placeholder="name@hospital.com" required></div>
+                <div><label class="section-label mb-2 block ml-1">Mật khẩu</label><input type="password" id="authPassword" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" placeholder="••••••••" required></div>
+                <button type="submit" id="authSubmitBtn" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black shadow-xl transition-all flex items-center justify-center gap-3 uppercase active:scale-95"><span>VÀO HỆ THỐNG</span><i data-lucide="arrow-right" class="w-5 h-5"></i></button>
+            </form>
+            <div class="mt-6 text-center text-xs text-slate-500 font-medium">
+                <span id="toggleText">Chưa có tài khoản?</span>
+                <button id="toggleAuthBtn" class="text-indigo-600 font-bold hover:underline ml-1">Đăng ký ngay</button>
+            </div>
+            <div class="relative my-8"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-100"></div></div><div class="relative flex justify-center text-xs uppercase"><span class="bg-white px-2 text-slate-400">Hoặc</span></div></div>
+            <button id="googleLoginBtn" class="bg-white text-slate-900 border border-slate-200 w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-50 shadow-sm transition-all">
+                <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.79 2.71v2.24h2.91c1.71-1.57 2.68-3.88 2.68-6.58z" fill="#4285F4"/><path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.24c-.8.54-1.84.85-3.05.85-2.34 0-4.32-1.58-5.03-3.71H.95v2.3C2.43 15.89 5.5 18 9 18z" fill="#34A853"/><path d="M3.97 10.72c-.18-.54-.28-1.11-.28-1.72s.1-1.18.28-1.72V4.98H.95C.34 6.19 0 7.56 0 9s.34 2.81.95 4.02l3.02-2.3z" fill="#FBBC05"/><path d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.47.89 11.43 0 9 0 5.5 0 2.43 2.11.95 5.12l3.02 2.3c.71-2.13 2.69-3.71 5.03-3.71z" fill="#EA4335"/></svg>
+                Tiếp tục với Google
+            </button>
+        </div>
+    </div>
+
+    <div id="adminAuthModal" class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-xs p-8 shadow-2xl border border-red-100">
+            <div class="text-center mb-6">
+                <div class="bg-red-500 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 text-white shadow-lg"><i data-lucide="shield-check" class="w-6 h-6"></i></div>
+                <h3 class="text-lg font-black text-slate-900 uppercase">Xác thực Admin</h3>
+                <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Vui lòng nhập mã bảo mật</p>
+            </div>
+            <form id="adminAuthForm" class="space-y-4">
+                <input type="password" id="adminPassInput" class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-center text-lg tracking-widest" placeholder="••••••••" required>
+                <div class="flex gap-2">
+                    <button type="button" id="closeAdminAuth" class="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-black text-[10px] uppercase">Hủy</button>
+                    <button type="submit" class="flex-[2] py-3 bg-red-500 text-white rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95">Xác nhận</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <header class="relative z-50 px-2 md:px-4 pt-4 md:pt-10 max-w-7xl mx-auto w-full">
+        <nav class="glass-card rounded-2xl md:rounded-[2rem] px-4 md:px-8 py-2 md:py-4 flex flex-wrap justify-between items-center shadow-lg border-white text-slate-900 gap-y-2">
+            <div class="flex items-center gap-2 md:gap-4">
+                <div class="bg-indigo-600 p-2 md:p-2.5 rounded-xl md:rounded-2xl text-white shadow-lg"><i data-lucide="activity" class="w-4 h-4 md:w-6 md:h-6"></i></div>
+                <div><h1 class="text-xs md:text-xl font-black tracking-tighter text-slate-900 uppercase">VN-DRL <span class="text-indigo-600">STUDY</span></h1></div>
+                <span class="px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-md text-[8px] font-black uppercase tracking-wider border border-indigo-100 hidden md:inline-block">Beta</span>
+            </div>
+            <div class="flex items-center gap-1 md:gap-4 overflow-x-auto">
+                <button onclick="switchTab('main-tab')" id="btn-main-tab" class="tab-btn active px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
+                    <i data-lucide="layout-dashboard" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Dashboard & Nhập</span><span class="sm:hidden">Nhập</span>
+                </button>
+                <button onclick="switchTab('data-tab')" id="btn-data-tab" class="tab-btn px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
+                    <i data-lucide="table-2" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Dữ liệu</span><span class="sm:hidden">List</span>
+                </button>
+                <button onclick="switchTab('charts-tab')" id="btn-charts-tab" class="tab-btn px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
+                    <i data-lucide="pie-chart" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden sm:inline">Biểu đồ & Thống kê</span><span class="sm:hidden">Biểu đồ</span>
+                </button>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="aboutBtn" class="w-8 h-8 md:w-10 md:h-10 bg-slate-50 text-slate-500 border border-slate-100 rounded-xl md:rounded-2xl flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-all" title="Thông tin dự án">
+                    <i data-lucide="info" class="w-4 h-4"></i>
+                </button>
+
+                <div class="relative">
+                    <button id="onlineMenuBtn" class="w-8 h-8 md:w-10 md:h-10 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl md:rounded-2xl flex items-center justify-center hover:bg-indigo-100 relative transition-all">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                    </button>
+                    <div id="onlineDropdown" class="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-2xl hidden z-50 text-slate-800 p-4 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-50">
+                            <p class="section-label mb-0">Người dùng online</p>
+                            <span id="onlineCount" class="px-2 py-0.5 bg-emerald-100 text-emerald-600 rounded-md text-[10px] font-black">0</span>
+                        </div>
+                        <div id="onlineList" class="space-y-3 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="userMenu" class="hidden flex items-center gap-2 pl-2 md:pl-4 border-l border-slate-200">
+                    <div class="relative">
+                        <button id="userMenuBtn" class="w-8 h-8 md:w-10 md:h-10 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl flex items-center justify-center hover:bg-indigo-100 relative">
+                            <i data-lucide="user" class="w-4 h-4 md:w-5 h-5"></i>
+                            <span id="adminStatusDot" class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-white rounded-full hidden"></span>
+                        </button>
+                        <div id="userDropdown" class="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-2xl hidden z-50 text-slate-800 p-2 border border-slate-100">
+                            <div class="px-4 py-2 border-b border-slate-50 mb-1">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Tài khoản</p>
+                                    <span id="adminBadge" class="hidden px-1.5 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded text-[7px] font-black uppercase tracking-tighter">Admin</span>
+                                </div>
+                                <p id="sessionUserEmail" class="text-[10px] font-black text-indigo-600 truncate">Khách</p>
+                            </div>
+                            <button id="requestAdminBtn" class="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-indigo-600 hover:bg-indigo-50 rounded-xl"><i data-lucide="shield-plus" class="w-4 h-4"></i> Quyền Admin</button>
+                            <a href="#" id="logoutBtn" class="flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl"><i data-lucide="log-out" class="w-4 h-4"></i> Đăng xuất</a>
+                        </div>
+                    </div>
+                </div>
+                <button id="navLoginBtn" class="px-3 md:px-6 py-2 md:py-2.5 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-xl md:rounded-2xl hover:bg-indigo-700 shadow-lg">Login</button>
+            </div>
+        </nav>
+    </header>
+
+    <div id="main-tab" class="tab-content app-layout">
+        <div class="section-container">
+            <!-- Banner Welcome -->
+            <div id="welcomeBanner" class="hidden glass-card p-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg mb-2 relative">
+                <button onclick="el('welcomeBanner').classList.add('hidden')" class="absolute top-2 right-2 text-white/60 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 p-2 rounded-xl"><i data-lucide="sparkles" class="w-5 h-5"></i></div>
+                    <div>
+                        <h3 class="text-sm font-bold">Chào mừng đến với VN-DRL Study!</h3>
+                        <p class="text-[10px] opacity-90">Nền tảng phân tích mức tham chiếu chẩn đoán quốc gia đầu tiên.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Chart Section -->
+            <div id="progressChartSection" class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-slate-100 bg-white hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-indigo-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-horizontal" class="w-5 h-5"></i></div>
+                        <h3 class="section-label text-indigo-900 text-sm">Tiến độ nhập liệu theo Bệnh viện</h3>
+                    </div>
+                </div>
+                <div class="chart-container h-[250px]">
+                    <canvas id="progressChart"></canvas>
+                </div>
+            </div>
+
+            <div class="top-grid">
+                <aside class="sidebar-form glass-card rounded-[2.5rem] flex flex-col overflow-hidden relative">
+                    <div class="p-6 md:p-8 border-b border-slate-100 bg-white/40 z-20 flex justify-between items-center">
+                        <h2 id="formTitle" class="font-black text-slate-900 flex items-center gap-3 uppercase tracking-widest text-xs"><i data-lucide="plus-circle" class="text-indigo-600 w-5 h-5"></i> Nhập dữ liệu</h2>
+                        <div class="flex items-center gap-2">
+                            <label for="importExcelInput" class="cursor-pointer px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[8px] font-black uppercase hover:bg-emerald-100 transition-colors flex items-center gap-1" title="Import Excel">
+                                <i data-lucide="upload" class="w-3 h-3"></i> Import
+                            </label>
+                            <input type="file" id="importExcelInput" accept=".xlsx, .xls" class="hidden">
+                            <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-lg text-[8px] font-black uppercase">Mới</span>
+                        </div>
+                    </div>
+                    <form id="drlForm" class="flex flex-col flex-1 relative h-full">
+                        <div id="formLockOverlay" class="absolute inset-0 bg-white/60 backdrop-blur-md z-30 flex flex-col items-center justify-center text-center p-6 hidden">
+                            <div class="bg-indigo-50 p-4 rounded-full mb-3 border border-indigo-100"><i data-lucide="lock" class="w-6 h-6 text-indigo-600"></i></div>
+                            <p class="text-[10px] font-black text-slate-800 uppercase tracking-widest">Đăng nhập để nhập liệu</p>
+                        </div>
+                        <div class="p-6 md:p-8 space-y-8 text-slate-900 flex-1">
+                            <input type="hidden" id="editEntryId" value="">
+                            <div class="space-y-4">
+                                <label class="section-label flex items-center gap-2 font-bold"><i data-lucide="hospital" class="w-3 h-3 text-indigo-500"></i> Cơ sở & Thiết bị</label>
+                                <div class="space-y-3">
+                                    <select id="hospitalSelect" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium"></select>
+                                    <input type="text" id="customHospitalName" placeholder="Tên bệnh viện mới..." class="hidden w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none border-indigo-200">
+                                    <div class="grid grid-cols-2 gap-3"><select id="manufacturer" class="px-4 py-3 glass-input rounded-xl text-sm font-medium"></select><select id="sliceCount" class="px-4 py-3 glass-input rounded-xl text-sm font-medium"></select></div>
+                                    <div class="p-3 bg-white/50 rounded-xl border border-slate-100">
+                                        <label class="text-[8px] font-black text-slate-400 uppercase block mb-2">Kiểm soát liều (Modulation)</label>
+                                        <div class="flex gap-4">
+                                            <label class="flex items-center gap-2 cursor-pointer group"><input type="radio" name="doseModulation" value="Có" checked class="w-4 h-4 text-indigo-600"><span class="text-xs font-bold text-slate-600 group-hover:text-indigo-600">Có</span></label>
+                                            <label class="flex items-center gap-2 cursor-pointer group"><input type="radio" name="doseModulation" value="Không" class="w-4 h-4 text-indigo-600"><span class="text-xs font-bold text-slate-600 group-hover:text-indigo-600">Không</span></label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <label class="section-label flex items-center gap-2 font-bold"><i data-lucide="user" class="w-3 h-3 text-indigo-500"></i> Bệnh nhân & Protocol</label>
+                                <select id="protocol" class="w-full px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl text-sm font-black text-indigo-700"></select>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">ID BN</label><input type="text" id="patientId" placeholder="ID Bệnh nhân" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium"></div>
+                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Ngày chụp</label><input type="date" id="scanDate" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-black text-slate-600"></div>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 md:gap-3">
+                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">YOB</label><input type="number" id="yob" placeholder="YYYY" class="w-full px-1 py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold" min="1900" max="2100"></div>
+                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Tuổi</label><input type="number" id="age" placeholder="Tuổi" class="w-full px-1 py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold" min="0"></div>
+                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Phái</label><select id="gender" class="w-full px-1 py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold"><option value="M">Nam</option><option value="F">Nữ</option></select></div>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 md:gap-3">
+                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Kg</label><input type="number" id="weight" placeholder="Kg" class="w-full px-1 py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold" min="0" step="0.1"></div>
+                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Chiều cao</label><input type="number" id="height" placeholder="cm" class="w-full px-1 py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold" min="0"></div>
+                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">BMI</label><input type="text" id="bmi" placeholder="-" readonly class="w-full px-1 py-3 bg-slate-100 border border-slate-200 rounded-xl text-[10px] md:text-sm text-center font-bold text-slate-500 cursor-not-allowed"></div>
+                                </div>
+                            </div>
+                            <div class="space-y-4 dose-highlight-box p-6 rounded-[2.5rem]">
+                                <label class="text-[10px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-2"><i data-lucide="zap" class="w-3 h-3 fill-amber-500"></i> Thông số liều</label>
+                                <div class="space-y-4">
+                                    <div class="space-y-1.5"><label class="text-[9px] md:text-[10px] font-black text-amber-600 uppercase ml-2 flex items-center gap-1">CTDIvol (mGy) <i data-lucide="help-circle" class="w-3 h-3 text-amber-400 cursor-help" title="Computed Tomography Dose Index volume"></i></label><input type="number" step="0.01" id="ctdi" placeholder="0.00" class="w-full px-4 py-3 bg-white border-2 border-amber-300 rounded-xl text-2xl font-black text-amber-600 text-center focus:border-amber-500 outline-none transition-all" min="0"></div>
+                                    <div class="space-y-1.5"><label class="text-[9px] md:text-[10px] font-black text-amber-600 uppercase ml-2 flex items-center gap-1">DLP (mGy.cm) <i data-lucide="help-circle" class="w-3 h-3 text-amber-400 cursor-help" title="Dose Length Product"></i></label><input type="number" step="0.1" id="dlp" placeholder="0.0" class="w-full px-4 py-3 bg-white border-2 border-amber-300 rounded-xl text-2xl font-black text-amber-600 text-center focus:border-amber-500 outline-none transition-all" min="0"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="px-6 py-2 bg-emerald-50 border-t border-emerald-100 flex items-center justify-center gap-2">
+                            <i data-lucide="shield" class="w-3 h-3 text-emerald-600"></i>
+                            <span class="text-[8px] font-bold text-emerald-600 uppercase tracking-wider">Dữ liệu ẩn danh & Bảo mật</span>
+                        </div>
+                        <div class="p-4 md:p-6 border-t border-slate-100 bg-white/80"><div class="flex gap-3"><button type="button" id="cancelEditBtn" class="hidden flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-black text-[10px] uppercase">Hủy</button><button type="submit" id="submitBtn" class="flex-[3] py-4 bg-indigo-600 text-white rounded-xl font-black text-[11px] uppercase shadow-xl transition-all active:scale-95"><span id="submitBtnText">Lưu Dữ Liệu</span></button></div></div>
+                    </form>
+                </aside>
+
+                <main class="dashboard-main flex-1">
+                    <div id="dashboardLock" class="hidden absolute inset-0 z-50 rounded-[2.5rem] overflow-hidden">
+                        <div class="lock-screen-container">
+                            <div class="bg-indigo-50 p-6 rounded-full mb-4 shadow-sm">
+                                <i data-lucide="lock" class="w-12 h-12 text-indigo-600"></i>
+                            </div>
+                            <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">Quyền truy cập bị hạn chế</h3>
+                            <p class="text-sm font-medium text-slate-500 max-w-xs mx-auto mb-6">Vui lòng đăng nhập để xem thông tin Dashboard chi tiết và thống kê thời gian thực.</p>
+                            <button onclick="el('navLoginBtn').click()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-2">
+                                <i data-lucide="log-in" class="w-4 h-4"></i> Đăng nhập ngay
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="dashboardContent" class="flex flex-col gap-10">
+                        <div class="glass-card rounded-[2rem] p-4 md:p-6 border border-indigo-100 shadow-xl flex flex-wrap items-end gap-4">
+                            <div class="flex-1 min-w-[150px] space-y-1.5">
+                                <label class="text-[8px] font-black text-indigo-400 uppercase tracking-widest ml-1">Bộ lọc cơ sở</label>
+                                <select id="dashFilterHospital" class="w-full px-4 py-2.5 bg-white border border-indigo-50 rounded-xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                            </div>
+                            <div class="flex-1 min-w-[150px] space-y-1.5">
+                                <label class="text-[8px] font-black text-indigo-400 uppercase tracking-widest ml-1">Protocol vùng chụp</label>
+                                <select id="dashFilterProtocol" class="w-full px-4 py-2.5 bg-white border border-indigo-50 rounded-xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                            </div>
+                            <div class="flex-1 min-w-[120px] space-y-1.5">
+                                <label class="text-[8px] font-black text-indigo-400 uppercase tracking-widest ml-1">Hãng máy</label>
+                                <select id="dashFilterManufacturer" class="w-full px-4 py-2.5 bg-white border border-indigo-50 rounded-xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                            </div>
+                            <div class="w-24 space-y-1.5">
+                                <label class="text-[8px] font-black text-indigo-400 uppercase tracking-widest ml-1">Giới tính</label>
+                                <select id="dashFilterGender" class="w-full px-4 py-2.5 bg-white border border-indigo-50 rounded-xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="all">Tất cả</option>
+                                    <option value="M">Nam</option>
+                                    <option value="F">Nữ</option>
+                                </select>
+                            </div>
+                            <div class="flex-1 min-w-[120px] space-y-1.5">
+                                <label class="text-[8px] font-black text-indigo-400 uppercase tracking-widest ml-1">Từ ngày</label>
+                                <input type="date" id="dashFilterStart" class="w-full px-3 py-2 bg-white border border-indigo-50 rounded-xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-slate-600">
+                            </div>
+                            <div class="flex-1 min-w-[120px] space-y-1.5">
+                                <label class="text-[8px] font-black text-indigo-400 uppercase tracking-widest ml-1">Đến ngày</label>
+                                <input type="date" id="dashFilterEnd" class="w-full px-3 py-2 bg-white border border-indigo-50 rounded-xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-slate-600">
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <button id="btnApplyDashFilter" class="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2 active:scale-95">
+                                    <i data-lucide="check-circle" class="w-4 h-4"></i> Áp dụng
+                                </button>
+                                <button id="btnResetDashFilter" class="p-2.5 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition-colors" title="Đặt lại bộ lọc">
+                                    <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col relative z-20">
+                            <div class="glass-card rounded-full p-2 pl-4 pr-3 border-2 border-indigo-600 flex items-center justify-between shadow-xl shadow-indigo-100">
+                                <div class="flex items-center gap-4">
+                                    <div class="bg-indigo-600 w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg">
+                                        <i data-lucide="settings-2" class="w-6 h-6"></i>
+                                    </div>
+                                    <div class="text-left">
+                                        <h3 class="text-xs font-black uppercase tracking-widest text-indigo-900 leading-tight">Thiết lập chuẩn kiểm định (Override)</h3>
+                                        <p class="text-[9px] text-indigo-500 font-bold mt-0.5">Mặc định: Thailand NDRL 2019</p>
+                                    </div>
+                                </div>
+                                <button id="btnToggleRef" class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-100 transition-transform">
+                                    <i data-lucide="chevron-down" id="refChevron" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+
+                            <div id="refConfigContent" class="hidden glass-card -mt-8 pt-12 pb-6 px-8 rounded-[2.5rem] border border-indigo-100 border-t-0 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div class="grid grid-cols-2 gap-6">
+                                    <div class="space-y-2"><label class="text-[9px] font-black text-indigo-700 uppercase ml-1">Ref CTDIvol (mGy)</label><input type="number" id="manualRefCtdi" class="w-full px-4 py-3 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-black text-indigo-600" placeholder="Auto"></div>
+                                    <div class="space-y-2"><label class="text-[9px] font-black text-indigo-700 uppercase ml-1">Ref DLP (mGy.cm)</label><input type="number" id="manualRefDlp" class="w-full px-4 py-3 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-black text-indigo-600" placeholder="Auto"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+                            <div class="glass-card p-8 rounded-[2.5rem] flex flex-col justify-between shadow-xl min-h-[220px] h-full relative overflow-hidden group">
+                                <div class="absolute right-0 top-0 w-32 h-32 bg-indigo-50 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+                                <div class="flex justify-between items-start relative z-10">
+                                    <p class="section-label">Tổng mẫu lọc</p>
+                                    <div class="bg-white p-2 rounded-xl text-indigo-600 shadow-sm"><i data-lucide="database" class="w-5 h-5"></i></div>
+                                </div>
+                                <div class="relative z-10">
+                                    <h3 id="statTotal" class="text-6xl font-black text-slate-900 tracking-tighter">0</h3>
+                                    <div class="flex gap-3 mt-4">
+                                        <div class="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100"><i data-lucide="user" class="w-3.5 h-3.5"></i><span id="statMaleCount" class="text-[11px] font-black">0</span></div>
+                                        <div class="flex items-center gap-2 px-3 py-1.5 bg-pink-50 text-pink-600 rounded-xl border border-pink-100"><i data-lucide="user" class="w-3.5 h-3.5"></i><span id="statFemaleCount" class="text-[11px] font-black">0</span></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass-card p-8 rounded-[2.5rem] border-l-[8px] border-l-indigo-600 shadow-xl flex flex-col justify-between min-h-[220px] h-full">
+                                <div class="flex justify-between items-start">
+                                    <p class="section-label text-indigo-600">CTDIvol (mGy)</p>
+                                    <div class="text-[9px] font-black px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg">p = <span id="pValCtdi">---</span></div>
+                                </div>
+                                <div>
+                                    <div class="flex items-baseline gap-2 mt-2">
+                                        <h3 id="statCtdi75" class="text-5xl font-black text-slate-900 tracking-tighter">0.0</h3>
+                                        <span class="text-[10px] text-slate-400 font-bold border-l pl-3 ml-2 h-6 flex items-center" id="labelRefCtdi">Ref: --</span>
+                                    </div>
+                                    <div class="mt-6 pt-4 border-t border-slate-100 grid grid-cols-2 gap-4">
+                                        <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Median</span><span id="statCtdiMedian" class="text-sm font-black text-indigo-600">0.0</span></div>
+                                        <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Mean ± SD</span><span id="statCtdiMeanSD" class="text-[11px] font-bold text-slate-700">0.0 ± 0.0</span></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass-card p-8 rounded-[2.5rem] border-l-[8px] border-l-amber-500 shadow-xl flex flex-col justify-between min-h-[220px] h-full">
+                                <div class="flex justify-between items-start">
+                                    <p class="section-label text-amber-600">DLP (mGy.cm)</p>
+                                    <div class="text-[9px] font-black px-3 py-1 bg-amber-50 text-amber-700 rounded-lg">p = <span id="pValDlp">---</span></div>
+                                </div>
+                                <div>
+                                    <div class="flex items-baseline gap-2 mt-2">
+                                        <h3 id="statDlp75" class="text-5xl font-black text-slate-900 tracking-tighter">0</h3>
+                                        <span class="text-[10px] text-slate-400 font-bold border-l pl-3 ml-2 h-6 flex items-center" id="labelRefDlp">Ref: --</span>
+                                    </div>
+                                    <div class="mt-6 pt-4 border-t border-slate-100 grid grid-cols-2 gap-4">
+                                        <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Median</span><span id="statDlpMedian" class="text-sm font-black text-amber-600">0</span></div>
+                                        <div class="flex flex-col"><span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Mean ± SD</span><span id="statDlpMeanSD" class="text-[11px] font-bold text-slate-700">0 ± 0</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+                            <div class="lg:col-span-1 flex flex-col gap-6">
+                                <div class="glass-card p-6 rounded-[2.5rem] shadow-lg border-b-[6px] border-b-cyan-500 flex-1 flex flex-col justify-center items-center text-center min-h-[180px]">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <div class="p-2 bg-cyan-50 rounded-full text-cyan-600"><i data-lucide="user-check" class="w-5 h-5"></i></div>
+                                        <p class="section-label text-cyan-600 mb-0">Độ tuổi trung bình</p>
+                                    </div>
+                                    <h4 id="statAgeMeanSD" class="text-3xl font-black text-slate-900 tracking-tighter mt-2">0.0 ± 0.0</h4>
+                                </div>
+                                <div class="glass-card p-6 rounded-[2.5rem] shadow-lg border-b-[6px] border-b-emerald-500 flex-1 flex flex-col justify-center items-center text-center min-h-[180px]">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <div class="p-2 bg-emerald-50 rounded-full text-emerald-600"><i data-lucide="scale" class="w-5 h-5"></i></div>
+                                        <p class="section-label text-emerald-600 mb-0">Cân nặng trung bình</p>
+                                    </div>
+                                    <h4 id="statWeightMeanSD" class="text-3xl font-black text-slate-900 tracking-tighter mt-2">0.0 ± 0.0</h4>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-2 glass-card p-8 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col h-full min-h-[380px]">
+                                <div class="flex items-center justify-between mb-6">
+                                    <div class="flex items-center gap-3">
+                                        <div class="bg-slate-800 p-2.5 rounded-xl text-white shadow-lg"><i data-lucide="factory" class="w-5 h-5"></i></div>
+                                        <h3 class="section-label font-black text-slate-900 text-sm">Phân bố theo hãng máy</h3>
+                                    </div>
+                                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider bg-slate-50 px-3 py-1 rounded-lg">Real-time Data</div>
+                                </div>
+                                <div class="overflow-y-auto flex-1 custom-scrollbar pr-2 -mr-2">
+                                    <table class="w-full text-left text-xs">
+                                        <thead class="bg-slate-50 text-slate-400 uppercase tracking-widest sticky top-0 z-10">
+                                            <tr>
+                                                <th class="px-4 py-3.5 rounded-l-xl font-black text-[9px]">Thương hiệu</th>
+                                                <th class="px-4 py-3.5 rounded-r-xl text-right font-black text-[9px]">Số lượng ca</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="manufacturerTableBody" class="divide-y divide-slate-50 text-slate-700 font-bold">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass-card p-8 lg:p-10 rounded-[2.5rem] border-2 border-amber-400 bg-amber-50/20 shadow-xl relative overflow-hidden mt-2">
+                            <div class="absolute -right-4 -bottom-6 opacity-5 rotate-12">
+                                <i data-lucide="shield-alert" class="w-48 h-48 text-amber-600"></i>
+                            </div>
+                            <div class="flex items-center gap-4 mb-8">
+                                <div class="bg-amber-500 w-12 h-12 rounded-xl text-white shadow-lg flex items-center justify-center"><i data-lucide="alert-triangle" class="w-6 h-6"></i></div>
+                                <h3 class="section-label uppercase tracking-[0.2em] font-black text-amber-900 text-sm">Lưu ý chuyên môn & Độ tin cậy</h3>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 text-[12px] leading-relaxed font-bold text-slate-700 relative z-10">
+                                <div class="space-y-4">
+                                    <div class="flex gap-4">
+                                        <div class="w-2 h-2 rounded-full bg-amber-500 mt-2 shrink-0"></div>
+                                        <p><span class="text-amber-700 uppercase font-black">Nhập liệu:</span> Dùng dấu chấm (.) để ngăn cách các số thập phân, KHÔNG dùng dấu phẩy (,).</p>
+                                    </div>
+                                    <div class="flex gap-4">
+                                        <div class="w-2 h-2 rounded-full bg-amber-500 mt-2 shrink-0"></div>
+                                        <p><span class="text-amber-700 uppercase font-black">Cỡ mẫu:</span> Khuyến cáo <span class="text-indigo-600 font-black">n ≥ 30</span> cho mỗi Protocol.</p>
+                                    </div>
+                                </div>
+                                <div class="space-y-4">
+                                    <div class="flex gap-4">
+                                        <div class="w-2 h-2 rounded-full bg-amber-500 mt-2 shrink-0"></div>
+                                        <p><span class="text-amber-700 uppercase font-black">Tham chiếu:</span> Chuẩn Thailand NDRL 2019 là mốc so sánh.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Tab -->
+    <div id="data-tab" class="tab-content app-layout hidden">
+        <div class="section-container relative">
+            <div id="dataLock" class="hidden absolute inset-0 z-50 rounded-[2.5rem] overflow-hidden">
+                <div class="lock-screen-container">
+                    <div class="bg-indigo-50 p-6 rounded-full mb-4 shadow-sm">
+                        <i data-lucide="lock" class="w-12 h-12 text-indigo-600"></i>
+                    </div>
+                    <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">Dữ liệu bị hạn chế</h3>
+                    <p class="text-sm font-medium text-slate-500 max-w-xs mx-auto mb-6">Vui lòng đăng nhập để xem danh sách chi tiết các ca chụp.</p>
+                    <button onclick="el('navLoginBtn').click()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-2">
+                        <i data-lucide="log-in" class="w-4 h-4"></i> Đăng nhập ngay
+                    </button>
+                </div>
+            </div>
+
+            <div id="dataContent">
+                <div class="glass-card rounded-[2rem] p-5 md:p-6 shadow-xl border border-slate-200 w-full">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="bg-indigo-600 p-2 rounded-lg text-white shadow-md"><i data-lucide="filter" class="w-4 h-4"></i></div>
+                            <h3 class="section-label uppercase tracking-widest font-black text-slate-900 mb-0">Bộ lọc danh sách</h3>
+                        </div>
+                        <button id="btnApplyListFilter" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2 active:scale-95">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Cập nhật
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                        <div class="space-y-1"><label class="text-[7px] font-black text-slate-400 uppercase ml-1">Bệnh viện</label><select id="filterHospital" class="w-full px-3 py-2 glass-input rounded-xl text-[10px] font-bold"></select></div>
+                        <div class="space-y-1"><label class="text-[7px] font-black text-slate-400 uppercase ml-1">Protocol</label><select id="filterProtocol" class="w-full px-3 py-2 glass-input rounded-xl text-[10px] font-bold"></select></div>
+                        <div class="space-y-1"><label class="text-[7px] font-black text-slate-400 uppercase ml-1">Hãng máy</label><select id="filterManufacturer" class="w-full px-3 py-2 glass-input rounded-xl text-[10px] font-bold"></select></div>
+                        <div class="space-y-1"><label class="text-[7px] font-black text-slate-400 uppercase ml-1">Phái</label><select id="filterGender" class="w-full px-3 py-2 glass-input rounded-xl text-[10px] font-bold"><option value="all">Tất cả</option><option value="M">Nam</option><option value="F">Nữ</option></select></div>
+                        <div class="space-y-1"><label class="text-[7px] font-black text-slate-400 uppercase ml-1">Liều</label><select id="filterModulation" class="w-full px-3 py-2 glass-input rounded-xl text-[10px] font-bold"><option value="all">Tất cả</option><option value="Có">Có</option><option value="Không">Không</option></select></div>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-[2.5rem] overflow-hidden shadow-2xl mt-2">
+                    <div class="p-6 md:p-8 border-b border-slate-50 bg-white/40 flex flex-wrap justify-between items-center gap-4">
+                        <div class="flex items-center gap-3"><div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><i data-lucide="list" class="w-4 h-4"></i></div><h3 class="section-label uppercase tracking-widest font-black text-slate-900">Danh sách các ca chụp</h3></div>
+                        <div class="flex items-center gap-3 flex-wrap w-full md:w-auto">
+                            <div class="relative flex-1 md:flex-none">
+                                <input type="text" id="searchPatientId" placeholder="Tìm ID, Tên BV, Email, Hãng..." class="w-full md:w-64 pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner">
+                                <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            </div>
+                            <div class="flex items-center gap-2 px-3 py-2.5 bg-white/50 border border-slate-200 rounded-2xl">
+                                <span class="text-[9px] text-slate-400 uppercase font-black">Sắp xếp:</span>
+                                <select id="sortOrderSelect" class="bg-transparent text-[10px] font-black outline-none">
+                                    <option value="newest">Mới nhất</option>
+                                    <option value="oldest">Cũ nhất</option>
+                                    <option value="ctdi_desc">CTDIvol cao nhất</option>
+                                    <option value="ctdi_asc">CTDIvol thấp nhất</option>
+                                    <option value="age_desc">Tuổi cao nhất</option>
+                                    <option value="age_asc">Tuổi thấp nhất</option>
+                                    <option value="weight_desc">Cân nặng cao nhất</option>
+                                    <option value="weight_asc">Cân nặng thấp nhất</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2 px-3 py-2.5 bg-white/50 border border-slate-200 rounded-2xl">
+                                <span class="text-[9px] text-slate-400 uppercase font-black">Hiển thị:</span>
+                                <select id="rowsPerPageSelect" class="bg-transparent text-[10px] font-black outline-none"><option value="10">10</option><option value="20">20</option><option value="50">50</option></select>
+                            </div>
+                            <div id="adminControls">
+                                <button id="btnExportExcel" class="p-2.5 bg-emerald-600 text-white rounded-2xl shadow-lg hover:bg-emerald-700 transition-all active:scale-95"><i data-lucide="download" class="w-5 h-5"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs md:text-sm">
+                            <thead class="bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b mobile-hide-head">
+                                <tr>
+                                    <th class="px-8 py-5">Thời gian</th>
+                                    <th class="px-8 py-5">Tài khoản</th>
+                                    <th class="px-8 py-5">Cơ sở / ID / Máy</th>
+                                    <th class="px-8 py-5">Protocol</th>
+                                    <th class="px-8 py-5 text-center">Info BN</th>
+                                    <th class="px-8 py-5 text-center">Modulation</th>
+                                    <th class="px-8 py-5">CTDIvol (mGy)</th>
+                                    <th class="px-8 py-5">DLP (mGy.cm)</th>
+                                    <th class="px-8 py-5">L (cm)</th>
+                                    <th class="px-8 py-5 text-right">Quản lý</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dataTableBody" class="divide-y divide-slate-50"></tbody>
+                        </table>
+                    </div>
+                    <div class="px-8 py-6 bg-slate-50/50 border-t flex flex-col md:flex-row justify-between items-center gap-4">
+                        <p id="paginationInfo" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Đang tải...</p>
+                        <div id="paginationButtons" class="flex items-center gap-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Tab -->
+    <div id="charts-tab" class="tab-content app-layout hidden">
+        <div class="section-container relative">
+            <div id="chartsLock" class="hidden absolute inset-0 z-50 rounded-[2.5rem] overflow-hidden">
+                <div class="lock-screen-container">
+                    <div class="bg-indigo-50 p-6 rounded-full mb-4 shadow-sm">
+                        <i data-lucide="lock" class="w-12 h-12 text-indigo-600"></i>
+                    </div>
+                    <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">Biểu đồ bị hạn chế</h3>
+                    <p class="text-sm font-medium text-slate-500 max-w-xs mx-auto mb-6">Vui lòng đăng nhập để xem và tương tác với các biểu đồ phân tích.</p>
+                    <button onclick="el('navLoginBtn').click()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black uppercase shadow-lg transition-all active:scale-95 flex items-center gap-2">
+                        <i data-lucide="log-in" class="w-4 h-4"></i> Đăng nhập ngay
+                    </button>
+                </div>
+            </div>
+
+            <div id="chartsContent" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Multi-dimensional Mean Analysis -->
+                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-purple-100 bg-white col-span-1 lg:col-span-2">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-purple-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-horizontal" class="w-5 h-5"></i></div>
+                            <h3 class="section-label text-purple-900 text-sm">So sánh Đa chiều (Mean)</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                             <span class="text-[9px] font-bold text-slate-500 uppercase">Thông số:</span>
+                             <select id="multiCompMetric" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-purple-500">
+                                 <option value="ctdi">CTDIvol (mGy)</option>
+                                 <option value="dlp">DLP (mGy.cm)</option>
+                             </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="flex flex-col gap-2">
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Theo Bệnh viện</h4>
+                            <div class="chart-container h-[350px]">
+                                <canvas id="multiHospChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Theo Hãng máy</h4>
+                            <div class="chart-container h-[350px]">
+                                <canvas id="multiManuChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-[10px] text-slate-400 italic text-center">Biểu đồ này giúp so sánh đối chuẩn giữa các cơ sở và hãng thiết bị để tìm ra sự tối ưu.</p>
+                </div>
+
+                <!-- Multi-dimensional P75/Median Analysis -->
+                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-rose-100 bg-white col-span-1 lg:col-span-2">
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-rose-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-2" class="w-5 h-5"></i></div>
+                            <h3 class="section-label text-rose-900 text-sm">So sánh Đa chiều (Mức DRL - P75 & Median)</h3>
+                        </div>
+                        <div class="flex items-center gap-3">
+                             <div class="flex items-center gap-2">
+                                 <span class="text-[9px] font-bold text-slate-500 uppercase">Loại:</span>
+                                 <select id="multiStatType" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-rose-500">
+                                     <option value="p75">Percentile 75</option>
+                                     <option value="median">Median (P50)</option>
+                                 </select>
+                             </div>
+                             <div class="flex items-center gap-2">
+                                 <span class="text-[9px] font-bold text-slate-500 uppercase">Thông số:</span>
+                                 <select id="multiStatMetric" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-rose-500">
+                                     <option value="ctdi">CTDIvol (mGy)</option>
+                                     <option value="dlp">DLP (mGy.cm)</option>
+                                 </select>
+                             </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="flex flex-col gap-2">
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Theo Bệnh viện</h4>
+                            <div class="chart-container h-[350px]">
+                                <canvas id="multiHospStatChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Theo Hãng máy</h4>
+                            <div class="chart-container h-[350px]">
+                                <canvas id="multiManuStatChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Histogram Card -->
+                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-indigo-100 bg-white col-span-1 lg:col-span-2">
+                    <div class="flex flex-col gap-4 mb-6">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-indigo-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-2" class="w-5 h-5"></i></div>
+                                <h3 class="section-label text-indigo-900 text-sm">Phân bố liều CTDIvol</h3>
+                            </div>
+                            <button onclick="downloadChart('histogramChart', 'CTDIvol_Histogram')" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors" title="Tải ảnh"><i data-lucide="download" class="w-4 h-4"></i></button>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <select id="histFilterHospital" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-indigo-500"></select>
+                            <select id="histFilterProtocol" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-indigo-500"></select>
+                            <select id="histFilterManufacturer" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-indigo-500"></select>
+                            <select id="histFilterGender" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-indigo-500">
+                                <option value="all">Tất cả giới tính</option>
+                                <option value="M">Nam</option>
+                                <option value="F">Nữ</option>
+                            </select>
+                            <select id="histFilterAge" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-indigo-500">
+                                <option value="all">Tất cả độ tuổi</option>
+                                <option value="child">&lt; 18 tuổi</option>
+                                <option value="adult">&ge; 18 tuổi</option>
+                            </select>
+                            <button id="btnRefreshChart" class="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors" title="Làm mới"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="histogramChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Grouped Stats Row -->
+                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-orange-100 bg-white col-span-1 lg:col-span-2">
+                      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-orange-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-4" class="w-5 h-5"></i></div>
+                            <h3 class="section-label text-orange-900 text-sm">Phân tích Thống kê Nâng cao (P75 & Median)</h3>
+                        </div>
+                      </div>
+                      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="flex flex-col gap-2">
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Mức DRL (Percentile 75)</h4>
+                            <div class="chart-container h-[300px]">
+                                <canvas id="p75Chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Giá trị Trung vị (Median)</h4>
+                            <div class="chart-container h-[300px]">
+                                <canvas id="p50Chart"></canvas>
+                            </div>
+                        </div>
+                      </div>
+                </div>
+
+                <!-- Mean Stats Row -->
+                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-sky-100 bg-white col-span-1 lg:col-span-2">
+                      <div class="flex flex-col gap-4 mb-6">
+                        <div class="flex flex-wrap items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-sky-600 p-2 rounded-xl text-white"><i data-lucide="activity" class="w-5 h-5"></i></div>
+                                <h3 class="section-label text-sky-900 text-sm">Phân tích Giá trị Trung bình (Mean)</h3>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[9px] font-bold text-slate-500 uppercase">Phân nhóm (Trục X):</span>
+                                <select id="meanStatsGroupBy" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-sky-500">
+                                    <option value="protocol">Bộ phận</option>
+                                    <option value="hospitalName">Bệnh viện</option>
+                                    <option value="manufacturer">Hãng máy</option>
+                                    <option value="gender">Giới tính</option>
+                                    <option value="bmi">BMI</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 p-3 bg-sky-50/50 rounded-2xl border border-sky-100">
+                            <span class="text-[9px] font-black text-sky-700 uppercase mr-1"><i data-lucide="filter" class="w-3 h-3 inline mb-0.5"></i> Lọc dữ liệu:</span>
+                            <select id="meanFilterHospital" class="px-2 py-1.5 text-[10px] border border-slate-200 rounded-lg bg-white font-bold outline-none focus:ring-1 focus:ring-sky-500 max-w-[150px]"></select>
+                            <select id="meanFilterProtocol" class="px-2 py-1.5 text-[10px] border border-slate-200 rounded-lg bg-white font-bold outline-none focus:ring-1 focus:ring-sky-500"></select>
+                            <select id="meanFilterManufacturer" class="px-2 py-1.5 text-[10px] border border-slate-200 rounded-lg bg-white font-bold outline-none focus:ring-1 focus:ring-sky-500"></select>
+                            <select id="meanFilterGender" class="px-2 py-1.5 text-[10px] border border-slate-200 rounded-lg bg-white font-bold outline-none focus:ring-1 focus:ring-sky-500">
+                                <option value="all">Tất cả giới tính</option>
+                                <option value="M">Nam</option>
+                                <option value="F">Nữ</option>
+                            </select>
+                            <button id="btnRefreshMeanChart" class="p-1.5 bg-white text-sky-600 border border-sky-200 rounded-lg hover:bg-sky-100 transition-colors" title="Đặt lại"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                      </div>
+                      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="flex flex-col gap-2">
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Mean CTDIvol (mGy)</h4>
+                            <div class="chart-container h-[300px]">
+                                <canvas id="meanCtdiChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase text-center tracking-widest">Mean DLP (mGy.cm)</h4>
+                            <div class="chart-container h-[300px]">
+                                <canvas id="meanDlpChart"></canvas>
+                            </div>
+                        </div>
+                      </div>
+                </div>
+
+                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-blue-100 bg-white">
+                    <div class="flex flex-col gap-3 mb-6">
+                         <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-blue-600 p-2 rounded-xl text-white"><i data-lucide="scatter-chart" class="w-5 h-5"></i></div>
+                                <h3 class="section-label text-blue-900 text-sm">Tương quan Cân nặng - CTDIvol</h3>
+                            </div>
+                            <button onclick="downloadChart('scatterCtdiChart', 'Weight_CTDIvol_Scatter')" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors" title="Tải ảnh"><i data-lucide="download" class="w-4 h-4"></i></button>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                             <select id="scatterFilterProtocol_CTDI" class="px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-blue-500"></select>
+                             <select id="scatterFilterHospital_CTDI" class="px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-blue-500"></select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="scatterCtdiChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-emerald-100 bg-white">
+                    <div class="flex flex-col gap-3 mb-6">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-emerald-600 p-2 rounded-xl text-white"><i data-lucide="scatter-chart" class="w-5 h-5"></i></div>
+                                <h3 class="section-label text-emerald-900 text-sm">Tương quan Cân nặng - DLP</h3>
+                            </div>
+                            <button onclick="downloadChart('scatterDlpChart', 'Weight_DLP_Scatter')" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors" title="Tải ảnh"><i data-lucide="download" class="w-4 h-4"></i></button>
+                        </div>
+                         <div class="flex flex-wrap items-center gap-2">
+                             <select id="scatterFilterProtocol_DLP" class="px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-emerald-500"></select>
+                             <select id="scatterFilterHospital_DLP" class="px-2 py-1 text-[10px] border border-slate-200 rounded-lg bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-emerald-500"></select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="scatterDlpChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="relative z-50 w-full py-8 mt-12 bg-white/60 backdrop-blur-md border-t border-white/20">
+        <div class="max-w-7xl mx-auto px-6 text-center space-y-4">
+            <div class="flex justify-center items-center gap-4">
+                <a href="#" class="text-[10px] font-bold text-slate-500 hover:text-indigo-600 uppercase tracking-widest transition-colors">Điều khoản sử dụng</a>
+                <span class="text-slate-300">•</span>
+                <a href="#" class="text-[10px] font-bold text-slate-500 hover:text-indigo-600 uppercase tracking-widest transition-colors">Chính sách bảo mật</a>
+                <span class="text-slate-300">•</span>
+                <a href="#" class="text-[10px] font-bold text-slate-500 hover:text-indigo-600 uppercase tracking-widest transition-colors">Liên hệ</a>
+            </div>
+            <p class="text-[9px] text-slate-400 font-medium">© 2026 Team BQT KTV 3 Miền</p>
+        </div>
+    </footer>
+
+    <div id="toast" class="fixed bottom-10 right-10 p-4 bg-white border border-slate-100 rounded-[1.5rem] shadow-2xl z-[120] transform translate-y-20 opacity-0 pointer-events-none transition-all duration-500 flex items-center gap-4 text-slate-900 font-black">
+        <div id="toastIconContainer" class="p-3 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100"><i data-lucide="check" class="w-5 h-5"></i></div>
+        <p id="toastMessage" class="text-[10px] uppercase tracking-tight"></p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const currentYear = 2026;
+        const ADMIN_PASSWORD = "ktv3mien"; 
+        
+        const THAI_DRL_PROTOCOLS = [
+            { name: 'Sọ não (Head)', refCtdi: 65, refDlp: 1000 },
+            { name: 'Ngực không thuốc (Chest)', refCtdi: 9, refDlp: 350 },
+            { name: 'Bụng không thuốc (Abdomen)', refCtdi: 11, refDlp: 500 },
+            { name: 'Phổi liều thấp (LDCT)', refCtdi: 3, refDlp: 150 }
+        ];
+        const INITIAL_HOSPITALS = ["Bệnh viện đa khoa tỉnh Quảng Ninh", "Bệnh viện đa khoa tỉnh Bắc Ninh", "Bệnh viện hữu nghị Việt Tiệp", "Bệnh viện 30 - 04, Bộ Công An", "Bệnh viện Gia An 115"];
+        const MANUFACTURERS = ["GE HealthCare", "Siemens Healthineers", "Philips Healthcare", "Canon Medical Systems", "Fujifilm", "Neusoft", "United Imaging"];
+        const SLICE_COUNTS = ["16 - 32 lát", "64 - 128 lát", "256 - 512 lát", "Máy 2 bóng (Dual Source)"];
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAtQdmDbA1BgOrvwevrG6gwuFzlUmBTbfY",
+            authDomain: "wb-idr.firebaseapp.com",
+            projectId: "wb-idr",
+            storageBucket: "wb-idr.firebasestorage.app",
+            messagingSenderId: "716649486328",
+            appId: "1:716649486328:web:340d7ae8dd0bafa1e0680d",
+            measurementId: "G-2K8631P0DY"
+        };
+
+        const appId = 'wb-idr';
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let user = null, isAdmin = false, entries = [], filteredDisplayEntries = [];
+        let currentPage = 1, rowsPerPage = 10;
+        let isLoginMode = true;
+        let editingRowId = null; 
+        let dataUnsubscribe = null;
+        let presenceInterval = null;
+        
+        let progressChartInstance = null;
+        let histogramChartInstance = null;
+        let scatterDlpChartInstance = null;
+        let scatterCtdiChartInstance = null;
+        let p75ChartInstance = null;
+        let p50ChartInstance = null;
+        let meanCtdiChartInstance = null;
+        let meanDlpChartInstance = null;
+        let multiHospChartInstance = null;
+        let multiManuChartInstance = null;
+        let multiHospStatChartInstance = null;
+        let multiManuStatChartInstance = null;
+
+        const el = (id) => document.getElementById(id);
+
+        function showToast(msg) { el('toastMessage').textContent = msg; el('toast').classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none'); setTimeout(() => el('toast').classList.add('translate-y-20', 'opacity-0', 'pointer-events-none'), 3000); }
+        const normalizeGender = (g) => { const s = String(g || '').toUpperCase(); return (s === 'M' || s === 'NAM') ? 'M' : 'F'; };
+        const normalCDF = (x) => {
+            const t = 1 / (1 + 0.2316419 * Math.abs(x)), d = 0.3989423 * Math.exp(-x * x / 2);
+            const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+            return x >= 0 ? 1 - p : p;
+        };
+        const calcStats = (arr, refValue = 0) => {
+            if (!arr || arr.length === 0) return { median: 0, p75: 0, mean: 0, sd: 0, p: 1 };
+            const n = arr.length, sorted = [...arr].sort((a,b) => a-b);
+            const mean = arr.reduce((a, b) => a + b, 0) / n;
+            const sd = n > 1 ? Math.sqrt(arr.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / (n - 1)) : 0;
+            const median = sorted[Math.floor(n * 0.5)];
+            const p75 = sorted[Math.floor(n * 0.75)] || sorted[n-1];
+            let pVal = 1;
+            if (sd > 0 && n > 1 && refValue > 0) {
+                const t = Math.abs((mean - refValue) / (sd / Math.sqrt(n)));
+                pVal = 2 * (1 - normalCDF(t));
+            }
+            return { mean, sd, median, p75, p: pVal };
+        };
+
+        el('navLoginBtn').onclick = () => { isLoginMode = true; updateAuthUI(); el('authModal').classList.remove('hidden'); };
+        el('closeAuthModal').onclick = () => el('authModal').classList.add('hidden');
+        el('toggleAuthBtn').onclick = () => { isLoginMode = !isLoginMode; updateAuthUI(); };
+        el('userMenuBtn').onclick = (e) => { e.stopPropagation(); el('userDropdown').classList.toggle('hidden'); el('onlineDropdown').classList.add('hidden'); };
+        el('onlineMenuBtn').onclick = (e) => { e.stopPropagation(); el('onlineDropdown').classList.toggle('hidden'); el('userDropdown').classList.add('hidden'); };
+        document.body.onclick = () => { el('userDropdown').classList.add('hidden'); el('onlineDropdown').classList.add('hidden'); };
+        el('aboutBtn').onclick = () => el('aboutModal').classList.remove('hidden');
+        el('closeAboutModal').onclick = () => el('aboutModal').classList.add('hidden');
+        el('closeAboutBtn').onclick = () => el('aboutModal').classList.add('hidden');
+
+        el('requestAdminBtn').onclick = (e) => {
+            e.stopPropagation();
+            el('adminAuthModal').classList.remove('hidden');
+            el('userDropdown').classList.add('hidden');
+            el('adminPassInput').focus();
+        };
+        el('closeAdminAuth').onclick = () => el('adminAuthModal').classList.add('hidden');
+        el('adminAuthForm').onsubmit = (e) => {
+            e.preventDefault();
+            const pass = el('adminPassInput').value;
+            if (pass === ADMIN_PASSWORD) {
+                isAdmin = true;
+                updateAdminUI();
+                renderDashboard();
+                showToast("Đã kích hoạt quyền ADMIN!");
+                el('adminAuthModal').classList.add('hidden');
+                el('adminPassInput').value = '';
+            } else {
+                showToast("Sai mã bảo mật!");
+                el('adminPassInput').value = '';
+            }
+        };
+
+        function updateAdminUI() {
+            el('adminControls').classList.toggle('hidden', !isAdmin);
+            el('adminBadge').classList.toggle('hidden', !isAdmin);
+            el('adminStatusDot').classList.toggle('hidden', !isAdmin);
+        }
+
+        function updateAuthUI() { el('authTitle').textContent = isLoginMode ? "Đăng Nhập" : "Đăng Ký"; el('authSubmitBtn').querySelector('span').textContent = isLoginMode ? "VÀO HỆ THỐNG" : "TẠO TÀI KHOẢN"; }
+
+        el('authForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const email = el('authEmail').value;
+            const pass = el('authPassword').value;
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                    showToast("Đã đăng nhập thành công!");
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, pass);
+                    showToast("Đăng ký thành công!");
+                }
+                el('authModal').classList.add('hidden');
+            } catch (err) {
+                showToast("Lỗi: " + err.message);
+            }
+        };
+
+        el('googleLoginBtn').onclick = async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+                showToast("Đăng nhập Google thành công!");
+                el('authModal').classList.add('hidden');
+            } catch (err) {
+                showToast("Lỗi Google Auth: " + err.message);
+            }
+        };
+
+        window.switchTab = (tabId) => {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            el(tabId).classList.remove('hidden');
+            el('btn-' + tabId).classList.add('active');
+            lucide.createIcons();
+            if(tabId === 'data-tab' || tabId === 'main-tab') renderDashboard();
+            if(tabId === 'charts-tab') { populateChartFilters(); renderCharts(); }
+        };
+
+        function updateDropdowns() {
+            const currH = [...new Set([...INITIAL_HOSPITALS, ...entries.map(e => e.hospitalName)])].sort();
+            const currM = [...new Set([...MANUFACTURERS, ...entries.map(e => e.manufacturer).filter(m => m)])].sort();
+            const currP = [...new Set([...THAI_DRL_PROTOCOLS.map(p => p.name), ...entries.map(e => e.protocol)])].sort();
+
+            const dropdowns = { 
+                hospitalSelect: currH, filterHospital: currH, dashFilterHospital: currH,
+                manufacturer: currM, filterManufacturer: currM, dashFilterManufacturer: currM,
+                filterProtocol: currP, dashFilterProtocol: currP, protocol: THAI_DRL_PROTOCOLS.map(p => p.name)
+            };
+
+            for (let [id, list] of Object.entries(dropdowns)) {
+                const select = el(id); if (!select) continue;
+                const currentVal = select.value;
+                let placeholder = (id.startsWith('filter') || id.startsWith('dashFilter')) ? '<option value="all">Tất cả</option>' : '<option value="" disabled selected>-- Chọn --</option>';
+                
+                select.innerHTML = placeholder;
+                list.forEach(item => { 
+                    const val = typeof item === 'string' ? item : item.name;
+                    select.innerHTML += `<option value="${val}">${val}</option>`; 
+                });
+                if (id === 'hospitalSelect') select.innerHTML += `<option value="other">➕ Khác</option>`;
+                if (currentVal && (list.includes(currentVal) || currentVal === 'all' || currentVal === 'other')) select.value = currentVal;
+            }
+        }
+
+        async function updatePresence(u) {
+            if (!u) return;
+            const presenceRef = doc(db, 'artifacts', appId, 'public', 'data', 'presence', u.uid);
+            await setDoc(presenceRef, { email: u.email || (u.isAnonymous ? "Guest User" : "Unknown"), lastSeen: new Date().toISOString(), isAnonymous: u.isAnonymous }, { merge: true });
+        }
+
+        function setupPresenceListener() {
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'presence'), (snap) => {
+                const now = new Date();
+                const activeUsers = snap.docs.map(d => d.data()).filter(data => (now - new Date(data.lastSeen)) < 300000);
+                el('onlineCount').textContent = activeUsers.length;
+                const list = el('onlineList'); list.innerHTML = '';
+                if (activeUsers.length === 0) list.innerHTML = '<p class="text-[10px] text-slate-400 text-center py-4">Không có ai online</p>';
+                else activeUsers.forEach(u => {
+                    const isMe = user && u.email === (user.email || "Guest User");
+                    list.innerHTML += `<div class="flex items-center gap-3 p-2 rounded-xl bg-slate-50 border border-slate-100"><div class="w-2 h-2 rounded-full bg-emerald-500"></div><div class="flex-1 min-w-0"><p class="text-[11px] font-black text-slate-800 truncate">${u.email}</p><p class="text-[8px] font-bold text-slate-400 uppercase">${isMe ? 'Bạn' : 'Thành viên'}</p></div></div>`;
+                });
+            });
+        }
+
+        function renderPagination() {
+            const total = filteredDisplayEntries.length, totalPages = Math.ceil(total / rowsPerPage);
+            el('paginationInfo').textContent = `Hiển thị ${(currentPage-1)*rowsPerPage + 1} - ${Math.min(currentPage*rowsPerPage, total)} của ${total} ca chụp`;
+            const container = el('paginationButtons'); container.innerHTML = '';
+            if (totalPages <= 1) return;
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.className = `w-9 h-9 rounded-xl border text-[11px] font-black page-btn ${i === currentPage ? 'active' : 'border-slate-100 hover:bg-white'}`;
+                btn.textContent = i; btn.onclick = () => { currentPage = i; renderDashboard(); }; container.appendChild(btn);
+            }
+        }
+
+        function renderDashboard() {
+            const isGuest = !user || user.isAnonymous;
+            const dashLock = el('dashboardLock');
+            const dashContent = el('dashboardContent');
+            const dataLock = el('dataLock');
+            const dataContent = el('dataContent');
+            const progSection = el('progressChartSection');
+
+            if (isGuest) {
+                dashLock.classList.remove('hidden'); dashContent.classList.add('hidden', 'pointer-events-none', 'opacity-20');
+                dataLock.classList.remove('hidden'); dataContent.classList.add('hidden', 'pointer-events-none', 'opacity-20');
+                if(progSection) progSection.classList.add('hidden');
+                el('statTotal').textContent = '-'; el('dataTableBody').innerHTML = ''; return;
+            } else {
+                dashLock.classList.add('hidden'); dashContent.classList.remove('hidden', 'pointer-events-none', 'opacity-20');
+                dataLock.classList.add('hidden'); dataContent.classList.remove('hidden', 'pointer-events-none', 'opacity-20');
+                if(progSection) progSection.classList.remove('hidden');
+            }
+
+            const isDataTab = el('btn-data-tab').classList.contains('active');
+            let fHosp, fProt, fGend, fManu, fMod = 'all';
+            let fStart = '', fEnd = '';
+            const searchTerm = el('searchPatientId').value.trim().toLowerCase();
+
+            if (isDataTab) {
+                fHosp = el('filterHospital').value || 'all'; fProt = el('filterProtocol').value || 'all';
+                fGend = el('filterGender').value || 'all'; fManu = el('filterManufacturer').value || 'all';
+                fMod = el('filterModulation').value || 'all';
+            } else {
+                fHosp = el('dashFilterHospital').value || 'all'; fProt = el('dashFilterProtocol').value || 'all'; 
+                fGend = el('dashFilterGender').value || 'all'; fManu = el('dashFilterManufacturer').value || 'all';
+                fStart = el('dashFilterStart').value; fEnd = el('dashFilterEnd').value;
+            }
+
+            filteredDisplayEntries = entries.filter(e => {
+                if (fHosp !== 'all' && e.hospitalName !== fHosp) return false;
+                if (fProt !== 'all' && e.protocol !== fProt) return false;
+                if (fManu !== 'all' && e.manufacturer !== fManu) return false;
+                if (fGend !== 'all' && normalizeGender(e.gender) !== fGend) return false;
+                if (isDataTab && fMod !== 'all' && (e.doseModulation || 'Có') !== fMod) return false;
+                if (!isDataTab && fStart) { const d = new Date(e.createdAt || e.updatedAt).toISOString().split('T')[0]; if (d < fStart) return false; }
+                if (!isDataTab && fEnd) { const d = new Date(e.createdAt || e.updatedAt).toISOString().split('T')[0]; if (d > fEnd) return false; }
+                if (searchTerm) { const searchStr = `${e.patientId || ''} ${e.hospitalName || ''} ${e.userEmail || ''} ${e.manufacturer || ''}`.toLowerCase(); if (!searchStr.includes(searchTerm)) return false; }
+                return true;
+            });
+
+            const sortVal = el('sortOrderSelect').value;
+            filteredDisplayEntries.sort((a, b) => {
+                switch(sortVal) {
+                    case 'newest': return (b.createdAt || '').localeCompare(a.createdAt || '');
+                    case 'oldest': return (a.createdAt || '').localeCompare(b.createdAt || '');
+                    case 'ctdi_desc': return (parseFloat(b.ctdi) || 0) - (parseFloat(a.ctdi) || 0);
+                    case 'ctdi_asc': return (parseFloat(a.ctdi) || 0) - (parseFloat(b.ctdi) || 0);
+                    case 'age_desc': return (parseFloat(b.age) || 0) - (parseFloat(a.age) || 0);
+                    case 'age_asc': return (parseFloat(a.age) || 0) - (parseFloat(b.age) || 0);
+                    case 'weight_desc': return (parseFloat(b.weight) || 0) - (parseFloat(a.weight) || 0);
+                    case 'weight_asc': return (parseFloat(a.weight) || 0) - (parseFloat(b.weight) || 0);
+                    default: return 0;
+                }
+            });
+
+            const statsProtocolName = (fProt !== 'all') ? fProt : el('protocol').value;
+            const activeProtocol = THAI_DRL_PROTOCOLS.find(p => p.name === statsProtocolName);
+            let refCtdi = parseFloat(el('manualRefCtdi').value) || (activeProtocol ? activeProtocol.refCtdi : 0);
+            let refDlp = parseFloat(el('manualRefDlp').value) || (activeProtocol ? activeProtocol.refDlp : 0);
+            el('labelRefCtdi').textContent = refCtdi > 0 ? `Ref: ${refCtdi}` : `Chọn Protocol`;
+            el('labelRefDlp').textContent = refDlp > 0 ? `Ref: ${refDlp}` : `Chọn Protocol`;
+            
+            const ctdiVals = filteredDisplayEntries.map(e => parseFloat(e.ctdi)).filter(n => !isNaN(n));
+            const dlpVals = filteredDisplayEntries.map(e => parseFloat(e.dlp)).filter(n => !isNaN(n));
+            const ctdiStats = calcStats(ctdiVals, refCtdi), dlpStats = calcStats(dlpVals, refDlp);
+
+            el('statTotal').textContent = filteredDisplayEntries.length;
+            el('statCtdi75').textContent = ctdiStats.p75.toFixed(1);
+            el('statCtdiMedian').textContent = ctdiStats.median.toFixed(1);
+            el('statCtdiMeanSD').textContent = `${ctdiStats.mean.toFixed(1)} ± ${ctdiStats.sd.toFixed(1)}`;
+            el('pValCtdi').textContent = ctdiStats.p < 0.001 ? "< 0.001" : ctdiStats.p.toFixed(3);
+            el('statDlp75').textContent = Math.round(dlpStats.p75);
+            el('statDlpMedian').textContent = Math.round(dlpStats.median);
+            el('statDlpMeanSD').textContent = `${Math.round(dlpStats.mean)} ± ${Math.round(dlpStats.sd)}`;
+            el('pValDlp').textContent = dlpStats.p < 0.001 ? "< 0.001" : dlpStats.p.toFixed(3);
+
+            const mCounts = filteredDisplayEntries.reduce((acc, curr) => { let m = curr.manufacturer || 'N/A'; acc[m] = (acc[m] || 0) + 1; return acc; }, {});
+            const mBody = el('manufacturerTableBody'); mBody.innerHTML = '';
+            Object.entries(mCounts).sort((a,b) => b[1] - a[1]).forEach(([m, c]) => { mBody.innerHTML += `<tr><td class="px-4 py-3.5 rounded-l-xl font-black text-[9px]">${m}</td><td class="px-4 py-3.5 rounded-r-xl text-right font-black text-[9px]">${c}</td></tr>`; });
+
+            if(progressChartInstance) progressChartInstance.destroy();
+            const progData = {}; const protocols = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))];
+            filteredDisplayEntries.forEach(e => { const h = e.hospitalName || 'Unknown'; if (!progData[h]) progData[h] = {}; const p = e.protocol || 'Other'; progData[h][p] = (progData[h][p] || 0) + 1; });
+            const hospitals = Object.keys(progData).sort();
+            const datasets = protocols.map((prot, index) => { const colors = ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#a855f7']; return { label: prot, data: hospitals.map(h => progData[h][prot] || 0), backgroundColor: colors[index % colors.length], borderRadius: 4, barThickness: 20 }; });
+            progressChartInstance = new Chart(el('progressChart').getContext('2d'), { type: 'bar', data: { labels: hospitals, datasets: datasets }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { font: { size: 9, weight: 'bold' }, usePointStyle: true, boxWidth: 6 } } }, scales: { x: { stacked: true, grid: { display: false }, ticks: { font: { size: 9, weight: 'bold' } } }, y: { stacked: true, grid: { display: false }, ticks: { font: { size: 9, weight: 'bold' } } } } } });
+
+            const startIndex = (currentPage - 1) * rowsPerPage, pagedEntries = filteredDisplayEntries.slice(startIndex, startIndex + rowsPerPage);
+            const tbody = el('dataTableBody'); tbody.innerHTML = '';
+            pagedEntries.forEach(e => {
+                const tr = document.createElement('tr'); tr.className = "hover:bg-slate-50 transition-all group border-b border-slate-50";
+                const isOwner = user && e.userId === user.uid; const canManage = isAdmin || (user && !user.isAnonymous && isOwner);
+                const isEditing = (editingRowId === e.id);
+                const dateObj = new Date(e.createdAt || e.updatedAt || new Date());
+                const dateStr = dateObj.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' + dateObj.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                const scanLength = (parseFloat(e.ctdi) > 0) ? (parseFloat(e.dlp)/parseFloat(e.ctdi)).toFixed(1) : "-";
+                const genderLabel = normalizeGender(e.gender) === 'M' ? 'Nam' : 'Nữ';
+
+                if (isEditing) {
+                    tr.innerHTML = `<td class="px-4 py-3 text-[10px] text-slate-400 font-bold">${dateStr}</td><td class="px-4 py-3 text-[10px] text-indigo-600 font-bold">${e.userEmail || '---'}</td><td class="px-4 py-3"><select id="inline-hosp-${e.id}" class="w-full p-1 text-[10px] border rounded font-bold mb-1 bg-white">${[...new Set([...INITIAL_HOSPITALS, ...entries.map(ent => ent.hospitalName)])].sort().map(h => `<option value="${h}" ${h === e.hospitalName ? 'selected' : ''}>${h}</option>`).join('')}</select></td><td class="px-4 py-3"><select id="inline-prot-${e.id}" class="w-full p-1 text-[10px] border rounded font-black text-indigo-600">${THAI_DRL_PROTOCOLS.map(p => `<option value="${p.name}" ${p.name === e.protocol ? 'selected' : ''}>${p.name}</option>`).join('')}</select></td><td class="px-4 py-3 text-center"><div class="flex gap-1 items-center justify-center"><input type="number" id="inline-age-${e.id}" value="${e.age}" class="w-8 p-1 text-[10px] border rounded text-center"><input type="number" id="inline-weight-${e.id}" value="${e.weight}" class="w-8 p-1 text-[10px] border rounded text-center"></div></td><td class="px-4 py-3 text-center"><select id="inline-mod-${e.id}" class="p-1 text-[10px] border rounded"><option value="Có" ${e.doseModulation === 'Có' ? 'selected' : ''}>Có</option><option value="Không" ${e.doseModulation === 'Không' ? 'selected' : ''}>Không</option></select></td><td class="px-4 py-3"><input type="number" step="0.01" id="inline-ctdi-${e.id}" value="${e.ctdi}" class="w-16 p-1 text-[10px] border rounded font-black"></td><td class="px-4 py-3"><input type="number" step="0.1" id="inline-dlp-${e.id}" value="${e.dlp}" class="w-20 p-1 text-[10px] border rounded font-bold"></td><td class="px-4 py-3 text-center font-bold text-slate-500 text-[10px]">${scanLength}</td><td class="px-4 py-3 text-right"><div class="flex justify-end gap-1"><button type="button" onclick="saveInlineEdit('${e.id}', this)" class="p-2 text-emerald-600 bg-emerald-50 rounded-xl hover:bg-emerald-100"><i data-lucide="check" class="w-4 h-4"></i></button><button type="button" onclick="cancelInlineEdit()" class="p-2 text-slate-400 bg-slate-50 rounded-xl hover:bg-slate-100"><i data-lucide="x" class="w-4 h-4"></i></button></div></td>`;
+                } else {
+                    tr.innerHTML = `<td class="px-8 py-5 text-[10px] font-bold text-slate-500 whitespace-nowrap">${dateStr}</td><td class="px-8 py-5 text-[10px] font-bold text-indigo-600">${e.userEmail || '---'}</td><td data-label="Bệnh viện / ID" class="px-8 py-5"><div class="font-black text-slate-800 text-[11px]">${e.hospitalName}</div><div class="text-[8px] text-slate-400 font-black uppercase mt-1">ID: ${e.patientId || '??'} • ${e.manufacturer || '?'}</div></td><td data-label="Protocol" class="px-8 py-5"><span class="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-black uppercase border border-indigo-100">${e.protocol}</span></td><td data-label="BN Info" class="px-8 py-5 text-center"><div class="text-[10px] font-bold text-slate-600">${genderLabel} • ${e.age}t • ${e.weight}kg</div></td><td data-label="Modulation" class="px-8 py-5 text-center"><span class="text-[10px] font-black ${e.doseModulation === 'Không' ? 'text-orange-500' : 'text-emerald-600'}">${e.doseModulation || 'Có'}</span></td><td data-label="CTDIvol" class="px-8 py-5 font-black text-slate-900">${e.ctdi}</td><td data-label="DLP" class="px-8 py-5 font-bold text-slate-400">${e.dlp}</td><td data-label="L (cm)" class="px-8 py-5 font-bold text-slate-500 text-center">${scanLength}</td><td data-label="Thao tác" class="px-8 py-5 text-right"><div class="flex justify-end gap-1.5">${ canManage ? `<button type="button" onclick="editEntry('${e.id}')" class="p-2 text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button type="button" onclick="deleteEntry('${e.id}')" class="p-2 text-red-500 bg-red-50 rounded-xl hover:bg-red-100"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : '' }</div></td>`;
+                }
+                tbody.appendChild(tr);
+            });
+            renderPagination(); lucide.createIcons();
+        }
+
+        function populateChartFilters() {
+            const hospitals = [...new Set([...INITIAL_HOSPITALS, ...entries.map(e => e.hospitalName)])].sort();
+            const manufacturers = [...new Set([...MANUFACTURERS, ...entries.map(e => e.manufacturer).filter(m => m)])].sort();
+            const protocols = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))];
+            
+            const dropdowns = { histFilterHospital: hospitals, histFilterProtocol: protocols, histFilterManufacturer: manufacturers, meanFilterHospital: hospitals, meanFilterProtocol: protocols, meanFilterManufacturer: manufacturers };
+            for(let [id, list] of Object.entries(dropdowns)) {
+                const s = el(id); if(!s || s.options.length > 0) continue;
+                s.innerHTML = '<option value="all">Tất cả</option>';
+                list.forEach(v => s.innerHTML += `<option value="${v}">${v}</option>`);
+            }
+
+            const scatters = ['scatterFilterProtocol_CTDI', 'scatterFilterProtocol_DLP', 'scatterFilterHospital_CTDI', 'scatterFilterHospital_DLP'];
+            scatters.forEach(id => {
+                const s = el(id); if(!s || s.options.length > 0) return;
+                s.innerHTML = '<option value="all">Tất cả</option>';
+                (id.includes('Protocol') ? protocols : hospitals).forEach(v => s.innerHTML += `<option value="${v}">${v}</option>`);
+            });
+        }
+
+        window.downloadChart = (chartId, title) => {
+            const canvas = el(chartId); if (!canvas) return;
+            const tempCanvas = document.createElement('canvas'); tempCanvas.width = canvas.width; tempCanvas.height = canvas.height;
+            const ctx = tempCanvas.getContext('2d'); ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height); ctx.drawImage(canvas, 0, 0);
+            const link = document.createElement('a'); link.download = `${title}_${new Date().toISOString().slice(0,10)}.png`; link.href = tempCanvas.toDataURL('image/png'); link.click();
+        }
+
+        function calculateLinearRegression(data) {
+            const n = data.length; if (n === 0) return [];
+            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+            data.forEach(p => { sumX += p.x; sumY += p.y; sumXY += p.x * p.y; sumXX += p.x * p.x; });
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX); const intercept = (sumY - slope * sumX) / n;
+            const minX = Math.min(...data.map(p => p.x)); const maxX = Math.max(...data.map(p => p.x));
+            return [{ x: minX, y: slope * minX + intercept }, { x: maxX, y: slope * maxX + intercept }];
+        }
+
+        function getMultiGroupData(data, primaryKey, secondaryKey, metricKey, statType) {
+            const primaryLabels = [...new Set(data.map(e => {
+                let v = e[primaryKey]; if (primaryKey === 'manufacturer') { v = v ? v.trim() : 'N/A'; if (v.toLowerCase().startsWith('ge ') || v.toUpperCase() === 'GE') v = 'GE HealthCare'; }
+                return v || 'Unknown';
+            }))].sort();
+            const secondaryLabels = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))]; 
+            const datasets = secondaryLabels.map((prot, idx) => {
+                const colors = ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#a855f7'];
+                return { label: prot, data: primaryLabels.map(pLabel => {
+                    const subset = data.filter(e => { let ePrim = e[primaryKey]; if (primaryKey === 'manufacturer') { ePrim = ePrim ? ePrim.trim() : 'N/A'; if (ePrim.toLowerCase().startsWith('ge ') || ePrim.toUpperCase() === 'GE') ePrim = 'GE HealthCare'; } return (ePrim || 'Unknown') === pLabel && e[secondaryKey] === prot; });
+                    const stats = calcStats(subset.map(x => parseFloat(x[metricKey])).filter(n => !isNaN(n))); return stats[statType]; 
+                }), backgroundColor: colors[idx % colors.length], borderRadius: 3, barPercentage: 0.7, categoryPercentage: 0.8 };
+            });
+            return { labels: primaryLabels, datasets };
+        }
+
+        function renderCharts() {
+            if (histogramChartInstance) histogramChartInstance.destroy();
+            if (scatterDlpChartInstance) scatterDlpChartInstance.destroy();
+            if (scatterCtdiChartInstance) scatterCtdiChartInstance.destroy();
+            if (p75ChartInstance) p75ChartInstance.destroy();
+            if (p50ChartInstance) p50ChartInstance.destroy();
+            if (meanCtdiChartInstance) meanCtdiChartInstance.destroy();
+            if (meanDlpChartInstance) meanDlpChartInstance.destroy();
+            if (multiHospChartInstance) multiHospChartInstance.destroy();
+            if (multiManuChartInstance) multiManuChartInstance.destroy();
+            if (multiHospStatChartInstance) multiHospStatChartInstance.destroy();
+            if (multiManuStatChartInstance) multiManuStatChartInstance.destroy();
+
+            const isGuest = !user || user.isAnonymous; if (isGuest) { el('chartsLock').classList.remove('hidden'); el('chartsContent').classList.add('hidden', 'pointer-events-none', 'opacity-20'); return; }
+            else { el('chartsLock').classList.add('hidden'); el('chartsContent').classList.remove('hidden', 'pointer-events-none', 'opacity-20'); }
+
+            const multiMetric = el('multiCompMetric')?.value || 'ctdi';
+            multiHospChartInstance = new Chart(el('multiHospChart').getContext('2d'), { type: 'bar', data: getMultiGroupData(entries, 'hospitalName', 'protocol', multiMetric, 'mean'), options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false }, y: { beginAtZero: true } }, plugins: { legend: { position: 'top' } } } });
+            multiManuChartInstance = new Chart(el('multiManuChart').getContext('2d'), { type: 'bar', data: getMultiGroupData(entries, 'manufacturer', 'protocol', multiMetric, 'mean'), options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false }, y: { beginAtZero: true } }, plugins: { legend: { position: 'top' } } } });
+
+            const mStatType = el('multiStatType')?.value || 'p75'; const mStatMetric = el('multiStatMetric')?.value || 'ctdi';
+            multiHospStatChartInstance = new Chart(el('multiHospStatChart').getContext('2d'), { type: 'bar', data: getMultiGroupData(entries, 'hospitalName', 'protocol', mStatMetric, mStatType), options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false }, y: { beginAtZero: true } }, plugins: { legend: { position: 'top' } } } });
+            multiManuStatChartInstance = new Chart(el('multiManuStatChart').getContext('2d'), { type: 'bar', data: getMultiGroupData(entries, 'manufacturer', 'protocol', mStatMetric, mStatType), options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false }, y: { beginAtZero: true } }, plugins: { legend: { position: 'top' } } } });
+
+            const ctdiValues = entries.map(e => parseFloat(e.ctdi)).filter(n => !isNaN(n));
+            const bins = {}; ctdiValues.forEach(val => { const bin = Math.floor(val / 5) * 5; bins[bin] = (bins[bin] || 0) + 1; });
+            const histLabels = Object.keys(bins).sort((a,b) => a-b).map(k => `${k}-${parseInt(k)+5}`);
+            histogramChartInstance = new Chart(el('histogramChart').getContext('2d'), { type: 'bar', data: { labels: histLabels, datasets: [{ label: 'Số ca', data: Object.keys(bins).sort((a,b) => a-b).map(k => bins[k]), backgroundColor: 'rgba(79, 70, 229, 0.6)' }] }, options: { responsive: true, maintainAspectRatio: false } });
+
+            const statsLabels = [...new Set(entries.map(e => e.protocol))].sort();
+            const p75Ctdi = [], p75Dlp = [], p50Ctdi = [], p50Dlp = [];
+            statsLabels.forEach(k => {
+                const sub = entries.filter(e => e.protocol === k);
+                const cStats = calcStats(sub.map(e => parseFloat(e.ctdi))); const dStats = calcStats(sub.map(e => parseFloat(e.dlp)));
+                p75Ctdi.push(cStats.p75); p75Dlp.push(dStats.p75); p50Ctdi.push(cStats.median); p50Dlp.push(dStats.median);
+            });
+            p75ChartInstance = new Chart(el('p75Chart').getContext('2d'), { type: 'bar', data: { labels: statsLabels, datasets: [{ label: 'CTDIvol', data: p75Ctdi, yAxisID: 'y', backgroundColor: 'rgba(99, 102, 241, 0.7)' }, { label: 'DLP', data: p75Dlp, yAxisID: 'y1', type: 'line', borderColor: 'rgba(249, 115, 22, 1)' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { position: 'left' }, y1: { position: 'right', grid: { display: false } } } } });
+            p50ChartInstance = new Chart(el('p50Chart').getContext('2d'), { type: 'bar', data: { labels: statsLabels, datasets: [{ label: 'CTDIvol', data: p50Ctdi, yAxisID: 'y', backgroundColor: 'rgba(16, 185, 129, 0.7)' }, { label: 'DLP', data: p50Dlp, yAxisID: 'y1', type: 'line', borderColor: 'rgba(236, 72, 153, 1)' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { position: 'left' }, y1: { position: 'right', grid: { display: false } } } } });
+
+            const getScatterData = (yKey, pF, hF) => {
+                const sub = entries.filter(e => (pF === 'all' || e.protocol === pF) && (hF === 'all' || e.hospitalName === hF) && !isNaN(parseFloat(e.weight)) && !isNaN(parseFloat(e[yKey])));
+                return sub.map(e => ({ x: parseFloat(e.weight), y: parseFloat(e[yKey]) }));
+            };
+            const scatterCData = getScatterData('ctdi', el('scatterFilterProtocol_CTDI').value, el('scatterFilterHospital_CTDI').value);
+            scatterCtdiChartInstance = new Chart(el('scatterCtdiChart').getContext('2d'), { type: 'scatter', data: { datasets: [{ label: 'Ca chụp', data: scatterCData, backgroundColor: '#3b82f6' }, { label: 'Trendline', data: calculateLinearRegression(scatterCData), type: 'line', borderColor: 'gray', pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false } });
+            const scatterDData = getScatterData('dlp', el('scatterFilterProtocol_DLP').value, el('scatterFilterHospital_DLP').value);
+            scatterDlpChartInstance = new Chart(el('scatterDlpChart').getContext('2d'), { type: 'scatter', data: { datasets: [{ label: 'Ca chụp', data: scatterDData, backgroundColor: '#10b981' }, { label: 'Trendline', data: calculateLinearRegression(scatterDData), type: 'line', borderColor: 'gray', pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false } });
+        }
+        
+        el('btnApplyDashFilter').onclick = renderDashboard;
+        el('btnResetDashFilter').onclick = () => { ['dashFilterHospital', 'dashFilterManufacturer', 'dashFilterGender', 'dashFilterProtocol'].forEach(id => el(id).value = 'all'); ['dashFilterStart', 'dashFilterEnd'].forEach(id => el(id).value = ''); renderDashboard(); };
+        ['multiCompMetric', 'multiStatType', 'multiStatMetric', 'meanStatsGroupBy', 'scatterFilterProtocol_CTDI', 'scatterFilterHospital_CTDI', 'scatterFilterProtocol_DLP', 'scatterFilterHospital_DLP'].forEach(id => { const e = el(id); if(e) e.onchange = renderCharts; });
+        ['meanFilterHospital', 'meanFilterProtocol', 'meanFilterManufacturer', 'meanFilterGender'].forEach(id => { const e = el(id); if(e) e.onchange = renderCharts; });
+
+        await setPersistence(auth, browserLocalPersistence);
+        onAuthStateChanged(auth, async (u) => {
+            user = u;
+            if (u) {
+                el('sessionUserEmail').textContent = u.email || "Guest User";
+                el('navLoginBtn').classList.toggle('hidden', !u.isAnonymous);
+                el('userMenu').classList.toggle('hidden', u.isAnonymous);
+                el('formLockOverlay').classList.toggle('hidden', !u.isAnonymous);
+                if(!u.isAnonymous && el('welcomeBanner').classList.contains('hidden')) el('welcomeBanner').classList.remove('hidden');
+                updatePresence(u); if(presenceInterval) clearInterval(presenceInterval);
+                presenceInterval = setInterval(() => updatePresence(user), 60000);
+                renderDashboard();
+                if(dataUnsubscribe) dataUnsubscribe();
+                dataUnsubscribe = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), (snap) => {
+                    entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    entries.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+                    updateDropdowns(); // FIXED FUNCTION NAME
+                    renderDashboard(); 
+                    if (!el('charts-tab').classList.contains('hidden')) { populateChartFilters(); renderCharts(); }
+                });
+            } else { isAdmin = false; updateAdminUI(); if(dataUnsubscribe) dataUnsubscribe(); await signInAnonymously(auth); }
+        });
+
+        setupPresenceListener();
+        el('logoutBtn').onclick = async (e) => { e.preventDefault(); await signOut(auth); location.reload(); };
+        el('cancelEditBtn').onclick = () => { el('editEntryId').value = ""; el('submitBtnText').textContent = "Lưu Dữ Liệu"; el('cancelEditBtn').classList.add('hidden'); el('drlForm').reset(); updateDropdowns(); }; // FIXED FUNCTION NAME
+        lucide.createIcons();
+    </script>
+</body>
+</html>
