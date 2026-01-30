@@ -1,1 +1,614 @@
 
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VN-DRL Charts - Phân tích & Thống kê</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: #f0fdfa; /* Nền xanh nhẹ khác biệt chút so với dashboard */
+            color: #0f172a; 
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .mesh-bg { 
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100%; 
+            z-index: -1; 
+            background: radial-gradient(at 0% 0%, hsla(180,70%,96%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(210,100%,94%,1) 0, transparent 50%), radial-gradient(at 100% 100%, hsla(250,60%,96%,1) 0, transparent 50%); 
+        }
+        .glass-card { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.05); }
+        .section-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; }
+        
+        .chart-container {
+            position: relative;
+            height: 350px; /* Cao hơn chút so với bản cũ để dễ nhìn */
+            width: 100%;
+        }
+
+        .lock-screen-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 500px;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(8px);
+            border-radius: 2rem;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="mesh-bg"></div>
+
+    <!-- Auth Modal (Reused for security) -->
+    <div id="authModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md hidden p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl relative border border-white/50">
+            <button id="closeAuthModal" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <div class="text-center mb-6">
+                <div class="bg-teal-600 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white shadow-lg"><i data-lucide="shield-check" class="w-7 h-7"></i></div>
+                <h2 id="authTitle" class="text-2xl font-black text-slate-800">Đăng Nhập Xem Biểu Đồ</h2>
+            </div>
+            <form id="authForm" class="space-y-4">
+                <div><label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Email</label><input type="email" id="authEmail" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none font-bold" required></div>
+                <div><label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Mật khẩu</label><input type="password" id="authPassword" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none font-bold" required></div>
+                <button type="submit" class="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-black shadow-lg uppercase transition-all">Đăng nhập</button>
+            </form>
+            <div class="mt-6 text-center text-xs">
+                <button id="googleLoginBtn" class="flex items-center justify-center gap-2 w-full py-3 border border-slate-200 rounded-xl font-bold hover:bg-slate-50 transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.79 2.71v2.24h2.91c1.71-1.57 2.68-3.88 2.68-6.58z" fill="#4285F4"/><path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.24c-.8.54-1.84.85-3.05.85-2.34 0-4.32-1.58-5.03-3.71H.95v2.3C2.43 15.89 5.5 18 9 18z" fill="#34A853"/><path d="M3.97 10.72c-.18-.54-.28-1.11-.28-1.72s.1-1.18.28-1.72V4.98H.95C.34 6.19 0 7.56 0 9s.34 2.81.95 4.02l3.02-2.3z" fill="#FBBC05"/><path d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.47.89 11.43 0 9 0 5.5 0 2.43 2.11.95 5.12l3.02 2.3c.71-2.13 2.69-3.71 5.03-3.71z" fill="#EA4335"/></svg>
+                    Google Login
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-40 w-full backdrop-blur-lg bg-white/70 border-b border-slate-100">
+        <div class="max-w-[95%] mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-teal-600 p-2 rounded-xl text-white shadow-lg shadow-teal-200"><i data-lucide="pie-chart" class="w-5 h-5"></i></div>
+                <div>
+                    <h1 class="text-lg font-black tracking-tight text-slate-900 uppercase">VN-DRL <span class="text-teal-600">CHARTS</span></h1>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest hidden sm:block">Trung tâm phân tích dữ liệu</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase text-slate-600 hover:bg-slate-50 transition-all">
+                    <i data-lucide="arrow-left" class="w-3 h-3"></i> <span class="hidden sm:inline">Về trang nhập liệu</span><span class="sm:hidden">Dashboard</span>
+                </a>
+                <div class="h-6 w-px bg-slate-200"></div>
+                <div class="flex items-center gap-2">
+                    <span id="userEmailDisplay" class="text-[10px] font-bold text-teal-700 hidden sm:block">Đang tải...</span>
+                    <button id="loginBtn" class="px-4 py-2 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase hover:bg-teal-700 shadow-lg shadow-teal-100 transition-all">Login</button>
+                    <button id="logoutBtn" class="hidden p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-all"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-[95%] w-full mx-auto p-4 md:p-6 space-y-8 relative">
+        
+        <!-- Lock Screen -->
+        <div id="chartsLock" class="hidden absolute inset-0 z-30 bg-white/40 backdrop-blur-md rounded-[2.5rem] flex items-center justify-center">
+            <div class="lock-screen-container shadow-2xl">
+                <div class="bg-teal-50 p-6 rounded-full mb-4 shadow-inner">
+                    <i data-lucide="lock" class="w-12 h-12 text-teal-600"></i>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800 uppercase tracking-tight mb-2">Dữ liệu được bảo vệ</h3>
+                <p class="text-sm font-medium text-slate-500 max-w-xs mx-auto mb-6">Vui lòng đăng nhập để truy cập vào hệ thống phân tích và biểu đồ chuyên sâu.</p>
+                <button onclick="document.getElementById('authModal').classList.remove('hidden')" class="px-8 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-black uppercase shadow-xl transition-transform active:scale-95 flex items-center gap-2">
+                    <i data-lucide="key" class="w-4 h-4"></i> Đăng nhập ngay
+                </button>
+            </div>
+        </div>
+
+        <div id="chartsContent" class="space-y-8 transition-opacity duration-500">
+            <!-- Global Stats Bar -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="glass-card p-4 rounded-2xl flex flex-col items-center justify-center text-center">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tổng số ca</span>
+                    <span id="statTotal" class="text-3xl font-black text-slate-800 mt-1">0</span>
+                </div>
+                <div class="glass-card p-4 rounded-2xl flex flex-col items-center justify-center text-center">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cơ sở dữ liệu</span>
+                    <span id="statHospitals" class="text-3xl font-black text-indigo-600 mt-1">0</span>
+                </div>
+                <div class="glass-card p-4 rounded-2xl flex flex-col items-center justify-center text-center">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Thiết bị (Máy)</span>
+                    <span id="statMachines" class="text-3xl font-black text-pink-600 mt-1">0</span>
+                </div>
+                <div class="glass-card p-4 rounded-2xl flex flex-col items-center justify-center text-center">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cập nhật lần cuối</span>
+                    <span id="statLastUpdate" class="text-[10px] font-bold text-emerald-600 mt-2">--:--</span>
+                </div>
+            </div>
+
+            <!-- ROW 1: Multi-dimensional Analysis (High priority) -->
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <!-- Mean Analysis -->
+                <div class="glass-card p-6 rounded-[2.5rem] bg-white border border-purple-100 shadow-xl">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-purple-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-horizontal" class="w-5 h-5"></i></div>
+                            <h3 class="section-label text-purple-900 text-sm">So sánh giá trị trung bình (Mean)</h3>
+                        </div>
+                        <select id="multiCompMetric" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-purple-500">
+                            <option value="ctdi">CTDIvol (mGy)</option>
+                            <option value="dlp">DLP (mGy.cm)</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="flex flex-col gap-2">
+                            <h4 class="text-[9px] font-black text-slate-400 uppercase text-center">Theo Bệnh viện</h4>
+                            <div class="chart-container"><canvas id="multiHospChart"></canvas></div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <h4 class="text-[9px] font-black text-slate-400 uppercase text-center">Theo Hãng máy</h4>
+                            <div class="chart-container"><canvas id="multiManuChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DRL Levels (P75/Median) -->
+                <div class="glass-card p-6 rounded-[2.5rem] bg-white border border-rose-100 shadow-xl">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-rose-600 p-2 rounded-xl text-white"><i data-lucide="target" class="w-5 h-5"></i></div>
+                            <h3 class="section-label text-rose-900 text-sm">Mức tham chiếu (P75 & Median)</h3>
+                        </div>
+                        <div class="flex gap-2">
+                            <select id="multiStatType" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none">
+                                <option value="p75">Percentile 75</option>
+                                <option value="median">Median (P50)</option>
+                            </select>
+                            <select id="multiStatMetric" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none">
+                                <option value="ctdi">CTDIvol</option>
+                                <option value="dlp">DLP</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="flex flex-col gap-2">
+                            <h4 class="text-[9px] font-black text-slate-400 uppercase text-center">Theo Bệnh viện</h4>
+                            <div class="chart-container"><canvas id="multiHospStatChart"></canvas></div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <h4 class="text-[9px] font-black text-slate-400 uppercase text-center">Theo Hãng máy</h4>
+                            <div class="chart-container"><canvas id="multiManuStatChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROW 2: Distribution & Advanced Stats -->
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <!-- Histogram -->
+                <div class="glass-card p-6 rounded-[2.5rem] bg-white border border-indigo-100 shadow-xl xl:col-span-2">
+                    <div class="flex flex-col gap-4 mb-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-indigo-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-2" class="w-5 h-5"></i></div>
+                                <h3 class="section-label text-indigo-900 text-sm">Phân bố tần suất liều (Histogram)</h3>
+                            </div>
+                            <button onclick="downloadChart('histogramChart', 'Histogram')" class="p-2 bg-slate-100 rounded-lg hover:bg-slate-200"><i data-lucide="download" class="w-4 h-4"></i></button>
+                        </div>
+                        <!-- Filters -->
+                        <div class="flex flex-wrap gap-2 p-3 bg-indigo-50/50 rounded-2xl border border-indigo-50">
+                            <select id="histFilterHospital" class="px-2 py-1.5 text-[10px] rounded-lg border border-slate-200 font-bold outline-none max-w-[150px]"></select>
+                            <select id="histFilterProtocol" class="px-2 py-1.5 text-[10px] rounded-lg border border-slate-200 font-bold outline-none"></select>
+                            <select id="histFilterManufacturer" class="px-2 py-1.5 text-[10px] rounded-lg border border-slate-200 font-bold outline-none"></select>
+                            <select id="histFilterAge" class="px-2 py-1.5 text-[10px] rounded-lg border border-slate-200 font-bold outline-none">
+                                <option value="all">Mọi độ tuổi</option>
+                                <option value="child">&lt; 18t</option>
+                                <option value="adult">&ge; 18t</option>
+                            </select>
+                            <button id="btnRefreshHist" class="p-1.5 bg-white border border-slate-200 rounded-lg text-indigo-600"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                    </div>
+                    <div class="chart-container h-[400px]">
+                        <canvas id="histogramChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Scatter Plot (Correlation) -->
+                <div class="glass-card p-6 rounded-[2.5rem] bg-white border border-emerald-100 shadow-xl">
+                    <div class="flex flex-col gap-4 mb-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-emerald-600 p-2 rounded-xl text-white"><i data-lucide="scatter-chart" class="w-5 h-5"></i></div>
+                                <h3 class="section-label text-emerald-900 text-sm">Tương quan Cân nặng - DLP</h3>
+                            </div>
+                            <button onclick="downloadChart('scatterDlpChart', 'Scatter')" class="p-2 bg-slate-100 rounded-lg hover:bg-slate-200"><i data-lucide="download" class="w-4 h-4"></i></button>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <select id="scatterFilterProtocol_DLP" class="w-full px-2 py-1.5 text-[10px] rounded-lg border border-slate-200 font-bold outline-none"></select>
+                            <select id="scatterFilterHospital_DLP" class="w-full px-2 py-1.5 text-[10px] rounded-lg border border-slate-200 font-bold outline-none"></select>
+                        </div>
+                    </div>
+                    <div class="chart-container h-[400px]">
+                        <canvas id="scatterDlpChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROW 3: Detailed Stats by Group -->
+            <div class="glass-card p-6 rounded-[2.5rem] bg-white border border-sky-100 shadow-xl">
+                <div class="flex flex-col gap-4 mb-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-sky-600 p-2 rounded-xl text-white"><i data-lucide="table" class="w-5 h-5"></i></div>
+                            <h3 class="section-label text-sky-900 text-sm">Chi tiết giá trị trung bình theo nhóm</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase">Phân nhóm:</span>
+                            <select id="meanStatsGroupBy" class="px-3 py-2 text-[10px] border border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:ring-1 focus:ring-sky-500">
+                                <option value="protocol">Bộ phận (Protocol)</option>
+                                <option value="hospitalName">Bệnh viện</option>
+                                <option value="manufacturer">Hãng máy</option>
+                                <option value="bmi">Chỉ số BMI</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 p-3 bg-sky-50/50 rounded-2xl border border-sky-100">
+                        <span class="text-[9px] font-black text-sky-700 uppercase mr-1"><i data-lucide="filter" class="w-3 h-3 inline mb-0.5"></i> Lọc:</span>
+                        <select id="meanFilterHospital" class="px-2 py-1.5 text-[10px] border border-slate-200 rounded-lg bg-white font-bold outline-none max-w-[200px]"></select>
+                        <select id="meanFilterProtocol" class="px-2 py-1.5 text-[10px] border border-slate-200 rounded-lg bg-white font-bold outline-none"></select>
+                        <button id="btnRefreshMean" class="p-1.5 bg-white border border-slate-200 rounded-lg text-sky-600"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i></button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="flex flex-col gap-2">
+                        <h4 class="text-[9px] font-black text-slate-400 uppercase text-center">Mean CTDIvol (mGy)</h4>
+                        <div class="chart-container h-[300px]"><canvas id="meanCtdiChart"></canvas></div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <h4 class="text-[9px] font-black text-slate-400 uppercase text-center">Mean DLP (mGy.cm)</h4>
+                        <div class="chart-container h-[300px]"><canvas id="meanDlpChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-10 right-10 p-4 bg-white border border-slate-100 rounded-[1.5rem] shadow-2xl z-[120] transform translate-y-20 opacity-0 pointer-events-none transition-all duration-500 flex items-center gap-4 text-slate-900 font-black">
+        <div class="p-3 rounded-xl bg-teal-50 text-teal-600 border border-teal-100"><i data-lucide="check" class="w-5 h-5"></i></div>
+        <p id="toastMessage" class="text-[10px] uppercase tracking-tight"></p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Constants shared with main app
+        const THAI_DRL_PROTOCOLS = [
+            { name: 'Sọ não (Head)', refCtdi: 65, refDlp: 1000 },
+            { name: 'Ngực không thuốc (Chest)', refCtdi: 9, refDlp: 350 },
+            { name: 'Bụng không thuốc (Abdomen)', refCtdi: 11, refDlp: 500 },
+            { name: 'Phổi liều thấp (LDCT)', refCtdi: 3, refDlp: 150 }
+        ];
+        const INITIAL_HOSPITALS = ["Bệnh viện đa khoa tỉnh Quảng Ninh", "Bệnh viện đa khoa tỉnh Bắc Ninh", "Bệnh viện hữu nghị Việt Tiệp", "Bệnh viện 30 - 04, Bộ Công An", "Bệnh viện Gia An 115"];
+        const MANUFACTURERS = ["GE HealthCare", "Siemens Healthineers", "Philips Healthcare", "Canon Medical Systems", "Fujifilm", "Neusoft", "United Imaging"];
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAtQdmDbA1BgOrvwevrG6gwuFzlUmBTbfY",
+            authDomain: "wb-idr.firebaseapp.com",
+            projectId: "wb-idr",
+            storageBucket: "wb-idr.firebasestorage.app",
+            messagingSenderId: "716649486328",
+            appId: "1:716649486328:web:340d7ae8dd0bafa1e0680d",
+            measurementId: "G-2K8631P0DY"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = 'wb-idr';
+
+        let user = null;
+        let entries = [];
+        
+        // Chart instances
+        let histogramChart = null, scatterDlpChart = null;
+        let meanCtdiChart = null, meanDlpChart = null;
+        let multiHospChart = null, multiManuChart = null;
+        let multiHospStatChart = null, multiManuStatChart = null;
+
+        const el = (id) => document.getElementById(id);
+        const showToast = (msg) => { el('toastMessage').textContent = msg; el('toast').classList.remove('translate-y-20', 'opacity-0'); setTimeout(() => el('toast').classList.add('translate-y-20', 'opacity-0'), 3000); };
+        const normalizeGender = (g) => (String(g || '').toUpperCase().startsWith('N') || String(g).toUpperCase() === 'F') ? 'F' : 'M';
+        
+        // --- Helper Functions ---
+        const calcStats = (arr) => {
+            if (!arr || arr.length === 0) return { median: 0, p75: 0, mean: 0 };
+            const n = arr.length, sorted = [...arr].sort((a,b) => a-b);
+            const mean = arr.reduce((a, b) => a + b, 0) / n;
+            const median = sorted[Math.floor(n * 0.5)];
+            const p75 = sorted[Math.floor(n * 0.75)] || sorted[n-1];
+            return { mean, median, p75 };
+        };
+
+        const getContrastColor = (protocol) => {
+            const p = protocol || '';
+            if(p.includes('Head')) return '#ef4444'; 
+            if(p.includes('Chest')) return '#3b82f6';
+            if(p.includes('Abdomen')) return '#eab308';
+            if(p.includes('LDCT')) return '#22c55e';
+            return '#a855f7';
+        };
+
+        function calculateLinearRegression(data) {
+            const n = data.length; if (n === 0) return [];
+            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+            data.forEach(p => { sumX += p.x; sumY += p.y; sumXY += p.x * p.y; sumXX += p.x * p.x; });
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+            const minX = Math.min(...data.map(p => p.x));
+            const maxX = Math.max(...data.map(p => p.x));
+            return [{ x: minX, y: slope * minX + intercept }, { x: maxX, y: slope * maxX + intercept }];
+        }
+
+        // --- Data Processing for Charts ---
+        function getMultiGroupData(data, primaryKey, secondaryKey, metricKey, statType) {
+            const primaryLabels = [...new Set(data.map(e => {
+                let v = e[primaryKey];
+                if (primaryKey === 'manufacturer') { v = v ? v.trim() : 'N/A'; if (v.toLowerCase().startsWith('ge')) v = 'GE HealthCare'; }
+                return v || 'Unknown';
+            }))].sort();
+            const secondaryLabels = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))]; 
+            const datasets = secondaryLabels.map((prot, idx) => {
+                const colors = ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#a855f7'];
+                return {
+                    label: prot,
+                    data: primaryLabels.map(pLabel => {
+                        const subset = data.filter(e => {
+                            let ePrim = e[primaryKey];
+                            if (primaryKey === 'manufacturer') { ePrim = ePrim ? ePrim.trim() : 'N/A'; if (ePrim.toLowerCase().startsWith('ge')) ePrim = 'GE HealthCare'; }
+                            return (ePrim || 'Unknown') === pLabel && e[secondaryKey] === prot;
+                        });
+                        const stats = calcStats(subset.map(x => parseFloat(x[metricKey])).filter(n => !isNaN(n)));
+                        return stats[statType]; 
+                    }),
+                    backgroundColor: colors[idx % colors.length],
+                    borderRadius: 4,
+                    barPercentage: 0.7
+                };
+            });
+            return { labels: primaryLabels, datasets };
+        }
+
+        // --- Auth Logic ---
+        el('loginBtn').onclick = () => el('authModal').classList.remove('hidden');
+        el('closeAuthModal').onclick = () => el('authModal').classList.add('hidden');
+        el('authForm').onsubmit = async (e) => {
+            e.preventDefault();
+            try {
+                await signInWithEmailAndPassword(auth, el('authEmail').value, el('authPassword').value);
+                el('authModal').classList.add('hidden');
+                showToast("Đăng nhập thành công");
+            } catch (err) { showToast(err.message); }
+        };
+        el('googleLoginBtn').onclick = async () => {
+            try { await signInWithPopup(auth, new GoogleAuthProvider()); el('authModal').classList.add('hidden'); } catch (err) { showToast(err.message); }
+        };
+        el('logoutBtn').onclick = async () => { await signOut(auth); };
+
+        // --- Main Render ---
+        function renderCharts() {
+            if (!user || user.isAnonymous) {
+                el('chartsLock').classList.remove('hidden');
+                el('chartsContent').classList.add('opacity-10', 'pointer-events-none');
+                return;
+            }
+            el('chartsLock').classList.add('hidden');
+            el('chartsContent').classList.remove('opacity-10', 'pointer-events-none');
+
+            // 1. Stats Bar
+            el('statTotal').textContent = entries.length;
+            el('statHospitals').textContent = new Set(entries.map(e => e.hospitalName)).size;
+            el('statMachines').textContent = new Set(entries.map(e => e.manufacturer)).size;
+            el('statLastUpdate').textContent = new Date().toLocaleTimeString('vi-VN');
+
+            // 2. Multi-Dimensional Charts
+            const multiMetric = el('multiCompMetric').value;
+            const multiStatType = el('multiStatType').value; // p75 or median
+            
+            // Mean Comparison
+            const multiHospData = getMultiGroupData(entries, 'hospitalName', 'protocol', multiMetric, 'mean');
+            if(multiHospChart) multiHospChart.destroy();
+            multiHospChart = new Chart(el('multiHospChart'), {
+                type: 'bar', data: multiHospData,
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: {size: 9} } } } }
+            });
+
+            const multiManuData = getMultiGroupData(entries, 'manufacturer', 'protocol', multiMetric, 'mean');
+            if(multiManuChart) multiManuChart.destroy();
+            multiManuChart = new Chart(el('multiManuChart'), {
+                type: 'bar', data: multiManuData,
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: {size: 9} } } } }
+            });
+
+            // Level Comparison (P75/Median)
+            const multiMetricStat = el('multiStatMetric').value;
+            const multiHospStatData = getMultiGroupData(entries, 'hospitalName', 'protocol', multiMetricStat, multiStatType);
+            if(multiHospStatChart) multiHospStatChart.destroy();
+            multiHospStatChart = new Chart(el('multiHospStatChart'), {
+                type: 'bar', data: multiHospStatData,
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: {display: true, text: multiStatType.toUpperCase()} } }, plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: {size: 9} } } } }
+            });
+
+            const multiManuStatData = getMultiGroupData(entries, 'manufacturer', 'protocol', multiMetricStat, multiStatType);
+            if(multiManuStatChart) multiManuStatChart.destroy();
+            multiManuStatChart = new Chart(el('multiManuStatChart'), {
+                type: 'bar', data: multiManuStatData,
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: {display: true, text: multiStatType.toUpperCase()} } }, plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: {size: 9} } } } }
+            });
+
+            // 3. Histogram
+            const fHosp = el('histFilterHospital').value;
+            const fProt = el('histFilterProtocol').value;
+            const fAge = el('histFilterAge').value;
+            
+            const histData = entries.filter(e => {
+                if (fHosp !== 'all' && e.hospitalName !== fHosp) return false;
+                if (fProt !== 'all' && e.protocol !== fProt) return false;
+                const age = parseFloat(e.age);
+                if (fAge === 'child' && age >= 18) return false;
+                if (fAge === 'adult' && age < 18) return false;
+                return true;
+            });
+            const ctdiValues = histData.map(e => parseFloat(e.ctdi)).filter(n => !isNaN(n));
+            const bins = {}; const binSize = 5;
+            ctdiValues.forEach(val => { const b = Math.floor(val/binSize)*binSize; bins[b] = (bins[b]||0)+1; });
+            const hLabels = Object.keys(bins).sort((a,b)=>a-b).map(k=>`${k}-${parseInt(k)+binSize}`);
+            const hData = Object.keys(bins).sort((a,b)=>a-b).map(k=>bins[k]);
+
+            if(histogramChart) histogramChart.destroy();
+            histogramChart = new Chart(el('histogramChart'), {
+                type: 'bar',
+                data: { labels: hLabels, datasets: [{ label: 'Số ca', data: hData, backgroundColor: 'rgba(79, 70, 229, 0.6)', borderRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {display: false} }, scales: { x: { title: {display: true, text: 'CTDIvol (mGy)'} }, y: { title: {display: true, text: 'Số lượng'} } } }
+            });
+
+            // 4. Scatter (Weight vs DLP)
+            const fProtS = el('scatterFilterProtocol_DLP').value;
+            const fHospS = el('scatterFilterHospital_DLP').value;
+            const scatterDataRaw = entries.filter(e => {
+                if (fProtS !== 'all' && e.protocol !== fProtS) return false;
+                if (fHospS !== 'all' && e.hospitalName !== fHospS) return false;
+                return !isNaN(parseFloat(e.weight)) && !isNaN(parseFloat(e.dlp));
+            });
+            const scatterPoints = scatterDataRaw.map(e => ({ x: parseFloat(e.weight), y: parseFloat(e.dlp), p: e.protocol }));
+            const trendData = calculateLinearRegression(scatterPoints);
+            
+            if(scatterDlpChart) scatterDlpChart.destroy();
+            scatterDlpChart = new Chart(el('scatterDlpChart'), {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        { label: 'Ca chụp', data: scatterPoints, backgroundColor: scatterPoints.map(d=>getContrastColor(d.p)), pointRadius: 4 },
+                        { label: 'Trendline', data: trendData, type: 'line', borderColor: 'rgba(50,50,50,0.5)', borderDash: [5,5], pointRadius: 0, borderWidth: 2 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { x: {title: {display: true, text: 'Cân nặng (kg)'}}, y: {title: {display: true, text: 'DLP (mGy.cm)'}} }, plugins: { tooltip: { callbacks: { label: (ctx)=> ctx.datasetIndex===1 ? '' : `(${ctx.raw.x}kg, ${ctx.raw.y})` } } } }
+            });
+
+            // 5. Mean by Group
+            const groupBy = el('meanStatsGroupBy').value;
+            const mFilterH = el('meanFilterHospital').value;
+            const filteredMean = entries.filter(e => mFilterH === 'all' || e.hospitalName === mFilterH);
+            
+            const groupedMean = {};
+            filteredMean.forEach(e => {
+                let k = e[groupBy] || 'N/A';
+                if(groupBy === 'manufacturer' && k.toLowerCase().includes('ge')) k = 'GE HealthCare';
+                if(groupBy === 'bmi') {
+                    const h = parseFloat(e.height)/100; const w = parseFloat(e.weight);
+                    if(h>0 && w>0) { const bmi = w/(h*h); k = bmi<18.5?'Gầy':bmi<23?'Bình thường':bmi<25?'Thừa cân':'Béo phì'; } else k='N/A';
+                }
+                if(!groupedMean[k]) groupedMean[k] = { ctdi: [], dlp: [] };
+                if(e.ctdi) groupedMean[k].ctdi.push(parseFloat(e.ctdi));
+                if(e.dlp) groupedMean[k].dlp.push(parseFloat(e.dlp));
+            });
+            const meanLabels = Object.keys(groupedMean).sort();
+            const meanCtdiData = meanLabels.map(k => calcStats(groupedMean[k].ctdi).mean);
+            const meanDlpData = meanLabels.map(k => calcStats(groupedMean[k].dlp).mean);
+
+            if(meanCtdiChart) meanCtdiChart.destroy();
+            meanCtdiChart = new Chart(el('meanCtdiChart'), { type: 'bar', data: { labels: meanLabels, datasets: [{ label: 'Mean CTDIvol', data: meanCtdiData, backgroundColor: '#0ea5e9' }] }, options: { responsive: true, maintainAspectRatio: false } });
+            
+            if(meanDlpChart) meanDlpChart.destroy();
+            meanDlpChart = new Chart(el('meanDlpChart'), { type: 'bar', data: { labels: meanLabels, datasets: [{ label: 'Mean DLP', data: meanDlpData, backgroundColor: '#f59e0b' }] }, options: { responsive: true, maintainAspectRatio: false } });
+        }
+
+        function populateFilters() {
+            const hospitals = [...new Set(entries.map(e => e.hospitalName))].sort();
+            const protocols = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))];
+            const manufacturers = [...new Set(entries.map(e => e.manufacturer))].sort();
+
+            const fill = (id, list, allText) => {
+                const s = el(id); if(!s || s.options.length > 1) return;
+                s.innerHTML = `<option value="all">${allText}</option>`;
+                list.forEach(i => s.innerHTML += `<option value="${i}">${i}</option>`);
+            };
+
+            fill('histFilterHospital', hospitals, 'Tất cả BV');
+            fill('histFilterProtocol', protocols, 'Tất cả Protocol');
+            fill('histFilterManufacturer', manufacturers, 'Tất cả Máy');
+            fill('scatterFilterProtocol_DLP', protocols, 'Tất cả Protocol');
+            fill('scatterFilterHospital_DLP', hospitals, 'Tất cả BV');
+            fill('meanFilterHospital', hospitals, 'Tất cả BV');
+            fill('meanFilterProtocol', protocols, 'Tất cả Protocol');
+        }
+
+        // Init
+        await setPersistence(auth, browserLocalPersistence);
+        onAuthStateChanged(auth, async (u) => {
+            user = u;
+            if (u) {
+                el('loginBtn').classList.add('hidden');
+                el('logoutBtn').classList.remove('hidden');
+                el('userEmailDisplay').textContent = u.email || 'Guest';
+                el('authModal').classList.add('hidden');
+                
+                onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), (snap) => {
+                    entries = snap.docs.map(d => d.data());
+                    populateFilters();
+                    renderCharts();
+                });
+            } else {
+                el('loginBtn').classList.remove('hidden');
+                el('logoutBtn').classList.add('hidden');
+                el('userEmailDisplay').textContent = '';
+                // Optional: Auto sign in anonymous if needed, currently forces login
+                // await signInAnonymously(auth); 
+                renderCharts(); // Will show lock screen
+            }
+        });
+
+        // Event Listeners for Filters
+        const filters = ['multiCompMetric', 'multiStatType', 'multiStatMetric', 'histFilterHospital', 'histFilterProtocol', 'histFilterManufacturer', 'histFilterAge', 'scatterFilterProtocol_DLP', 'scatterFilterHospital_DLP', 'meanStatsGroupBy', 'meanFilterHospital'];
+        filters.forEach(id => el(id).onchange = renderCharts);
+        
+        el('btnRefreshHist').onclick = () => { el('histFilterHospital').value='all'; el('histFilterProtocol').value='all'; renderCharts(); };
+        el('btnRefreshMean').onclick = () => { el('meanFilterHospital').value='all'; renderCharts(); };
+
+        window.downloadChart = (id, title) => {
+            const canvas = el(id);
+            const link = document.createElement('a');
+            link.download = `${title}_${Date.now()}.png`;
+            const tCanvas = document.createElement('canvas');
+            tCanvas.width = canvas.width; tCanvas.height = canvas.height;
+            const ctx = tCanvas.getContext('2d');
+            ctx.fillStyle = '#fff'; ctx.fillRect(0,0,tCanvas.width,tCanvas.height);
+            ctx.drawImage(canvas,0,0);
+            link.href = tCanvas.toDataURL('image/png'); link.click();
+        };
+        lucide.createIcons();
+    </script>
+</body>
+</html>
