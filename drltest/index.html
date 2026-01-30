@@ -238,6 +238,29 @@
         </div>
     </div>
 
+    <!-- Hospital Manager Modal -->
+    <div id="hospitalManagerModal" class="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl border border-slate-100 flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-black text-slate-900 uppercase">Quản lý Bệnh viện</h3>
+                <button onclick="el('hospitalManagerModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="newHospitalInput" placeholder="Nhập tên bệnh viện mới..." class="flex-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                <button id="btnAddHospital" class="p-3 bg-indigo-600 text-white rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                <ul id="hospitalManagerList" class="space-y-2">
+                    <!-- List items generated here -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
     <div id="adminAuthModal" class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
         <div class="bg-white rounded-[2rem] w-full max-w-xs p-8 shadow-2xl border border-red-100">
             <div class="text-center mb-6">
@@ -352,7 +375,12 @@
                         <div class="p-6 md:p-8 space-y-8 text-slate-900 flex-1">
                             <input type="hidden" id="editEntryId" value="">
                             <div class="space-y-4">
-                                <label class="section-label flex items-center gap-2 font-bold"><i data-lucide="hospital" class="w-3 h-3 text-indigo-500"></i> Cơ sở & Thiết bị</label>
+                                <label class="section-label flex items-center gap-2 font-bold">
+                                    <i data-lucide="hospital" class="w-3 h-3 text-indigo-500"></i> Cơ sở & Thiết bị
+                                    <button type="button" id="btnManageHospitals" class="ml-auto text-indigo-600 hover:text-indigo-800 hidden" title="Quản lý danh sách">
+                                        <i data-lucide="settings" class="w-3 h-3"></i>
+                                    </button>
+                                </label>
                                 <div class="space-y-3">
                                     <select id="hospitalSelect" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium"></select>
                                     <input type="text" id="customHospitalName" placeholder="Tên bệnh viện mới..." class="hidden w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none border-indigo-200">
@@ -632,7 +660,9 @@
         </div>
     </div>
 
+    <!-- ... (Data Tab and Charts Tab structure remains the same) ... -->
     <div id="data-tab" class="tab-content app-layout hidden">
+        <!-- Content of data tab preserved -->
         <div class="section-container relative">
             <div id="dataLock" class="hidden absolute inset-0 z-50 rounded-[2.5rem] overflow-hidden">
                 <div class="lock-screen-container">
@@ -752,6 +782,7 @@
 
     <!-- Charts Tab -->
     <div id="charts-tab" class="tab-content app-layout hidden">
+        <!-- Content of charts tab preserved -->
         <div class="section-container relative">
             <div id="chartsLock" class="hidden absolute inset-0 z-50 rounded-[2.5rem] overflow-hidden">
                 <div class="lock-screen-container">
@@ -1013,7 +1044,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc, writeBatch, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const currentYear = 2026;
         const ADMIN_PASSWORD = "ktv3mien"; 
@@ -1025,7 +1056,7 @@
             { name: 'Bụng không thuốc (Abdomen)', refCtdi: 11, refDlp: 500, k: 0.015 },
             { name: 'Phổi liều thấp (LDCT)', refCtdi: 3, refDlp: 150, k: 0.014 }
         ];
-        const INITIAL_HOSPITALS = ["Bệnh viện đa khoa tỉnh Quảng Ninh", "Bệnh viện đa khoa tỉnh Bắc Ninh", "Bệnh viện hữu nghị Việt Tiệp", "Bệnh viện 30 - 04, Bộ Công An", "Bệnh viện Gia An 115"];
+        const DEFAULT_HOSPITALS = ["Bệnh viện đa khoa tỉnh Quảng Ninh", "Bệnh viện đa khoa tỉnh Bắc Ninh", "Bệnh viện hữu nghị Việt Tiệp", "Bệnh viện 30 - 04, Bộ Công An", "Bệnh viện Gia An 115"];
         const MANUFACTURERS = ["GE HealthCare", "Siemens Healthineers", "Philips Healthcare", "Canon Medical Systems", "Fujifilm", "Neusoft", "United Imaging"];
         const SLICE_COUNTS = ["16 - 32 lát", "64 - 128 lát", "256 - 512 lát", "Máy 2 bóng (Dual Source)"];
 
@@ -1049,6 +1080,8 @@
         let isLoginMode = true;
         let editingRowId = null; 
         
+        let currentHospitalList = [...DEFAULT_HOSPITALS]; // Local state for hospitals
+
         // New: Selection Set
         let selectedIds = new Set();
 
@@ -1167,6 +1200,9 @@
             el('adminControls').classList.toggle('hidden', !isAdmin);
             el('adminBadge').classList.toggle('hidden', !isAdmin);
             el('adminStatusDot').classList.toggle('hidden', !isAdmin);
+            
+            // Toggle Manage Hospitals Button
+            el('btnManageHospitals').classList.toggle('hidden', !isAdmin);
         }
 
         function updateAuthUI() { el('authTitle').textContent = isLoginMode ? "Đăng Nhập" : "Đăng Ký"; el('authSubmitBtn').querySelector('span').textContent = isLoginMode ? "VÀO HỆ THỐNG" : "TẠO TÀI KHOẢN"; }
@@ -1214,22 +1250,35 @@
         };
 
         function updateHospitalDropdowns() {
-            const currH = [...new Set([...INITIAL_HOSPITALS, ...entries.map(e => e.hospitalName)])].sort();
+            // Use currentHospitalList which is synced with Firestore
+            // Also include hospitals from existing entries just in case data exists for deleted hospitals
+            const existingEntryHospitals = [...new Set(entries.map(e => e.hospitalName))];
+            
+            // Combine configured list with any data-present hospitals to ensure filters work
+            const uniqueHospitals = [...new Set([...currentHospitalList, ...existingEntryHospitals])].sort();
+            
             const currM = [...new Set([...MANUFACTURERS, ...entries.map(e => e.manufacturer).filter(m => m)])].sort();
+            
             const dropdowns = { 
-                hospitalSelect: currH, filterHospital: currH, dashFilterHospital: currH,
+                hospitalSelect: currentHospitalList.sort(), // For input, strictly use configured list
+                filterHospital: uniqueHospitals, 
+                dashFilterHospital: uniqueHospitals,
                 manufacturer: currM, filterManufacturer: currM, dashFilterManufacturer: currM,
-                bulkHospital: currH, bulkManufacturer: currM // Added for Bulk Edit
+                bulkHospital: uniqueHospitals, bulkManufacturer: currM 
             };
+            
             for (let [id, list] of Object.entries(dropdowns)) {
                 const select = el(id); if (!select) continue;
                 const currentVal = select.value;
                 select.innerHTML = (id.startsWith('filter') || id.startsWith('dashFilter')) ? '<option value="all">Tất cả</option>' : '<option value="" disabled selected>-- Chọn --</option>';
-                if(id.startsWith('bulk')) select.innerHTML = '<option value="">-- Không thay đổi --</option>'; // Specific for Bulk
+                if(id.startsWith('bulk')) select.innerHTML = '<option value="">-- Không thay đổi --</option>'; 
+                
                 list.forEach(item => { select.innerHTML += `<option value="${item}">${item}</option>`; });
+                
                 if (id === 'hospitalSelect') select.innerHTML += `<option value="other">➕ Khác</option>`;
                 if (currentVal) select.value = currentVal;
             }
+            
             // Populate bulk Protocol separately
             const bulkProt = el('bulkProtocol');
             if(bulkProt) {
@@ -1655,7 +1704,7 @@
                         <td class="px-4 py-3 text-[10px] text-indigo-600 font-bold">${e.userEmail || '---'}</td>
                         <td class="px-4 py-3">
                             <select id="inline-hosp-${e.id}" class="w-full p-1 text-[10px] border rounded font-bold mb-1 bg-white">
-                                ${currH.map(h => `<option value="${h}" ${h === e.hospitalName ? 'selected' : ''}>${h}</option>`).join('')}
+                                ${currentHospitalList.map(h => `<option value="${h}" ${h === e.hospitalName ? 'selected' : ''}>${h}</option>`).join('')}
                             </select>
                             <select id="inline-manu-${e.id}" class="w-full p-1 text-[8px] border rounded bg-white">
                                 ${currM.map(m => `<option value="${m}" ${m === e.manufacturer ? 'selected' : ''}>${m}</option>`).join('')}
@@ -1735,7 +1784,7 @@
 
         // --- NEW: Populate Chart Filters ---
         function populateChartFilters() {
-            const hospitals = [...new Set([...INITIAL_HOSPITALS, ...entries.map(e => e.hospitalName)])].sort();
+            const hospitals = [...new Set([...currentHospitalList, ...entries.map(e => e.hospitalName)])].sort();
             const manufacturers = [...new Set([...MANUFACTURERS, ...entries.map(e => e.manufacturer).filter(m => m)])].sort();
             const protocols = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))];
             
@@ -2418,6 +2467,25 @@
                             renderCharts(); 
                         }
                     });
+
+                    // --- New: Sync Hospital List Config ---
+                    const hospitalConfigRef = doc(db, 'artifacts', appId, 'public', 'data', 'app_config', 'hospitals_list');
+                    onSnapshot(hospitalConfigRef, async (docSnap) => {
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+                            if (data.names && Array.isArray(data.names)) {
+                                currentHospitalList = data.names;
+                            }
+                        } else {
+                            // Initialize if not exists (only logic, secure rules usually prevent writes from non-admin but this is init)
+                            if (!user.isAnonymous) { // Try to init if logged in, better done manually but ok for MVP
+                                await setDoc(hospitalConfigRef, { names: DEFAULT_HOSPITALS }, { merge: true });
+                                currentHospitalList = [...DEFAULT_HOSPITALS];
+                            }
+                        }
+                        updateHospitalDropdowns();
+                    });
+
                 } else { 
                     isAdmin = false;
                     updateAdminUI();
@@ -2429,6 +2497,65 @@
 
             el('logoutBtn').onclick = async (e) => { e.preventDefault(); await signOut(auth); location.reload(); };
             el('cancelEditBtn').onclick = () => { el('editEntryId').value = ""; el('submitBtnText').textContent = "Lưu Dữ Liệu"; el('cancelEditBtn').classList.add('hidden'); el('drlForm').reset(); updateHospitalDropdowns(); };
+            
+            // --- NEW: Manage Hospital Logic ---
+            el('btnManageHospitals').onclick = () => {
+                if(!isAdmin) return;
+                renderHospitalManagerList();
+                el('hospitalManagerModal').classList.remove('hidden');
+            };
+
+            el('btnAddHospital').onclick = async () => {
+                if(!isAdmin) return;
+                const name = el('newHospitalInput').value.trim();
+                if(!name) return showToast("Vui lòng nhập tên bệnh viện!");
+                
+                try {
+                    const hospitalConfigRef = doc(db, 'artifacts', appId, 'public', 'data', 'app_config', 'hospitals_list');
+                    await updateDoc(hospitalConfigRef, {
+                        names: arrayUnion(name)
+                    });
+                    el('newHospitalInput').value = '';
+                    showToast("Đã thêm bệnh viện mới!");
+                    // Listener will update UI
+                } catch(e) {
+                    showToast("Lỗi: " + e.message);
+                }
+            };
+
+            window.removeHospital = async (name) => {
+                if(!isAdmin) return;
+                if(!confirm(`Bạn có chắc muốn xóa "${name}" khỏi danh sách chọn?`)) return;
+
+                try {
+                    const hospitalConfigRef = doc(db, 'artifacts', appId, 'public', 'data', 'app_config', 'hospitals_list');
+                    await updateDoc(hospitalConfigRef, {
+                        names: arrayRemove(name)
+                    });
+                    showToast("Đã xóa bệnh viện!");
+                    renderHospitalManagerList(); // Re-render list locally for immediate feedback although snapshot handles it too
+                } catch(e) {
+                    showToast("Lỗi: " + e.message);
+                }
+            };
+
+            function renderHospitalManagerList() {
+                const list = el('hospitalManagerList');
+                list.innerHTML = '';
+                currentHospitalList.sort().forEach(h => {
+                    const li = document.createElement('li');
+                    li.className = "flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100 hover:bg-white hover:shadow-sm transition-all";
+                    li.innerHTML = `
+                        <span class="text-xs font-bold text-slate-700">${h}</span>
+                        <button onclick="removeHospital('${h}')" class="text-red-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    `;
+                    list.appendChild(li);
+                });
+                lucide.createIcons();
+            }
+
             lucide.createIcons();
         };
 
