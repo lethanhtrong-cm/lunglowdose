@@ -80,6 +80,41 @@
             width: 100%;
         }
 
+        /* Nav Tabs */
+        .nav-pill {
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        .nav-pill.active {
+            background-color: #4f46e5; /* Indigo-600 */
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+        }
+        .nav-pill:not(.active) {
+            background-color: white;
+            color: #64748b;
+            border-color: #e2e8f0;
+        }
+        .nav-pill:not(.active):hover {
+            background-color: #f8fafc;
+            color: #4f46e5;
+        }
+
+        /* Typography for Theory Tab */
+        .prose h3 { font-size: 1.25rem; font-weight: 900; color: #1e293b; margin-top: 2rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .prose h4 { font-size: 1rem; font-weight: 800; color: #334155; margin-top: 1.5rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+        .prose p { margin-bottom: 1rem; line-height: 1.7; color: #475569; font-size: 0.9rem; text-align: justify; }
+        .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; color: #475569; font-size: 0.9rem; }
+        .prose li { margin-bottom: 0.5rem; }
+        .prose strong { color: #0f172a; font-weight: 700; }
+        .highlight-box { background-color: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 1rem; margin: 1.5rem 0; border-radius: 0.5rem; }
+
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -112,7 +147,7 @@
 
     <!-- Header -->
     <header class="sticky top-0 z-40 w-full backdrop-blur-lg bg-white/60 border-b border-slate-200/50">
-        <div class="max-w-[95%] mx-auto px-4 py-4 flex justify-between items-center">
+        <div class="max-w-[95%] mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
             <div class="flex items-center gap-3">
                 <div class="bg-indigo-600 p-2.5 rounded-xl text-white shadow-lg shadow-indigo-200"><i data-lucide="pie-chart" class="w-6 h-6"></i></div>
                 <div>
@@ -121,9 +156,19 @@
                 </div>
             </div>
             
+            <!-- Tab Switcher -->
+            <div class="flex bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200">
+                <button onclick="switchMainTab('charts')" id="btn-tab-charts" class="nav-pill active flex items-center gap-2">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Biểu đồ Phân tích
+                </button>
+                <button onclick="switchMainTab('theory')" id="btn-tab-theory" class="nav-pill flex items-center gap-2">
+                    <i data-lucide="book-open" class="w-4 h-4"></i> Lý thuyết & Đề cương
+                </button>
+            </div>
+
             <div class="flex items-center gap-3">
-                <!-- PDF Export Button -->
-                <button onclick="exportReportPDF()" class="flex items-center gap-2 px-5 py-2.5 bg-rose-600 text-white rounded-2xl text-[10px] font-black uppercase hover:bg-rose-700 transition-all shadow-lg shadow-rose-200 active:scale-95">
+                <!-- PDF Export Button (Only visible in Charts tab) -->
+                <button id="btnExportPDF" onclick="exportReportPDF()" class="flex items-center gap-2 px-5 py-2.5 bg-rose-600 text-white rounded-2xl text-[10px] font-black uppercase hover:bg-rose-700 transition-all shadow-lg shadow-rose-200 active:scale-95">
                     <i data-lucide="file-down" class="w-4 h-4"></i> <span class="hidden sm:inline">Xuất Báo Cáo PDF</span>
                 </button>
                 <div class="w-px h-6 bg-slate-300 mx-1"></div>
@@ -137,6 +182,7 @@
     <!-- Main Content -->
     <main class="flex-1 max-w-[95%] w-full mx-auto p-4 md:p-6 space-y-8 relative pb-20">
         
+        <!-- CHART TAB CONTENT -->
         <div id="chartsContent" class="space-y-8 transition-opacity duration-500 opacity-20 pointer-events-none filter blur-sm p-2 bg-white/0">
             <!-- Global Stats Bar -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -289,7 +335,7 @@
                         <div class="bg-indigo-500 p-2 rounded-xl text-white shadow-lg shadow-indigo-100"><i data-lucide="scale" class="w-4 h-4"></i></div>
                         <div>
                             <h3 class="text-xs font-black text-indigo-900 uppercase tracking-wider">Phân bố Cân nặng</h3>
-                            <p class="text-[8px] font-bold text-slate-400 uppercase mt-0.5">Thay thế BMI</p>
+                            <p class="text-[8px] font-bold text-slate-400 uppercase mt-0.5">Thay thế BMI (Do thiếu chiều cao)</p>
                         </div>
                     </div>
                     <div class="chart-container flex-1 min-h-[200px]">
@@ -327,11 +373,11 @@
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-10">
                     <div class="flex flex-col gap-4">
                         <h4 class="text-[10px] font-black text-slate-400 uppercase text-center tracking-widest bg-slate-50 py-2 rounded-lg">CTDIvol (mGy)</h4>
-                        <div class="chart-container h-[350px]"><canvas id="drlCtdiChart"></canvas></div>
+                        <div class="chart-container h-[300px]"><canvas id="drlCtdiChart"></canvas></div>
                     </div>
                     <div class="flex flex-col gap-4">
                         <h4 class="text-[10px] font-black text-slate-400 uppercase text-center tracking-widest bg-slate-50 py-2 rounded-lg">DLP (mGy.cm)</h4>
-                        <div class="chart-container h-[350px]"><canvas id="drlDlpChart"></canvas></div>
+                        <div class="chart-container h-[300px]"><canvas id="drlDlpChart"></canvas></div>
                     </div>
                 </div>
                  <!-- Insight Box -->
@@ -517,6 +563,145 @@
             </div>
 
         </div>
+
+        <!-- THEORY TAB CONTENT -->
+        <div id="theoryContent" class="hidden space-y-8 p-4">
+            
+            <!-- Scientific Paper Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-black text-slate-800 uppercase tracking-tighter mb-2">BÁO CÁO KHOA HỌC: THIẾT LẬP MỨC THAM CHIẾU CHẨN ĐOÁN (DRL)</h1>
+                <h2 class="text-xl font-bold text-indigo-600">Đối sánh mức liều Trung vị (Median) trong Cắt lớp vi tính tại Việt Nam với chuẩn Quốc tế</h2>
+                <div class="mt-4 flex justify-center gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                    <span><i data-lucide="calendar" class="w-3 h-3 inline mb-0.5"></i> 2024-2026</span>
+                    <span><i data-lucide="map-pin" class="w-3 h-3 inline mb-0.5"></i> Đa trung tâm</span>
+                    <span><i data-lucide="book" class="w-3 h-3 inline mb-0.5"></i> Theo chuẩn ICRP 135</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                
+                <!-- Left Column: Introduction & Methods -->
+                <div class="lg:col-span-2 space-y-8">
+                    
+                    <!-- Section 1: Introduction -->
+                    <div class="glass-card p-8 rounded-[2rem] bg-white border border-slate-100 shadow-lg prose max-w-none">
+                        <h3 class="flex items-center gap-2 text-indigo-800 border-b border-indigo-100 pb-2">
+                            <span class="bg-indigo-600 text-white w-6 h-6 rounded-lg flex items-center justify-center text-xs">1</span> 
+                            Đặt vấn đề (Introduction)
+                        </h3>
+                        <p>
+                            Chụp Cắt lớp vi tính (CT) hiện là nguồn đóng góp liều bức xạ nhân tạo lớn nhất trong y tế. Mặc dù mang lại giá trị chẩn đoán to lớn, nguy cơ sinh học tiềm tàng từ tia X đòi hỏi việc kiểm soát và tối ưu hóa liều lượng là bắt buộc theo nguyên lý ALARA (As Low As Reasonably Achievable).
+                        </p>
+                        <p>
+                            Tại Việt Nam, việc thiếu vắng các Mức tham chiếu chẩn đoán quốc gia (National Diagnostic Reference Levels - DRLs) khiến các cơ sở y tế gặp khó khăn trong việc đánh giá liệu quy trình chụp của mình có gây liều cao bất thường hay không. Hơn nữa, xu hướng thế giới (như dự án EUCLID) đang chuyển dịch từ việc chỉ quan tâm đến các ca "liều cao bất thường" (P75) sang việc tối ưu hóa "thực hành thông thường" (Median/P50).
+                        </p>
+                        <p><strong>Câu hỏi nghiên cứu:</strong> <em>"Mức liều thông thường (Median) mà bệnh nhân Việt Nam phải chịu có cao hơn so với các nước trong khu vực và thế giới không? Và làm thế nào để thiết lập mức DRL phù hợp cho người Việt?"</em></p>
+                    </div>
+
+                    <!-- Section 2: Materials & Methods -->
+                    <div class="glass-card p-8 rounded-[2rem] bg-white border border-slate-100 shadow-lg prose max-w-none">
+                        <h3 class="flex items-center gap-2 text-teal-800 border-b border-teal-100 pb-2">
+                            <span class="bg-teal-600 text-white w-6 h-6 rounded-lg flex items-center justify-center text-xs">2</span> 
+                            Đối tượng & Phương pháp (Methodology)
+                        </h3>
+                        
+                        <h4>2.1. Thiết kế nghiên cứu</h4>
+                        <p>Nghiên cứu mô tả cắt ngang, hồi cứu số liệu đa trung tâm (Multicenter retrospective cross-sectional study), tuân thủ các khuyến cáo của <strong>ICRP Publication 135</strong>.</p>
+
+                        <h4>2.2. Đối tượng & Cỡ mẫu</h4>
+                        <ul>
+                            <li><strong>Đối tượng:</strong> Bệnh nhân người lớn (≥ 18 tuổi) chụp CT tại các bệnh viện tham gia.</li>
+                            <li><strong>Tiêu chuẩn chọn mẫu (Inclusion Criteria):</strong> 
+                                <br>- Các ca chụp theo protocol chuẩn (Sọ não, Ngực, Bụng, v.v.).
+                                <br>- Cân nặng nằm trong khoảng chuẩn người Châu Á (50kg - 75kg) để đảm bảo tính so sánh công bằng (đối với phân tích Benchmarking).
+                            </li>
+                            <li><strong>Cỡ mẫu:</strong> Tối thiểu 30-50 ca cho mỗi protocol tại mỗi phòng máy (theo ICRP 135) để đạt độ tin cậy thống kê (95% CI).</li>
+                        </ul>
+
+                        <h4>2.3. Quy trình thu thập & Xử lý số liệu</h4>
+                        <p>Dữ liệu được thu thập thông qua hệ thống Web-app "VN-DRL Study" tích hợp:</p>
+                        <ul>
+                            <li><strong>Chỉ số liều:</strong> CTDIvol (mGy), DLP (mGy.cm).</li>
+                            <li><strong>Thông số kỹ thuật:</strong> Hãng máy, Số lát cắt, Kỹ thuật điều biến liều (Modulation).</li>
+                            <li><strong>Kiểm định chất lượng dữ liệu:</strong>
+                                <br>- Loại bỏ ngoại lai (Outliers) bằng phương pháp IQR (Interquartile Range).
+                                <br>- Kiểm tra phân phối chuẩn (Normality Test) bằng biểu đồ Histogram, chỉ số Skewness/Kurtosis.
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Section 3: Discussion -->
+                    <div class="glass-card p-8 rounded-[2rem] bg-white border border-slate-100 shadow-lg prose max-w-none">
+                        <h3 class="flex items-center gap-2 text-rose-800 border-b border-rose-100 pb-2">
+                            <span class="bg-rose-600 text-white w-6 h-6 rounded-lg flex items-center justify-center text-xs">3</span> 
+                            Bàn luận (Discussion)
+                        </h3>
+                        
+                        <h4>3.1. Ý nghĩa của giá trị Trung vị (Median - P50)</h4>
+                        <p>
+                            Kết quả cho thấy giá trị Mean thường cao hơn Median do ảnh hưởng của các ca bệnh nhân béo phì (phân phối lệch phải). Do đó, sử dụng <strong>Median</strong> làm đại diện cho "Mức liều thông thường" (Typical Dose) là chính xác hơn về mặt thống kê học y sinh.
+                            <br>Nếu Median của một bệnh viện cao hơn Median quốc tế (ví dụ Thái Lan), điều đó chỉ ra rằng quy trình chụp "chuẩn" tại đó chưa được tối ưu (ví dụ: mAs nền quá cao, chưa tận dụng tốt Iterative Reconstruction).
+                        </p>
+
+                        <h4>3.2. Vai trò của DRL (P75)</h4>
+                        <p>
+                            Giá trị P75 (Phân vị thứ 75) được sử dụng để thiết lập DRL Quốc gia. Các cơ sở có mức Median vượt quá ngưỡng DRL này cần được xem xét khẩn cấp (Investigation Level).
+                            <br>Tuy nhiên, một bệnh viện có DRL thấp nhưng độ lệch chuẩn (SD) cao chứng tỏ quy trình chưa đồng nhất, chất lượng phụ thuộc vào tay nghề từng KTV.
+                        </p>
+
+                        <h4>3.3. Tác động của Điều biến liều (Modulation)</h4>
+                        <p>
+                            Phân tích cho thấy nhóm sử dụng Modulation (AEC) có mức liều thấp hơn đáng kể (20-40%) so với nhóm chụp liều cố định, đặc biệt ở các vùng giải phẫu có độ dày thay đổi lớn như Ngực và Bụng.
+                        </p>
+                    </div>
+
+                </div>
+
+                <!-- Right Column: Summary & Conclusion -->
+                <div class="space-y-8">
+                    
+                    <!-- Key Findings Box -->
+                    <div class="p-6 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-[2rem] text-white shadow-xl shadow-indigo-200">
+                        <h4 class="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="star" class="w-4 h-4"></i> Điểm nhấn nghiên cứu</h4>
+                        <ul class="space-y-3 text-xs font-medium opacity-90">
+                            <li class="flex gap-3"><span class="bg-white/20 w-5 h-5 rounded flex items-center justify-center flex-shrink-0">1</span> Dữ liệu thực tế từ đa trung tâm phản ánh đúng hiện trạng lâm sàng.</li>
+                            <li class="flex gap-3"><span class="bg-white/20 w-5 h-5 rounded flex items-center justify-center flex-shrink-0">2</span> Áp dụng chuẩn ICRP 135 trong lọc nhiễu và phân tích.</li>
+                            <li class="flex gap-3"><span class="bg-white/20 w-5 h-5 rounded flex items-center justify-center flex-shrink-0">3</span> Lần đầu tiên đối sánh trực tiếp với Median của Thái Lan, Nhật Bản.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Section 4: Conclusion -->
+                    <div class="glass-card p-8 rounded-[2rem] bg-white border border-slate-100 shadow-lg prose max-w-none">
+                        <h3 class="flex items-center gap-2 text-emerald-800 border-b border-emerald-100 pb-2">
+                            <span class="bg-emerald-600 text-white w-6 h-6 rounded-lg flex items-center justify-center text-xs">4</span> 
+                            Kết luận (Conclusion)
+                        </h3>
+                        <p class="font-bold text-slate-700">Dựa trên kết quả phân tích, nghiên cứu rút ra các kết luận sau:</p>
+                        <ol class="list-decimal pl-4 space-y-2 text-sm text-slate-600">
+                            <li>Thiết lập thành công bộ dữ liệu DRL sơ bộ (P75) cho người Việt Nam.</li>
+                            <li>Có sự biến thiên lớn về liều giữa các cơ sở y tế và giữa các dòng máy khác nhau.</li>
+                            <li>Việc áp dụng Modulation là yếu tố then chốt để giảm liều.</li>
+                            <li>Cần chuẩn hóa lại protocol chụp Ngực và Bụng tại một số đơn vị có Median cao hơn chuẩn quốc tế.</li>
+                        </ol>
+                    </div>
+
+                    <!-- References -->
+                    <div class="p-6 bg-slate-50 rounded-[2rem] border border-slate-200 text-[10px] text-slate-500">
+                        <h5 class="font-black uppercase tracking-widest mb-3 text-slate-400">Tài liệu tham khảo chính</h5>
+                        <ul class="space-y-2 list-disc pl-4">
+                            <li>ICRP Publication 135: Diagnostic Reference Levels in Medical Imaging (2017).</li>
+                            <li>European Commission. European Guidelines on DRLs for Paediatric Imaging (PiDRL).</li>
+                            <li>J. Vassileva et al. "Diagnostic Reference Levels" - Radiation Protection of Patients (RPOP), IAEA.</li>
+                            <li>Thai Department of Medical Sciences (2019). National DRLs for CT in Thailand.</li>
+                        </ul>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </main>
 
     <div id="toast" class="fixed bottom-10 right-10 p-4 bg-white border border-slate-100 rounded-[1.5rem] shadow-2xl z-[120] transform translate-y-20 opacity-0 pointer-events-none transition-all duration-500 flex items-center gap-4 text-slate-900 font-black">
@@ -619,6 +804,29 @@
                 el('accessError').classList.remove('hidden');
                 el('accessPassword').value = '';
                 el('accessPassword').focus();
+            }
+        };
+
+        // --- Tab Switching Logic ---
+        window.switchMainTab = (tabName) => {
+            const chartBtn = el('btn-tab-charts');
+            const theoryBtn = el('btn-tab-theory');
+            const chartContent = el('chartsContent');
+            const theoryContent = el('theoryContent');
+            const exportBtn = el('btnExportPDF');
+
+            if (tabName === 'charts') {
+                chartBtn.classList.add('active');
+                theoryBtn.classList.remove('active');
+                chartContent.classList.remove('hidden');
+                theoryContent.classList.add('hidden');
+                exportBtn.classList.remove('hidden');
+            } else {
+                theoryBtn.classList.add('active');
+                chartBtn.classList.remove('active');
+                chartContent.classList.add('hidden');
+                theoryContent.classList.remove('hidden');
+                exportBtn.classList.add('hidden');
             }
         };
 
