@@ -231,7 +231,8 @@
                     </select>
                 </div>
                 <div class="flex gap-2 pt-4">
-                    <button type="button" onclick="el('bulkEditModal').classList.add('hidden')" class="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-black text-[10px] uppercase">Hủy</button>
+                    <!-- FIX: Changed onclick from el() to document.getElementById() -->
+                    <button type="button" onclick="document.getElementById('bulkEditModal').classList.add('hidden')" class="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-black text-[10px] uppercase">Hủy</button>
                     <button type="submit" class="flex-[2] py-3 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95">Lưu thay đổi</button>
                 </div>
             </form>
@@ -358,7 +359,8 @@
                         </div>
                     </div>
                 </div>
-                <button id="navLoginBtn" class="px-3 md:px-6 py-2 md:py-2.5 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-xl md:rounded-2xl hover:bg-indigo-700 shadow-lg">Login</button>
+                <!-- FIX: Changed onclick from el() to document.getElementById() -->
+                <button id="navLoginBtn" onclick="document.getElementById('authModal').classList.remove('hidden')" class="px-3 md:px-6 py-2 md:py-2.5 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-xl md:rounded-2xl hover:bg-indigo-700 shadow-lg">Login</button>
             </div>
         </nav>
     </header>
@@ -370,7 +372,10 @@
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-3">
                         <div class="bg-indigo-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-horizontal" class="w-5 h-5"></i></div>
-                        <h3 class="section-label text-indigo-900 text-sm">Tiến độ nhập liệu theo Bệnh viện</h3>
+                        <div>
+                            <h3 class="section-label text-indigo-900 text-sm">Tiến độ nhập liệu theo Bệnh viện</h3>
+                            <p class="text-[9px] font-bold text-slate-400">Mục tiêu thống kê: <span class="text-indigo-600">n ≥ 30</span> ca mỗi protocol</p>
+                        </div>
                     </div>
                 </div>
                 <div class="chart-container h-[250px]">
@@ -1612,10 +1617,43 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: { 
-                        legend: { position: 'top', labels: { font: { size: 9, weight: 'bold' }, usePointStyle: true, boxWidth: 6 } }
+                        legend: { position: 'top', labels: { font: { size: 9, weight: 'bold' }, usePointStyle: true, boxWidth: 6 } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const val = context.raw || 0;
+                                    const target = 30;
+                                    const missing = Math.max(0, target - val);
+                                    const label = context.dataset.label;
+                                    return `${label}: ${val}/${target} (Thiếu: ${missing})`;
+                                },
+                                footer: function(tooltipItems) {
+                                    const val = tooltipItems[0].raw || 0;
+                                    return val < 30 ? '⚠️ Chưa đủ độ tin cậy thống kê' : '✅ Đạt chuẩn thống kê';
+                                }
+                            },
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            titleColor: '#1e293b',
+                            bodyColor: '#475569',
+                            footerColor: (context) => {
+                                const val = context.tooltip?.dataPoints?.[0]?.raw || 0;
+                                return val < 30 ? '#ef4444' : '#10b981';
+                            },
+                            borderColor: '#e2e8f0',
+                            borderWidth: 1,
+                            padding: 10,
+                            titleFont: { size: 11, weight: '900' },
+                            bodyFont: { size: 10, weight: '600' },
+                            footerFont: { size: 9, weight: '800' }
+                        }
                     },
                     scales: { 
-                        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 9, weight: 'bold' } } }, 
+                        x: { 
+                            stacked: true, 
+                            grid: { display: false }, 
+                            ticks: { font: { size: 9, weight: 'bold' } },
+                            title: { display: true, text: 'Số lượng ca (n)', font: { size: 9, weight: 'bold' } }
+                        }, 
                         y: { stacked: true, grid: { display: false }, ticks: { font: { size: 9, weight: 'bold' } } } 
                     }
                 }
