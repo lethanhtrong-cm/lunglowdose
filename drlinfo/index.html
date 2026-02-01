@@ -1,292 +1,307 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kế hoạch Nghiên cứu DRL Đa Trung tâm</title>
+    <title>Đề Cương Nghiên Cứu: Achievable Dose vs Quốc Tế</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     
     <style>
         body {
             font-family: 'Roboto', sans-serif;
-            background-color: #f0f4f8; /* Light blue-grey background */
-            color: #334e68; /* Slate text */
+            background-color: #f0f4f8;
+            color: #102a43;
         }
         
-        /* Vibrant Palette: "Brilliant Blues & Medical Teal" */
+        /* Palette: Medical Blue & Teal */
         :root {
-            --primary: #007bff;     /* Vibrant Blue */
-            --secondary: #00bcd4;   /* Cyan/Teal */
-            --accent: #ffeb3b;      /* Yellow for highlights */
-            --dark: #102a43;        /* Deep Navy */
-            --light: #ffffff;
+            --primary: #007bff;     
+            --secondary: #00bcd4;   
+            --warning: #ff9800;      
+            --dark: #102a43;
+            --success: #28a745;
         }
 
         .text-primary { color: var(--primary); }
-        .bg-primary { background-color: var(--primary); }
-        .text-secondary { color: var(--secondary); }
-        .bg-secondary { background-color: var(--secondary); }
+        .text-warning { color: var(--warning); }
         
         .section-card {
             background: white;
             border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             transition: transform 0.2s;
+            overflow: hidden;
+            margin-bottom: 2rem;
         }
         
         .section-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
 
-        /* Chart Container Styling - MANDATORY */
         .chart-container {
             position: relative;
             width: 100%;
-            max-width: 800px; /* Controlled width */
-            margin-left: auto;
-            margin-right: auto;
-            height: 400px; /* Base height */
-            max-height: 500px;
+            max-width: 800px;
+            margin: 0 auto;
+            height: 300px; 
+            max-height: 400px;
         }
 
         @media (max-width: 768px) {
-            .chart-container {
-                height: 300px;
+            .chart-container { height: 250px; }
+        }
+
+        /* Comparison Box Styles */
+        .term-box {
+            padding: 1rem;
+            border-radius: 8px;
+            border-left-width: 4px;
+            margin-bottom: 1rem;
+        }
+        
+        .timeline-step {
+            position: relative;
+            padding-left: 20px;
+            border-left: 2px solid #e2e8f0;
+        }
+        .timeline-step::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        /* Responsive Grid for Comparisons */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        @media (min-width: 768px) {
+            .comparison-grid {
+                grid-template-columns: 1fr 1fr;
             }
         }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary); 
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--dark); 
-        }
-
-        .step-number {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 900;
-        }
     </style>
-    <!-- 
-        Palette Used: Brilliant Blues (Medical/Tech feel)
-        Primary: #007bff (Blue)
-        Secondary: #00bcd4 (Cyan)
-        Background: #f0f4f8 (Light Grey)
-        Text: #102a43 (Dark Navy)
-        
-        Plan Summary:
-        1. Title & Abstract: Setting the stage for Multi-center vs International Benchmark.
-        2. Rationale: Why Median? (Chart showing skewness).
-        3. Methodology: Steps to calculate Local Achievable Dose (LAD).
-        4. Benchmark: Mock comparison chart (Vietnam vs Korea/Thailand).
-        5. Timeline & Expected Outcome.
-        
-        Confirmations:
-        NO SVG used.
-        NO Mermaid JS used.
-        Chart.js and Plotly.js used with Canvas/WebGL.
-        Label wrapping logic implemented.
-    -->
 </head>
 <body class="p-4 md:p-8">
 
     <!-- Header Section -->
-    <header class="max-w-6xl mx-auto mb-12 text-center animate-fade-in-down">
-        <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500 mb-4 uppercase tracking-tight">
-            Nghiên Cứu Đánh Giá Liều Chiếu Chụp CT
+    <header class="max-w-6xl mx-auto mb-10 text-center animate-fade-in-down">
+        <h1 class="text-2xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-cyan-500 mb-4 uppercase tracking-tight">
+            Nghiên Cứu Đánh Giá "Mức Liều Đạt Được"<br>(Achievable Dose)
         </h1>
-        <h2 class="text-xl md:text-2xl font-light text-slate-600 mb-8">
-            Chiến lược So sánh "Mức Liều Đạt Được" (Achievable Dose - Median) Đa Trung Tâm tại Việt Nam với Chuẩn Quốc tế (Hàn Quốc & Thái Lan)
+        <h2 class="text-xl md:text-2xl font-bold text-slate-700 mb-4">
+            So sánh Tương đồng với Chuẩn Quốc tế (Hàn Quốc & Thái Lan)
         </h2>
-        <div class="inline-block bg-white px-6 py-2 rounded-full shadow-sm border border-blue-100">
-            <span class="font-bold text-blue-600">Đề xuất bởi:</span> Kỹ thuật viên Hình ảnh Y học
+        <div class="flex flex-wrap justify-center gap-2">
+            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">Benchmarking</span>
+            <span class="px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full text-xs font-bold">50th Percentile (Median)</span>
+            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold">Tối ưu hóa Protocol</span>
         </div>
     </header>
 
-    <!-- Main Grid Layout -->
-    <div class="max-w-6xl mx-auto grid grid-cols-1 gap-12">
+    <div class="max-w-6xl mx-auto">
 
-        <!-- SECTION 1: THE RATIONALE (Why Median?) -->
-        <section class="section-card p-6 md:p-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                <div>
-                    <h3 class="text-2xl font-bold text-blue-800 mb-4 border-l-4 border-cyan-400 pl-4">Tại sao chọn Median thay vì Mean?</h3>
-                    <p class="text-gray-600 mb-4 leading-relaxed">
-                        Dữ liệu liều bức xạ (DLP, CTDIvol) trong y tế hiếm khi phân bố chuẩn (hình chuông). Nó thường bị <strong>lệch phải (right-skewed)</strong> do một số ít ca chụp phức tạp có liều rất cao.
-                    </p>
-                    <ul class="space-y-3">
-                        <li class="flex items-start">
-                            <span class="text-2xl mr-2">❌</span>
-                            <p class="text-sm"><strong>Mean (Trung bình):</strong> Bị kéo lệch bởi các ca liều cao bất thường (outliers), gây ra đánh giá sai lệch về thực trạng chung.</p>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="text-2xl mr-2">✅</span>
-                            <p class="text-sm"><strong>Median (Phân vị 50):</strong> Phản ánh chính xác mức liều của bệnh nhân "điển hình". Đây là tiêu chuẩn quốc tế để xác định <em>Achievable Dose (AD)</em>.</p>
-                        </li>
+        <!-- === PHẦN 1: ĐẶT VẤN ĐỀ === -->
+        <section class="section-card border-l-8 border-blue-600 p-8">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                <span class="text-3xl mr-3">🎯</span> Đặt Vấn Đề
+            </h3>
+            <p class="text-gray-600 text-justify leading-relaxed">
+                Chúng ta cần trả lời câu hỏi: <em class="text-blue-700 font-bold">"Liều tia hiện tại có cao hơn mức cần thiết so với các nước láng giềng không?"</em>. 
+                Thay vì chờ đợi đủ dữ liệu cho DRL Quốc gia, giải pháp thực tế nhất là xác định <strong>Mức liều đạt được (Achievable Dose)</strong> tại các viện nghiên cứu và so sánh trực tiếp với Hàn Quốc và Thái Lan - những quốc gia có đặc điểm nhân trắc học tương đồng.
+            </p>
+        </section>
+
+        <!-- === PHẦN 2: CƠ SỞ LÝ LUẬN & THUẬT NGỮ (MỚI BỔ SUNG) === -->
+        <section class="section-card p-8 bg-gradient-to-br from-slate-50 to-white">
+            <h3 class="text-2xl font-bold text-blue-900 mb-6 uppercase tracking-wide border-b pb-4">
+                Giải Thích Thuật Ngữ & Lựa Chọn Phương Pháp
+            </h3>
+
+            <!-- 2.1 Định nghĩa DRL vs Achievable Dose -->
+            <div class="comparison-grid mb-8">
+                <!-- DRL -->
+                <div class="term-box bg-orange-50 border-orange-400">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-bold text-lg text-orange-800">DRL (Mức tham chiếu)</h4>
+                        <span class="text-xs bg-orange-200 text-orange-900 px-2 py-1 rounded font-bold">75th Percentile</span>
+                    </div>
+                    <p class="text-sm text-gray-700 mb-2"><strong>Diagnostic Reference Level:</strong> Là mức "cờ đỏ".</p>
+                    <ul class="text-sm text-gray-600 list-disc list-inside">
+                        <li>Nếu liều của viện > DRL: Quy trình chụp <strong>BẤT THƯỜNG</strong>, cần xem xét lại ngay.</li>
+                        <li>Dùng để phát hiện các cơ sở có liều quá cao.</li>
                     </ul>
                 </div>
-                <div class="w-full">
-                    <div class="chart-container">
-                        <canvas id="distributionChart"></canvas>
+
+                <!-- Achievable Dose -->
+                <div class="term-box bg-green-50 border-green-500">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-bold text-lg text-green-800">Achievable Dose (Mức đạt được)</h4>
+                        <span class="text-xs bg-green-200 text-green-900 px-2 py-1 rounded font-bold">50th Percentile</span>
                     </div>
-                    <p class="text-center text-xs text-gray-400 mt-2">Biểu đồ mô phỏng sự khác biệt giữa Mean và Median trong phân bố lệch</p>
+                    <p class="text-sm text-gray-700 mb-2"><strong>Achievable Dose (AD):</strong> Là mức "mục tiêu".</p>
+                    <ul class="text-sm text-gray-600 list-disc list-inside">
+                        <li>Phản ánh mức liều mà 50% số cơ sở đang thực hiện tốt.</li>
+                        <li>Dùng để <strong>TỐI ƯU HÓA</strong> quy trình (Hạ liều xuống mức này).</li>
+                        <li>Đây là chỉ số chính của nghiên cứu này.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2.2 Tại sao chọn Median thay vì Mean? -->
+            <div class="mb-4">
+                <h4 class="font-bold text-xl text-gray-800 mb-4 text-center">Tại sao chúng ta chọn Median (Trung vị) thay vì Mean (Trung bình)?</h4>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                <!-- Text Explanation -->
+                <div class="md:col-span-1 space-y-4">
+                    <div class="p-4 border rounded-lg bg-white shadow-sm">
+                        <h5 class="font-bold text-gray-800 border-b pb-2 mb-2">Vấn đề của Mean (Trung bình)</h5>
+                        <p class="text-sm text-gray-600 text-justify">
+                            Mean (Cộng tổng chia đều) rất nhạy cảm với các giá trị <strong>ngoại lai (outliers)</strong>. Chỉ cần vài bệnh nhân rất béo hoặc vài ca chụp sai kỹ thuật (liều cao vọt) sẽ kéo giá trị Mean tăng lên, làm sai lệch bức tranh tổng thể.
+                        </p>
+                    </div>
+                    <div class="p-4 border rounded-lg bg-blue-50 border-blue-200 shadow-sm">
+                        <h5 class="font-bold text-blue-800 border-b border-blue-200 pb-2 mb-2">Sự ưu việt của Median (Trung vị)</h5>
+                        <p class="text-sm text-gray-700 text-justify">
+                            Median là giá trị nằm chính giữa dãy số liệu. Nó <strong>ít bị ảnh hưởng</strong> bởi các giá trị cực đoan. Nó đại diện chính xác nhất cho "bệnh nhân điển hình" (Standard Patient).
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Visual Chart -->
+                <div class="md:col-span-2 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <p class="text-xs text-center text-gray-500 font-bold mb-2">Minh họa: Phân bố lệch (Skewed Distribution) trong dữ liệu Liều</p>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="skewChart"></canvas>
+                    </div>
+                    <div class="flex justify-center mt-2 space-x-4 text-xs">
+                        <span class="flex items-center"><span class="w-3 h-3 bg-green-500 rounded-full mr-1"></span>Median (Chính xác)</span>
+                        <span class="flex items-center"><span class="w-3 h-3 bg-orange-400 rounded-full mr-1"></span>Mean (Bị nhiễu)</span>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- SECTION 2: RESEARCH OBJECTIVES & METRICS -->
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="section-card p-6 bg-gradient-to-br from-blue-500 to-blue-700 text-white transform hover:scale-105 transition duration-300">
-                <div class="text-4xl mb-4">🎯</div>
-                <h4 class="text-xl font-bold mb-2">Mục Tiêu Chính</h4>
-                <p class="text-blue-100 text-sm">Thiết lập mức "Achievable Dose" (Median) địa phương dựa trên dữ liệu đa trung tâm hiện có và so sánh với các quốc gia tương đồng trong khu vực.</p>
+        <!-- === PHẦN 3: ĐỀ CƯƠNG NGHIÊN CỨU CHI TIẾT === -->
+        <section class="section-card p-8 border-t-4 border-cyan-500">
+            <h3 class="text-2xl font-bold text-blue-900 mb-6 uppercase tracking-wide text-center">Thiết Kế & Phương Pháp Nghiên Cứu</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <!-- Cột trái -->
+                <div class="space-y-6">
+                    <div>
+                        <h4 class="font-bold text-lg text-gray-800 flex items-center mb-2">
+                            <span class="bg-blue-100 text-blue-800 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-sm">1</span>
+                            Đối tượng & Thiết kế
+                        </h4>
+                        <ul class="text-sm text-gray-700 space-y-1 pl-8">
+                            <li><strong>Thiết kế:</strong> Mô tả cắt ngang, hồi cứu dữ liệu.</li>
+                            <li><strong>Đối tượng:</strong> Bệnh nhân người lớn (>18 tuổi).</li>
+                            <li><strong>Vị trí chụp:</strong> Sọ não, Lồng ngực, Ổ bụng.</li>
+                            <li><strong>Thiết bị:</strong> Máy CT đa dãy (≥ 16 lát cắt).</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-lg text-gray-800 flex items-center mb-2">
+                            <span class="bg-blue-100 text-blue-800 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-sm">2</span>
+                            Tiêu chuẩn Lựa chọn (Inclusion)
+                        </h4>
+                        <ul class="text-sm text-gray-700 space-y-1 pl-8 list-disc">
+                            <li>Protocol thường quy (Routine).</li>
+                            <li>Cân nặng trung bình (50-75kg) hoặc không ghi nhận béo phì.</li>
+                            <li>Đầy đủ thông tin liều (DLP, CTDIvol).</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Cột phải: Timeline -->
+                <div>
+                    <h4 class="font-bold text-lg text-gray-800 mb-4">Kế Hoạch Thời Gian (Dự kiến)</h4>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="timelineChart"></canvas>
+                    </div>
+                </div>
             </div>
-            <div class="section-card p-6 bg-white border-t-4 border-cyan-500">
-                <div class="text-4xl mb-4">📊</div>
-                <h4 class="text-xl font-bold mb-2">Chỉ Số Đánh Giá</h4>
-                <p class="text-gray-600 text-sm">
-                    <strong>CTDI<sub>vol</sub> (mGy):</strong> Đánh giá cường độ tia phát ra.<br>
-                    <strong>DLP (mGy.cm):</strong> Đánh giá tổng lượng tia bệnh nhân nhận được.
-                </p>
-            </div>
-            <div class="section-card p-6 bg-white border-t-4 border-cyan-500">
-                <div class="text-4xl mb-4">🌏</div>
-                <h4 class="text-xl font-bold mb-2">Đối Tượng So Sánh</h4>
-                <p class="text-gray-600 text-sm">
-                    So sánh Median địa phương với:<br>
-                    - <strong>Hàn Quốc (K-DRL):</strong> Nền y tế tiên tiến.<br>
-                    - <strong>Thái Lan:</strong> Nền y tế tương đồng khu vực.
-                </p>
+
+            <!-- Quy trình xử lý số liệu -->
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h4 class="font-bold text-gray-800 mb-3 text-center">Quy trình Xử lý Số liệu</h4>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+                    <div class="bg-white p-3 rounded shadow-sm">
+                        <span class="text-2xl">📥</span>
+                        <p class="text-xs font-bold mt-1">Thu thập</p>
+                        <p class="text-[10px] text-gray-500">Xuất log từ máy/PACS</p>
+                    </div>
+                    <div class="bg-white p-3 rounded shadow-sm">
+                        <span class="text-2xl">🧹</span>
+                        <p class="text-xs font-bold mt-1">Làm sạch</p>
+                        <p class="text-[10px] text-gray-500">Loại bỏ ca nhiễu/thiếu tin</p>
+                    </div>
+                    <div class="bg-white p-3 rounded shadow-sm border-b-2 border-green-500">
+                        <span class="text-2xl">🧮</span>
+                        <p class="text-xs font-bold mt-1 text-green-700">Tính Median</p>
+                        <p class="text-[10px] text-gray-500">Xác định 50th Percentile</p>
+                    </div>
+                    <div class="bg-white p-3 rounded shadow-sm border-b-2 border-cyan-500">
+                        <span class="text-2xl">🌏</span>
+                        <p class="text-xs font-bold mt-1 text-cyan-700">So sánh</p>
+                        <p class="text-[10px] text-gray-500">Mann-Whitney U với K-DRL</p>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <!-- SECTION 3: METHODOLOGY FLOW -->
+        <!-- === PHẦN 4: KẾT QUẢ DỰ KIẾN (BENCHMARK) === -->
         <section class="section-card p-6 md:p-8">
-            <h3 class="text-2xl font-bold text-blue-800 mb-8 text-center">Quy Trình Thực Hiện Nghiên Cứu</h3>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
-                <!-- Step 1 -->
-                <div class="relative p-4 border border-gray-100 rounded-lg bg-blue-50">
-                    <div class="text-5xl font-black text-blue-200 absolute top-0 right-2">01</div>
-                    <h5 class="font-bold text-lg text-blue-800 relative z-10 mt-2">Thu thập Dữ liệu</h5>
-                    <p class="text-xs text-gray-500 mt-2">Tổng hợp DICOM Header hoặc Logbook từ các máy CT tham gia nghiên cứu (Hãng máy, Model, kVp, mAs).</p>
-                </div>
-                <!-- Step 2 -->
-                <div class="relative p-4 border border-gray-100 rounded-lg bg-blue-50">
-                    <div class="text-5xl font-black text-blue-200 absolute top-0 right-2">02</div>
-                    <h5 class="font-bold text-lg text-blue-800 relative z-10 mt-2">Lọc & Làm sạch</h5>
-                    <p class="text-xs text-gray-500 mt-2">Loại bỏ các ca chụp không chuẩn, lọc theo độ tuổi (người lớn), phân nhóm theo giải phẫu (Sọ não, Ngực, Bụng).</p>
-                </div>
-                <!-- Step 3 -->
-                <div class="relative p-4 border border-gray-100 rounded-lg bg-blue-50">
-                    <div class="text-5xl font-black text-blue-200 absolute top-0 right-2">03</div>
-                    <h5 class="font-bold text-lg text-blue-800 relative z-10 mt-2">Tính toán Thống kê</h5>
-                    <p class="text-xs text-gray-500 mt-2">Tính Median (50th percentile) cho từng viện và gộp chung (Pooled Median) cho toàn bộ mẫu nghiên cứu.</p>
-                </div>
-                <!-- Step 4 -->
-                <div class="relative p-4 border border-gray-100 rounded-lg bg-blue-50">
-                    <div class="text-5xl font-black text-blue-200 absolute top-0 right-2">04</div>
-                    <h5 class="font-bold text-lg text-blue-800 relative z-10 mt-2">So Sánh (Benchmark)</h5>
-                    <p class="text-xs text-gray-500 mt-2">Đối chiếu giá trị Median tìm được với dữ liệu công bố của Hàn Quốc và Thái Lan để tìm cơ hội tối ưu.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- SECTION 4: EXPECTED OUTCOME VISUALIZATION (Comparison Chart) -->
-        <section class="section-card p-6 md:p-8">
-            <h3 class="text-2xl font-bold text-blue-800 mb-2 border-l-4 border-cyan-400 pl-4">Mô Phỏng Kết Quả Dự Kiến: So Sánh DLP (mGy.cm)</h3>
-            <p class="text-gray-600 mb-6 text-sm">Biểu đồ dưới đây minh họa cách bạn sẽ trình bày kết quả. Việc so sánh Median của nhóm nghiên cứu (cột màu xanh đậm) với Median của Hàn Quốc và Thái Lan sẽ chỉ ra ngay lập tức kỹ thuật nào đang có liều cao hơn mức cần thiết.</p>
-            
+            <h3 class="text-xl font-bold text-blue-800 mb-2 border-l-4 border-cyan-400 pl-4">Kết Quả Kỳ Vọng: So Sánh Quốc Tế</h3>
+            <p class="text-sm text-gray-600 mb-6">
+                Mục tiêu đầu ra: Biểu đồ so sánh Median của Việt Nam (xanh đậm) với chuẩn Hàn Quốc/Thái Lan. Nếu cột của ta cao hơn, cần tối ưu hóa.
+            </p>
             <div class="chart-container">
                 <canvas id="benchmarkChart"></canvas>
             </div>
-            
-            <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm bg-blue-50 p-4 rounded-lg">
-                <div>
-                    <strong class="text-blue-800">Phân tích (Ví dụ):</strong>
-                    <p class="text-gray-700 mt-1">Nếu Median chụp Ngực của ta (450) cao hơn Hàn Quốc (380), ta cần xem lại protocol: có đang dùng kVp quá cao hay pitch quá thấp không?</p>
-                </div>
-                <div>
-                    <strong class="text-blue-800">Giá trị thực tiễn:</strong>
-                    <p class="text-gray-700 mt-1">Kết quả này không chỉ là số liệu, nó là bằng chứng để thuyết phục bác sĩ và KTV điều chỉnh thông số máy để an toàn hơn cho bệnh nhân.</p>
-                </div>
-            </div>
         </section>
 
-        <!-- SECTION 5: DETAILED PROTOCOL ANALYSIS (Heatmap/Scatter) -->
+        <!-- === PHẦN 5: PHÂN TÍCH SCATTER === -->
         <section class="section-card p-6 md:p-8">
              <div class="flex flex-col md:flex-row justify-between items-center mb-6">
-                <h3 class="text-2xl font-bold text-blue-800">Phân Tích Chi Tiết Biến Thiên Liều</h3>
-                <span class="text-xs bg-gray-200 px-3 py-1 rounded-full text-gray-600 mt-2 md:mt-0">Dùng Plotly.js (WebGL)</span>
+                <h3 class="text-xl font-bold text-blue-800">Phân Tích Biến Thiên & Outliers</h3>
+                <span class="text-xs bg-gray-100 px-3 py-1 rounded text-gray-500">Scatter Plot</span>
             </div>
-            <p class="text-gray-600 mb-4 text-sm">
-                Ngoài so sánh tổng quan, bạn nên vẽ biểu đồ phân tán (Scatter Plot) để xem sự phân bố liều của từng ca chụp so với Median của Hàn Quốc (đường chuẩn). Những điểm nằm xa phía trên đường chuẩn là những ca cần xem xét lại hồ sơ.
+            <p class="text-sm text-gray-600 mb-4">
+                Biểu đồ phân tán giúp nhìn thấy từng ca chụp. Các điểm nằm xa phía trên đường chuẩn (đỏ) là những ca cần rà soát lại kỹ thuật.
             </p>
-            <div id="scatterPlot" class="w-full h-96 bg-gray-50 rounded-lg border border-gray-200"></div>
+            <div id="scatterPlot" class="w-full h-80 bg-gray-50 rounded-lg border border-gray-200"></div>
         </section>
 
-        <!-- SECTION 6: CONCLUSION & IMPACT -->
-        <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div class="section-card p-8 bg-white">
-                <h3 class="text-xl font-bold text-blue-900 mb-4">Kết Luận & Khuyến Nghị</h3>
-                <ul class="space-y-4">
-                    <li class="flex items-start">
-                        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-bold text-sm mr-3">1</div>
-                        <p class="text-gray-600 text-sm">Chuyển đổi từ so sánh Mean sang Median giúp dữ liệu có độ tin cậy cao hơn, phù hợp chuẩn quốc tế.</p>
-                    </li>
-                    <li class="flex items-start">
-                        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-bold text-sm mr-3">2</div>
-                        <p class="text-gray-600 text-sm">Xác định được các quy trình chụp (Protocol) đang có liều cao bất thường so với khu vực.</p>
-                    </li>
-                    <li class="flex items-start">
-                        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-bold text-sm mr-3">3</div>
-                        <p class="text-gray-600 text-sm">Đề xuất mức "Liều tham chiếu cục bộ" (Local DRL) sơ bộ cho bệnh viện/nhóm bệnh viện.</p>
-                    </li>
-                </ul>
-            </div>
-            
-            <div class="section-card p-8 bg-gray-900 text-white flex flex-col justify-center items-center text-center">
-                <h3 class="text-2xl font-bold mb-2">Tầm Nhìn Tiếp Theo</h3>
-                <p class="text-gray-400 mb-6 text-sm">Mở rộng cỡ mẫu và tiến tới xây dựng DRL Quốc gia đầy đủ.</p>
-                <button class="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105">
-                    Bắt đầu thu thập dữ liệu
-                </button>
-            </div>
-        </section>
-        
         <!-- Footer -->
-        <footer class="text-center text-gray-400 text-xs mt-8">
-            <p>Infographic được tạo hỗ trợ lập kế hoạch nghiên cứu khoa học hình ảnh y học.</p>
-            <p>© 2024 Medical Imaging Research Planning Tool</p>
+        <footer class="text-center text-gray-400 text-xs mt-8 pb-8 border-t pt-4">
+            <p>Đề cương nghiên cứu khoa học - Lưu hành nội bộ</p>
+            <p>© 2024 Medical Imaging Tech Team</p>
         </footer>
 
     </div>
 
     <script>
-        // --- HELPER FUNCTIONS ---
-
-        // Label wrapping logic for Chart.js (Max 16 chars per line)
+        // --- UTILS ---
         function wrapLabel(label) {
             if (label.length <= 16) return label;
             const words = label.split(' ');
             const lines = [];
             let currentLine = words[0];
-
             for (let i = 1; i < words.length; i++) {
                 if ((currentLine + " " + words[i]).length <= 16) {
                     currentLine += " " + words[i];
@@ -299,228 +314,173 @@
             return lines;
         }
 
-        // Process labels array
-        function processLabels(labels) {
-            return labels.map(label => wrapLabel(label));
-        }
-
-        // Common Chart Options including Tooltip Callback
-        const commonOptions = {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        usePointStyle: true,
-                        font: { family: "'Roboto', sans-serif", size: 12 }
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(16, 42, 67, 0.9)',
-                    titleFont: { size: 13, family: "'Roboto', sans-serif" },
-                    bodyFont: { size: 12, family: "'Roboto', sans-serif" },
-                    padding: 10,
-                    callbacks: {
-                        title: function(tooltipItems) {
-                            const item = tooltipItems[0];
-                            let label = item.chart.data.labels[item.dataIndex];
-                            if (Array.isArray(label)) {
-                                return label.join(' ');
-                            } else {
-                                return label;
-                            }
-                        }
+        const commonPlugins = {
+            legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: 11 } } },
+            tooltip: {
+                backgroundColor: 'rgba(16, 42, 67, 0.9)',
+                padding: 10,
+                callbacks: {
+                    title: function(tooltipItems) {
+                        const item = tooltipItems[0];
+                        let label = item.chart.data.labels[item.dataIndex];
+                        return Array.isArray(label) ? label.join(' ') : label;
                     }
                 }
             }
         };
 
-        // --- CHART 1: Distribution Skewness (Mean vs Median) ---
-        const ctxDist = document.getElementById('distributionChart').getContext('2d');
-        
-        // Generate skewed data points visually
+        // --- CHART 1: SKEWNESS (MEAN vs MEDIAN) ---
+        // This chart visually proves why Median is better
+        const ctxSkew = document.getElementById('skewChart').getContext('2d');
         const xValues = Array.from({length: 50}, (_, i) => i);
-        // Log-normal-ish shape simulation
-        const yValues = xValues.map(x => {
-            return (x > 0) ? (100 * x * Math.exp(-0.2 * x)) : 0;
-        });
+        // Create a Log-Normal distribution shape (Right Skewed)
+        const yValues = xValues.map(x => (x > 0) ? (100 * x * Math.exp(-0.25 * x)) : 0);
 
-        new Chart(ctxDist, {
+        new Chart(ctxSkew, {
             type: 'line',
             data: {
-                labels: xValues.map(x => x.toString()), // Simple numeric labels
+                labels: xValues.map(x => x.toString()),
                 datasets: [{
-                    label: 'Phân bố tần suất liều (Mô phỏng)',
+                    label: 'Phân bố tần suất liều (Thực tế)',
                     data: yValues,
-                    borderColor: '#007bff',
-                    backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                    borderColor: '#627d98', // Muted Blue grey
+                    backgroundColor: 'rgba(98, 125, 152, 0.2)',
                     fill: true,
                     tension: 0.4,
                     pointRadius: 0
                 }]
             },
             options: {
-                ...commonOptions,
-                plugins: {
-                    ...commonOptions.plugins,
-                    annotation: {
-                        // Note: Annotation plugin not loaded, using simpler approach or omitting annotations for stability
-                        // Instead, we explain in text.
-                    },
-                    tooltip: {
-                        enabled: false // Disable tooltip for this conceptual chart
-                    }
-                },
-                scales: {
-                    x: { display: false },
-                    y: { display: false }
-                }
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                scales: { x: { display: false }, y: { display: false } }
             },
             plugins: [{
-                id: 'customLines',
+                id: 'skewAnnotations',
                 afterDraw: (chart) => {
                     const ctx = chart.ctx;
                     const xAxis = chart.scales.x;
                     const yAxis = chart.scales.y;
                     
-                    // Approximate positions for Mean (pulled right) and Median (peak-ish)
-                    // Peak is around x=5. Median roughly x=8. Mean roughly x=12 due to long tail.
-                    const medianX = xAxis.getPixelForValue(8); 
-                    const meanX = xAxis.getPixelForValue(15);
-                    const topY = yAxis.getPixelForValue(180); // Near peak height
+                    // Approximate positions based on the formula used above
+                    const medianX = xAxis.getPixelForValue(7); 
+                    const meanX = xAxis.getPixelForValue(12);
+                    const topY = yAxis.getPixelForValue(130); // Peak area
                     const bottomY = yAxis.bottom;
 
                     ctx.save();
                     
-                    // Draw Median Line
-                    ctx.beginPath();
-                    ctx.moveTo(medianX, topY);
-                    ctx.lineTo(medianX, bottomY);
-                    ctx.strokeStyle = '#00bcd4'; // Teal
-                    ctx.lineWidth = 3;
-                    ctx.setLineDash([5, 5]);
-                    ctx.stroke();
+                    // Median Line (Green - Good)
+                    ctx.beginPath(); ctx.moveTo(medianX, topY); ctx.lineTo(medianX, bottomY);
+                    ctx.strokeStyle = '#28a745'; ctx.lineWidth = 3; ctx.stroke();
                     
-                    // Draw Mean Line
-                    ctx.beginPath();
-                    ctx.moveTo(meanX, topY + 40); // Slightly lower start
-                    ctx.lineTo(meanX, bottomY);
-                    ctx.strokeStyle = '#ffeb3b'; // Yellow/Red warning color
-                    ctx.lineWidth = 3;
-                    ctx.setLineDash([5, 5]);
-                    ctx.stroke();
-
-                    // Text Labels
+                    // Mean Line (Orange - Bad/Skewed)
+                    ctx.beginPath(); ctx.moveTo(meanX, topY + 25); ctx.lineTo(meanX, bottomY);
+                    ctx.strokeStyle = '#ff9800'; ctx.lineWidth = 3; ctx.setLineDash([5, 5]); ctx.stroke();
+                    
+                    // Labels
                     ctx.font = 'bold 12px Roboto';
-                    ctx.fillStyle = '#008ba3';
-                    ctx.fillText('Median (50th)', medianX - 40, topY - 5);
+                    ctx.fillStyle = '#28a745'; ctx.fillText('Median (50th)', medianX + 5, topY);
+                    ctx.fillStyle = '#e65100'; ctx.fillText('Mean (Bị kéo lệch)', meanX + 5, topY + 25);
                     
-                    ctx.fillStyle = '#b3a200';
-                    ctx.fillText('Mean (Bị kéo lệch)', meanX + 5, topY + 35);
+                    // Outlier annotation
+                    ctx.fillStyle = '#627d98'; ctx.font = 'italic 10px Roboto';
+                    ctx.fillText('Các ca liều cao (Outliers) ->', xAxis.getPixelForValue(25), yAxis.getPixelForValue(10));
                     
                     ctx.restore();
                 }
             }]
         });
 
-        // --- CHART 2: Benchmark Comparison (Bar Chart) ---
-        const ctxBench = document.getElementById('benchmarkChart').getContext('2d');
-        const rawLabels = ['Chụp Sọ Não (Head Routine)', 'Chụp Ngực (Chest Routine)', 'Chụp Bụng (Abdomen Routine)'];
-        
-        new Chart(ctxBench, {
+        // --- CHART 2: TIMELINE (GANTT) ---
+        const ctxTimeline = document.getElementById('timelineChart').getContext('2d');
+        new Chart(ctxTimeline, {
             type: 'bar',
             data: {
-                labels: processLabels(rawLabels),
-                datasets: [
-                    {
-                        label: 'Median Nghiên Cứu (Của Bạn)',
-                        data: [950, 480, 550], // Mock data: Local slightly higher in Chest
-                        backgroundColor: '#007bff', // Primary Blue
-                        borderRadius: 4
-                    },
-                    {
-                        label: 'Median Hàn Quốc (K-DRL)',
-                        data: [920, 380, 520], // KR usually optimized
-                        backgroundColor: '#17a2b8', // Teal
-                        borderRadius: 4
-                    },
-                    {
-                        label: 'Median Thái Lan',
-                        data: [940, 420, 540], // TH comparable
-                        backgroundColor: '#e0e0e0', // Grey for reference
-                        borderRadius: 4
-                    }
-                ]
+                labels: ['Thu thập số liệu', 'Xử lý & Làm sạch', 'Phân tích thống kê', 'Viết báo cáo'],
+                datasets: [{
+                    label: 'Tiến độ (Tháng)',
+                    data: [[0, 2], [2, 3], [3, 4], [4, 5]],
+                    backgroundColor: [
+                        'rgba(0, 123, 255, 0.7)',
+                        'rgba(23, 162, 184, 0.7)',
+                        'rgba(40, 167, 69, 0.7)',
+                        'rgba(255, 193, 7, 0.7)'
+                    ],
+                    borderRadius: 4,
+                    barPercentage: 0.6
+                }]
             },
             options: {
-                ...commonOptions,
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'DLP (mGy.cm)',
-                            font: { weight: 'bold' }
-                        }
-                    },
-                    x: {
-                        grid: { display: false }
-                    }
+                    x: { min: 0, max: 6, grid: { display: true }, title: {display: true, text: 'Tháng'} },
+                    y: { grid: { display: false } }
                 }
             }
         });
 
-        // --- CHART 3: Plotly Scatter Plot (Data Distribution) ---
-        // Simulating specific case data points vs the Reference Line
+        // --- CHART 3: BENCHMARK BAR ---
+        const ctxBench = document.getElementById('benchmarkChart').getContext('2d');
+        const rawLabels = ['Sọ Não (Head Routine)', 'Ngực (Chest Routine)', 'Bụng (Abdomen Routine)'];
         
+        new Chart(ctxBench, {
+            type: 'bar',
+            data: {
+                labels: rawLabels.map(wrapLabel),
+                datasets: [
+                    { label: 'Việt Nam (Nghiên cứu)', data: [980, 520, 580], backgroundColor: '#007bff', borderRadius: 4 },
+                    { label: 'Hàn Quốc (K-DRL)', data: [920, 380, 520], backgroundColor: '#00bcd4', borderRadius: 4 },
+                    { label: 'Thái Lan (Thai DRL)', data: [940, 420, 540], backgroundColor: '#cfd8dc', borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: commonPlugins,
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Median DLP (mGy.cm)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // --- CHART 4: PLOTLY SCATTER ---
         const trace1 = {
             x: Array.from({length: 30}, () => 'Head CT'),
-            y: Array.from({length: 30}, () => 800 + Math.random() * 400), // Random distribution around 1000
-            mode: 'markers',
-            type: 'scatter',
-            name: 'Ca chụp tại BV A',
-            marker: { size: 8, color: '#007bff', opacity: 0.6 }
+            y: Array.from({length: 30}, () => 850 + Math.random() * 300),
+            mode: 'markers', type: 'scatter', name: 'BV A',
+            marker: { size: 6, color: '#007bff', opacity: 0.6 }
         };
-
         const trace2 = {
             x: Array.from({length: 30}, () => 'Chest CT'),
-            y: Array.from({length: 30}, () => 300 + Math.random() * 300), // Random distribution around 450
-            mode: 'markers',
-            type: 'scatter',
-            name: 'Ca chụp tại BV B',
-            marker: { size: 8, color: '#17a2b8', opacity: 0.6 }
+            y: Array.from({length: 30}, () => 350 + Math.random() * 350),
+            mode: 'markers', type: 'scatter', name: 'BV B',
+            marker: { size: 6, color: '#ff9800', opacity: 0.6 }
         };
 
-        // Reference Lines (Median Levels)
         const layout = {
-            title: 'Phân bố liều từng ca (Scatter) so với chuẩn',
+            title: { text: 'So sánh liều từng ca với chuẩn Hàn Quốc', font: { size: 14 } },
             yaxis: { title: 'DLP (mGy.cm)' },
             shapes: [
-                {
-                    type: 'line',
-                    x0: -0.5, y0: 920, x1: 0.5, y1: 920, // Head Ref
-                    line: { color: 'red', width: 2, dash: 'dot' }
-                },
-                {
-                    type: 'line',
-                    x0: 0.5, y0: 380, x1: 1.5, y1: 380, // Chest Ref
-                    line: { color: 'red', width: 2, dash: 'dot' }
-                }
+                { type: 'line', x0: -0.5, y0: 920, x1: 0.5, y1: 920, line: { color: 'red', width: 2, dash: 'dot' } },
+                { type: 'line', x0: 0.5, y0: 380, x1: 1.5, y1: 380, line: { color: 'red', width: 2, dash: 'dot' } }
             ],
             annotations: [
-                { x: 0, y: 1300, text: 'K-DRL (Median) Head', showarrow: false, font: {size: 10, color: 'red'} },
-                { x: 1, y: 700, text: 'K-DRL (Median) Chest', showarrow: false, font: {size: 10, color: 'red'} }
+                { x: 0.5, y: 950, text: 'K-DRL (Ref)', showarrow: false, font: {size: 10, color: 'red'} },
+                { x: 1.5, y: 400, text: 'K-DRL (Ref)', showarrow: false, font: {size: 10, color: 'red'} }
             ],
-            autosize: true,
-            margin: { t: 40, b: 40, l: 50, r: 20 },
+            margin: { t: 40, b: 30, l: 50, r: 20 },
             paper_bgcolor: "rgba(0,0,0,0)",
             plot_bgcolor: "rgba(0,0,0,0)",
-            font: { family: 'Roboto' }
+            showlegend: false
         };
 
         Plotly.newPlot('scatterPlot', [trace1, trace2], layout, {displayModeBar: false, responsive: true});
-
     </script>
 </body>
 </html>
