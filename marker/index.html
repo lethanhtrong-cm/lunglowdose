@@ -1,1 +1,1149 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Watermark Pro Ultimate - Smart BG Remover</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Dancing+Script:wght@700&family=Lobster&family=Oswald:wght@500&family=Pacifico&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --ios-blue: #007AFF;
+            --ios-green: #34C759;
+            --ios-gray-bg: #F2F2F7;
+            --ios-separator: #C6C6C8;
+        }
 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Be Vietnam Pro", sans-serif;
+            background-color: var(--ios-gray-bg);
+            color: #1c1c1e;
+            -webkit-font-smoothing: antialiased;
+            overscroll-behavior: none;
+        }
+
+        /* iOS Slider Style */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 28px;
+            width: 28px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            margin-top: -12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15), 0 1px 1px rgba(0,0,0,0.1);
+            border: 0.5px solid rgba(0,0,0,0.04);
+            transition: transform 0.1s;
+        }
+
+        input[type=range]::-webkit-slider-thumb:active {
+            transform: scale(0.95);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #E5E5EA;
+            border-radius: 2px;
+        }
+        
+        .custom-scroll::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+
+        .ios-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+
+        .ios-group-title {
+            padding-left: 16px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            text-transform: uppercase;
+            color: #6c6c70;
+            font-weight: 500;
+        }
+
+        .canvas-bg {
+            background-image: radial-gradient(#C7C7CC 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .peer:checked ~ .peer-checked-bg {
+            background-color: var(--ios-green);
+        }
+
+        .tool-btn.active {
+            background-color: #E5E5EA;
+            color: var(--ios-blue);
+        }
+
+        #canvas-wrapper {
+            transform-origin: center center;
+            transition: transform 0.1s ease-out;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        /* Screenshot Flash Animation */
+        @keyframes flash {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        .screenshot-flash {
+            position: fixed;
+            inset: 0;
+            background: white;
+            z-index: 9999;
+            pointer-events: none;
+            animation: flash 0.3s ease-out forwards;
+        }
+        
+        .fade-out-hint {
+            animation: fadeOut 2.5s forwards;
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col lg:flex-row overflow-hidden">
+
+    <!-- Sidebar / Control Panel -->
+    <aside class="w-full lg:w-[400px] bg-[#F2F2F7] lg:border-r border-[#C6C6C8] flex flex-col h-full z-20 flex-shrink-0">
+        
+        <!-- Header -->
+        <div class="h-14 shrink-0 bg-[#F2F2F7]/90 backdrop-blur-md border-b border-[#C6C6C8] flex items-center justify-between px-4 sticky top-0 z-10">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <h1 class="text-lg font-bold tracking-tight">Studio Capture</h1>
+            </div>
+            <button onclick="downloadImage()" id="downloadBtn" class="text-[--ios-blue] font-semibold text-lg opacity-50 cursor-not-allowed transition-opacity disabled:opacity-30" disabled>
+                Lưu
+            </button>
+        </div>
+
+        <!-- Scrollable Controls -->
+        <div class="flex-1 overflow-y-auto custom-scroll p-4 space-y-6 pb-20">
+            
+            <!-- Tool Selection Grid -->
+            <div>
+                <div class="ios-group-title">Công cụ</div>
+                <div class="ios-card grid grid-cols-5 divide-x divide-gray-200">
+                    <button onclick="setMode('move')" id="btn-move" class="tool-btn active py-3 flex flex-col items-center justify-center gap-1 hover:bg-gray-50 transition-colors" title="Di chuyển">
+                        <i class="fa-solid fa-arrow-pointer text-lg"></i>
+                    </button>
+                    <button onclick="setMode('draw')" id="btn-draw" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 hover:bg-gray-50 transition-colors" title="Vẽ tay">
+                        <i class="fa-solid fa-paintbrush text-lg"></i>
+                    </button>
+                    <button onclick="setMode('arrow')" id="btn-arrow" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 hover:bg-gray-50 transition-colors" title="Vẽ mũi tên">
+                        <i class="fa-solid fa-arrow-right-long text-lg"></i>
+                    </button>
+                    <button onclick="setMode('text')" id="btn-text" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 hover:bg-gray-50 transition-colors" title="Thêm chữ">
+                        <i class="fa-solid fa-t text-lg"></i>
+                    </button>
+                    <button onclick="setMode('crop')" id="btn-crop" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 hover:bg-gray-50 transition-colors" title="Cắt ảnh">
+                        <i class="fa-solid fa-crop-simple text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 1. Context: Crop -->
+            <div id="crop-controls" class="hidden">
+                <div class="ios-group-title">Cắt ảnh</div>
+                <div class="ios-card p-2 grid grid-cols-4 gap-2">
+                    <button onclick="applyCropRatio(0)" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium text-center">Gốc</button>
+                    <button onclick="applyCropRatio(1)" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium text-center">1:1</button>
+                    <button onclick="applyCropRatio(16/9)" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium text-center">16:9</button>
+                    <button onclick="applyCropRatio(4/5)" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium text-center">4:5</button>
+                </div>
+                <div class="mt-3 px-2">
+                    <p class="text-[11px] text-gray-800 font-medium"><i class="fa-solid fa-mouse-pointer mr-1"></i> Cách dùng:</p>
+                    <ul class="text-[11px] text-gray-500 list-disc pl-4 mt-1 space-y-1">
+                        <li>Kéo chuột để chọn vùng ảnh.</li>
+                        <li><b>Nhấp đúp chuột</b> vào vùng chọn để cắt nhanh.</li>
+                    </ul>
+                </div>
+                <button onclick="performCrop()" class="w-full mt-3 bg-blue-600 text-white py-3 rounded-xl font-medium shadow-sm hover:bg-blue-700">Xác nhận Cắt</button>
+            </div>
+
+            <!-- 2. Context: Draw & Arrow -->
+            <div id="draw-controls" class="hidden">
+                <div class="ios-group-title">Tùy chỉnh nét vẽ</div>
+                <div class="ios-card p-4 space-y-4">
+                    <div class="flex items-center gap-3">
+                         <input type="color" id="drawColor" value="#FF3B30" class="w-10 h-10 rounded-full border-none cursor-pointer overflow-hidden p-0">
+                         <div class="flex-1 space-y-1">
+                             <div class="flex justify-between text-xs text-gray-500"><span>Độ dày</span><span id="brushSizeVal">5px</span></div>
+                             <input type="range" id="brushSize" min="2" max="30" value="5" oninput="document.getElementById('brushSizeVal').innerText = this.value + 'px'">
+                         </div>
+                    </div>
+                    <button onclick="undoLastPath()" class="w-full py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200 text-gray-700">
+                        <i class="fa-solid fa-rotate-left mr-2"></i> Hoàn tác nét cuối
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. Context: Add Text (Annotation) -->
+            <div id="text-tool-controls" class="hidden">
+                <div class="ios-group-title">Chỉnh sửa văn bản</div>
+                <div class="ios-card p-4 space-y-4">
+                    <p class="text-[11px] text-gray-400 italic mb-2 text-center">Nhấn vào ảnh để thêm chữ, hoặc chọn chữ có sẵn để sửa.</p>
+                    
+                    <div id="text-edit-panel" class="opacity-50 pointer-events-none transition-opacity">
+                        <textarea id="annotationInput" rows="2" class="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-[--ios-blue] outline-none mb-3" placeholder="Nội dung..."></textarea>
+                        
+                        <div class="flex gap-2 mb-3">
+                            <input type="color" id="annotationColor" class="w-10 h-10 rounded border-none p-0 cursor-pointer flex-shrink-0">
+                            <select id="annotationFont" class="flex-1 text-sm border border-gray-200 rounded-lg p-2 bg-white">
+                                <option value="Arial" style="font-family: Arial">Arial (Mặc định)</option>
+                                <option value="'Be Vietnam Pro'" style="font-family: 'Be Vietnam Pro'">Be Vietnam Pro</option>
+                                <option value="'Dancing Script'" style="font-family: 'Dancing Script'">Dancing Script</option>
+                                <option value="'Lobster'" style="font-family: 'Lobster'">Lobster</option>
+                                <option value="'Oswald'" style="font-family: 'Oswald'">Oswald</option>
+                                <option value="'Pacifico'" style="font-family: 'Pacifico'">Pacifico</option>
+                                <option value="'Roboto Mono'" style="font-family: 'Roboto Mono'">Roboto Mono</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <button onclick="toggleAnnotationStyle('bold')" id="btn-bold" class="py-2 bg-gray-100 rounded hover:bg-gray-200 text-sm font-bold">B</button>
+                            <button onclick="toggleAnnotationStyle('italic')" id="btn-italic" class="py-2 bg-gray-100 rounded hover:bg-gray-200 text-sm italic">I</button>
+                        </div>
+
+                        <div class="space-y-1">
+                             <div class="flex justify-between text-xs text-gray-500"><span>Kích thước</span><span id="annotationSizeVal">40</span></div>
+                             <input type="range" id="annotationSize" min="10" max="200" value="40">
+                        </div>
+                        
+                        <button onclick="deleteSelectedText()" class="w-full mt-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100">
+                            <i class="fa-regular fa-trash-can mr-2"></i> Xóa chữ này
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Standard: Image & Global Watermark -->
+            <div id="standard-controls">
+                
+                <!-- Image Upload / Capture -->
+                <div>
+                    <div class="ios-group-title">Ảnh gốc</div>
+                    <div class="space-y-3">
+                         <!-- Screenshot Button -->
+                         <button onclick="handleScreenCapture()" class="w-full bg-blue-50 text-blue-600 hover:bg-blue-100 active:bg-blue-200 py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2 shadow-sm border border-blue-100">
+                            <i class="fa-solid fa-desktop"></i>
+                            <span>Chụp Màn Hình</span>
+                        </button>
+                        
+                        <!-- OR Divider -->
+                        <div class="flex items-center gap-2 text-[10px] text-gray-400 uppercase font-medium">
+                            <div class="h-px bg-gray-200 flex-1"></div>
+                            <span>Hoặc tải lên</span>
+                            <div class="h-px bg-gray-200 flex-1"></div>
+                        </div>
+
+                        <!-- File Input -->
+                        <div class="ios-card">
+                            <div class="relative group active:opacity-70 transition-opacity">
+                                <input type="file" id="uploadImage" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                                <label for="uploadImage" class="flex items-center p-3 cursor-pointer">
+                                    <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 mr-3">
+                                        <i class="fa-regular fa-folder-open text-lg"></i>
+                                    </div>
+                                    <div class="flex-1 overflow-hidden">
+                                        <div class="font-medium text-[15px] truncate" id="fileName">Chọn file từ máy...</div>
+                                    </div>
+                                    <div class="text-xs text-gray-400">JPG/PNG</div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <p class="text-[11px] text-gray-400 px-2 flex items-center gap-1">
+                            <i class="fa-solid fa-keyboard"></i> Mẹo: Nhấn <b>Ctrl+V</b> để dán ảnh.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Logo Section -->
+                <div class="mt-6">
+                    <div class="ios-group-title">Logo Bản Quyền</div>
+                    <div class="ios-card divide-y divide-[#C6C6C8]/30">
+                        <!-- Header / Toggle -->
+                        <div class="flex items-center justify-between p-3">
+                            <span class="text-[15px] font-medium flex items-center gap-2"><i class="fa-solid fa-stamp text-pink-500"></i> Bật Logo</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="enableLogo" class="sr-only peer" onchange="toggleSection('enableLogo', 'logoControls')">
+                                <div class="w-[42px] h-[26px] bg-[#E9E9EA] peer-focus:outline-none rounded-full peer peer-checked-bg transition-colors duration-200"></div>
+                                <div class="absolute left-[2px] top-[2px] bg-white w-[22px] h-[22px] rounded-full shadow-sm transition-transform duration-200 peer-checked:translate-x-[16px]"></div>
+                            </label>
+                        </div>
+                        
+                        <!-- Controls -->
+                        <div id="logoControls" class="hidden p-3 bg-[#F9F9FB] space-y-4">
+                            <!-- Upload -->
+                            <input type="file" id="uploadLogo" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
+                            <label for="uploadLogo" class="block w-full text-center py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium shadow-sm cursor-pointer hover:bg-gray-50">
+                                Chọn file Logo
+                            </label>
+
+                            <!-- Background Removal Tools -->
+                            <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm space-y-2">
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="text-[11px] font-bold text-gray-600 uppercase tracking-wide">Xóa nền Logo</label>
+                                    <button onclick="resetLogo()" class="text-[10px] text-blue-500 hover:text-blue-700 font-medium">Khôi phục</button>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button onclick="removeLogoBackground('white')" class="flex items-center justify-center gap-2 py-2 bg-gray-50 border border-gray-200 rounded text-xs font-medium hover:bg-white hover:border-gray-300 transition-all text-gray-700">
+                                        <div class="w-3 h-3 bg-white border border-gray-300 rounded-sm"></div> Xóa Trắng
+                                    </button>
+                                    <button onclick="removeLogoBackground('black')" class="flex items-center justify-center gap-2 py-2 bg-gray-800 border border-gray-900 rounded text-xs font-medium hover:bg-black transition-all text-white">
+                                        <div class="w-3 h-3 bg-black border border-gray-600 rounded-sm"></div> Xóa Đen
+                                    </button>
+                                </div>
+                                
+                                <label class="flex items-center gap-2 text-[11px] text-gray-600 mt-2 bg-gray-50 p-1.5 rounded border border-gray-100">
+                                    <input type="checkbox" id="floodFillMode" checked class="rounded text-blue-600 focus:ring-blue-500 w-3.5 h-3.5" onchange="reapplyBackgroundRemoval()"> 
+                                    <span>Chỉ xóa viền ngoài (Giữ nội dung)</span>
+                                </label>
+
+                                <div class="flex items-center gap-2 pt-1">
+                                    <span class="text-[10px] text-gray-400 w-12">Độ nhạy:</span>
+                                    <input type="range" id="bgTolerance" min="1" max="150" value="30" class="flex-1 h-1.5" oninput="reapplyBackgroundRemoval()"> 
+                                </div>
+                            </div>
+
+                            <!-- Basic Adjustments -->
+                            <div class="space-y-3 pt-2">
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-xs text-gray-500"><span>Kích thước</span><span id="logoSizeVal">30%</span></div>
+                                    <input type="range" id="logoSize" min="5" max="100" value="30" oninput="drawCanvas()">
+                                </div>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-xs text-gray-500"><span>Độ mờ</span><span id="logoOpacityVal">100%</span></div>
+                                    <input type="range" id="logoOpacity" min="0" max="100" value="100" oninput="drawCanvas()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Global Watermark Text Section -->
+                <div class="mt-6">
+                    <div class="ios-group-title">Watermark Text (Cố định)</div>
+                    <div class="ios-card divide-y divide-[#C6C6C8]/30">
+                        <div class="flex items-center justify-between p-3">
+                            <span class="text-[15px] font-medium flex items-center gap-2"><i class="fa-solid fa-copyright text-indigo-500"></i> Bật Watermark</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="enableText" class="sr-only peer" onchange="toggleSection('enableText', 'textControls')">
+                                <div class="w-[42px] h-[26px] bg-[#E9E9EA] peer-focus:outline-none rounded-full peer peer-checked-bg transition-colors duration-200"></div>
+                                <div class="absolute left-[2px] top-[2px] bg-white w-[22px] h-[22px] rounded-full shadow-sm transition-transform duration-200 peer-checked:translate-x-[16px]"></div>
+                            </label>
+                        </div>
+                        <div id="textControls" class="hidden p-3 bg-[#F9F9FB] space-y-4">
+                            <input type="text" id="watermarkText" placeholder="Nhập nội dung..." class="w-full border-none rounded-lg p-2 text-sm shadow-sm focus:ring-2 focus:ring-[--ios-blue]" oninput="drawCanvas()">
+                            <div class="flex gap-2">
+                                <input type="color" id="textColor" value="#ffffff" class="w-10 h-10 rounded border-none p-0 cursor-pointer" oninput="drawCanvas()">
+                                <select id="textFont" class="flex-1 text-sm border-none rounded-lg p-2 shadow-sm" onchange="drawCanvas()">
+                                    <option value="Arial">Arial</option>
+                                    <option value="'Be Vietnam Pro'">Be Vietnam Pro</option>
+                                    <option value="'Roboto Mono'">Roboto Mono</option>
+                                </select>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-xs text-gray-500"><span>Cỡ chữ</span><span id="textSizeVal">40</span></div>
+                                    <input type="range" id="textSize" min="10" max="200" value="40" oninput="drawCanvas()">
+                                </div>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-xs text-gray-500"><span>Độ mờ</span><span id="textOpacityVal">80%</span></div>
+                                    <input type="range" id="textOpacity" min="0" max="100" value="80" oninput="drawCanvas()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 relative bg-[#E5E5EA] flex flex-col overflow-hidden">
+        
+        <!-- Zoom Controls -->
+        <div class="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-white/80 backdrop-blur rounded-full shadow-sm px-4 py-2 flex items-center gap-4 border border-white/20 select-none">
+            <button onclick="adjustZoom(-0.1)" class="text-gray-600 hover:text-black w-6 text-center"><i class="fa-solid fa-minus"></i></button>
+            <span id="zoomLevel" class="text-xs font-bold font-mono w-12 text-center">100%</span>
+            <button onclick="adjustZoom(0.1)" class="text-gray-600 hover:text-black w-6 text-center"><i class="fa-solid fa-plus"></i></button>
+            <div class="w-px h-4 bg-gray-300 mx-1"></div>
+            <button onclick="resetZoom()" class="text-xs font-medium text-blue-600">Fit</button>
+        </div>
+
+        <div class="flex-1 flex items-center justify-center p-8 overflow-hidden relative canvas-bg" id="canvas-container">
+            <div id="placeholder" class="absolute z-10 text-center text-gray-400 pointer-events-none">
+                <i class="fa-regular fa-images text-5xl mb-4 opacity-50"></i>
+                <p class="text-[17px] font-medium mt-4">Chưa có ảnh</p>
+                <p class="text-sm mt-1">Dán ảnh (Ctrl+V), Tải lên hoặc Chụp màn hình</p>
+            </div>
+            
+            <div id="canvas-wrapper">
+                <canvas id="canvas" class="hidden cursor-crosshair shadow-2xl"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- Global State ---
+        let mainImg = null;
+        let logoImg = null;
+        let logoImgOriginal = null; // Store original for restore/re-process
+        let logoBgState = { type: null, tolerance: 30 }; // Background removal state
+
+        let currentMode = 'move'; 
+        let zoomScale = 1.0;
+        
+        // Canvas & Context
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const wrapper = document.getElementById('canvas-wrapper');
+        const container = document.getElementById('canvas-container');
+        
+        // --- Layer Data ---
+        let logoState = { x: 0.95, y: 0.95, isDragging: false };
+        let watermarkState = { x: 0.5, y: 0.5, isDragging: false };
+        let drawingPaths = [];
+        let textObjects = [];
+        let selectedTextIndex = -1;
+
+        // Interaction State
+        let isDrawing = false;
+        let cropStart = null, cropCurrent = null, isCropping = false;
+
+        // --- Initialization ---
+        function init() {
+            canvas.addEventListener('mousedown', handlePointerDown);
+            window.addEventListener('mousemove', handlePointerMove);
+            window.addEventListener('mouseup', handlePointerUp);
+            canvas.addEventListener('dblclick', handleDoubleClick); 
+            
+            canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handlePointerDown(e.touches[0]); }, {passive: false});
+            window.addEventListener('touchmove', (e) => { if(isDrawing || isCropping) e.preventDefault(); handlePointerMove(e.touches[0]); }, {passive: false});
+            window.addEventListener('touchend', handlePointerUp);
+            
+            window.addEventListener('paste', handlePaste);
+            setupAnnotationListeners();
+        }
+        init();
+
+        // --- Core Functions ---
+
+        function setMode(mode) {
+            currentMode = mode;
+            ['move', 'draw', 'arrow', 'text', 'crop'].forEach(m => {
+                const btn = document.getElementById('btn-' + m);
+                if (btn) btn.classList.toggle('active', m === mode);
+            });
+
+            toggleElement('crop-controls', mode === 'crop');
+            toggleElement('draw-controls', mode === 'draw' || mode === 'arrow');
+            toggleElement('text-tool-controls', mode === 'text');
+            
+            document.getElementById('standard-controls').classList.toggle('opacity-30', mode === 'crop');
+            document.getElementById('standard-controls').classList.toggle('pointer-events-none', mode === 'crop');
+            
+            if (mode === 'move') canvas.style.cursor = 'default';
+            else if (mode === 'text') canvas.style.cursor = 'text';
+            else if (mode === 'crop') canvas.style.cursor = 'crosshair';
+            else canvas.style.cursor = 'crosshair';
+
+            drawCanvas();
+        }
+
+        // --- SCREEN CAPTURE FEATURE ---
+        async function handleScreenCapture() {
+            try {
+                // Request screen stream
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { cursor: "always" },
+                    audio: false
+                });
+
+                // Create hidden video element to read stream
+                const video = document.createElement("video");
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    video.play();
+                    // Slight delay to ensure video frame is ready
+                    setTimeout(() => {
+                        // Create high-res canvas for the frame
+                        const captureCanvas = document.createElement("canvas");
+                        captureCanvas.width = video.videoWidth;
+                        captureCanvas.height = video.videoHeight;
+                        const captureCtx = captureCanvas.getContext("2d");
+                        captureCtx.drawImage(video, 0, 0);
+                        
+                        // Stop all tracks to release camera/screen resource
+                        stream.getTracks().forEach(track => track.stop());
+                        
+                        // Add flash effect
+                        const flash = document.createElement('div');
+                        flash.className = 'screenshot-flash';
+                        document.body.appendChild(flash);
+                        setTimeout(() => flash.remove(), 500);
+
+                        // Load image
+                        loadMainImage(captureCanvas.toDataURL("image/png"));
+                        
+                        // Auto switch to crop mode and show hint
+                        setTimeout(() => {
+                            setMode('crop');
+                            // Show floating instruction
+                            const hint = document.createElement('div');
+                            hint.className = 'absolute top-[10%] left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-5 py-3 rounded-full shadow-lg z-50 text-sm font-medium fade-out-hint pointer-events-none flex items-center gap-2';
+                            hint.innerHTML = '<i class="fa-solid fa-crop-simple"></i> Kéo để chọn vùng & Nhấp đúp để cắt';
+                            container.appendChild(hint);
+                            setTimeout(() => hint.remove(), 2500);
+                        }, 500);
+                    }, 300);
+                };
+            } catch (err) {
+                console.error("Screen capture cancelled or failed:", err);
+                if (err.name !== 'NotAllowedError') {
+                    alert("Không thể chụp màn hình. Vui lòng thử lại trên trình duyệt Chrome/Edge/Firefox mới nhất.");
+                }
+            }
+        }
+
+        function handlePaste(e) {
+            const items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = (event) => loadMainImage(event.target.result);
+                    reader.readAsDataURL(blob);
+                    e.preventDefault();
+                    break;
+                }
+            }
+        }
+
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('fileName').innerText = file.name;
+            const reader = new FileReader();
+            reader.onload = (event) => loadMainImage(event.target.result);
+            reader.readAsDataURL(file);
+        }
+
+        function loadMainImage(src) {
+            const img = new Image();
+            img.onload = function() {
+                mainImg = img;
+                canvas.width = mainImg.width;
+                canvas.height = mainImg.height;
+                drawingPaths = [];
+                textObjects = [];
+                resetZoom();
+                document.getElementById('placeholder').classList.add('hidden');
+                canvas.classList.remove('hidden');
+                document.getElementById('downloadBtn').disabled = false;
+                document.getElementById('downloadBtn').classList.remove('opacity-50', 'cursor-not-allowed');
+                document.getElementById('fileName').innerText = "Đã tải ảnh";
+                drawCanvas();
+            }
+            img.src = src;
+        }
+
+        function handleLogoUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    // Set both current and original
+                    logoImg = img;
+                    logoImgOriginal = img;
+                    logoBgState.type = null; // Reset BG state
+                    
+                    if (!document.getElementById('enableLogo').checked) {
+                        document.getElementById('enableLogo').click();
+                    }
+                    drawCanvas();
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        // --- BG REMOVAL LOGIC ---
+        function removeLogoBackground(type) {
+            if (!logoImgOriginal) return;
+            logoBgState.type = type;
+            processLogoBackground();
+        }
+
+        function reapplyBackgroundRemoval() {
+            if (!logoBgState.type || !logoImgOriginal) return;
+            // Update tolerance from slider
+            logoBgState.tolerance = parseInt(document.getElementById('bgTolerance').value);
+            processLogoBackground();
+        }
+
+        function resetLogo() {
+            if (!logoImgOriginal) return;
+            logoImg = logoImgOriginal;
+            logoBgState.type = null;
+            drawCanvas();
+        }
+
+        function processLogoBackground() {
+            const tol = logoBgState.tolerance;
+            const type = logoBgState.type;
+            const floodFillMode = document.getElementById('floodFillMode').checked;
+
+            // Draw original logo to a temp canvas to process pixels
+            const c = document.createElement('canvas');
+            c.width = logoImgOriginal.width;
+            c.height = logoImgOriginal.height;
+            const cx = c.getContext('2d');
+            cx.drawImage(logoImgOriginal, 0, 0);
+
+            const imgData = cx.getImageData(0, 0, c.width, c.height);
+            const data = imgData.data;
+
+            if (floodFillMode) {
+                // Perform Flood Fill (BFS) starting from borders
+                const width = c.width;
+                const height = c.height;
+                const stack = [];
+                const visited = new Uint8Array(width * height); // 0 = unvisited, 1 = visited/processed
+
+                // Helper to check color match
+                function isTarget(i) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    if (type === 'white') {
+                        return r > 255 - tol && g > 255 - tol && b > 255 - tol;
+                    } else { // black
+                        return r < tol && g < tol && b < tol;
+                    }
+                }
+
+                // Initialize stack with matching edge pixels
+                // Horizontal edges
+                for (let x = 0; x < width; x++) {
+                    // Top edge
+                    let idx = (0 * width + x) * 4;
+                    if (isTarget(idx)) { stack.push(idx); visited[x] = 1; }
+                    // Bottom edge
+                    idx = ((height - 1) * width + x) * 4;
+                    if (isTarget(idx)) { stack.push(idx); visited[(height - 1) * width + x] = 1; }
+                }
+                // Vertical edges (avoid corners already checked)
+                for (let y = 1; y < height - 1; y++) {
+                    // Left edge
+                    let idx = (y * width + 0) * 4;
+                    if (isTarget(idx)) { stack.push(idx); visited[y * width] = 1; }
+                    // Right edge
+                    idx = (y * width + (width - 1)) * 4;
+                    if (isTarget(idx)) { stack.push(idx); visited[y * width + (width - 1)] = 1; }
+                }
+
+                // Process Stack
+                while(stack.length > 0) {
+                    const idx = stack.pop();
+                    data[idx + 3] = 0; // Set Alpha to 0 (Transparent)
+
+                    const pIndex = idx / 4;
+                    const x = pIndex % width;
+                    const y = Math.floor(pIndex / width);
+
+                    // Check neighbors (4-way)
+                    const neighbors = [
+                        {x: x, y: y - 1}, {x: x, y: y + 1},
+                        {x: x - 1, y: y}, {x: x + 1, y: y}
+                    ];
+
+                    for (let n of neighbors) {
+                        if (n.x >= 0 && n.x < width && n.y >= 0 && n.y < height) {
+                            const vIdx = n.y * width + n.x;
+                            if (visited[vIdx] === 0) {
+                                const nIdx = vIdx * 4;
+                                if (isTarget(nIdx)) {
+                                    visited[vIdx] = 1;
+                                    stack.push(nIdx);
+                                }
+                            }
+                        }
+                    }
+                }
+
+            } else {
+                // Standard global color replacement
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+
+                    if (type === 'white') {
+                        if (r > 255 - tol && g > 255 - tol && b > 255 - tol) {
+                            data[i + 3] = 0;
+                        }
+                    } else if (type === 'black') {
+                        if (r < tol && g < tol && b < tol) {
+                            data[i + 3] = 0;
+                        }
+                    }
+                }
+            }
+
+            cx.putImageData(imgData, 0, 0);
+            
+            // Create new image from processed canvas
+            const newImg = new Image();
+            newImg.onload = function() {
+                logoImg = newImg;
+                drawCanvas();
+            }
+            newImg.src = c.toDataURL();
+        }
+
+        // --- Drawing Logic ---
+
+        function drawCanvas() {
+            if (!mainImg) return;
+            updateLabels();
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(mainImg, 0, 0, canvas.width, canvas.height);
+
+            drawingPaths.forEach(path => {
+                if (path.points.length < 2) return;
+                ctx.beginPath();
+                ctx.lineWidth = path.size;
+                ctx.strokeStyle = path.color;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                if (path.type === 'brush') {
+                    ctx.moveTo(path.points[0].x, path.points[0].y);
+                    for (let i = 1; i < path.points.length; i++) {
+                        ctx.lineTo(path.points[i].x, path.points[i].y);
+                    }
+                    ctx.stroke();
+                } else if (path.type === 'arrow') {
+                    const start = path.points[0];
+                    const end = path.points[path.points.length - 1];
+                    drawArrow(ctx, start.x, start.y, end.x, end.y, path.size);
+                }
+            });
+
+            canvas.hitRects = { texts: [] };
+            textObjects.forEach((obj, index) => {
+                ctx.save();
+                const style = obj.italic ? 'italic' : '';
+                const weight = obj.bold ? 'bold' : 'normal';
+                const scaleFactor = Math.max(canvas.width, canvas.height) / 1000;
+                const finalSize = obj.size * scaleFactor;
+                
+                ctx.font = `${style} ${weight} ${finalSize}px ${obj.font}`;
+                ctx.fillStyle = obj.color;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor = "rgba(0,0,0,0.3)";
+                ctx.shadowBlur = 4 * scaleFactor;
+
+                const x = canvas.width * obj.x;
+                const y = canvas.height * obj.y;
+                ctx.fillText(obj.text, x, y);
+
+                const metrics = ctx.measureText(obj.text);
+                const w = metrics.width;
+                const h = finalSize; 
+                
+                const hitRect = { x: x - w/2 - 10, y: y - h/2 - 10, w: w + 20, h: h + 20, index: index };
+                canvas.hitRects.texts.push(hitRect);
+
+                if (currentMode === 'text' && selectedTextIndex === index) {
+                    ctx.strokeStyle = '#007AFF';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.shadowColor = 'transparent';
+                    ctx.strokeRect(hitRect.x, hitRect.y, hitRect.w, hitRect.h);
+                }
+                ctx.restore();
+            });
+
+            let logoHit = null;
+            if (document.getElementById('enableLogo').checked && logoImg) {
+                const sizePercent = parseInt(document.getElementById('logoSize').value) / 100;
+                const opacity = parseInt(document.getElementById('logoOpacity').value) / 100;
+                const logoAspect = logoImg.width / logoImg.height;
+                const w = canvas.width * sizePercent;
+                const h = w / logoAspect;
+                const x = (canvas.width - w) * logoState.x;
+                const y = (canvas.height - h) * logoState.y;
+
+                ctx.save();
+                ctx.globalAlpha = opacity;
+                ctx.drawImage(logoImg, x, y, w, h);
+                ctx.restore();
+                
+                logoHit = { x, y, w, h };
+            }
+
+            let wmHit = null;
+            if (document.getElementById('enableText').checked) {
+                const text = document.getElementById('watermarkText').value;
+                if (text) {
+                    const baseSize = parseInt(document.getElementById('textSize').value);
+                    const scaleFactor = Math.max(canvas.width, canvas.height) / 1000; 
+                    const fontSize = baseSize * scaleFactor;
+                    
+                    ctx.font = `bold ${fontSize}px ${document.getElementById('textFont').value}`;
+                    const x = canvas.width * watermarkState.x;
+                    const y = canvas.height * watermarkState.y;
+
+                    ctx.save();
+                    ctx.globalAlpha = parseInt(document.getElementById('textOpacity').value) / 100;
+                    ctx.fillStyle = document.getElementById('textColor').value;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.shadowColor = "rgba(0,0,0,0.5)";
+                    ctx.shadowBlur = 4 * scaleFactor;
+                    ctx.fillText(text, x, y);
+                    
+                    const metrics = ctx.measureText(text);
+                    wmHit = { x: x - metrics.width/2, y: y - fontSize/2, w: metrics.width, h: fontSize };
+                    ctx.restore();
+                }
+            }
+            
+            canvas.hitRects.logo = logoHit;
+            canvas.hitRects.wm = wmHit;
+
+            if (currentMode === 'crop' && cropStart && cropCurrent) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0,0, canvas.width, canvas.height);
+                const rx = Math.min(cropStart.x, cropCurrent.x);
+                const ry = Math.min(cropStart.y, cropCurrent.y);
+                const rw = Math.abs(cropStart.x - cropCurrent.x);
+                const rh = Math.abs(cropStart.y - cropCurrent.y);
+                ctx.clearRect(rx, ry, rw, rh);
+                ctx.drawImage(mainImg, rx, ry, rw, rh, rx, ry, rw, rh);
+                
+                // Crop border with handles look
+                ctx.strokeStyle = '#fff'; 
+                ctx.lineWidth = 2; 
+                ctx.strokeRect(rx, ry, rw, rh);
+                
+                // Helper text
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillText("Nhấp đúp để cắt", rx + 5, ry - 8);
+            }
+        }
+
+        function drawArrow(ctx, x1, y1, x2, y2, size) {
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            const headLen = size * 4; 
+            
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke(); 
+            
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+            ctx.fillStyle = ctx.strokeStyle;
+            ctx.fill();
+        }
+
+        // --- Interaction Handlers ---
+
+        function getCanvasPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
+        }
+
+        function handlePointerDown(e) {
+            if (!mainImg) return;
+            const pos = getCanvasPos(e);
+
+            if (currentMode === 'move') {
+                const hits = canvas.hitRects || {};
+                
+                for (let i = hits.texts.length - 1; i >= 0; i--) {
+                    const r = hits.texts[i];
+                    if (pos.x >= r.x && pos.x <= r.x + r.w && pos.y >= r.y && pos.y <= r.y + r.h) {
+                        selectedTextIndex = i;
+                        textObjects[i].isDragging = true;
+                        setMode('text');
+                        updateTextPanelUI();
+                        return;
+                    }
+                }
+
+                if (hits.wm && hitTest(pos, hits.wm)) { watermarkState.isDragging = true; return; }
+                if (hits.logo && hitTest(pos, hits.logo)) { logoState.isDragging = true; return; }
+
+            } else if (currentMode === 'text') {
+                const hits = canvas.hitRects || {};
+                let hitFound = false;
+                for (let i = hits.texts.length - 1; i >= 0; i--) {
+                    const r = hits.texts[i];
+                    if (pos.x >= r.x && pos.x <= r.x + r.w && pos.y >= r.y && pos.y <= r.y + r.h) {
+                        selectedTextIndex = i;
+                        textObjects[i].isDragging = true;
+                        hitFound = true;
+                        updateTextPanelUI();
+                        drawCanvas();
+                        return;
+                    }
+                }
+                
+                if (!hitFound) {
+                    textObjects.push({
+                        x: pos.x / canvas.width,
+                        y: pos.y / canvas.height,
+                        text: "Text",
+                        color: "#FF3B30",
+                        font: "Arial",
+                        size: 40,
+                        bold: false,
+                        italic: false,
+                        isDragging: false
+                    });
+                    selectedTextIndex = textObjects.length - 1;
+                    updateTextPanelUI();
+                    drawCanvas();
+                }
+
+            } else if (currentMode === 'draw' || currentMode === 'arrow') {
+                isDrawing = true;
+                const color = document.getElementById('drawColor').value;
+                const size = parseInt(document.getElementById('brushSize').value) * (canvas.width / 1000);
+                drawingPaths.push({ 
+                    type: currentMode === 'arrow' ? 'arrow' : 'brush',
+                    points: [pos], 
+                    color: color, 
+                    size: size 
+                });
+                drawCanvas();
+            } else if (currentMode === 'crop') {
+                isCropping = true;
+                cropStart = pos;
+                cropCurrent = pos;
+                drawCanvas();
+            }
+        }
+
+        function handlePointerMove(e) {
+            if (!mainImg) return;
+            const pos = getCanvasPos(e);
+
+            if (logoState.isDragging) {
+                const hit = canvas.hitRects.logo; 
+                if(hit) {
+                    logoState.x = Math.max(0, Math.min(1, (pos.x - hit.w/2) / (canvas.width - hit.w)));
+                    logoState.y = Math.max(0, Math.min(1, (pos.y - hit.h/2) / (canvas.height - hit.h)));
+                    drawCanvas();
+                }
+            }
+            if (watermarkState.isDragging) {
+                watermarkState.x = Math.max(0, Math.min(1, pos.x / canvas.width));
+                watermarkState.y = Math.max(0, Math.min(1, pos.y / canvas.height));
+                drawCanvas();
+            }
+            if (currentMode === 'text' || currentMode === 'move') {
+                const obj = textObjects.find(t => t.isDragging);
+                if (obj) {
+                    obj.x = Math.max(0, Math.min(1, pos.x / canvas.width));
+                    obj.y = Math.max(0, Math.min(1, pos.y / canvas.height));
+                    drawCanvas();
+                }
+            }
+
+            if (isDrawing) {
+                const currentPath = drawingPaths[drawingPaths.length - 1];
+                currentPath.points.push(pos);
+                drawCanvas();
+            }
+            if (isCropping) {
+                cropCurrent = pos;
+                drawCanvas();
+            }
+        }
+
+        function handlePointerUp() {
+            logoState.isDragging = false;
+            watermarkState.isDragging = false;
+            textObjects.forEach(t => t.isDragging = false);
+            isDrawing = false;
+            isCropping = false;
+        }
+
+        // New Feature: Double Click to Crop
+        function handleDoubleClick(e) {
+            if (currentMode === 'crop' && cropStart && cropCurrent) {
+                performCrop();
+            }
+        }
+
+        function hitTest(pos, rect) {
+            return pos.x >= rect.x && pos.x <= rect.x + rect.w && pos.y >= rect.y && pos.y <= rect.y + rect.h;
+        }
+
+        // --- Text Annotation UI Logic ---
+        function setupAnnotationListeners() {
+            document.getElementById('annotationInput').addEventListener('input', (e) => updateSelectedText('text', e.target.value));
+            document.getElementById('annotationColor').addEventListener('input', (e) => updateSelectedText('color', e.target.value));
+            document.getElementById('annotationFont').addEventListener('change', (e) => updateSelectedText('font', e.target.value));
+            document.getElementById('annotationSize').addEventListener('input', (e) => {
+                document.getElementById('annotationSizeVal').innerText = e.target.value;
+                updateSelectedText('size', parseInt(e.target.value));
+            });
+        }
+
+        function updateSelectedText(prop, value) {
+            if (selectedTextIndex === -1 || !textObjects[selectedTextIndex]) return;
+            textObjects[selectedTextIndex][prop] = value;
+            drawCanvas();
+        }
+
+        function toggleAnnotationStyle(style) {
+            if (selectedTextIndex === -1 || !textObjects[selectedTextIndex]) return;
+            const obj = textObjects[selectedTextIndex];
+            obj[style] = !obj[style];
+            const btn = document.getElementById(style === 'bold' ? 'btn-bold' : 'btn-italic');
+            btn.classList.toggle('bg-gray-300', obj[style]);
+            drawCanvas();
+        }
+
+        function updateTextPanelUI() {
+            const panel = document.getElementById('text-edit-panel');
+            if (selectedTextIndex === -1) {
+                panel.classList.add('opacity-50', 'pointer-events-none');
+                return;
+            }
+            panel.classList.remove('opacity-50', 'pointer-events-none');
+            
+            const obj = textObjects[selectedTextIndex];
+            document.getElementById('annotationInput').value = obj.text;
+            document.getElementById('annotationColor').value = obj.color;
+            document.getElementById('annotationFont').value = obj.font;
+            document.getElementById('annotationSize').value = obj.size;
+            document.getElementById('annotationSizeVal').innerText = obj.size;
+            
+            document.getElementById('btn-bold').classList.toggle('bg-gray-300', obj.bold);
+            document.getElementById('btn-italic').classList.toggle('bg-gray-300', obj.italic);
+        }
+
+        function deleteSelectedText() {
+            if (selectedTextIndex !== -1) {
+                textObjects.splice(selectedTextIndex, 1);
+                selectedTextIndex = -1;
+                updateTextPanelUI();
+                drawCanvas();
+            }
+        }
+
+        // --- Crop Logic ---
+        function applyCropRatio(ratio) {
+            if (!mainImg) return;
+            let w = canvas.width, h = canvas.height;
+            if (ratio === 0) { cropStart = null; cropCurrent = null; drawCanvas(); return; }
+            if (ratio > w/h) h = w / ratio; else w = h * ratio;
+            const cx = canvas.width / 2, cy = canvas.height / 2;
+            cropStart = { x: cx - w/2, y: cy - h/2 };
+            cropCurrent = { x: cx + w/2, y: cy + h/2 };
+            setMode('crop');
+            drawCanvas();
+        }
+        
+        function performCrop() {
+            if (!cropStart || !cropCurrent) return;
+            const rx = Math.min(cropStart.x, cropCurrent.x);
+            const ry = Math.min(cropStart.y, cropCurrent.y);
+            const rw = Math.abs(cropStart.x - cropCurrent.x);
+            const rh = Math.abs(cropStart.y - cropCurrent.y);
+            
+            const tempC = document.createElement('canvas');
+            tempC.width = rw; tempC.height = rh;
+            const tCtx = tempC.getContext('2d');
+            tCtx.drawImage(canvas, rx, ry, rw, rh, 0, 0, rw, rh);
+            
+            const newImg = new Image();
+            newImg.onload = function() {
+                mainImg = newImg;
+                canvas.width = rw; canvas.height = rh;
+                drawingPaths = [];
+                textObjects = [];
+                cropStart = null; cropCurrent = null;
+                setMode('move');
+                drawCanvas();
+            }
+            newImg.src = tempC.toDataURL();
+        }
+
+        // --- Utilities ---
+        function adjustZoom(delta) { zoomScale = Math.max(0.1, Math.min(3.0, zoomScale + delta)); updateZoomUI(); }
+        function resetZoom() { if (!mainImg) return; const scaleW = (wrapper.parentElement.clientWidth - 40) / mainImg.width; zoomScale = Math.min(scaleW, 1.0); updateZoomUI(); }
+        function updateZoomUI() { wrapper.style.transform = `scale(${zoomScale})`; document.getElementById('zoomLevel').innerText = Math.round(zoomScale * 100) + '%'; }
+        function undoLastPath() { drawingPaths.pop(); drawCanvas(); }
+        
+        function toggleSection(checkId, sectionId) {
+            document.getElementById(sectionId).classList.toggle('hidden', !document.getElementById(checkId).checked);
+            drawCanvas();
+        }
+        function toggleElement(id, show) {
+            document.getElementById(id).classList.toggle('hidden', !show);
+        }
+        function updateLabels() {
+            document.getElementById('logoSizeVal').innerText = document.getElementById('logoSize').value + '%';
+            document.getElementById('logoOpacityVal').innerText = document.getElementById('logoOpacity').value + '%';
+            document.getElementById('textSizeVal').innerText = document.getElementById('textSize').value;
+            document.getElementById('textOpacityVal').innerText = document.getElementById('textOpacity').value + '%';
+        }
+
+        function downloadImage() {
+            if (!mainImg) return;
+            const link = document.createElement('a');
+            link.download = `watermark_pro_${Date.now()}.png`;
+            selectedTextIndex = -1;
+            drawCanvas();
+            link.href = canvas.toDataURL('image/png', 1.0);
+            link.click();
+        }
+        
+        window.addEventListener('resize', () => { resetZoom(); drawCanvas(); });
+    </script>
+</body>
+</html>
