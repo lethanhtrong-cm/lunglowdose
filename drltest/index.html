@@ -115,6 +115,16 @@
             transform: scale(1);
         }
 
+        /* Hover table row for DRL selection */
+        .drl-row:hover {
+            background-color: #eff6ff;
+            cursor: pointer;
+        }
+        .drl-row.active {
+            background-color: #e0e7ff;
+            border-left: 3px solid #4f46e5;
+        }
+
         @media (max-width: 1024px) {
             .top-grid { flex-direction: column; }
             .sidebar-form { width: 100%; min-width: 100%; }
@@ -179,9 +189,43 @@
             text-align: center;
             padding: 2rem;
         }
+
+        /* --- Styles for Global Loader & Back to Top --- */
+        #globalLoader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #f8fafc; z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+            transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+        }
+        .loader-spinner {
+            width: 48px; height: 48px;
+            border: 5px solid #e2e8f0; border-bottom-color: #4f46e5;
+            border-radius: 50%; display: inline-block;
+            box-sizing: border-box; animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #backToTop {
+            position: fixed; bottom: 2rem; right: 2rem;
+            background: #4f46e5; color: white;
+            width: 3rem; height: 3rem; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            cursor: pointer; opacity: 0; visibility: hidden;
+            transition: all 0.3s ease; z-index: 80;
+        }
+        #backToTop.show { opacity: 1; visibility: visible; bottom: 6rem; /* Adjust based on toast */ }
     </style>
 </head>
 <body class="antialiased font-inter text-slate-900">
+    <!-- Global Loader -->
+    <div id="globalLoader">
+        <div class="flex flex-col items-center gap-4">
+            <span class="loader-spinner"></span>
+            <p class="text-xs font-black text-indigo-900 tracking-widest uppercase animate-pulse">Đang tải dữ liệu...</p>
+        </div>
+    </div>
+
     <div class="mesh-bg"></div>
 
     <!-- Auth Modals -->
@@ -195,6 +239,13 @@
             <form id="authForm" class="space-y-4">
                 <div><label class="section-label mb-2 block ml-1">Email Tài Khoản</label><input type="email" id="authEmail" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" placeholder="name@hospital.com" required></div>
                 <div><label class="section-label mb-2 block ml-1">Mật khẩu</label><input type="password" id="authPassword" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" placeholder="••••••••" required></div>
+                
+                <!-- Added Remember Me Checkbox -->
+                <div class="flex items-center gap-2 px-1">
+                    <input type="checkbox" id="rememberMe" class="custom-checkbox w-4 h-4" checked>
+                    <label for="rememberMe" class="text-[11px] font-bold text-slate-500 cursor-pointer select-none">Ghi nhớ đăng nhập</label>
+                </div>
+
                 <button type="submit" id="authSubmitBtn" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black shadow-xl transition-all flex items-center justify-center gap-3 uppercase active:scale-95"><span>VÀO HỆ THỐNG</span><i data-lucide="arrow-right" class="w-5 h-5"></i></button>
             </form>
             <div class="mt-6 text-center text-xs text-slate-500 font-medium">
@@ -231,7 +282,6 @@
                     </select>
                 </div>
                 <div class="flex gap-2 pt-4">
-                    <!-- FIX: Changed onclick from el() to document.getElementById() -->
                     <button type="button" onclick="document.getElementById('bulkEditModal').classList.add('hidden')" class="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-black text-[10px] uppercase">Hủy</button>
                     <button type="submit" class="flex-[2] py-3 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95">Lưu thay đổi</button>
                 </div>
@@ -239,7 +289,7 @@
         </div>
     </div>
 
-    <!-- NEW: Hospital Management Modal (Admin Only) -->
+    <!-- Hospital Management Modal (Admin Only) -->
     <div id="hospitalManageModal" class="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
         <div class="bg-white rounded-[2.5rem] w-full max-w-2xl p-8 shadow-2xl border border-indigo-100 h-[80vh] flex flex-col">
             <div class="text-center mb-6 flex-none">
@@ -281,7 +331,6 @@
             </div>
 
             <div class="pt-4 border-t border-slate-100 flex justify-end mt-4 flex-none">
-                <!-- FIX: Changed onclick to document.getElementById to fix scope issue -->
                 <button onclick="document.getElementById('hospitalManageModal').classList.add('hidden')" class="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl text-xs font-black uppercase hover:bg-slate-200">Đóng</button>
             </div>
         </div>
@@ -359,7 +408,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- FIX: Changed onclick from el() to document.getElementById() -->
                 <button id="navLoginBtn" onclick="document.getElementById('authModal').classList.remove('hidden')" class="px-3 md:px-6 py-2 md:py-2.5 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-xl md:rounded-2xl hover:bg-indigo-700 shadow-lg">Login</button>
             </div>
         </nav>
@@ -383,7 +431,7 @@
                 </div>
             </div>
 
-            <div class="top-grid">
+            <div class="top-grid mt-6">
                 <aside class="sidebar-form glass-card rounded-[2.5rem] flex flex-col overflow-hidden relative">
                     <div class="p-6 md:p-8 border-b border-slate-100 bg-white/40 z-20 flex justify-between items-center">
                         <h2 id="formTitle" class="font-black text-slate-900 flex items-center gap-3 uppercase tracking-widest text-xs"><i data-lucide="plus-circle" class="text-indigo-600 w-5 h-5"></i> Nhập dữ liệu</h2>
@@ -408,7 +456,6 @@
                             <div class="space-y-4">
                                 <label class="section-label flex items-center gap-2 font-bold"><i data-lucide="hospital" class="w-3 h-3 text-indigo-500"></i> Cơ sở & Thiết bị</label>
                                 <div class="space-y-3">
-                                    <!-- UPDATED: Moved Manage Button Here -->
                                     <div class="flex gap-2">
                                         <select id="hospitalSelect" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium"></select>
                                         <button id="btnManageHospitals" type="button" class="hidden p-3 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm" title="Quản lý danh sách Bệnh viện">
@@ -460,7 +507,6 @@
                 <main class="dashboard-main flex-1">
                     <div id="dashboardContent" class="flex flex-col gap-10">
                         <div class="glass-card rounded-[2rem] p-4 md:p-6 border border-indigo-100 shadow-xl flex flex-wrap items-end gap-4">
-                            <!-- ... existing filters ... -->
                             <div class="flex-1 min-w-[150px] space-y-1.5">
                                 <label class="text-[8px] font-black text-indigo-400 uppercase tracking-widest ml-1">Bộ lọc cơ sở</label>
                                 <select id="dashFilterHospital" class="w-full px-4 py-2.5 bg-white border border-indigo-50 rounded-xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-indigo-500"></select>
@@ -497,7 +543,6 @@
                                 <button id="btnResetDashFilter" class="p-2.5 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition-colors" title="Đặt lại bộ lọc">
                                     <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
                                 </button>
-                                <!-- Removed button from here -->
                             </div>
                             <!-- Quick Date Filters -->
                             <div class="w-full flex gap-2 pt-2 border-t border-indigo-50">
@@ -508,7 +553,6 @@
                         </div>
 
                         <div class="flex flex-col relative z-20">
-                            <!-- ... existing ref config toggle ... -->
                             <div class="glass-card rounded-full p-2 pl-4 pr-3 border-2 border-indigo-600 flex items-center justify-between shadow-xl shadow-indigo-100">
                                 <div class="flex items-center gap-4">
                                     <div class="bg-indigo-600 w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg">
@@ -525,9 +569,34 @@
                             </div>
 
                             <div id="refConfigContent" class="hidden glass-card -mt-8 pt-12 pb-6 px-8 rounded-[2.5rem] border border-indigo-100 border-t-0 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <div class="grid grid-cols-2 gap-6">
-                                    <div class="space-y-2"><label class="text-[9px] font-black text-indigo-700 uppercase ml-1">Ref CTDIvol (mGy)</label><input type="number" id="manualRefCtdi" class="w-full px-4 py-3 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-black text-indigo-600" placeholder="Auto"></div>
-                                    <div class="space-y-2"><label class="text-[9px] font-black text-indigo-700 uppercase ml-1">Ref DLP (mGy.cm)</label><input type="number" id="manualRefDlp" class="w-full px-4 py-3 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-black text-indigo-600" placeholder="Auto"></div>
+                                <div class="flex flex-col gap-4">
+                                    <!-- Selection Table -->
+                                    <div class="overflow-x-auto border border-indigo-50 rounded-xl">
+                                        <table class="w-full text-left text-[10px]">
+                                            <thead class="bg-indigo-50 text-indigo-800 font-black uppercase">
+                                                <tr>
+                                                    <th rowspan="2" class="px-3 py-2 align-bottom">Quốc gia / Tiêu chuẩn</th>
+                                                    <th colspan="2" class="px-2 py-1 text-center border-b border-indigo-200 text-indigo-700">CTDIvol (mGy)</th>
+                                                    <th colspan="2" class="px-2 py-1 text-center border-b border-indigo-200 text-amber-700">DLP (mGy.cm)</th>
+                                                </tr>
+                                                <tr>
+                                                    <th class="px-2 py-1 text-center text-slate-400 bg-indigo-50/50">P50</th>
+                                                    <th class="px-2 py-1 text-center text-indigo-600 bg-indigo-100/50">P75 (DRL)</th>
+                                                    <th class="px-2 py-1 text-center text-slate-400 bg-indigo-50/50">P50</th>
+                                                    <th class="px-2 py-1 text-center text-amber-600 bg-amber-100/50">P75 (DRL)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="refStandardTableBody" class="divide-y divide-indigo-50 text-slate-700 font-medium">
+                                                <!-- Dynamic Rows -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <!-- Manual Inputs -->
+                                    <div class="grid grid-cols-2 gap-6">
+                                        <div class="space-y-2"><label class="text-[9px] font-black text-indigo-700 uppercase ml-1">Ref CTDIvol (P75)</label><input type="number" id="manualRefCtdi" class="w-full px-4 py-3 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-black text-indigo-600" placeholder="Auto"></div>
+                                        <div class="space-y-2"><label class="text-[9px] font-black text-indigo-700 uppercase ml-1">Ref DLP (P75)</label><input type="number" id="manualRefDlp" class="w-full px-4 py-3 bg-white border-2 border-indigo-100 rounded-2xl text-sm font-black text-indigo-600" placeholder="Auto"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -557,22 +626,27 @@
                                     <div class="text-[9px] font-black px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg" title="Kiểm định t-test: Mean vs Reference">p = <span id="pValCtdi">---</span></div>
                                 </div>
                                 <div>
-                                    <div class="flex items-baseline gap-2 mt-2">
-                                        <!-- Main Display: Mean +/- SD -->
-                                        <h3 id="statCtdiPrimary" class="text-3xl font-black text-slate-900 tracking-tighter">0.0 ± 0.0</h3>
-                                        <span class="text-[10px] text-slate-400 font-bold border-l pl-2 ml-1 h-6 flex items-center" id="labelRefCtdi">Ref: --</span>
+                                    <!-- Updated Layout: Mean/SD and Median side-by-side -->
+                                    <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1 mt-2">
+                                        <div>
+                                             <h3 id="statCtdiPrimary" class="text-3xl font-black text-slate-900 tracking-tighter">--</h3>
+                                             <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Mean ± SD</p>
+                                        </div>
+                                        <div class="pl-4 border-l-2 border-indigo-100">
+                                             <h3 id="statCtdiMedian" class="text-3xl font-black text-indigo-600 tracking-tighter">--</h3>
+                                             <p class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">Median</p>
+                                        </div>
                                     </div>
-                                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 mb-3">Mean ± SD</p>
                                     
-                                    <!-- Secondary Stats: P75 & Median -->
-                                    <div class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
-                                        <div class="flex flex-col">
+                                    <div class="flex items-center gap-2 mt-2 mb-3">
+                                        <span class="text-[10px] text-slate-400 font-bold border-l-2 border-slate-200 pl-2 flex items-center h-4" id="labelRefCtdi">Ref: --</span>
+                                    </div>
+                                    
+                                    <!-- Secondary Stats: P75 -->
+                                    <div class="pt-3 border-t border-slate-100">
+                                        <div class="flex items-center justify-between">
                                             <span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">75th Percentile</span>
                                             <span id="statCtdiP75" class="text-sm font-black text-indigo-600">0.0</span>
-                                        </div>
-                                        <div class="flex flex-col">
-                                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Median (50th)</span>
-                                            <span id="statCtdiMedian" class="text-[10px] font-bold text-slate-700">0.0</span>
                                         </div>
                                     </div>
                                 </div>
@@ -585,22 +659,27 @@
                                     <div class="text-[9px] font-black px-3 py-1 bg-amber-50 text-amber-700 rounded-lg" title="Kiểm định t-test: Mean vs Reference">p = <span id="pValDlp">---</span></div>
                                 </div>
                                 <div>
-                                    <div class="flex items-baseline gap-2 mt-2">
-                                        <!-- Main Display: Mean +/- SD -->
-                                        <h3 id="statDlpPrimary" class="text-3xl font-black text-slate-900 tracking-tighter">0 ± 0</h3>
-                                        <span class="text-[10px] text-slate-400 font-bold border-l pl-2 ml-1 h-6 flex items-center" id="labelRefDlp">Ref: --</span>
+                                    <!-- Updated Layout: Mean/SD and Median side-by-side -->
+                                    <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1 mt-2">
+                                        <div>
+                                             <h3 id="statDlpPrimary" class="text-3xl font-black text-slate-900 tracking-tighter">--</h3>
+                                             <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Mean ± SD</p>
+                                        </div>
+                                        <div class="pl-4 border-l-2 border-amber-100">
+                                             <h3 id="statDlpMedian" class="text-3xl font-black text-amber-600 tracking-tighter">--</h3>
+                                             <p class="text-[9px] font-bold text-amber-400 uppercase tracking-widest">Median</p>
+                                        </div>
                                     </div>
-                                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 mb-3">Mean ± SD</p>
+                                    
+                                    <div class="flex items-center gap-2 mt-2 mb-3">
+                                        <span class="text-[10px] text-slate-400 font-bold border-l-2 border-slate-200 pl-2 flex items-center h-4" id="labelRefDlp">Ref: --</span>
+                                    </div>
 
-                                    <!-- Secondary Stats: P75 & Median -->
-                                    <div class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
-                                        <div class="flex flex-col">
+                                    <!-- Secondary Stats: P75 -->
+                                    <div class="pt-3 border-t border-slate-100">
+                                        <div class="flex items-center justify-between">
                                             <span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">75th Percentile</span>
                                             <span id="statDlpP75" class="text-sm font-black text-amber-600">0</span>
-                                        </div>
-                                        <div class="flex flex-col">
-                                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-wider">Median (50th)</span>
-                                            <span id="statDlpMedian" class="text-[10px] font-bold text-slate-700">0</span>
                                         </div>
                                     </div>
                                 </div>
@@ -701,9 +780,6 @@
         </div>
     </div>
 
-    <!-- ... rest of data tab ... -->
-    <!-- (Include all data-tab HTML content from previous version here - omitted for brevity but preserved in final output) -->
-    <!-- ... -->
     <div id="data-tab" class="tab-content app-layout hidden">
         <div class="section-container relative">
             <div id="dataContent">
@@ -809,9 +885,14 @@
         </div>
     </div>
 
+    <!-- ADDED: Back to Top Button -->
+    <button id="backToTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+        <i data-lucide="arrow-up" class="w-6 h-6"></i>
+    </button>
+
     <footer class="relative z-50 w-full py-8 mt-12 bg-white/40 backdrop-blur-sm border-t border-white/20">
         <div class="max-w-7xl mx-auto px-4 text-center">
-            <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Team BQT KTV 3 Miền</p>
+            <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">VN-DRL Study <span id="footerYear"></span> - Team BQT KTV 3 Miền</p>
         </div>
     </footer>
 
@@ -822,10 +903,11 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc, writeBatch, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const currentYear = 2026;
+        const currentYear = new Date().getFullYear();
+        document.getElementById('footerYear').textContent = currentYear;
         const ADMIN_PASSWORD = "ktv3mien"; 
         
         // ADDED k coefficients for Effective Dose (approximate typical values for adults, ICRP 103)
@@ -835,6 +917,35 @@
             { name: 'Bụng không thuốc (Abdomen)', refCtdi: 11, refDlp: 500, k: 0.015 },
             { name: 'Phổi liều thấp (LDCT)', refCtdi: 3, refDlp: 150, k: 0.014 }
         ];
+
+        // NEW: Extended DRL Standards Data with P50 and P75
+        const DRL_STANDARDS = {
+            'Thailand 2019': {
+                'Sọ não (Head)': { ctdi75: 65, ctdi50: 58, dlp75: 1000, dlp50: 890 },
+                'Ngực không thuốc (Chest)': { ctdi75: 9, ctdi50: 7, dlp75: 350, dlp50: 260 },
+                'Bụng không thuốc (Abdomen)': { ctdi75: 11, ctdi50: 9, dlp75: 500, dlp50: 420 },
+                'Phổi liều thấp (LDCT)': { ctdi75: 3, ctdi50: 2.2, dlp75: 150, dlp50: 110 }
+            },
+            'UK (NDRL 2019)': {
+                'Sọ não (Head)': { ctdi75: 55, ctdi50: 50, dlp75: 930, dlp50: 820 },
+                'Ngực không thuốc (Chest)': { ctdi75: 9, ctdi50: 7, dlp75: 360, dlp50: 250 },
+                'Bụng không thuốc (Abdomen)': { ctdi75: 10, ctdi50: 8, dlp75: 460, dlp50: 380 },
+                'Phổi liều thấp (LDCT)': { ctdi75: 2.5, ctdi50: 1.8, dlp75: 120, dlp50: 90 }
+            },
+            'France (2019)': {
+                'Sọ não (Head)': { ctdi75: 55, ctdi50: 48, dlp75: 1000, dlp50: 880 },
+                'Ngực không thuốc (Chest)': { ctdi75: 10, ctdi50: 8, dlp75: 350, dlp50: 270 },
+                'Bụng không thuốc (Abdomen)': { ctdi75: 13, ctdi50: 10, dlp75: 550, dlp50: 450 },
+                'Phổi liều thấp (LDCT)': { ctdi75: 3, ctdi50: 2.5, dlp75: 140, dlp50: 100 }
+            },
+            'Japan (2020)': {
+                'Sọ não (Head)': { ctdi75: 60, ctdi50: 52, dlp75: 1000, dlp50: 900 },
+                'Ngực không thuốc (Chest)': { ctdi75: 11, ctdi50: 9, dlp75: 330, dlp50: 280 },
+                'Bụng không thuốc (Abdomen)': { ctdi75: 15, ctdi50: 12, dlp75: 600, dlp50: 500 },
+                'Phổi liều thấp (LDCT)': { ctdi75: 3.5, ctdi50: 2.8, dlp75: 160, dlp50: 120 }
+            }
+        };
+
         const INITIAL_HOSPITALS = ["Bệnh viện đa khoa tỉnh Quảng Ninh", "Bệnh viện đa khoa tỉnh Bắc Ninh", "Bệnh viện hữu nghị Việt Tiệp", "Bệnh viện 30 - 04, Bộ Công An", "Bệnh viện Gia An 115"];
         const MANUFACTURERS = ["GE HealthCare", "Siemens Healthineers", "Philips Healthcare", "Canon Medical Systems", "Fujifilm", "Neusoft", "United Imaging"];
         const SLICE_COUNTS = ["16 - 32 lát", "64 - 128 lát", "256 - 512 lát", "Máy 2 bóng (Dual Source)"];
@@ -909,6 +1020,12 @@
         el('onlineMenuBtn').onclick = (e) => { e.stopPropagation(); el('onlineDropdown').classList.toggle('hidden'); el('userDropdown').classList.add('hidden'); };
         document.body.onclick = () => { el('userDropdown').classList.add('hidden'); el('onlineDropdown').classList.add('hidden'); };
 
+        // ADDED: Back to Top Listener
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) el('backToTop').classList.add('show');
+            else el('backToTop').classList.remove('show');
+        });
+
         // NEW: Quick Date Filter Logic
         window.setQuickDateFilter = (days) => {
             const today = new Date();
@@ -927,6 +1044,45 @@
             el('dashFilterEnd').value = endStr;
             renderDashboard();
             showToast(`Đã lọc dữ liệu: ${days === 0 ? 'Hôm nay' : days + ' ngày qua'}`);
+        };
+
+        // EXPORT FUNCTION DEFINITION - RE-ADDED EXPLICITLY
+        window.exportToExcel = function() {
+            if (!isAdmin) { showToast("Chỉ Admin mới có quyền xuất file!"); return; }
+            if (filteredDisplayEntries.length === 0) { showToast("Không có dữ liệu để xuất!"); return; }
+            
+            const exportData = filteredDisplayEntries.map(e => {
+                let bmi = "N/A";
+                if(e.height && e.weight) {
+                      const h = parseFloat(e.height)/100;
+                      if(h>0) bmi = (parseFloat(e.weight)/(h*h)).toFixed(2);
+                }
+
+                return {
+                    "Thời gian": new Date(e.createdAt || e.updatedAt).toLocaleString('vi-VN'),
+                    "Tài khoản": e.userEmail || '---',
+                    "Bệnh viện": e.hospitalName,
+                    "Hãng máy": e.manufacturer,
+                    "Protocol": e.protocol,
+                    "ID Bệnh nhân": e.patientId,
+                    "Tuổi": e.age,
+                    "Giới tính": e.gender,
+                    "Cân nặng (kg)": e.weight,
+                    "Chiều cao (cm)": e.height,
+                    "BMI": bmi,
+                    "Modulation": e.doseModulation,
+                    "CTDIvol (mGy)": e.ctdi,
+                    "DLP (mGy.cm)": e.dlp,
+                    "L (cm)": (parseFloat(e.ctdi) > 0) ? (parseFloat(e.dlp)/parseFloat(e.ctdi)).toFixed(1) : "0",
+                    "E (mSv)": getEffectiveDose(e.dlp, e.protocol).toFixed(2)
+                };
+            });
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "VN-DRL Data");
+            XLSX.writeFile(wb, `VN_DRL_Data_${new Date().toISOString().slice(0,10)}.xlsx`);
+            showToast("Đang tải file Excel...");
         };
 
         // NEW: Download Template
@@ -979,7 +1135,12 @@
             e.preventDefault();
             const email = el('authEmail').value;
             const pass = el('authPassword').value;
+            const remember = el('rememberMe').checked; // Get checkbox state
+
             try {
+                // Set persistence based on checkbox
+                await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
+
                 if (isLoginMode) {
                     await signInWithEmailAndPassword(auth, email, pass);
                     showToast("Đã đăng nhập thành công!");
@@ -995,7 +1156,9 @@
 
         el('googleLoginBtn').onclick = async () => {
             const provider = new GoogleAuthProvider();
+            const remember = el('rememberMe').checked;
             try {
+                await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
                 await signInWithPopup(auth, provider);
                 showToast("Đăng nhập Google thành công!");
                 el('authModal').classList.add('hidden');
@@ -1453,8 +1616,53 @@
             }
         };
 
+        // --- NEW: Helper for DRL Selection ---
+        window.selectRefStandard = (standardName) => {
+            const activeProt = el('dashFilterProtocol').value !== 'all' ? el('dashFilterProtocol').value : el('protocol').value;
+            const stdData = DRL_STANDARDS[standardName];
+            
+            if (stdData && stdData[activeProt]) {
+                const vals = stdData[activeProt];
+                // Use P75 (DRL) for the main reference calculation
+                el('manualRefCtdi').value = vals.ctdi75;
+                el('manualRefDlp').value = vals.dlp75;
+                
+                // Highlight row
+                document.querySelectorAll('.drl-row').forEach(r => r.classList.remove('active'));
+                const row = Array.from(document.querySelectorAll('.drl-row')).find(r => r.dataset.std === standardName);
+                if(row) row.classList.add('active');
+
+                renderDashboard(); // Re-calc stats
+            } else {
+                showToast(`Không tìm thấy dữ liệu cho protocol "${activeProt}" trong chuẩn ${standardName}`);
+            }
+        };
+
+        function updateRefStandardTable() {
+            const activeProt = el('dashFilterProtocol').value !== 'all' ? el('dashFilterProtocol').value : el('protocol').value;
+            const tbody = el('refStandardTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            
+            Object.entries(DRL_STANDARDS).forEach(([name, data]) => {
+                const vals = data[activeProt] || { ctdi75: '-', ctdi50: '-', dlp75: '-', dlp50: '-' };
+                const tr = document.createElement('tr');
+                tr.className = "drl-row hover:bg-indigo-50 cursor-pointer transition-colors";
+                tr.dataset.std = name;
+                tr.onclick = () => window.selectRefStandard(name);
+                tr.innerHTML = `
+                    <td class="px-3 py-2 font-bold border-r border-indigo-50">${name}</td>
+                    <td class="px-2 py-2 text-center text-slate-500 border-r border-indigo-50 bg-slate-50/30">${vals.ctdi50}</td>
+                    <td class="px-2 py-2 text-center text-indigo-600 font-black border-r border-indigo-50 bg-indigo-50/30">${vals.ctdi75}</td>
+                    <td class="px-2 py-2 text-center text-slate-500 border-r border-indigo-50 bg-slate-50/30">${vals.dlp50}</td>
+                    <td class="px-2 py-2 text-center text-amber-600 font-black bg-amber-50/30">${vals.dlp75}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+
         function renderDashboard() {
-            // Simplified: No more guest restriction for viewing
             const isGuest = !user || user.isAnonymous;
             const progSection = el('progressChartSection'); // Get Progress Chart section
 
@@ -1479,8 +1687,8 @@
                 fProt = el('dashFilterProtocol').value || 'all'; 
                 fGend = el('dashFilterGender').value || 'all';
                 fManu = el('dashFilterManufacturer').value || 'all';
-                fStart = el('dashFilterStart').value; // New
-                fEnd = el('dashFilterEnd').value;     // New
+                fStart = el('dashFilterStart').value; 
+                fEnd = el('dashFilterEnd').value;     
             }
 
             filteredDisplayEntries = entries.filter(e => {
@@ -1499,8 +1707,8 @@
                     if (d < fStart) return false;
                 }
                 if (!isDataTab && fEnd) {
-                     const d = new Date(e.createdAt || e.updatedAt).toISOString().split('T')[0];
-                     if (d > fEnd) return false;
+                      const d = new Date(e.createdAt || e.updatedAt).toISOString().split('T')[0];
+                      if (d > fEnd) return false;
                 }
 
                 // Enhanced Search
@@ -1526,6 +1734,9 @@
                     default: return 0;
                 }
             });
+            
+            // Refresh Ref Table when protocol changes or dashboard renders
+            updateRefStandardTable();
 
             const statsProtocolName = (fProt !== 'all') ? fProt : el('protocol').value;
             const activeProtocol = THAI_DRL_PROTOCOLS.find(p => p.name === statsProtocolName);
@@ -1587,7 +1798,6 @@
             if(progressChartInstance) progressChartInstance.destroy();
             const progData = {};
             const protocols = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))];
-            // Use filteredDisplayEntries so filters (like Date) apply to this chart too.
             
             filteredDisplayEntries.forEach(e => {
                 const hosp = e.hospitalName || 'Unknown';
@@ -1598,7 +1808,7 @@
             
             const hospitals = Object.keys(progData).sort();
             const datasets = protocols.map((prot, index) => {
-                const colorPalette = ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#a855f7']; // Colors matching scatter contrast
+                const colorPalette = ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#a855f7']; 
                 return {
                     label: prot,
                     data: hospitals.map(h => progData[h][prot] || 0),
@@ -1658,7 +1868,6 @@
                     }
                 }
             });
-
 
             const currH = [...new Set([...INITIAL_HOSPITALS, ...entries.map(ent => ent.hospitalName)])].sort();
             const currM = [...new Set([...MANUFACTURERS, ...entries.map(ent => ent.manufacturer).filter(m => m)])].sort();
@@ -1797,45 +2006,6 @@
             lucide.createIcons();
         }
 
-        // --- NEW: Export Excel Logic ---
-        function exportToExcel() {
-            if (!isAdmin) { showToast("Chỉ Admin mới có quyền xuất file!"); return; }
-            if (filteredDisplayEntries.length === 0) { showToast("Không có dữ liệu để xuất!"); return; }
-            
-            const exportData = filteredDisplayEntries.map(e => {
-                let bmi = "N/A";
-                if(e.height && e.weight) {
-                      const h = parseFloat(e.height)/100;
-                      if(h>0) bmi = (parseFloat(e.weight)/(h*h)).toFixed(2);
-                }
-
-                return {
-                    "Thời gian": new Date(e.createdAt || e.updatedAt).toLocaleString('vi-VN'),
-                    "Tài khoản": e.userEmail || '---',
-                    "Bệnh viện": e.hospitalName,
-                    "Hãng máy": e.manufacturer,
-                    "Protocol": e.protocol,
-                    "ID Bệnh nhân": e.patientId,
-                    "Tuổi": e.age,
-                    "Giới tính": e.gender,
-                    "Cân nặng (kg)": e.weight,
-                    "Chiều cao (cm)": e.height,
-                    "BMI": bmi,
-                    "Modulation": e.doseModulation,
-                    "CTDIvol (mGy)": e.ctdi,
-                    "DLP (mGy.cm)": e.dlp,
-                    "L (cm)": (parseFloat(e.ctdi) > 0) ? (parseFloat(e.dlp)/parseFloat(e.ctdi)).toFixed(1) : "0",
-                    "E (mSv)": getEffectiveDose(e.dlp, e.protocol).toFixed(2) // NEW
-                };
-            });
-
-            const ws = XLSX.utils.json_to_sheet(exportData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "VN-DRL Data");
-            XLSX.writeFile(wb, `VN_DRL_Data_${new Date().toISOString().slice(0,10)}.xlsx`);
-            showToast("Đang tải file Excel...");
-        }
-
         // --- NEW: Import Excel Logic ---
         async function handleImportExcel(e) {
             if (!user || user.isAnonymous) { showToast("Vui lòng đăng nhập để Import!"); e.target.value = ''; return; }
@@ -1899,6 +2069,15 @@
         }
 
         window.onload = async () => {
+            // HIDE GLOBAL LOADER AFTER INIT
+            setTimeout(() => {
+                const loader = el('globalLoader');
+                if(loader) {
+                    loader.style.opacity = '0';
+                    loader.style.visibility = 'hidden';
+                }
+            }, 1500); // Small delay for smooth effect
+
             const fill = (id, list) => { const e = el(id); if (!e) return; e.innerHTML = (id.startsWith('filter') || id.startsWith('dashFilter')) ? '<option value="all">Tất cả</option>' : '<option value="" disabled selected>-- Chọn --</option>'; 
                 if(id.startsWith('bulk')) e.innerHTML = '<option value="">-- Không thay đổi --</option>'; // Specific for Bulk
                 list.forEach(i => { e.innerHTML += `<option value="${typeof i === 'string' ? i : i.name}">${typeof i === 'string' ? i : i.name}</option>`; }); 
@@ -1926,6 +2105,7 @@
                 const isHidden = el('refConfigContent').classList.toggle('hidden'); 
                 el('refChevron').style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
                 lucide.createIcons(); 
+                updateRefStandardTable(); // Refresh table when opening
             };
             el('btnApplyListFilter').onclick = () => { currentPage = 1; renderDashboard(); showToast("Đã cập nhật danh sách!"); };
             el('protocol').onchange = () => { renderDashboard(); };
