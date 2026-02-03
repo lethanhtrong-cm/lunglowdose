@@ -65,6 +65,8 @@
         .glass-card { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05); }
         .glass-input { background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.08); color: #1e293b; transition: all 0.3s ease; }
         .glass-input:focus { border-color: #4f46e5; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); outline: none; }
+        /* Style for warning input */
+        .glass-input.warning { border-color: #f59e0b; background-color: #fffbeb; }
         .section-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: #64748b; }
         .dose-highlight-box { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 2px solid #f59e0b; }
         
@@ -189,9 +191,43 @@
             text-align: center;
             padding: 2rem;
         }
+
+        /* --- Styles for Global Loader & Back to Top --- */
+        #globalLoader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #f8fafc; z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+            transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+        }
+        .loader-spinner {
+            width: 48px; height: 48px;
+            border: 5px solid #e2e8f0; border-bottom-color: #4f46e5;
+            border-radius: 50%; display: inline-block;
+            box-sizing: border-box; animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #backToTop {
+            position: fixed; bottom: 2rem; right: 2rem;
+            background: #4f46e5; color: white;
+            width: 3rem; height: 3rem; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            cursor: pointer; opacity: 0; visibility: hidden;
+            transition: all 0.3s ease; z-index: 80;
+        }
+        #backToTop.show { opacity: 1; visibility: visible; bottom: 6rem; /* Adjust based on toast */ }
     </style>
 </head>
 <body class="antialiased font-inter text-slate-900">
+    <!-- Global Loader -->
+    <div id="globalLoader">
+        <div class="flex flex-col items-center gap-4">
+            <span class="loader-spinner"></span>
+            <p class="text-xs font-black text-indigo-900 tracking-widest uppercase animate-pulse">Đang tải dữ liệu...</p>
+        </div>
+    </div>
+
     <div class="mesh-bg"></div>
 
     <!-- Auth Modals -->
@@ -205,6 +241,13 @@
             <form id="authForm" class="space-y-4">
                 <div><label class="section-label mb-2 block ml-1">Email Tài Khoản</label><input type="email" id="authEmail" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" placeholder="name@hospital.com" required></div>
                 <div><label class="section-label mb-2 block ml-1">Mật khẩu</label><input type="password" id="authPassword" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" placeholder="••••••••" required></div>
+                
+                <!-- Remember Me Checkbox -->
+                <div class="flex items-center gap-2 px-1">
+                    <input type="checkbox" id="rememberMe" class="custom-checkbox w-4 h-4" checked>
+                    <label for="rememberMe" class="text-[11px] font-bold text-slate-500 cursor-pointer select-none">Ghi nhớ đăng nhập</label>
+                </div>
+
                 <button type="submit" id="authSubmitBtn" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black shadow-xl transition-all flex items-center justify-center gap-3 uppercase active:scale-95"><span>VÀO HỆ THỐNG</span><i data-lucide="arrow-right" class="w-5 h-5"></i></button>
             </form>
             <div class="mt-6 text-center text-xs text-slate-500 font-medium">
@@ -248,7 +291,7 @@
         </div>
     </div>
 
-    <!-- NEW: Hospital Management Modal (Admin Only) -->
+    <!-- Hospital Management Modal (Admin Only) -->
     <div id="hospitalManageModal" class="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
         <div class="bg-white rounded-[2.5rem] w-full max-w-2xl p-8 shadow-2xl border border-indigo-100 h-[80vh] flex flex-col">
             <div class="text-center mb-6 flex-none">
@@ -295,6 +338,53 @@
         </div>
     </div>
 
+    <!-- NEW: Manufacturer Management Modal (Admin Only) -->
+    <div id="manufacturerManageModal" class="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-2xl p-8 shadow-2xl border border-indigo-100 h-[80vh] flex flex-col">
+            <div class="text-center mb-6 flex-none">
+                <div class="bg-indigo-600 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 text-white shadow-lg"><i data-lucide="factory" class="w-6 h-6"></i></div>
+                <h3 class="text-lg font-black text-slate-900 uppercase">Quản lý Hãng Máy</h3>
+                <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Thêm, sửa, xóa tên hãng sản xuất thiết bị</p>
+                
+                <div class="flex justify-center gap-2 mt-4">
+                    <button onclick="switchManuTab('active')" id="btn-manu-active" class="px-4 py-2 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">Đang hoạt động</button>
+                    <button onclick="switchManuTab('trash')" id="btn-manu-trash" class="px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-500 border border-slate-100 hover:bg-slate-50">Thùng rác <span id="trashManuCount" class="ml-1 px-1.5 py-0.5 bg-red-100 text-red-600 rounded-full text-[9px]">0</span></button>
+                </div>
+            </div>
+
+            <div id="manu-tab-active" class="flex-1 overflow-hidden flex flex-col gap-4">
+                <!-- Add New -->
+                <form id="addManufacturerForm" class="flex gap-2">
+                    <input type="text" id="newManufacturerName" class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Nhập tên hãng máy mới..." required>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase hover:bg-indigo-700 shadow-md whitespace-nowrap">Thêm mới</button>
+                </form>
+                
+                <!-- List Active -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar border border-slate-100 rounded-2xl p-2">
+                    <div id="activeManufacturersList" class="space-y-2">
+                        <!-- Dynamic List -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="manu-tab-trash" class="flex-1 overflow-hidden flex-col gap-4 hidden">
+                <div class="p-3 bg-red-50 text-red-600 text-[10px] font-bold rounded-xl border border-red-100 mb-2">
+                    <i data-lucide="alert-circle" class="w-3 h-3 inline mr-1"></i> Dữ liệu của các hãng máy trong thùng rác sẽ bị ẩn khỏi Dashboard.
+                </div>
+                <!-- List Trash -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar border border-slate-100 rounded-2xl p-2">
+                    <div id="trashManufacturersList" class="space-y-2">
+                        <!-- Dynamic List -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex justify-end mt-4 flex-none">
+                <button onclick="document.getElementById('manufacturerManageModal').classList.add('hidden')" class="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl text-xs font-black uppercase hover:bg-slate-200">Đóng</button>
+            </div>
+        </div>
+    </div>
+
     <div id="adminAuthModal" class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
         <div class="bg-white rounded-[2rem] w-full max-w-xs p-8 shadow-2xl border border-red-100">
             <div class="text-center mb-6">
@@ -316,7 +406,10 @@
         <nav class="glass-card rounded-2xl md:rounded-[2rem] px-4 md:px-8 py-2 md:py-4 flex flex-wrap justify-between items-center shadow-lg border-white text-slate-900 gap-y-2">
             <div class="flex items-center gap-2 md:gap-4">
                 <div class="bg-indigo-600 p-2 md:p-2.5 rounded-xl md:rounded-2xl text-white shadow-lg"><i data-lucide="activity" class="w-4 h-4 md:w-6 md:h-6"></i></div>
-                <div><h1 class="text-xs md:text-xl font-black tracking-tighter text-slate-900 uppercase">VN-DRL <span class="text-indigo-600">STUDY</span></h1></div>
+                <div>
+                    <h1 class="text-xs md:text-xl font-black tracking-tighter text-slate-900 uppercase">VN-DRL <span class="text-indigo-600">STUDY</span></h1>
+                    <p class="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase tracking-wider hidden md:block">Xây dựng mức tham chiếu chẩn đoán quốc gia</p> <!-- Added Objective -->
+                </div>
             </div>
             <div class="flex items-center gap-1 md:gap-4 overflow-x-auto">
                 <button onclick="switchTab('main-tab')" id="btn-main-tab" class="tab-btn active px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
@@ -367,7 +460,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- FIX: Changed onclick from el() to document.getElementById() -->
                 <button id="navLoginBtn" onclick="document.getElementById('authModal').classList.remove('hidden')" class="px-3 md:px-6 py-2 md:py-2.5 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-xl md:rounded-2xl hover:bg-indigo-700 shadow-lg">Login</button>
             </div>
         </nav>
@@ -391,7 +483,7 @@
                 </div>
             </div>
 
-            <div class="top-grid">
+            <div class="top-grid mt-6">
                 <aside class="sidebar-form glass-card rounded-[2.5rem] flex flex-col overflow-hidden relative">
                     <div class="p-6 md:p-8 border-b border-slate-100 bg-white/40 z-20 flex justify-between items-center">
                         <h2 id="formTitle" class="font-black text-slate-900 flex items-center gap-3 uppercase tracking-widest text-xs"><i data-lucide="plus-circle" class="text-indigo-600 w-5 h-5"></i> Nhập dữ liệu</h2>
@@ -424,7 +516,15 @@
                                     </div>
                                     
                                     <input type="text" id="customHospitalName" placeholder="Tên bệnh viện mới..." class="hidden w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none border-indigo-200">
-                                    <div class="grid grid-cols-2 gap-3"><select id="manufacturer" class="px-4 py-3 glass-input rounded-xl text-sm font-medium"></select><select id="sliceCount" class="px-4 py-3 glass-input rounded-xl text-sm font-medium"></select></div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div class="flex gap-2">
+                                            <select id="manufacturer" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium"></select>
+                                            <button id="btnManageManufacturers" type="button" class="hidden p-3 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm" title="Quản lý Hãng máy">
+                                                <i data-lucide="settings" class="w-4 h-4"></i>
+                                            </button>
+                                        </div>
+                                        <select id="sliceCount" class="px-4 py-3 glass-input rounded-xl text-sm font-medium"></select>
+                                    </div>
                                     <div class="p-3 bg-white/50 rounded-xl border border-slate-100">
                                         <label class="text-[8px] font-black text-slate-400 uppercase block mb-2">Kiểm soát liều (Modulation)</label>
                                         <div class="flex gap-4">
@@ -438,7 +538,11 @@
                                 <label class="section-label flex items-center gap-2 font-bold"><i data-lucide="user" class="w-3 h-3 text-indigo-500"></i> Bệnh nhân & Protocol</label>
                                 <select id="protocol" class="w-full px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl text-sm font-black text-indigo-700"></select>
                                 <div class="grid grid-cols-2 gap-3">
-                                    <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">ID BN</label><input type="text" id="patientId" placeholder="ID Bệnh nhân" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium"></div>
+                                    <div>
+                                        <label class="text-[8px] font-bold text-slate-400 uppercase ml-1">ID BN</label>
+                                        <input type="text" id="patientId" placeholder="ID Bệnh nhân" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium">
+                                        <p id="idWarning" class="text-[9px] font-bold text-amber-600 mt-1 hidden flex items-center gap-1"><i data-lucide="alert-circle" class="w-3 h-3"></i> <span>ID đã tồn tại</span></p>
+                                    </div>
                                     <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Ngày chụp</label><input type="date" id="scanDate" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-black text-slate-600"></div>
                                 </div>
                                 <div class="grid grid-cols-3 gap-2 md:gap-3">
@@ -466,8 +570,8 @@
 
                 <main class="dashboard-main flex-1">
                     <div id="dashboardContent" class="flex flex-col gap-10">
+                        <!-- ... (Dashboard Filters & Content - Unchanged) ... -->
                         <div class="glass-card rounded-[2rem] p-4 md:p-6 border border-indigo-100 shadow-xl flex flex-wrap items-end gap-4">
-                            <!-- ... existing filters ... -->
                             <div class="flex-1 min-w-[150px] space-y-1.5">
                                 <label class="text-[8px] font-black text-indigo-400 uppercase tracking-widest ml-1">Bộ lọc cơ sở</label>
                                 <select id="dashFilterHospital" class="w-full px-4 py-2.5 bg-white border border-indigo-50 rounded-xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-indigo-500"></select>
@@ -504,7 +608,6 @@
                                 <button id="btnResetDashFilter" class="p-2.5 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition-colors" title="Đặt lại bộ lọc">
                                     <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
                                 </button>
-                                <!-- Removed button from here -->
                             </div>
                             <!-- Quick Date Filters -->
                             <div class="w-full flex gap-2 pt-2 border-t border-indigo-50">
@@ -514,6 +617,7 @@
                             </div>
                         </div>
 
+                        <!-- ... (Rest of Dashboard Content - Unchanged) ... -->
                         <div class="flex flex-col relative z-20">
                             <div class="glass-card rounded-full p-2 pl-4 pr-3 border-2 border-indigo-600 flex items-center justify-between shadow-xl shadow-indigo-100">
                                 <div class="flex items-center gap-4">
@@ -742,9 +846,7 @@
         </div>
     </div>
 
-    <!-- ... rest of data tab ... -->
-    <!-- (Include all data-tab HTML content from previous version here - omitted for brevity but preserved in final output) -->
-    <!-- ... -->
+    <!-- ... (Rest of HTML structure from previous versions) ... -->
     <div id="data-tab" class="tab-content app-layout hidden">
         <div class="section-container relative">
             <div id="dataContent">
@@ -850,9 +952,14 @@
         </div>
     </div>
 
+    <!-- ADDED: Back to Top Button -->
+    <button id="backToTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+        <i data-lucide="arrow-up" class="w-6 h-6"></i>
+    </button>
+
     <footer class="relative z-50 w-full py-8 mt-12 bg-white/40 backdrop-blur-sm border-t border-white/20">
         <div class="max-w-7xl mx-auto px-4 text-center">
-            <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Team BQT KTV 3 Miền</p>
+            <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">VN-DRL Study <span id="footerYear"></span> - Team BQT KTV 3 Miền</p>
         </div>
     </footer>
 
@@ -863,10 +970,11 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, setDoc, getDoc, writeBatch, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const currentYear = 2026;
+        const currentYear = new Date().getFullYear();
+        document.getElementById('footerYear').textContent = currentYear;
         const ADMIN_PASSWORD = "ktv3mien"; 
         
         // ADDED k coefficients for Effective Dose (approximate typical values for adults, ICRP 103)
@@ -932,6 +1040,12 @@
         // Hospital Management Data
         let deletedHospitals = new Set();
         let customHospitals = new Set();
+        let hospitalOrder = []; // Store order
+
+        // Manufacturer Management Data
+        let deletedManufacturers = new Set();
+        let customManufacturers = new Set();
+        let manufacturerOrder = []; // Store order
         
         // New: Selection Set
         let selectedIds = new Set();
@@ -978,6 +1092,12 @@
         el('userMenuBtn').onclick = (e) => { e.stopPropagation(); el('userDropdown').classList.toggle('hidden'); el('onlineDropdown').classList.add('hidden'); };
         el('onlineMenuBtn').onclick = (e) => { e.stopPropagation(); el('onlineDropdown').classList.toggle('hidden'); el('userDropdown').classList.add('hidden'); };
         document.body.onclick = () => { el('userDropdown').classList.add('hidden'); el('onlineDropdown').classList.add('hidden'); };
+
+        // ADDED: Back to Top Listener
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) el('backToTop').classList.add('show');
+            else el('backToTop').classList.remove('show');
+        });
 
         // NEW: Quick Date Filter Logic
         window.setQuickDateFilter = (days) => {
@@ -1080,6 +1200,7 @@
             el('adminBadge').classList.toggle('hidden', !isAdmin);
             el('adminStatusDot').classList.toggle('hidden', !isAdmin);
             el('btnManageHospitals').classList.toggle('hidden', !isAdmin); // Show manage button for admin
+            el('btnManageManufacturers').classList.toggle('hidden', !isAdmin); // Show manage manu button for admin
         }
 
         function updateAuthUI() { el('authTitle').textContent = isLoginMode ? "Đăng Nhập" : "Đăng Ký"; el('authSubmitBtn').querySelector('span').textContent = isLoginMode ? "VÀO HỆ THỐNG" : "TẠO TÀI KHOẢN"; }
@@ -1088,7 +1209,12 @@
             e.preventDefault();
             const email = el('authEmail').value;
             const pass = el('authPassword').value;
+            const remember = el('rememberMe').checked; // Get checkbox state
+
             try {
+                // Set persistence based on checkbox
+                await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
+
                 if (isLoginMode) {
                     await signInWithEmailAndPassword(auth, email, pass);
                     showToast("Đã đăng nhập thành công!");
@@ -1104,7 +1230,9 @@
 
         el('googleLoginBtn').onclick = async () => {
             const provider = new GoogleAuthProvider();
+            const remember = el('rememberMe').checked;
             try {
+                await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
                 await signInWithPopup(auth, provider);
                 showToast("Đăng nhập Google thành công!");
                 el('authModal').classList.add('hidden');
@@ -1132,6 +1260,7 @@
                     const data = docSnap.data();
                     deletedHospitals = new Set(data.deletedHospitals || []);
                     customHospitals = new Set(data.customHospitals || []);
+                    hospitalOrder = data.hospitalOrder || []; // Fetch order
                 }
             } catch (e) { console.error("Error fetching hospital config", e); }
         }
@@ -1140,30 +1269,90 @@
             const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'app_settings', 'hospital_config');
             await setDoc(docRef, {
                 deletedHospitals: Array.from(deletedHospitals),
-                customHospitals: Array.from(customHospitals)
+                customHospitals: Array.from(customHospitals),
+                hospitalOrder: hospitalOrder
             }, { merge: true });
         }
 
         function getActiveHospitals() {
-            // Base + Custom - Deleted
-            const base = new Set([...INITIAL_HOSPITALS]);
-            customHospitals.forEach(h => base.add(h));
+            // Base + Custom - Deleted + Order Sorting
+            let base = [...INITIAL_HOSPITALS];
+            customHospitals.forEach(h => { if (!base.includes(h)) base.push(h); });
+            entries.forEach(e => { if(e.hospitalName && !e.isDeleted && !base.includes(e.hospitalName)) base.push(e.hospitalName); });
             
-            // Also include any hospital currently in entries, unless deleted
-            entries.forEach(e => { if(e.hospitalName && !e.isDeleted) base.add(e.hospitalName); });
+            // Filter deleted
+            base = base.filter(h => !deletedHospitals.has(h));
+
+            // Sort by order
+            if (hospitalOrder && hospitalOrder.length > 0) {
+                base.sort((a, b) => {
+                    const idxA = hospitalOrder.indexOf(a);
+                    const idxB = hospitalOrder.indexOf(b);
+                    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                    if (idxA !== -1) return -1;
+                    if (idxB !== -1) return 1;
+                    return a.localeCompare(b);
+                });
+            } else {
+                base.sort();
+            }
+            return base;
+        }
+
+        // --- MANUFACTURER MANAGEMENT LOGIC (NEW) ---
+
+        async function fetchManufacturerConfig() {
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'app_settings', 'manufacturer_config');
+            try {
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    deletedManufacturers = new Set(data.deletedManufacturers || []);
+                    customManufacturers = new Set(data.customManufacturers || []);
+                    manufacturerOrder = data.manufacturerOrder || []; // Fetch order
+                }
+            } catch (e) { console.error("Error fetching manufacturer config", e); }
+        }
+
+        async function saveManufacturerConfig() {
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'app_settings', 'manufacturer_config');
+            await setDoc(docRef, {
+                deletedManufacturers: Array.from(deletedManufacturers),
+                customManufacturers: Array.from(customManufacturers),
+                manufacturerOrder: manufacturerOrder
+            }, { merge: true });
+        }
+
+        function getActiveManufacturers() {
+            let base = [...MANUFACTURERS];
+            customManufacturers.forEach(m => { if (!base.includes(m)) base.push(m); });
+            entries.forEach(e => { if(e.manufacturer && !e.isDeleted && !base.includes(e.manufacturer)) base.push(e.manufacturer); });
             
-            deletedHospitals.forEach(h => base.delete(h));
-            return [...base].sort();
+            base = base.filter(m => !deletedManufacturers.has(m));
+
+            if (manufacturerOrder && manufacturerOrder.length > 0) {
+                base.sort((a, b) => {
+                    const idxA = manufacturerOrder.indexOf(a);
+                    const idxB = manufacturerOrder.indexOf(b);
+                    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                    if (idxA !== -1) return -1;
+                    if (idxB !== -1) return 1;
+                    return a.localeCompare(b);
+                });
+            } else {
+                base.sort();
+            }
+            return base;
         }
 
         function updateHospitalDropdowns() {
-            const activeList = getActiveHospitals();
-            const currM = [...new Set([...MANUFACTURERS, ...entries.map(e => e.manufacturer).filter(m => m)])].sort();
+            const activeHospitals = getActiveHospitals();
+            const activeManufacturers = getActiveManufacturers();
             
             const dropdowns = { 
-                hospitalSelect: activeList, filterHospital: activeList, dashFilterHospital: activeList,
-                manufacturer: currM, filterManufacturer: currM, dashFilterManufacturer: currM,
-                bulkHospital: activeList, bulkManufacturer: currM 
+                hospitalSelect: activeHospitals, filterHospital: activeHospitals, dashFilterHospital: activeHospitals,
+                manufacturer: activeManufacturers, filterManufacturer: activeManufacturers, dashFilterManufacturer: activeManufacturers,
+                bulkHospital: activeHospitals, bulkManufacturer: activeManufacturers 
             };
             
             for (let [id, list] of Object.entries(dropdowns)) {
@@ -1182,6 +1371,35 @@
                 THAI_DRL_PROTOCOLS.forEach(p => bulkProt.innerHTML += `<option value="${p.name}">${p.name}</option>`);
             }
         }
+
+        // --- REORDER LOGIC (NEW) ---
+        window.moveItem = async (type, name, direction) => {
+            const listFn = type === 'hospital' ? getActiveHospitals : getActiveManufacturers;
+            const currentList = listFn();
+            const index = currentList.indexOf(name);
+
+            if (index < 0) return;
+            if (direction === -1 && index === 0) return; // Already top
+            if (direction === 1 && index === currentList.length - 1) return; // Already bottom
+
+            const newList = [...currentList];
+            // Swap
+            const temp = newList[index];
+            newList[index] = newList[index + direction];
+            newList[index + direction] = temp;
+
+            if (type === 'hospital') {
+                hospitalOrder = newList;
+                await saveHospitalConfig();
+                renderHospitalManagementModal();
+            } else {
+                manufacturerOrder = newList;
+                await saveManufacturerConfig();
+                renderManufacturerManagementModal();
+            }
+            updateHospitalDropdowns();
+        };
+
 
         // --- MANAGE HOSPITALS UI LOGIC ---
         el('btnManageHospitals').onclick = () => {
@@ -1209,193 +1427,213 @@
             });
         };
 
+        // --- MANAGE MANUFACTURERS UI LOGIC ---
+        el('btnManageManufacturers').onclick = () => {
+            if(!isAdmin) return;
+            renderManufacturerManagementModal();
+            el('manufacturerManageModal').classList.remove('hidden');
+        };
+
+        window.switchManuTab = (tab) => {
+            const tabs = { 'active': 'Đang hoạt động', 'trash': 'Thùng rác' };
+            Object.keys(tabs).forEach(k => {
+                const btn = el(`btn-manu-${k}`);
+                const content = el(`manu-tab-${k}`);
+                if (k === tab) {
+                    btn.classList.remove('bg-white', 'text-slate-500', 'hover:bg-slate-50');
+                    btn.classList.add('bg-indigo-50', 'text-indigo-700');
+                    content.classList.remove('hidden');
+                    content.classList.add('flex');
+                } else {
+                    btn.classList.add('bg-white', 'text-slate-500', 'hover:bg-slate-50');
+                    btn.classList.remove('bg-indigo-50', 'text-indigo-700');
+                    content.classList.add('hidden');
+                    content.classList.remove('flex');
+                }
+            });
+        };
+
         let editingHospitalName = null;
+        let editingManufacturerName = null; // New
 
         function renderHospitalManagementModal() {
             const activeList = getActiveHospitals();
             const trashList = Array.from(deletedHospitals).sort();
-            
             el('trashCount').textContent = trashList.length;
-
-            // Render Active List
-            const activeContainer = el('activeHospitalsList');
-            activeContainer.innerHTML = '';
-            activeList.forEach(h => {
-                const div = document.createElement('div');
-                div.className = "flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl hover:shadow-sm transition-shadow";
-                
+            const activeContainer = el('activeHospitalsList'); activeContainer.innerHTML = '';
+            activeList.forEach((h, idx) => {
+                const div = document.createElement('div'); div.className = "flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl hover:shadow-sm transition-shadow";
                 const isEditing = editingHospitalName === h;
                 
-                if (isEditing) {
-                    div.innerHTML = `
-                        <input type="text" id="edit-hosp-input" value="${h}" class="flex-1 px-3 py-1.5 bg-slate-50 border border-indigo-300 rounded-lg text-xs font-bold outline-none text-indigo-700 mr-2">
-                        <div class="flex items-center gap-1">
-                            <button onclick="confirmEditHospital('${h}')" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"><i data-lucide="check" class="w-4 h-4"></i></button>
-                            <button onclick="cancelEditHospital()" class="p-1.5 text-slate-400 hover:bg-slate-50 rounded-lg"><i data-lucide="x" class="w-4 h-4"></i></button>
-                        </div>
-                    `;
-                } else {
-                    div.innerHTML = `
+                const upBtn = idx > 0 ? `<button onclick="moveItem('hospital', '${h}', -1)" class="p-1 text-slate-400 hover:text-indigo-600"><i data-lucide="arrow-up" class="w-3 h-3"></i></button>` : `<span class="w-5"></span>`;
+                const downBtn = idx < activeList.length - 1 ? `<button onclick="moveItem('hospital', '${h}', 1)" class="p-1 text-slate-400 hover:text-indigo-600"><i data-lucide="arrow-down" class="w-3 h-3"></i></button>` : `<span class="w-5"></span>`;
+
+                div.innerHTML = isEditing ? 
+                    `<input type="text" id="edit-hosp-input" value="${h}" class="flex-1 px-3 py-1.5 bg-slate-50 border border-indigo-300 rounded-lg text-xs font-bold outline-none text-indigo-700 mr-2">
+                    <div class="flex items-center gap-1"><button onclick="confirmEditHospital('${h}')" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"><i data-lucide="check" class="w-4 h-4"></i></button><button onclick="cancelEditHospital()" class="p-1.5 text-slate-400 hover:bg-slate-50 rounded-lg"><i data-lucide="x" class="w-4 h-4"></i></button></div>` :
+                    `<div class="flex items-center gap-2">
+                        <div class="flex flex-col">${upBtn}${downBtn}</div>
                         <span class="text-xs font-bold text-slate-700">${h}</span>
-                        <div class="flex items-center gap-1">
-                            <button onclick="startEditHospital('${h}')" class="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg" title="Đổi tên">
-                                <i data-lucide="edit-2" class="w-4 h-4"></i>
-                            </button>
-                            <button onclick="handleDeleteHospital('${h}')" class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg" title="Xóa vào thùng rác">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        </div>
-                    `;
-                }
+                    </div>
+                    <div class="flex items-center gap-1"><button onclick="startEditHospital('${h}')" class="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg" title="Đổi tên"><i data-lucide="edit-2" class="w-4 h-4"></i></button><button onclick="handleDeleteHospital('${h}')" class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg" title="Xóa vào thùng rác"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;
                 activeContainer.appendChild(div);
             });
-
-            // Render Trash List
-            const trashContainer = el('trashHospitalsList');
-            trashContainer.innerHTML = '';
-            if (trashList.length === 0) {
-                trashContainer.innerHTML = '<p class="text-center text-xs text-slate-400 py-4 italic">Thùng rác trống</p>';
-            } else {
-                trashList.forEach(h => {
-                    const div = document.createElement('div');
-                    div.className = "flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl";
-                    div.innerHTML = `
-                        <span class="text-xs font-bold text-slate-500 line-through">${h}</span>
-                        <button onclick="handleRestoreHospital('${h}')" class="px-3 py-1.5 bg-white text-emerald-600 border border-emerald-100 rounded-lg text-[10px] font-black uppercase hover:bg-emerald-50 shadow-sm flex items-center gap-1">
-                            <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Phục hồi
-                        </button>
-                    `;
-                    trashContainer.appendChild(div);
-                });
-            }
+            const trashContainer = el('trashHospitalsList'); trashContainer.innerHTML = '';
+            if (trashList.length === 0) trashContainer.innerHTML = '<p class="text-center text-xs text-slate-400 py-4 italic">Thùng rác trống</p>';
+            else trashList.forEach(h => {
+                const div = document.createElement('div'); div.className = "flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl";
+                div.innerHTML = `<span class="text-xs font-bold text-slate-500 line-through">${h}</span><button onclick="handleRestoreHospital('${h}')" class="px-3 py-1.5 bg-white text-emerald-600 border border-emerald-100 rounded-lg text-[10px] font-black uppercase hover:bg-emerald-50 shadow-sm flex items-center gap-1"><i data-lucide="rotate-ccw" class="w-3 h-3"></i> Phục hồi</button>`;
+                trashContainer.appendChild(div);
+            });
             lucide.createIcons();
         }
 
-        window.startEditHospital = (name) => {
-            editingHospitalName = name;
-            renderHospitalManagementModal();
+        // New Render Function for Manufacturers
+        function renderManufacturerManagementModal() {
+            const activeList = getActiveManufacturers();
+            const trashList = Array.from(deletedManufacturers).sort();
+            el('trashManuCount').textContent = trashList.length;
+            const activeContainer = el('activeManufacturersList'); activeContainer.innerHTML = '';
+            activeList.forEach((m, idx) => {
+                const div = document.createElement('div'); div.className = "flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl hover:shadow-sm transition-shadow";
+                const isEditing = editingManufacturerName === m;
+                
+                const upBtn = idx > 0 ? `<button onclick="moveItem('manufacturer', '${m}', -1)" class="p-1 text-slate-400 hover:text-indigo-600"><i data-lucide="arrow-up" class="w-3 h-3"></i></button>` : `<span class="w-5"></span>`;
+                const downBtn = idx < activeList.length - 1 ? `<button onclick="moveItem('manufacturer', '${m}', 1)" class="p-1 text-slate-400 hover:text-indigo-600"><i data-lucide="arrow-down" class="w-3 h-3"></i></button>` : `<span class="w-5"></span>`;
+
+                div.innerHTML = isEditing ? 
+                    `<input type="text" id="edit-manu-input" value="${m}" class="flex-1 px-3 py-1.5 bg-slate-50 border border-indigo-300 rounded-lg text-xs font-bold outline-none text-indigo-700 mr-2">
+                    <div class="flex items-center gap-1"><button onclick="confirmEditManufacturer('${m}')" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"><i data-lucide="check" class="w-4 h-4"></i></button><button onclick="cancelEditManufacturer()" class="p-1.5 text-slate-400 hover:bg-slate-50 rounded-lg"><i data-lucide="x" class="w-4 h-4"></i></button></div>` :
+                    `<div class="flex items-center gap-2">
+                        <div class="flex flex-col">${upBtn}${downBtn}</div>
+                        <span class="text-xs font-bold text-slate-700">${m}</span>
+                    </div>
+                    <div class="flex items-center gap-1"><button onclick="startEditManufacturer('${m}')" class="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg" title="Đổi tên"><i data-lucide="edit-2" class="w-4 h-4"></i></button><button onclick="handleDeleteManufacturer('${m}')" class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg" title="Xóa vào thùng rác"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;
+                activeContainer.appendChild(div);
+            });
+            const trashContainer = el('trashManufacturersList'); trashContainer.innerHTML = '';
+            if (trashList.length === 0) trashContainer.innerHTML = '<p class="text-center text-xs text-slate-400 py-4 italic">Thùng rác trống</p>';
+            else trashList.forEach(m => {
+                const div = document.createElement('div'); div.className = "flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl";
+                div.innerHTML = `<span class="text-xs font-bold text-slate-500 line-through">${m}</span><button onclick="handleRestoreManufacturer('${m}')" class="px-3 py-1.5 bg-white text-emerald-600 border border-emerald-100 rounded-lg text-[10px] font-black uppercase hover:bg-emerald-50 shadow-sm flex items-center gap-1"><i data-lucide="rotate-ccw" class="w-3 h-3"></i> Phục hồi</button>`;
+                trashContainer.appendChild(div);
+            });
+            lucide.createIcons();
         }
 
-        window.cancelEditHospital = () => {
-            editingHospitalName = null;
-            renderHospitalManagementModal();
-        }
+        window.startEditHospital = (name) => { editingHospitalName = name; renderHospitalManagementModal(); }
+        window.cancelEditHospital = () => { editingHospitalName = null; renderHospitalManagementModal(); }
+        
+        window.startEditManufacturer = (name) => { editingManufacturerName = name; renderManufacturerManagementModal(); }
+        window.cancelEditManufacturer = () => { editingManufacturerName = null; renderManufacturerManagementModal(); }
 
         window.confirmEditHospital = async (oldName) => {
             const input = document.getElementById('edit-hosp-input');
             const newName = input.value.trim();
-            
             if (!newName || newName === oldName) { cancelEditHospital(); return; }
             if (getActiveHospitals().includes(newName)) { showToast("Tên bệnh viện đã tồn tại!"); return; }
-
-            if(!confirm(`Bạn có chắc muốn đổi tên "${oldName}" thành "${newName}"? Tất cả dữ liệu cũ sẽ được cập nhật.`)) return;
-
-            // 1. Update Config Sets
-            // Remove old from custom if exists
+            if(!confirm(`Bạn có chắc muốn đổi tên "${oldName}" thành "${newName}"?`)) return;
             if (customHospitals.has(oldName)) customHospitals.delete(oldName);
-            // Add old to deleted (to hide if it was initial)
             deletedHospitals.add(oldName);
-            
-            // Add new to custom
             customHospitals.add(newName);
-            // Remove new from deleted if it was there
             if (deletedHospitals.has(newName)) deletedHospitals.delete(newName);
-
             await saveHospitalConfig();
-
-            // 2. Batch Update Documents
             const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), where("hospitalName", "==", oldName));
             const querySnapshot = await getDocs(q);
-            
             const batch = writeBatch(db);
             let count = 0;
-            querySnapshot.forEach((doc) => {
-                batch.update(doc.ref, { hospitalName: newName });
-                count++;
-            });
-            
+            querySnapshot.forEach((doc) => { batch.update(doc.ref, { hospitalName: newName }); count++; });
             if (count > 0) await batch.commit();
-
             showToast(`Đã đổi tên và cập nhật ${count} ca chụp.`);
-            editingHospitalName = null;
-            renderHospitalManagementModal();
-            updateHospitalDropdowns();
-            renderDashboard();
+            editingHospitalName = null; renderHospitalManagementModal(); updateHospitalDropdowns(); renderDashboard();
+        }
+
+        window.confirmEditManufacturer = async (oldName) => {
+            const input = document.getElementById('edit-manu-input');
+            const newName = input.value.trim();
+            if (!newName || newName === oldName) { cancelEditManufacturer(); return; }
+            if (getActiveManufacturers().includes(newName)) { showToast("Tên hãng máy đã tồn tại!"); return; }
+            if(!confirm(`Bạn có chắc muốn đổi tên "${oldName}" thành "${newName}"?`)) return;
+            if (customManufacturers.has(oldName)) customManufacturers.delete(oldName);
+            deletedManufacturers.add(oldName);
+            customManufacturers.add(newName);
+            if (deletedManufacturers.has(newName)) deletedManufacturers.delete(newName);
+            await saveManufacturerConfig();
+            const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), where("manufacturer", "==", oldName));
+            const querySnapshot = await getDocs(q);
+            const batch = writeBatch(db);
+            let count = 0;
+            querySnapshot.forEach((doc) => { batch.update(doc.ref, { manufacturer: newName }); count++; });
+            if (count > 0) await batch.commit();
+            showToast(`Đã đổi tên và cập nhật ${count} ca chụp.`);
+            editingManufacturerName = null; renderManufacturerManagementModal(); updateHospitalDropdowns(); renderDashboard();
         }
 
         window.handleDeleteHospital = async (name) => {
-            if(!confirm(`Bạn chắc chắn muốn xóa "${name}" và toàn bộ dữ liệu liên quan? Dữ liệu sẽ được chuyển vào thùng rác.`)) return;
-            
-            deletedHospitals.add(name);
-            await saveHospitalConfig(); // Update settings
-
-            // Soft delete entries
-            const batch = writeBatch(db);
-            let count = 0;
-            entries.forEach(e => {
-                if (e.hospitalName === name && !e.isDeleted) {
-                    const ref = doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', e.id);
-                    batch.update(ref, { isDeleted: true });
-                    count++;
-                }
-            });
+            if(!confirm(`Xóa "${name}" vào thùng rác?`)) return;
+            deletedHospitals.add(name); await saveHospitalConfig();
+            const batch = writeBatch(db); let count = 0;
+            entries.forEach(e => { if (e.hospitalName === name && !e.isDeleted) { const ref = doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', e.id); batch.update(ref, { isDeleted: true }); count++; } });
             if (count > 0) await batch.commit();
+            showToast(`Đã xóa ${count} ca chụp.`);
+            renderHospitalManagementModal(); updateHospitalDropdowns(); renderDashboard();
+        };
 
-            showToast(`Đã chuyển bệnh viện và ${count} ca chụp vào thùng rác.`);
-            renderHospitalManagementModal();
-            updateHospitalDropdowns();
-            renderDashboard(); // Re-render main view
+        window.handleDeleteManufacturer = async (name) => {
+            if(!confirm(`Xóa hãng "${name}" vào thùng rác?`)) return;
+            deletedManufacturers.add(name); await saveManufacturerConfig();
+            // Optional: Soft delete entries associated? Or just leave them? For consistency, let's keep them but they won't appear in filters easily if manu is gone from dropdowns.
+            // But usually deleting a manufacturer setting shouldn't delete historical data immediately unless specified.
+            // To mimic hospital logic:
+            const batch = writeBatch(db); let count = 0;
+            entries.forEach(e => { if (e.manufacturer === name && !e.isDeleted) { const ref = doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', e.id); batch.update(ref, { isDeleted: true }); count++; } });
+            if (count > 0) await batch.commit();
+            showToast(`Đã xóa ${count} ca chụp.`);
+            renderManufacturerManagementModal(); updateHospitalDropdowns(); renderDashboard();
         };
 
         window.handleRestoreHospital = async (name) => {
-            if(!confirm(`Khôi phục bệnh viện "${name}"?`)) return;
-
-            deletedHospitals.delete(name);
-            // Re-add to custom list if it was there or purely rely on not being in deleted
-            // If it was in INITIAL, removing from deleted is enough. 
-            // If custom, we ensure it's kept/put back in custom if needed? Actually simpler: just removing from deleted set is enough logic wise for dropdowns.
-            
-            await saveHospitalConfig();
-
-            // Restore entries
-            const batch = writeBatch(db);
-            let count = 0;
-            // Note: entries array contains all docs including soft-deleted ones due to onSnapshot logic below
-            entries.forEach(e => {
-                if (e.hospitalName === name && e.isDeleted) {
-                    const ref = doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', e.id);
-                    batch.update(ref, { isDeleted: false });
-                    count++;
-                }
-            });
+            if(!confirm(`Khôi phục "${name}"?`)) return;
+            deletedHospitals.delete(name); await saveHospitalConfig();
+            const batch = writeBatch(db); let count = 0;
+            entries.forEach(e => { if (e.hospitalName === name && e.isDeleted) { const ref = doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', e.id); batch.update(ref, { isDeleted: false }); count++; } });
             if (count > 0) await batch.commit();
+            showToast(`Đã khôi phục ${count} ca chụp.`);
+            renderHospitalManagementModal(); updateHospitalDropdowns(); renderDashboard();
+        };
 
-            showToast(`Đã khôi phục bệnh viện và ${count} ca chụp.`);
-            renderHospitalManagementModal();
-            updateHospitalDropdowns();
-            renderDashboard();
+        window.handleRestoreManufacturer = async (name) => {
+            if(!confirm(`Khôi phục hãng "${name}"?`)) return;
+            deletedManufacturers.delete(name); await saveManufacturerConfig();
+            const batch = writeBatch(db); let count = 0;
+            entries.forEach(e => { if (e.manufacturer === name && e.isDeleted) { const ref = doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', e.id); batch.update(ref, { isDeleted: false }); count++; } });
+            if (count > 0) await batch.commit();
+            showToast(`Đã khôi phục ${count} ca chụp.`);
+            renderManufacturerManagementModal(); updateHospitalDropdowns(); renderDashboard();
         };
 
         el('addHospitalForm').onsubmit = async (e) => {
             e.preventDefault();
             const name = el('newHospitalName').value.trim();
             if (!name) return;
-            
-            if (getActiveHospitals().includes(name)) {
-                showToast("Bệnh viện này đã tồn tại!");
-                return;
-            }
-
+            if (getActiveHospitals().includes(name)) { showToast("Đã tồn tại!"); return; }
             customHospitals.add(name);
-            // If it was in trash, remove it
             if(deletedHospitals.has(name)) deletedHospitals.delete(name);
-            
             await saveHospitalConfig();
-            
-            el('newHospitalName').value = '';
-            showToast("Đã thêm bệnh viện mới!");
-            renderHospitalManagementModal();
-            updateHospitalDropdowns();
+            el('newHospitalName').value = ''; showToast("Đã thêm!");
+            renderHospitalManagementModal(); updateHospitalDropdowns();
+        };
+
+        el('addManufacturerForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const name = el('newManufacturerName').value.trim();
+            if (!name) return;
+            if (getActiveManufacturers().includes(name)) { showToast("Đã tồn tại!"); return; }
+            customManufacturers.add(name);
+            if(deletedManufacturers.has(name)) deletedManufacturers.delete(name);
+            await saveManufacturerConfig();
+            el('newManufacturerName').value = ''; showToast("Đã thêm!");
+            renderManufacturerManagementModal(); updateHospitalDropdowns();
         };
 
 
@@ -1609,7 +1847,6 @@
 
 
         function renderDashboard() {
-            // Simplified: No more guest restriction for viewing
             const isGuest = !user || user.isAnonymous;
             const progSection = el('progressChartSection'); // Get Progress Chart section
 
@@ -1634,8 +1871,8 @@
                 fProt = el('dashFilterProtocol').value || 'all'; 
                 fGend = el('dashFilterGender').value || 'all';
                 fManu = el('dashFilterManufacturer').value || 'all';
-                fStart = el('dashFilterStart').value; // New
-                fEnd = el('dashFilterEnd').value;     // New
+                fStart = el('dashFilterStart').value; 
+                fEnd = el('dashFilterEnd').value;     
             }
 
             filteredDisplayEntries = entries.filter(e => {
@@ -1654,8 +1891,8 @@
                     if (d < fStart) return false;
                 }
                 if (!isDataTab && fEnd) {
-                     const d = new Date(e.createdAt || e.updatedAt).toISOString().split('T')[0];
-                     if (d > fEnd) return false;
+                      const d = new Date(e.createdAt || e.updatedAt).toISOString().split('T')[0];
+                      if (d > fEnd) return false;
                 }
 
                 // Enhanced Search
@@ -1745,7 +1982,6 @@
             if(progressChartInstance) progressChartInstance.destroy();
             const progData = {};
             const protocols = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))];
-            // Use filteredDisplayEntries so filters (like Date) apply to this chart too.
             
             filteredDisplayEntries.forEach(e => {
                 const hosp = e.hospitalName || 'Unknown';
@@ -1756,7 +1992,7 @@
             
             const hospitals = Object.keys(progData).sort();
             const datasets = protocols.map((prot, index) => {
-                const colorPalette = ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#a855f7']; // Colors matching scatter contrast
+                const colorPalette = ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#a855f7']; 
                 return {
                     label: prot,
                     data: hospitals.map(h => progData[h][prot] || 0),
@@ -1793,7 +2029,6 @@
                             backgroundColor: 'rgba(255, 255, 255, 0.95)',
                             titleColor: '#1e293b',
                             bodyColor: '#475569',
-                            // FIX: Safe access to raw value for footer color
                             footerColor: (context) => {
                                 const val = context.tooltip?.dataPoints?.[0]?.raw || 0;
                                 return val < 30 ? '#ef4444' : '#10b981';
@@ -1817,7 +2052,6 @@
                     }
                 }
             });
-
 
             const currH = [...new Set([...INITIAL_HOSPITALS, ...entries.map(ent => ent.hospitalName)])].sort();
             const currM = [...new Set([...MANUFACTURERS, ...entries.map(ent => ent.manufacturer).filter(m => m)])].sort();
@@ -2019,6 +2253,15 @@
         }
 
         window.onload = async () => {
+            // HIDE GLOBAL LOADER AFTER INIT
+            setTimeout(() => {
+                const loader = el('globalLoader');
+                if(loader) {
+                    loader.style.opacity = '0';
+                    loader.style.visibility = 'hidden';
+                }
+            }, 1500); // Small delay for smooth effect
+
             const fill = (id, list) => { const e = el(id); if (!e) return; e.innerHTML = (id.startsWith('filter') || id.startsWith('dashFilter')) ? '<option value="all">Tất cả</option>' : '<option value="" disabled selected>-- Chọn --</option>'; 
                 if(id.startsWith('bulk')) e.innerHTML = '<option value="">-- Không thay đổi --</option>'; // Specific for Bulk
                 list.forEach(i => { e.innerHTML += `<option value="${typeof i === 'string' ? i : i.name}">${typeof i === 'string' ? i : i.name}</option>`; }); 
@@ -2074,9 +2317,53 @@
             el('weight').addEventListener('input', updateBMI);
             el('height').addEventListener('input', updateBMI);
 
+            // NEW: Duplicate ID Check Logic
+            const checkDuplicateId = () => {
+                const pid = el('patientId').value.trim();
+                const hosp = el('hospitalSelect').value === 'other' ? el('customHospitalName').value : el('hospitalSelect').value;
+                const warningEl = el('idWarning');
+                
+                if (!pid) {
+                    warningEl.classList.add('hidden');
+                    el('patientId').classList.remove('warning');
+                    return false;
+                }
+
+                // Check against loaded entries (excluding deleted ones)
+                // Exclude current editing ID if in edit mode
+                const currentEditId = el('editEntryId').value;
+                const exists = entries.some(e => 
+                    e.patientId === pid && 
+                    e.hospitalName === hosp && 
+                    e.id !== currentEditId &&
+                    !e.isDeleted 
+                );
+
+                if (exists) {
+                    warningEl.classList.remove('hidden');
+                    el('patientId').classList.add('warning');
+                    return true;
+                } else {
+                    warningEl.classList.add('hidden');
+                    el('patientId').classList.remove('warning');
+                    return false;
+                }
+            };
+
+            // Add listeners for ID check
+            el('patientId').addEventListener('input', checkDuplicateId);
+            el('hospitalSelect').addEventListener('change', checkDuplicateId);
+
             el('drlForm').onsubmit = async (e) => {
                 e.preventDefault();
                 
+                // Check for duplicate ID before proceeding
+                if (checkDuplicateId()) {
+                    if (!confirm("Cảnh báo: ID Bệnh nhân này đã tồn tại trong dữ liệu của bệnh viện. Bạn có chắc chắn muốn nhập trùng không?")) {
+                        return; // Stop submission
+                    }
+                }
+
                 // --- NEW: Validation ---
                 const ctdiVal = parseFloat(el('ctdi').value);
                 const dlpVal = parseFloat(el('dlp').value);
@@ -2105,6 +2392,10 @@
                 showToast("Dữ liệu đã được đồng bộ!");
                 ['patientId', 'age', 'yob', 'weight', 'height', 'bmi', 'ctdi', 'dlp'].forEach(fid => { const f = el(fid); if(f) f.value = ""; });
                 el('editEntryId').value = ""; el('submitBtnText').textContent = "Lưu Dữ Liệu"; el('cancelEditBtn').classList.add('hidden');
+                
+                // Clear warning state after submit
+                el('idWarning').classList.add('hidden');
+                el('patientId').classList.remove('warning');
             };
 
             await setPersistence(auth, browserLocalPersistence);
@@ -2121,6 +2412,7 @@
                     
                     // Fetch settings first
                     await fetchHospitalConfig();
+                    await fetchManufacturerConfig(); // New
 
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), (snap) => {
                         entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -2140,7 +2432,16 @@
             setupPresenceListener();
 
             el('logoutBtn').onclick = async (e) => { e.preventDefault(); await signOut(auth); location.reload(); };
-            el('cancelEditBtn').onclick = () => { el('editEntryId').value = ""; el('submitBtnText').textContent = "Lưu Dữ Liệu"; el('cancelEditBtn').classList.add('hidden'); el('drlForm').reset(); updateHospitalDropdowns(); };
+            el('cancelEditBtn').onclick = () => { 
+                el('editEntryId').value = ""; 
+                el('submitBtnText').textContent = "Lưu Dữ Liệu"; 
+                el('cancelEditBtn').classList.add('hidden'); 
+                el('drlForm').reset(); 
+                updateHospitalDropdowns(); 
+                // Clear warning on cancel
+                el('idWarning').classList.add('hidden');
+                el('patientId').classList.remove('warning');
+            };
             lucide.createIcons();
         };
 
