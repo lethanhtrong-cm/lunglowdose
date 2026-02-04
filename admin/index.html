@@ -1,1 +1,400 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Portal - MedExam Pro</title>
+    <!-- Thư viện hỗ trợ -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Import Map cho React và Firebase -->
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "lucide-react": "https://esm.sh/lucide-react@0.344.0?deps=react@18.2.0",
+            "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+            "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"
+        }
+    }
+    </script>
 
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useMemo } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { initializeApp } from 'firebase/app';
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            onAuthStateChanged, 
+            signOut 
+        } from 'firebase/auth';
+        import { 
+            getFirestore, 
+            collection, 
+            doc, 
+            addDoc, 
+            updateDoc, 
+            deleteDoc, 
+            onSnapshot, 
+            query, 
+            orderBy,
+            serverTimestamp 
+        } from 'firebase/firestore';
+        import { 
+            ShieldCheck, Users, BookOpen, LogOut, Search, Trash2, Plus, 
+            Upload, Download, X, CheckCircle2, AlertCircle, Edit3, 
+            ChevronRight, UserCheck, LayoutDashboard, FileText, Loader2 
+        } from 'lucide-react';
+
+        // --- CẤU HÌNH FIREBASE ---
+        // Sử dụng cấu hình từ môi trường hoặc mặc định
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "", 
+                authDomain: "rt-examination.firebaseapp.com",
+                projectId: "rt-examination",
+                storageBucket: "rt-examination.firebasestorage.app",
+                messagingSenderId: "920482699854",
+                appId: "1:920482699854:web:44f9b0d735bdc001c6c11f"
+            };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'med-exam-pro-v1';
+
+        const ADMIN_EMAILS = [
+            "thanhtrong.yds@gmail.com", 
+            "vnrad.tech@gmail.com",
+            "test@gmail.com"
+        ];
+
+        // --- COMPONENTS ---
+
+        const LoadingScreen = () => (
+            <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50">
+                <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
+                <p className="text-slate-400 font-medium animate-pulse">Đang tải hệ thống quản trị...</p>
+            </div>
+        );
+
+        const ImportModal = ({ onClose, onImport }) => {
+            const [textData, setTextData] = useState('');
+            const [isProcessing, setIsProcessing] = useState(false);
+
+            const handleTextImport = () => {
+                setIsProcessing(true);
+                try {
+                    const lines = textData.split('\n').map(l => l.trim()).filter(l => l);
+                    const questions = [];
+                    let currentQ = null;
+
+                    lines.forEach(line => {
+                        if (/^\d+[\.:\)]/.test(line)) {
+                            if (currentQ) questions.push(currentQ);
+                            currentQ = {
+                                text: line.replace(/^\d+[\.:\)]\s*/, ''),
+                                options: ['', '', '', ''],
+                                correctOption: 0
+                            };
+                        } else if (/^[A-D][\.:\)]/.test(line)) {
+                            if (currentQ) {
+                                const index = line.toUpperCase().charCodeAt(0) - 65;
+                                if (index >= 0 && index <= 3) {
+                                    currentQ.options[index] = line.replace(/^[A-D][\.:\)]\s*/, '');
+                                }
+                            }
+                        } else if (/^(Đáp án|Answer|Key)[:\s]+[A-D]/i.test(line)) {
+                            if (currentQ) {
+                                const match = line.match(/[A-D]/i);
+                                if (match) {
+                                    currentQ.correctOption = match[0].toUpperCase().charCodeAt(0) - 65;
+                                }
+                            }
+                        }
+                    });
+
+                    if (currentQ) questions.push(currentQ);
+                    if (questions.length === 0) throw new Error("Không tìm thấy câu hỏi hợp lệ.");
+                    
+                    onImport(questions);
+                    onClose();
+                } catch (err) {
+                    alert("Lỗi xử lý: " + err.message);
+                } finally {
+                    setIsProcessing(false);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+                    <div className="bg-slate-900 w-full max-w-2xl rounded-2xl border border-slate-800 shadow-2xl flex flex-col max-h-[85vh]">
+                        <div className="p-5 border-b border-slate-800 flex justify-between items-center">
+                            <h3 className="font-bold text-lg flex items-center gap-2 text-blue-400"><Upload size={20}/> Nhập câu hỏi</h3>
+                            <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400"><X size={20}/></button>
+                        </div>
+                        <div className="p-6 overflow-y-auto space-y-4">
+                            <textarea 
+                                className="w-full h-80 bg-slate-950 p-4 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm"
+                                placeholder="Dán nội dung câu hỏi tại đây..."
+                                value={textData}
+                                onChange={(e) => setTextData(e.target.value)}
+                            />
+                        </div>
+                        <div className="p-5 border-t border-slate-800 flex justify-end gap-3">
+                            <button onClick={onClose} className="px-5 py-2 text-slate-400 hover:text-white">Hủy</button>
+                            <button onClick={handleTextImport} className="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold">Xác nhận</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ExamEditor = ({ exam, onClose }) => {
+            const [title, setTitle] = useState(exam?.title || '');
+            const [duration, setDuration] = useState(exam?.duration || 30);
+            const [questions, setQuestions] = useState(exam?.questions || []);
+            const [showImport, setShowImport] = useState(false);
+            const [isSaving, setIsSaving] = useState(false);
+
+            const [qText, setQText] = useState('');
+            const [opts, setOpts] = useState(['', '', '', '']);
+            const [correct, setCorrect] = useState(0);
+
+            const addQuestion = () => {
+                if (!qText.trim() || opts.some(o => !o.trim())) return alert("Thiếu thông tin câu hỏi.");
+                setQuestions([...questions, { text: qText, options: opts, correctOption: correct }]);
+                setQText(''); setOpts(['', '', '', '']); setCorrect(0);
+            };
+
+            const handleSave = async () => {
+                if (!title.trim() || questions.length === 0) return alert("Thiếu tên đề hoặc câu hỏi.");
+                setIsSaving(true);
+                try {
+                    const data = { title, duration: Number(duration), questions, updatedAt: serverTimestamp() };
+                    if (exam?.id) {
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id), data);
+                    } else {
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), { ...data, createdAt: serverTimestamp() });
+                    }
+                    onClose();
+                } catch (err) { alert(err.message); }
+                finally { setIsSaving(false); }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-slate-950/90 flex items-center justify-center p-4 z-50">
+                    <div className="bg-slate-900 w-full max-w-5xl h-[95vh] rounded-2xl border border-slate-800 flex flex-col overflow-hidden">
+                        <div className="p-5 border-b border-slate-800 flex justify-between items-center">
+                            <h2 className="text-xl font-bold">{exam ? 'Chỉnh sửa đề thi' : 'Tạo đề thi mới'}</h2>
+                            <div className="flex gap-2">
+                                <button onClick={() => setShowImport(true)} className="bg-slate-800 px-4 py-2 rounded-xl text-sm font-bold flex gap-2 items-center"><Upload size={16}/> Import</button>
+                                <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400"><X /></button>
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="col-span-2"><label className="text-xs text-slate-500 uppercase">Tên đề</label><input className="w-full bg-slate-950 p-3 rounded-xl border border-slate-800" value={title} onChange={e=>setTitle(e.target.value)}/></div>
+                                <div><label className="text-xs text-slate-500 uppercase">Phút</label><input type="number" className="w-full bg-slate-950 p-3 rounded-xl border border-slate-800" value={duration} onChange={e=>setDuration(e.target.value)}/></div>
+                            </div>
+                            <div className="bg-slate-800/50 p-6 rounded-2xl space-y-4">
+                                <textarea className="w-full bg-slate-950 p-3 rounded-xl border border-slate-800 min-h-[80px]" placeholder="Nội dung câu hỏi..." value={qText} onChange={e=>setQText(e.target.value)}/>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {opts.map((o, i) => (
+                                        <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border ${correct === i ? 'bg-blue-900/20 border-blue-500' : 'bg-slate-950 border-slate-800'}`}>
+                                            <input type="radio" checked={correct === i} onChange={() => setCorrect(i)}/>
+                                            <input className="bg-transparent flex-1 outline-none text-sm" value={o} onChange={e=>{const n=[...opts];n[i]=e.target.value;setOpts(n)}} placeholder={`Đáp án ${String.fromCharCode(65+i)}`}/>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button onClick={addQuestion} className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold">Thêm câu hỏi</button>
+                            </div>
+                            <div className="space-y-2">
+                                {questions.map((q, i) => (
+                                    <div key={i} className="bg-slate-800/30 p-4 rounded-xl flex justify-between items-center group">
+                                        <p className="text-sm"><span className="text-blue-400 font-bold">Câu {i+1}:</span> {q.text}</p>
+                                        <button onClick={() => setQuestions(questions.filter((_, idx)=>idx!==i))} className="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16}/></button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="p-5 border-t border-slate-800 flex justify-end gap-3">
+                            <button onClick={onClose} className="px-6 py-2 text-slate-400">Đóng</button>
+                            <button onClick={handleSave} disabled={isSaving} className="px-8 py-2 bg-blue-600 rounded-xl font-bold flex gap-2 items-center">
+                                {isSaving ? <Loader2 className="animate-spin" size={18}/> : <CheckCircle2 size={18}/>} Lưu đề thi
+                            </button>
+                        </div>
+                        {showImport && <ImportModal onClose={()=>setShowImport(false)} onImport={qs=>setQuestions([...questions, ...qs])}/>}
+                    </div>
+                </div>
+            );
+        };
+
+        const Dashboard = ({ user }) => {
+            const [tab, setTab] = useState('overview');
+            const [users, setUsers] = useState([]);
+            const [exams, setExams] = useState([]);
+            const [search, setSearch] = useState('');
+            const [editingExam, setEditingExam] = useState(null);
+            const [showCreator, setShowCreator] = useState(false);
+
+            useEffect(() => {
+                const u1 = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'users')), s => setUsers(s.docs.map(d=>({id:d.id, ...d.data()}))));
+                const u2 = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'exams')), s => setExams(s.docs.map(d=>({id:d.id, ...d.data()}))));
+                return () => { u1(); u2(); };
+            }, []);
+
+            const filteredUsers = users.filter(u => (u.displayName || '').toLowerCase().includes(search.toLowerCase()) || (u.email || '').toLowerCase().includes(search.toLowerCase()));
+            const filteredExams = exams.filter(e => (e.title || '').toLowerCase().includes(search.toLowerCase()));
+
+            return (
+                <div className="flex min-h-screen">
+                    <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col fixed h-full">
+                        <div className="p-6 border-b border-slate-800 flex items-center gap-3 text-red-500 font-bold text-xl"><ShieldCheck size={28}/> ADMIN</div>
+                        <nav className="flex-1 p-4 space-y-2 mt-4">
+                            <button onClick={()=>setTab('overview')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${tab==='overview'?'bg-blue-600 text-white':'text-slate-400 hover:bg-slate-800'}`}><LayoutDashboard size={20}/> Tổng quan</button>
+                            <button onClick={()=>setTab('users')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${tab==='users'?'bg-blue-600 text-white':'text-slate-400 hover:bg-slate-800'}`}><Users size={20}/> Học viên</button>
+                            <button onClick={()=>setTab('exams')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${tab==='exams'?'bg-blue-600 text-white':'text-slate-400 hover:bg-slate-800'}`}><BookOpen size={20}/> Đề thi</button>
+                        </nav>
+                        <div className="p-4 border-t border-slate-800"><button onClick={()=>signOut(auth)} className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-400"><LogOut size={20}/> Đăng xuất</button></div>
+                    </aside>
+
+                    <main className="flex-1 ml-64 p-8">
+                        <div className="flex justify-between items-center mb-8">
+                            <h1 className="text-3xl font-bold capitalize">{tab==='overview'?'Thống kê':tab==='users'?'Học viên':'Đề thi'}</h1>
+                            <div className="flex gap-4">
+                                <div className="relative"><Search className="absolute left-3 top-2.5 text-slate-500" size={18}/><input className="bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2 w-64 focus:border-blue-500 outline-none" placeholder="Tìm kiếm..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
+                                {tab==='exams' && <button onClick={()=>setShowCreator(true)} className="bg-emerald-600 hover:bg-emerald-500 px-5 py-2 rounded-xl font-bold flex items-center gap-2"><Plus size={18}/> Thêm đề</button>}
+                            </div>
+                        </div>
+
+                        {tab === 'overview' ? (
+                            <div className="grid grid-cols-4 gap-6 animate-in">
+                                <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800"><p className="text-slate-500 text-sm">Học viên</p><p className="text-3xl font-bold">{users.length}</p></div>
+                                <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800"><p className="text-slate-500 text-sm">VIP</p><p className="text-3xl font-bold text-yellow-500">{users.filter(u=>u.isPremium).length}</p></div>
+                                <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800"><p className="text-slate-500 text-sm">Đề thi</p><p className="text-3xl font-bold">{exams.length}</p></div>
+                                <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800"><p className="text-slate-500 text-sm">Tổng câu hỏi</p><p className="text-3xl font-bold text-blue-500">{exams.reduce((a,c)=>a+(c.questions?.length||0),0)}</p></div>
+                            </div>
+                        ) : tab === 'users' ? (
+                            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden animate-in">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-slate-800/50 text-slate-400 uppercase text-xs"><tr><th className="p-5">Học viên</th><th className="p-5">Email</th><th className="p-5 text-center">VIP</th><th className="p-5 text-right">Hành động</th></tr></thead>
+                                    <tbody className="divide-y divide-slate-800">
+                                        {filteredUsers.map(u => (
+                                            <tr key={u.id} className="hover:bg-slate-800/30 group">
+                                                <td className="p-5 font-bold">{u.displayName || 'Ẩn danh'}</td>
+                                                <td className="p-5 text-slate-400">{u.email}</td>
+                                                <td className="p-5 text-center">{u.isPremium ? <span className="px-2 py-1 bg-yellow-500/10 text-yellow-500 text-[10px] font-bold rounded border border-yellow-500/20">VIP</span> : <span className="text-slate-600 text-[10px]">Free</span>}</td>
+                                                <td className="p-5 flex justify-end gap-2">
+                                                    <button onClick={async()=>await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.id), {isPremium: !u.isPremium})} className={`px-2 py-1 rounded text-[10px] font-bold ${u.isPremium?'text-red-400':'text-emerald-400'}`}>{u.isPremium?'Hủy VIP':'Cấp VIP'}</button>
+                                                    <button onClick={async()=>window.confirm("Xóa?")&&await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.id))} className="text-slate-500 hover:text-red-400"><Trash2 size={16}/></button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-3 gap-6 animate-in">
+                                {filteredExams.map(e => (
+                                    <div key={e.id} className="bg-slate-900 border border-slate-800 p-6 rounded-2xl hover:border-blue-500 transition-all group relative">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="bg-blue-500/10 p-3 rounded-xl text-blue-500"><BookOpen size={24}/></div>
+                                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={()=>setEditingExam(e)} className="p-2 text-slate-400 hover:text-blue-400"><Edit3 size={18}/></button>
+                                                <button onClick={async()=>window.confirm("Xóa đề?")&&await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', e.id))} className="p-2 text-slate-400 hover:text-red-400"><Trash2 size={18}/></button>
+                                            </div>
+                                        </div>
+                                        <h3 className="text-lg font-bold line-clamp-2">{e.title}</h3>
+                                        <p className="text-xs text-slate-500 mt-2">{e.questions?.length || 0} câu • {e.duration} phút</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </main>
+                    {showCreator && <ExamEditor onClose={()=>setShowCreator(false)}/>}
+                    {editingExam && <ExamEditor exam={editingExam} onClose={()=>setEditingExam(null)}/>}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState('');
+
+            useEffect(() => {
+                const unsubscribe = onAuthStateChanged(auth, u => {
+                    if (u && !ADMIN_EMAILS.includes(u.email)) {
+                        setError("Tài khoản này không có quyền quản trị.");
+                        signOut(auth); setUser(null);
+                    } else {
+                        setUser(u); setError('');
+                    }
+                    setLoading(false);
+                });
+                return () => unsubscribe();
+            }, []);
+
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                const { email, password } = e.target.elements;
+                setLoading(true);
+                try {
+                    const res = await signInWithEmailAndPassword(auth, email.value, password.value);
+                    if (!ADMIN_EMAILS.includes(res.user.email)) {
+                        throw new Error("Tài khoản này không có quyền quản trị.");
+                    }
+                } catch (err) {
+                    setError("Đăng nhập thất bại: " + err.message);
+                    signOut(auth);
+                } finally { setLoading(false); }
+            };
+
+            if (loading) return <LoadingScreen />;
+
+            if (!user) return (
+                <div className="min-h-screen flex items-center justify-center p-4">
+                    <div className="w-full max-w-md bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl animate-in">
+                        <div className="text-center mb-8">
+                            <div className="mx-auto w-16 h-16 bg-red-500/10 flex items-center justify-center rounded-2xl text-red-500 mb-4"><ShieldCheck size={32}/></div>
+                            <h1 className="text-2xl font-bold">Admin Portal</h1>
+                            <p className="text-slate-500 text-sm">Vui lòng đăng nhập để tiếp tục</p>
+                        </div>
+                        {error && <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl flex items-center gap-2"><AlertCircle size={14}/> {error}</div>}
+                        <form onSubmit={handleLogin} className="space-y-4">
+                            <input name="email" type="email" required className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 outline-none focus:border-red-500" placeholder="Email Admin"/>
+                            <input name="password" type="password" required className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 outline-none focus:border-red-500" placeholder="Mật khẩu"/>
+                            <button className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-red-900/20">Đăng nhập</button>
+                        </form>
+                    </div>
+                </div>
+            );
+
+            return <Dashboard user={user} />;
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
