@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VN-DRL Charts - Phân tích & Thống kê</title>
+    <title>VN-DRL Charts - Phân tích & Thống kê Nâng cao</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -57,7 +57,7 @@
         .insight-title { font-weight: 900; text-transform: uppercase; margin-bottom: 0.25rem; color: #334155; }
         .insight-content { line-height: 1.5; }
 
-        /* Lock Screen Style - Updated with Gradient Animation */
+        /* Lock Screen Style */
         @keyframes gradientBG {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
@@ -67,24 +67,22 @@
             position: fixed;
             inset: 0;
             z-index: 100;
-            /* Animated Gradient Background */
             background: linear-gradient(-45deg, #4f46e5, #0ea5e9, #10b981, #f59e0b);
             background-size: 400% 400%;
             animation: gradientBG 15s ease infinite;
-            
             display: flex;
-            flex-direction: column; /* Stack title and card */
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 1rem;
-            gap: 2rem; /* Space between title and card */
+            gap: 2rem;
         }
         .lock-card {
-            background: rgba(255, 255, 255, 0.95); /* Slightly more opaque */
+            background: rgba(255, 255, 255, 0.95);
             padding: 3rem;
             border-radius: 2.5rem;
             border: 1px solid rgba(255, 255, 255, 0.8);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* Stronger shadow */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             text-align: center;
             max-width: 420px;
             width: 100%;
@@ -103,7 +101,7 @@
             border: 1px solid transparent;
         }
         .nav-pill.active {
-            background-color: #4f46e5; /* Indigo-600 */
+            background-color: #4f46e5;
             color: white;
             box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
         }
@@ -117,7 +115,7 @@
             color: #4f46e5;
         }
 
-        /* Typography for Theory Tab */
+        /* Typography */
         .prose h3 { font-size: 1.25rem; font-weight: 900; color: #1e293b; margin-top: 2rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
         .prose h4 { font-size: 1rem; font-weight: 800; color: #334155; margin-top: 1.5rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
         .prose p { margin-bottom: 1rem; line-height: 1.7; color: #475569; font-size: 0.9rem; text-align: justify; }
@@ -132,7 +130,6 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* Select Helper Class */
         .filter-select {
             padding: 0.5rem 1rem;
             font-size: 0.7rem;
@@ -145,6 +142,10 @@
             cursor: pointer;
         }
         .filter-select:focus { border-color: #6366f1; }
+
+        /* Correlation Matrix Styles */
+        .corr-cell { transition: all 0.3s; }
+        .corr-cell:hover { transform: scale(1.05); z-index: 10; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body class="antialiased">
@@ -152,7 +153,6 @@
 
     <!-- Password Lock Screen -->
     <div id="accessLock" class="lock-screen-wrapper">
-        <!-- Research Title Area -->
         <div class="text-center px-4 max-w-5xl animate-fade-in-up">
             <h1 class="text-white font-black text-2xl md:text-4xl drop-shadow-md uppercase leading-tight tracking-tight mb-4">
                 NGHIÊN CỨU ĐỐI SÁNH MỨC LIỀU TRUNG VỊ (MEDIAN)
@@ -255,16 +255,18 @@
                             </p>
                         </div>
                     </div>
-                    <select id="progModulation" class="filter-select border-slate-300 text-slate-600">
-                        <option value="all">Tất cả (All)</option>
-                        <option value="Có">Có Modulation</option>
-                        <option value="Không">Không Modulation</option>
-                    </select>
+                    <div class="flex gap-2">
+                        <button class="p-2 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors" onclick="downloadChart('progressChart', 'TienDo')"><i data-lucide="camera" class="w-4 h-4 text-slate-600"></i></button>
+                        <select id="progModulation" class="filter-select border-slate-300 text-slate-600">
+                            <option value="all">Tất cả (All)</option>
+                            <option value="Có">Có Modulation</option>
+                            <option value="Không">Không Modulation</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="chart-container h-[400px]">
                     <canvas id="progressChart"></canvas>
                 </div>
-                <!-- Insight Box -->
                 <div class="insight-box" id="insight-progress">
                     <i data-lucide="lightbulb" class="insight-icon w-5 h-5"></i>
                     <div>
@@ -274,7 +276,7 @@
                 </div>
             </div>
 
-            <!-- ROW 2: International Benchmarking (Mean) -->
+            <!-- ROW 2: International Benchmarking (Mean & Median Combined) -->
             <div class="glass-card p-8 rounded-[2.5rem] bg-white border border-rose-50 shadow-xl relative overflow-hidden break-inside-avoid">
                 <div class="absolute top-0 right-0 p-4 opacity-5">
                     <i data-lucide="globe-2" class="w-64 h-64 text-rose-500"></i>
@@ -283,11 +285,12 @@
                     <div class="flex items-center gap-3">
                         <div class="bg-rose-600 p-2.5 rounded-xl text-white shadow-lg shadow-rose-200"><i data-lucide="globe" class="w-6 h-6"></i></div>
                         <div>
-                            <h3 class="text-sm font-black text-rose-900 uppercase tracking-wider">Đối sánh chuẩn Quốc tế (Mean)</h3>
-                            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">So sánh Mean các viện với DRL nước khác</p>
+                            <h3 class="text-sm font-black text-rose-900 uppercase tracking-wider">Đối sánh chuẩn Quốc tế (Mean & Median)</h3>
+                            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">So sánh Mean & Median các viện với DRL nước khác</p>
                         </div>
                     </div>
                     <div class="flex flex-wrap gap-2">
+                         <button class="p-2 bg-rose-50 rounded-lg hover:bg-rose-100 transition-colors" onclick="downloadChart('benchmarkChart', 'DoiSanhQuocTe')"><i data-lucide="camera" class="w-4 h-4 text-rose-600"></i></button>
                         <select id="benchModulation" class="filter-select border-rose-200 text-rose-600 focus:border-rose-500">
                             <option value="all">Tất cả Modulation</option>
                             <option value="Có">Có Modulation</option>
@@ -307,13 +310,20 @@
                 <div class="chart-container h-[450px]">
                     <canvas id="benchmarkChart"></canvas>
                 </div>
-                <!-- Insight Box -->
-                <div class="insight-box border-rose-100 bg-rose-50/50" id="insight-benchmark-mean">
+                
+                <div class="insight-box border-rose-100 bg-rose-50/50" id="insight-benchmark">
                     <i data-lucide="trending-up" class="insight-icon w-5 h-5 text-rose-500"></i>
                     <div>
-                        <h5 class="insight-title text-rose-800">Đánh giá hiệu suất liều (Mean)</h5>
+                        <h5 class="insight-title text-rose-800">Đánh giá hiệu suất liều (Mean & Median)</h5>
                         <p class="insight-content text-slate-600">Đang phân tích...</p>
                     </div>
+                </div>
+                
+                <div class="mt-4 flex flex-wrap gap-4 justify-center text-[10px] font-bold text-slate-500">
+                    <div class="flex items-center gap-2"><span class="w-3 h-3 bg-indigo-500 rounded-sm"></span> Mean tại viện</div>
+                    <div class="flex items-center gap-2"><span class="w-3 h-3 bg-teal-500 rounded-sm"></span> Median tại viện</div>
+                    <div class="flex items-center gap-2"><span class="w-8 h-0.5 bg-rose-500 border-t-2 border-rose-500 border-dashed"></span> Chuẩn P75 (DRL)</div>
+                    <div class="flex items-center gap-2"><span class="w-8 h-0.5 bg-emerald-500 border-t-2 border-emerald-500 border-dotted"></span> Chuẩn Median (P50)</div>
                 </div>
             </div>
 
@@ -331,6 +341,7 @@
                         </div>
                     </div>
                     <div class="flex flex-wrap gap-2">
+                        <button class="p-2 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors" onclick="downloadChart('benchmarkMedianChart', 'DoiSanhMedian')"><i data-lucide="camera" class="w-4 h-4 text-teal-600"></i></button>
                         <select id="benchMedModulation" class="filter-select border-teal-200 text-teal-600 focus:border-teal-500">
                             <option value="all">Tất cả Modulation</option>
                             <option value="Có">Có Modulation</option>
@@ -350,13 +361,40 @@
                 <div class="chart-container h-[450px]">
                     <canvas id="benchmarkMedianChart"></canvas>
                 </div>
-                <!-- Insight Box -->
                 <div class="insight-box border-teal-100 bg-teal-50/50" id="insight-benchmark-median">
                     <i data-lucide="check-circle" class="insight-icon w-5 h-5 text-teal-500"></i>
                     <div>
                         <h5 class="insight-title text-teal-800">Đánh giá mức liều thông thường (Median)</h5>
                         <p class="insight-content text-slate-600">Đang phân tích...</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- NEW ROW: MULTI-PROTOCOL MEDIAN CHART (ADDED HERE) -->
+            <div class="glass-card p-8 rounded-[2.5rem] bg-white border border-purple-50 shadow-xl relative overflow-hidden break-inside-avoid">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 relative z-10">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-purple-600 p-2.5 rounded-xl text-white shadow-lg shadow-purple-200"><i data-lucide="layers" class="w-6 h-6"></i></div>
+                        <div>
+                            <h3 class="text-sm font-black text-purple-900 uppercase tracking-wider">Tổng hợp Median 4 Protocols</h3>
+                            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">So sánh tổng quan CTDI/DLP của 4 bộ phận cùng lúc</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="p-2 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors" onclick="downloadChart('multiProtocolMedianChart', 'TongHop4Protocols')"><i data-lucide="camera" class="w-4 h-4 text-purple-600"></i></button>
+                        <select id="multiProtModulation" class="filter-select border-purple-200 text-purple-600 focus:border-purple-500">
+                            <option value="all">Tất cả Modulation</option>
+                            <option value="Có">Có Modulation</option>
+                            <option value="Không">Không Modulation</option>
+                        </select>
+                        <select id="multiProtMetric" class="filter-select border-purple-200 text-slate-700 focus:border-purple-500">
+                            <option value="ctdi">CTDIvol (mGy)</option>
+                            <option value="dlp">DLP (mGy.cm)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="chart-container h-[450px]">
+                    <canvas id="multiProtocolMedianChart"></canvas>
                 </div>
             </div>
 
@@ -369,11 +407,14 @@
                             <div class="bg-pink-500 p-2 rounded-xl text-white shadow-lg shadow-pink-100"><i data-lucide="users" class="w-4 h-4"></i></div>
                             <h3 class="text-xs font-black text-pink-900 uppercase tracking-wider">Giới tính</h3>
                         </div>
-                        <select id="genderModulation" class="filter-select border-pink-200 text-pink-600 py-1 px-2 text-[9px]">
-                            <option value="all">Tất cả</option>
-                            <option value="Có">Có Mod</option>
-                            <option value="Không">Ko Mod</option>
-                        </select>
+                        <div class="flex gap-2">
+                            <button class="p-1 bg-pink-50 rounded hover:bg-pink-100" onclick="downloadChart('genderChart', 'GioiTinh')"><i data-lucide="camera" class="w-3 h-3 text-pink-600"></i></button>
+                            <select id="genderModulation" class="filter-select border-pink-200 text-pink-600 py-1 px-2 text-[9px]">
+                                <option value="all">Tất cả</option>
+                                <option value="Có">Có Mod</option>
+                                <option value="Không">Ko Mod</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="chart-container flex-1 min-h-[200px] flex items-center justify-center">
                         <canvas id="genderChart"></canvas>
@@ -389,27 +430,32 @@
                                 <h3 class="text-xs font-black text-indigo-900 uppercase tracking-wider">Phân bố Cân nặng</h3>
                             </div>
                         </div>
-                        <select id="weightModulation" class="filter-select border-indigo-200 text-indigo-600 py-1 px-2 text-[9px]">
-                            <option value="all">Tất cả</option>
-                            <option value="Có">Có Mod</option>
-                            <option value="Không">Ko Mod</option>
-                        </select>
+                        <div class="flex gap-2">
+                             <button class="p-1 bg-indigo-50 rounded hover:bg-indigo-100" onclick="downloadChart('weightChart', 'CanNang')"><i data-lucide="camera" class="w-3 h-3 text-indigo-600"></i></button>
+                            <select id="weightModulation" class="filter-select border-indigo-200 text-indigo-600 py-1 px-2 text-[9px]">
+                                <option value="all">Tất cả</option>
+                                <option value="Có">Có Mod</option>
+                                <option value="Không">Ko Mod</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="chart-container flex-1 min-h-[200px]">
                         <canvas id="weightChart"></canvas>
                     </div>
                 </div>
 
-                <!-- Modulation Usage Chart (No filter here as it measures Modulation itself) -->
+                <!-- Modulation Usage Chart -->
                 <div class="glass-card p-6 rounded-[2.5rem] bg-white border border-orange-50 shadow-xl flex flex-col">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="bg-orange-500 p-2 rounded-xl text-white shadow-lg shadow-orange-100"><i data-lucide="zap" class="w-4 h-4"></i></div>
-                        <h3 class="text-xs font-black text-orange-900 uppercase tracking-wider">Modulation</h3>
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-orange-500 p-2 rounded-xl text-white shadow-lg shadow-orange-100"><i data-lucide="zap" class="w-4 h-4"></i></div>
+                            <h3 class="text-xs font-black text-orange-900 uppercase tracking-wider">Modulation</h3>
+                        </div>
+                        <button class="p-1 bg-orange-50 rounded hover:bg-orange-100" onclick="downloadChart('modulationChart', 'Modulation')"><i data-lucide="camera" class="w-3 h-3 text-orange-600"></i></button>
                     </div>
                     <div class="chart-container flex-1 min-h-[200px] flex items-center justify-center">
                         <canvas id="modulationChart"></canvas>
                     </div>
-                    <!-- Insight Box -->
                     <div class="insight-box border-orange-100 bg-orange-50/50 mt-4" id="insight-modulation">
                         <i data-lucide="alert-triangle" class="insight-icon w-4 h-4 text-orange-500"></i>
                         <div>
@@ -419,40 +465,7 @@
                 </div>
             </div>
 
-            <!-- ROW 4: DRL Levels (P75 & Median) by Protocol -->
-            <div class="glass-card p-8 rounded-[2.5rem] bg-white border border-rose-50 shadow-xl break-inside-avoid">
-                <div class="flex items-center justify-between mb-8">
-                    <div class="flex items-center gap-3">
-                        <div class="bg-rose-600 p-2.5 rounded-xl text-white shadow-lg shadow-rose-100"><i data-lucide="target" class="w-6 h-6"></i></div>
-                        <h3 class="text-sm font-black text-rose-900 uppercase tracking-wider">Mức tham chiếu chẩn đoán (DRL - P75 & Median)</h3>
-                    </div>
-                    <select id="drlModulation" class="filter-select border-rose-200 text-rose-600 focus:border-rose-500">
-                        <option value="all">Tất cả Modulation</option>
-                        <option value="Có">Có Modulation</option>
-                        <option value="Không">Không Modulation</option>
-                    </select>
-                </div>
-                <div class="grid grid-cols-1 xl:grid-cols-2 gap-10">
-                    <div class="flex flex-col gap-4">
-                        <h4 class="text-[10px] font-black text-slate-400 uppercase text-center tracking-widest bg-slate-50 py-2 rounded-lg">CTDIvol (mGy)</h4>
-                        <div class="chart-container h-[350px]"><canvas id="drlCtdiChart"></canvas></div>
-                    </div>
-                    <div class="flex flex-col gap-4">
-                        <h4 class="text-[10px] font-black text-slate-400 uppercase text-center tracking-widest bg-slate-50 py-2 rounded-lg">DLP (mGy.cm)</h4>
-                        <div class="chart-container h-[350px]"><canvas id="drlDlpChart"></canvas></div>
-                    </div>
-                </div>
-                 <!-- Insight Box -->
-                <div class="insight-box border-rose-100 bg-rose-50/50" id="insight-drl-levels">
-                    <i data-lucide="bar-chart-2" class="insight-icon w-5 h-5 text-rose-500"></i>
-                    <div>
-                        <h5 class="insight-title text-rose-800">Đánh giá độ biến thiên nội bộ (P75 vs Median)</h5>
-                        <p class="insight-content text-slate-600">Đang phân tích...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ROW 5: Normality Test (Kiểm định phân phối chuẩn) -->
+            <!-- ROW 5: Normality Test -->
             <div class="glass-card p-8 rounded-[2.5rem] bg-white border border-violet-50 shadow-xl break-inside-avoid">
                 <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <div class="flex items-center gap-3">
@@ -463,6 +476,7 @@
                         </div>
                     </div>
                     <div class="flex flex-wrap gap-2">
+                        <button class="p-2 bg-violet-50 rounded-lg hover:bg-violet-100 transition-colors" onclick="downloadChart('normalityChart', 'PhanPhoiChuan')"><i data-lucide="camera" class="w-4 h-4 text-violet-600"></i></button>
                         <select id="normModulation" class="filter-select border-slate-200 text-violet-600 focus:border-violet-500">
                             <option value="all">Tất cả Modulation</option>
                             <option value="Có">Có Modulation</option>
@@ -479,14 +493,11 @@
                 </div>
                 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <!-- Chart Area -->
                     <div class="lg:col-span-2">
                         <div class="chart-container h-[400px]">
                             <canvas id="normalityChart"></canvas>
                         </div>
                     </div>
-                    
-                    <!-- Stats & Interpretation Area -->
                     <div class="flex flex-col justify-center space-y-6">
                         <div class="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
                             <h4 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 border-b border-slate-200 pb-2">Chỉ số thống kê</h4>
@@ -509,7 +520,6 @@
                                 </div>
                             </div>
                         </div>
-                        
                         <div class="p-6 bg-violet-50 rounded-[2rem] border border-violet-100">
                             <h4 class="text-xs font-black text-violet-800 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="info" class="w-4 h-4"></i> Đánh giá sơ bộ</h4>
                             <p id="normInterpretation" class="text-[11px] font-medium text-violet-700 leading-relaxed">
@@ -520,52 +530,58 @@
                 </div>
             </div>
 
-            <!-- ROW 6: Time Trend & Scatter -->
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 break-inside-avoid">
-                <!-- Trend over Time -->
-                <div class="glass-card p-8 rounded-[2.5rem] bg-white border border-cyan-50 shadow-xl">
-                    <div class="flex items-center justify-between mb-6">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-cyan-600 p-2.5 rounded-xl text-white shadow-lg shadow-cyan-100"><i data-lucide="trending-down" class="w-5 h-5"></i></div>
-                            <h3 class="text-sm font-black text-cyan-900 uppercase tracking-wider">Xu hướng liều theo thời gian</h3>
-                        </div>
+            <!-- ROW 6: Time Trend -->
+            <div class="glass-card p-8 rounded-[2.5rem] bg-white border border-cyan-50 shadow-xl break-inside-avoid">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-cyan-600 p-2.5 rounded-xl text-white shadow-lg shadow-cyan-100"><i data-lucide="trending-down" class="w-5 h-5"></i></div>
+                        <h3 class="text-sm font-black text-cyan-900 uppercase tracking-wider">Xu hướng liều theo thời gian</h3>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="p-2 bg-cyan-50 rounded-lg hover:bg-cyan-100 transition-colors" onclick="downloadChart('trendChart', 'XuHuong')"><i data-lucide="camera" class="w-4 h-4 text-cyan-600"></i></button>
                         <select id="trendModulation" class="filter-select border-cyan-200 text-cyan-600">
                             <option value="all">Tất cả Mod</option>
                             <option value="Có">Có Mod</option>
                             <option value="Không">Không Mod</option>
                         </select>
                     </div>
-                    <div class="chart-container h-[400px]">
-                        <canvas id="trendChart"></canvas>
-                    </div>
                 </div>
-
-                <!-- Scatter Plot -->
-                <div class="glass-card p-8 rounded-[2.5rem] bg-white border border-emerald-50 shadow-xl">
-                    <div class="flex flex-col gap-6 mb-4">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="bg-emerald-600 p-2.5 rounded-xl text-white shadow-lg shadow-emerald-100"><i data-lucide="scatter-chart" class="w-5 h-5"></i></div>
-                                <h3 class="text-sm font-black text-emerald-900 uppercase tracking-wider">Cân nặng - DLP</h3>
-                            </div>
-                            <select id="scatterFilterModulation_DLP" class="filter-select border-emerald-200 text-emerald-600">
-                                <option value="all">Tất cả Mod</option>
-                                <option value="Có">Có Mod</option>
-                                <option value="Không">Không Mod</option>
-                            </select>
-                        </div>
-                        <div class="flex flex-col gap-3">
-                            <select id="scatterFilterProtocol_DLP" class="filter-select border-slate-200 text-slate-700"></select>
-                            <select id="scatterFilterHospital_DLP" class="filter-select border-slate-200 text-slate-700"></select>
-                        </div>
-                    </div>
-                    <div class="chart-container h-[400px]">
-                        <canvas id="scatterDlpChart"></canvas>
-                    </div>
+                <div class="chart-container h-[400px]">
+                    <canvas id="trendChart"></canvas>
                 </div>
             </div>
 
-            <!-- ROW 7: Standard Deviation Analysis -->
+            <!-- ROW 6b: Manufacturer Comparison Scatter -->
+            <div class="glass-card p-8 rounded-[2.5rem] bg-white border border-indigo-50 shadow-xl break-inside-avoid">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-indigo-600 p-2.5 rounded-xl text-white shadow-lg shadow-indigo-100"><i data-lucide="scatter-chart" class="w-6 h-6"></i></div>
+                        <div>
+                            <h3 class="text-sm font-black text-indigo-900 uppercase tracking-wider">Phân tán theo Hãng máy</h3>
+                            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">So sánh hiệu suất liều giữa các hãng trên cùng tạng người</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="p-2 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors" onclick="downloadChart('scatterManuChart', 'PhanTanHangMay')"><i data-lucide="camera" class="w-4 h-4 text-indigo-600"></i></button>
+                        <select id="scatterManuMetric" class="filter-select border-indigo-200 text-indigo-600">
+                            <option value="ctdi">CTDIvol (mGy)</option>
+                            <option value="dlp">DLP (mGy.cm)</option>
+                        </select>
+                         <select id="scatterManuModulation" class="filter-select border-indigo-200 text-indigo-600">
+                            <option value="all">Tất cả Mod</option>
+                            <option value="Có">Có Mod</option>
+                            <option value="Không">Không Mod</option>
+                        </select>
+                        <select id="scatterManuHospital" class="filter-select border-indigo-200 text-slate-700"></select>
+                        <select id="scatterManuProtocol" class="filter-select border-indigo-200 text-slate-700"></select>
+                    </div>
+                </div>
+                <div class="chart-container h-[400px]">
+                    <canvas id="scatterManuChart"></canvas>
+                </div>
+            </div>
+
+            <!-- ROW 7: SD Analysis -->
             <div class="glass-card p-8 rounded-[2.5rem] bg-white border border-fuchsia-50 shadow-xl break-inside-avoid">
                 <div class="flex items-center justify-between mb-8">
                     <div class="flex items-center gap-3">
@@ -589,17 +605,23 @@
                 </div>
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-10">
                     <div class="flex flex-col gap-4">
-                        <h4 class="text-[10px] font-black text-slate-400 uppercase text-center tracking-widest bg-slate-50 py-2 rounded-lg">SD theo Bệnh viện</h4>
+                        <div class="flex justify-between items-center">
+                             <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 py-2 px-4 rounded-lg">SD theo Bệnh viện</h4>
+                             <button class="p-1.5 bg-slate-100 rounded hover:bg-slate-200" onclick="downloadChart('multiHospSDChart', 'SDBenhVien')"><i data-lucide="camera" class="w-3 h-3 text-slate-600"></i></button>
+                        </div>
                         <div class="chart-container"><canvas id="multiHospSDChart"></canvas></div>
                     </div>
                     <div class="flex flex-col gap-4">
-                        <h4 class="text-[10px] font-black text-slate-400 uppercase text-center tracking-widest bg-slate-50 py-2 rounded-lg">SD theo Hãng máy</h4>
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 py-2 px-4 rounded-lg">SD theo Hãng máy</h4>
+                            <button class="p-1.5 bg-slate-100 rounded hover:bg-slate-200" onclick="downloadChart('multiManuSDChart', 'SDHangMay')"><i data-lucide="camera" class="w-3 h-3 text-slate-600"></i></button>
+                        </div>
                         <div class="chart-container"><canvas id="multiManuSDChart"></canvas></div>
                     </div>
                 </div>
             </div>
 
-            <!-- ROW 8: Detailed Stats by Group -->
+            <!-- ROW 8: Detailed Stats -->
             <div class="glass-card p-8 rounded-[2.5rem] bg-white border border-sky-50 shadow-xl break-inside-avoid">
                 <div class="flex flex-col gap-6 mb-8">
                     <div class="flex items-center justify-between">
@@ -631,38 +653,218 @@
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
                     <div class="flex flex-col gap-4">
-                        <h4 class="text-[10px] font-black text-slate-400 uppercase text-center tracking-widest bg-slate-50 py-2 rounded-lg">Mean CTDIvol (mGy)</h4>
+                         <div class="flex justify-between items-center">
+                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 py-2 px-4 rounded-lg">Mean CTDIvol (mGy)</h4>
+                             <button class="p-1.5 bg-slate-100 rounded hover:bg-slate-200" onclick="downloadChart('meanCtdiChart', 'MeanCTDI')"><i data-lucide="camera" class="w-3 h-3 text-slate-600"></i></button>
+                        </div>
                         <div class="chart-container h-[300px]"><canvas id="meanCtdiChart"></canvas></div>
                     </div>
                     <div class="flex flex-col gap-4">
-                        <h4 class="text-[10px] font-black text-slate-400 uppercase text-center tracking-widest bg-slate-50 py-2 rounded-lg">Mean DLP (mGy.cm)</h4>
+                         <div class="flex justify-between items-center">
+                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 py-2 px-4 rounded-lg">Mean DLP (mGy.cm)</h4>
+                            <button class="p-1.5 bg-slate-100 rounded hover:bg-slate-200" onclick="downloadChart('meanDlpChart', 'MeanDLP')"><i data-lucide="camera" class="w-3 h-3 text-slate-600"></i></button>
+                        </div>
                         <div class="chart-container h-[300px]"><canvas id="meanDlpChart"></canvas></div>
                     </div>
                 </div>
             </div>
 
+            <!-- NEW SECTION: ADVANCED ANALYTICS (ADDED FEATURES) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 break-inside-avoid">
+                <!-- FEATURE 1: Outlier Detection -->
+                <div class="glass-card p-6 rounded-[2.5rem] bg-white border border-red-50 shadow-xl">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="bg-red-500 p-2.5 rounded-xl text-white shadow-lg shadow-red-100"><i data-lucide="alert-octagon" class="w-5 h-5"></i></div>
+                        <div>
+                            <h3 class="text-sm font-black text-red-900 uppercase tracking-wider">Cảnh báo liều cao (Outliers)</h3>
+                            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Các ca có CTDI > Mean + 2SD</p>
+                        </div>
+                    </div>
+                    <div class="h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                         <table class="w-full text-[10px] text-left">
+                            <thead class="sticky top-0 bg-white">
+                                <tr class="text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                                    <th class="pb-2 font-black">BV</th>
+                                    <th class="pb-2 font-black">Protocol</th>
+                                    <th class="pb-2 font-black text-right">CTDI</th>
+                                    <th class="pb-2 font-black text-right">Giới hạn</th>
+                                </tr>
+                            </thead>
+                            <tbody id="outlierTableBody" class="font-medium text-slate-600">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                        <div id="noOutliersMsg" class="hidden text-center text-slate-400 text-xs mt-10">Không phát hiện bất thường</div>
+                    </div>
+                </div>
+
+                <!-- FEATURE 2: Correlation Matrix -->
+                <div class="glass-card p-6 rounded-[2.5rem] bg-white border border-blue-50 shadow-xl">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="bg-blue-500 p-2.5 rounded-xl text-white shadow-lg shadow-blue-100"><i data-lucide="grid" class="w-5 h-5"></i></div>
+                        <div>
+                            <h3 class="text-sm font-black text-blue-900 uppercase tracking-wider">Ma trận tương quan (Pearson r)</h3>
+                            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Mối liên hệ giữa Cân nặng & Liều</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-center h-[250px]">
+                        <div class="grid grid-cols-4 gap-1 w-full max-w-sm text-[10px] font-bold">
+                            <!-- Header -->
+                            <div></div>
+                            <div class="text-center text-slate-500 py-2">Weight</div>
+                            <div class="text-center text-slate-500 py-2">CTDI</div>
+                            <div class="text-center text-slate-500 py-2">DLP</div>
+                            
+                            <!-- Row 1: Weight -->
+                            <div class="text-right text-slate-500 pr-2 py-3">Weight</div>
+                            <div class="corr-cell bg-indigo-600 text-white rounded-lg flex items-center justify-center h-12">1.0</div>
+                            <div id="corr-w-c" class="corr-cell bg-indigo-50 text-indigo-900 rounded-lg flex items-center justify-center h-12">--</div>
+                            <div id="corr-w-d" class="corr-cell bg-indigo-50 text-indigo-900 rounded-lg flex items-center justify-center h-12">--</div>
+
+                            <!-- Row 2: CTDI -->
+                            <div class="text-right text-slate-500 pr-2 py-3">CTDI</div>
+                            <div id="corr-c-w" class="corr-cell bg-indigo-50 text-indigo-900 rounded-lg flex items-center justify-center h-12">--</div>
+                            <div class="corr-cell bg-indigo-600 text-white rounded-lg flex items-center justify-center h-12">1.0</div>
+                            <div id="corr-c-d" class="corr-cell bg-indigo-50 text-indigo-900 rounded-lg flex items-center justify-center h-12">--</div>
+                            
+                            <!-- Row 3: DLP -->
+                            <div class="text-right text-slate-500 pr-2 py-3">DLP</div>
+                            <div id="corr-d-w" class="corr-cell bg-indigo-50 text-indigo-900 rounded-lg flex items-center justify-center h-12">--</div>
+                            <div id="corr-d-c" class="corr-cell bg-indigo-50 text-indigo-900 rounded-lg flex items-center justify-center h-12">--</div>
+                            <div class="corr-cell bg-indigo-600 text-white rounded-lg flex items-center justify-center h-12">1.0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- FEATURE 3: Raw Data Preview (Last 5 Entries) -->
+            <div class="glass-card p-6 rounded-[2.5rem] bg-white border border-slate-200 shadow-xl break-inside-avoid">
+                 <div class="flex items-center gap-3 mb-4">
+                    <div class="bg-slate-700 p-2.5 rounded-xl text-white shadow-lg"><i data-lucide="database" class="w-5 h-5"></i></div>
+                    <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider">Dữ liệu thô mới nhất (Live Preview)</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-[10px]">
+                         <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
+                             <tr>
+                                 <th class="px-4 py-3 text-left">Ngày</th>
+                                 <th class="px-4 py-3 text-left">BV</th>
+                                 <th class="px-4 py-3 text-left">Máy</th>
+                                 <th class="px-4 py-3 text-left">Protocol</th>
+                                 <th class="px-4 py-3 text-right">Cân nặng</th>
+                                 <th class="px-4 py-3 text-right">CTDIvol</th>
+                                 <th class="px-4 py-3 text-right">DLP</th>
+                             </tr>
+                         </thead>
+                         <tbody id="rawTableBody" class="divide-y divide-slate-100 text-slate-700 font-medium">
+                             <!-- JS Populated -->
+                         </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
 
-        <!-- THEORY & PAPER TABS ... (No changes here) -->
+        <!-- THEORY & PAPER TABS (UNCHANGED) -->
         <div id="theoryContent" class="hidden space-y-8 p-4">
-            <!-- ... content as before ... -->
             <div class="glass-card p-10 rounded-[2.5rem] bg-white border border-teal-50 shadow-xl prose max-w-none">
                 <h2 class="text-2xl font-black text-teal-900 uppercase tracking-tighter mb-6 text-center border-b pb-4">Cơ sở Lý thuyết & Phương pháp Thống kê</h2>
+
                 <h3>1. DRL (Diagnostic Reference Level) là gì?</h3>
                 <p>DRL không phải là giới hạn liều (dose limit) cho từng cá nhân, mà là một công cụ để tối ưu hóa. DRL thường được xác định là giá trị <strong>Phân vị thứ 75 (75th Percentile - P75)</strong> của phân bố liều từ các cơ sở y tế.</p>
-                <!-- ... -->
+                <div class="highlight-box">
+                    <strong>Quy tắc thực hành:</strong> Nếu giá trị trung vị (Median) của một cơ sở cao hơn mức DRL quốc gia, cơ sở đó cần xem xét lại quy trình chụp để giảm liều mà vẫn đảm bảo chất lượng hình ảnh.
+                </div>
+                
+                <h3>2. Median (P50) vs DRL (P75)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-4">
+                    <div class="bg-teal-50 p-4 rounded-xl border border-teal-100">
+                        <h4 class="text-teal-800 m-0">Median (Giá trị Trung vị)</h4>
+                        <p class="text-sm mt-2">Đại diện cho "Thực hành điển hình" (Typical Practice). 50% số ca chụp nằm dưới mức này. So sánh Median giúp trả lời câu hỏi: <em>"Kỹ thuật chụp thông thường của tôi có tốt bằng đồng nghiệp quốc tế không?"</em></p>
+                    </div>
+                    <div class="bg-rose-50 p-4 rounded-xl border border-rose-100">
+                        <h4 class="text-rose-800 m-0">DRL (Phân vị thứ 75)</h4>
+                        <p class="text-sm mt-2">Đại diện cho "Ngưỡng điều tra" (Investigation Level). 25% số ca chụp cao hơn mức này là bất thường. DRL giúp trả lời: <em>"Những ca chụp nào của tôi đang bị quá liều một cách vô lý?"</em></p>
+                    </div>
+                </div>
+
+                <h3>3. Các chỉ số liều quan trọng</h3>
+                <ul>
+                    <li><strong>CTDIvol (Volume Computed Tomography Dose Index - mGy):</strong> Chỉ số liều CT thể tích, đại diện cho cường độ bức xạ phát ra trong một lát cắt chuẩn. Phụ thuộc vào kVp, mAs, Pitch.</li>
+                    <li><strong>DLP (Dose Length Product - mGy.cm):</strong> Tích số liều và chiều dài. Đại diện cho tổng năng lượng bức xạ bệnh nhân nhận được. <code>DLP = CTDIvol x Chiều dài quét</code>.</li>
+                    <li><strong>Liều hiệu dụng (Effective Dose - mSv):</strong> Đánh giá nguy cơ sinh học toàn thân. <code>E = DLP x k</code> (k là hệ số chuyển đổi theo vùng cơ thể).</li>
+                </ul>
+
+                <h3>4. Phương pháp Kiểm định & Đánh giá (ICRP 135)</h3>
+                
+                <h4><i data-lucide="bar-chart-2"></i> Kiểm định phân phối chuẩn (Normality Test)</h4>
+                <p>Trước khi tính toán DRL, cần kiểm tra xem dữ liệu có phân phối chuẩn (Normal Distribution) hay không.</p>
+                <ul>
+                    <li><strong>Histogram:</strong> Biểu đồ cột tần suất. Nếu có hình chuông cân đối => Phân phối chuẩn.</li>
+                    <li><strong>Skewness (Độ lệch):</strong> 
+                        <br>- 0: Chuẩn hoàn hảo. 
+                        <br>- > 1: Lệch phải (Right Skewed) - Đuôi dài về phía giá trị cao (thường gặp trong dữ liệu liều do các ca béo phì/kỹ thuật sai).
+                        <br>- < -1: Lệch trái.
+                    </li>
+                    <li><strong>Kurtosis (Độ nhọn):</strong> Đánh giá độ tập trung dữ liệu quanh trung bình.</li>
+                </ul>
             </div>
         </div>
+
         <div id="paperContent" class="hidden space-y-8 p-4">
-             <!-- ... content as before ... -->
              <div class="glass-card p-12 rounded-[2.5rem] bg-white border border-indigo-50 shadow-xl prose max-w-none">
+                
                 <div class="text-center mb-10 border-b border-slate-100 pb-8">
                     <h1 class="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-4 leading-tight">
                         NGHIÊN CỨU ĐỐI SÁNH MỨC LIỀU TRUNG VỊ (MEDIAN) CẮT LỚP VI TÍNH TẠI VIỆT NAM VỚI CHUẨN QUỐC TẾ
                         <br><span class="text-lg text-indigo-600 font-bold block mt-2">VÀ XÂY DỰNG DRL SƠ BỘ</span>
                     </h1>
                 </div>
-                <!-- ... -->
+
+                <h3>1. Đặt vấn đề (Introduction)</h3>
+                <p>Chụp Cắt lớp vi tính (CT) hiện là nguồn đóng góp liều bức xạ nhân tạo lớn nhất trong y tế. Tại Việt Nam, việc thiếu vắng các Mức tham chiếu chẩn đoán quốc gia (National DRLs) khiến các cơ sở y tế gặp khó khăn trong việc đánh giá và tối ưu hóa quy trình.</p>
+                <p>Xu hướng thế giới (như dự án EUCLID) đang chuyển dịch từ việc chỉ quan tâm đến các ca "liều cao bất thường" (P75) sang việc tối ưu hóa "thực hành thông thường" (Median/P50). Nghiên cứu này tập trung so sánh giá trị Trung vị (Median) của Việt Nam với các nước trong khu vực và thế giới để định vị chất lượng thực hành hiện tại.</p>
+
+                <h3>2. Đối tượng và Phương pháp (Methods)</h3>
+                <p>Nghiên cứu mô tả cắt ngang, hồi cứu số liệu đa trung tâm (Multicenter retrospective cross-sectional study), tuân thủ các khuyến cáo của <strong>ICRP Publication 135</strong>.</p>
+                
+                <h4>2.1. Cỡ mẫu và Đối tượng</h4>
+                <ul>
+                    <li><strong>Cỡ mẫu:</strong> Tối thiểu 30-50 ca cho mỗi protocol tại mỗi phòng máy để đảm bảo độ tin cậy thống kê (95% CI).</li>
+                    <li><strong>Đối tượng:</strong> Bệnh nhân người lớn (≥ 18 tuổi). Cân nặng được phân nhóm để đảm bảo tính tương đồng khi so sánh quốc tế (chuẩn 60kg ± 10kg cho người Châu Á).</li>
+                </ul>
+
+                <h4>2.2. Quy trình thu thập dữ liệu</h4>
+                <ul>
+                    <li>Dữ liệu được thu thập từ hệ thống PACS/RIS hoặc Nhật ký chụp thông qua nền tảng Web-app "VN-DRL Study" tích hợp.</li>
+                    <li><strong>Chỉ số liều:</strong> CTDIvol (mGy) và DLP (mGy.cm).</li>
+                    <li><strong>Thông số kỹ thuật:</strong> Hãng máy, Số lát cắt, Kỹ thuật điều biến liều (AEC/Modulation).</li>
+                </ul>
+
+                <h4>2.3. Xử lý số liệu và Kiểm định thống kê</h4>
+                <ul>
+                    <li><strong>Làm sạch dữ liệu:</strong> Loại bỏ các giá trị ngoại lai (outliers) do lỗi nhập liệu hoặc bệnh lý đặc biệt.</li>
+                    <li><strong>Kiểm định:</strong> Sử dụng Mann-Whitney U test để so sánh trung vị giữa 2 nhóm, Kruskal-Wallis test cho nhiều nhóm. Mức ý nghĩa thống kê p < 0.05.</li>
+                </ul>
+
+                <h3>3. Kết quả (Results)</h3>
+                <p class="italic text-slate-500 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    *Vui lòng tham khảo Tab "Biểu đồ Phân tích" để xem chi tiết các biểu đồ Benchmarking, Histogram và Bảng số liệu cụ thể.*
+                </p>
+
+                <h3>4. Bàn luận (Discussion)</h3>
+                <h4>4.1. So sánh với Quốc tế</h4>
+                <p>Việc so sánh Median cho thấy vị thế của thực hành CT tại Việt Nam. Nếu Median VN cao hơn Thái Lan hay Nhật Bản, điều này gợi ý rằng chúng ta cần điều chỉnh lại các thông số phát tia nền (mAs, kVp) và tận dụng tốt hơn các công nghệ giảm liều như Iterative Reconstruction.</p>
+
+                <h4>4.2. Vai trò của Điều biến liều (Modulation)</h4>
+                <p>Kết quả phân tích cho thấy nhóm sử dụng Modulation (AEC) có mức liều thấp hơn đáng kể so với nhóm chụp liều cố định. Đây là bằng chứng mạnh mẽ để khuyến nghị áp dụng bắt buộc AEC cho tất cả các ca chụp Ngực và Bụng.</p>
+
+                <h3>5. Kết luận (Conclusion)</h3>
+                <ol class="list-decimal pl-5 space-y-2">
+                    <li>Đã thiết lập được bộ dữ liệu nền tảng về liều CT tại các bệnh viện tham gia.</li>
+                    <li>Mức liều trung vị tại một số đơn vị còn cao hơn chuẩn khu vực, cần có biện pháp can thiệp tối ưu hóa.</li>
+                    <li>Cần ban hành hướng dẫn quốc gia về DRL dựa trên số liệu thực tế này.</li>
+                </ol>
              </div>
         </div>
 
@@ -678,6 +880,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Constants shared with main app
         const THAI_DRL_PROTOCOLS = [
             { name: 'Sọ não (Head)', refCtdi: 65, refDlp: 1000, k: 0.0021 },
             { name: 'Ngực không thuốc (Chest)', refCtdi: 9, refDlp: 350, k: 0.014 },
@@ -685,6 +888,7 @@
             { name: 'Phổi liều thấp (LDCT)', refCtdi: 3, refDlp: 150, k: 0.014 }
         ];
         
+        // --- International Benchmark Data ---
         const INTERNATIONAL_REFS = {
             'Thailand (2019)': {
                 'Sọ não (Head)': { ctdi75: 65, ctdi50: 58, dlp75: 1000, dlp50: 900 },
@@ -738,10 +942,11 @@
         let benchmarkChart = null; 
         let benchmarkMedianChart = null; 
         let genderChart = null; 
-        let weightChart = null; 
+        let weightChart = null; // Renamed from bmiChart
         let modulationChart = null; 
         let trendChart = null; 
-        let scatterDlpChart = null;
+        let scatterManuChart = null; 
+        let multiProtocolMedianChart = null; // NEW CHART
         let meanCtdiChart = null, meanDlpChart = null;
         let multiHospSDChart = null, multiManuSDChart = null; 
         let drlCtdiChart = null, drlDlpChart = null;
@@ -825,15 +1030,18 @@
             return '#a855f7';
         };
 
-        function calculateLinearRegression(data) {
-            const n = data.length; if (n === 0) return [];
-            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-            data.forEach(p => { sumX += p.x; sumY += p.y; sumXY += p.x * p.y; sumXX += p.x * p.x; });
-            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-            const intercept = (sumY - slope * sumX) / n;
-            const minX = Math.min(...data.map(p => p.x));
-            const maxX = Math.max(...data.map(p => p.x));
-            return [{ x: minX, y: slope * minX + intercept }, { x: maxX, y: slope * maxX + intercept }];
+        // --- Pearson Correlation Calculator ---
+        function calculateCorrelation(x, y) {
+            const n = x.length;
+            if (n !== y.length || n === 0) return 0;
+            const sumX = x.reduce((a, b) => a + b, 0);
+            const sumY = y.reduce((a, b) => a + b, 0);
+            const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+            const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+            const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
+            const numerator = (n * sumXY) - (sumX * sumY);
+            const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+            return denominator === 0 ? 0 : numerator / denominator;
         }
 
         // --- Data Processing for Charts ---
@@ -875,7 +1083,7 @@
             const doc = new jsPDF('l', 'mm', 'a4');
             const pageWidth = 297; const pageHeight = 210; const margin = 10;
             const content = el('chartsContent');
-            showToast("Đang xử lý dữ liệu... Vui lòng không tắt trình duyệt.");
+            showToast("Đang tạo báo cáo PDF... Vui lòng đợi");
             try {
                 content.classList.remove('opacity-20', 'filter', 'blur-sm');
                 content.classList.add('opacity-100');
@@ -939,19 +1147,24 @@
                 type: 'bar', data: { labels: hospitals, datasets: progDatasets },
                 options: {
                     indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top', labels: { font: { size: 10, weight: 'bold' }, usePointStyle: true } }, tooltip: { callbacks: { label: (context) => { const val = context.raw || 0; const rem = Math.max(0, 30 - val); return `${context.dataset.label}: ${val} ca - ${rem > 0 ? `⚠️ Thiếu ${rem}` : '✅ Đạt'}`; } }, backgroundColor: 'rgba(15, 23, 42, 0.9)' }, title: { display: true, text: 'PHÂN BỐ SỐ LƯỢNG CA CHỤP', font: {size: 14, weight: 'bold'} } },
+                    plugins: { 
+                        legend: { position: 'top', labels: { font: { size: 10, weight: 'bold' }, usePointStyle: true } },
+                        tooltip: { callbacks: { label: (context) => { const val = context.raw || 0; const rem = Math.max(0, 30 - val); return `${context.dataset.label}: ${val} ca - ${rem > 0 ? `⚠️ Thiếu ${rem}` : '✅ Đạt'}`; } } },
+                        title: { display: true, text: 'PHÂN BỐ SỐ LƯỢNG CA CHỤP', font: {size: 14, weight: 'bold'} }
+                    },
                     scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, grid: { display: false } } }
                 }
             });
             // Insight Progress
             el('insight-progress').querySelector('.insight-content').textContent = `Hiện có ${entries.length} ca chụp. ${entries.length < 300 ? "Dữ liệu còn sơ khai (Mục tiêu > 300 ca)." : "Dữ liệu đã phong phú."}`;
 
-            // 2. Benchmarking Chart (MEAN)
+            // 2. Benchmarking Chart (Mean & Median Combined)
             const benchProtocol = el('benchProtocol').value || THAI_DRL_PROTOCOLS[0].name;
             const benchMetric = el('benchMetric').value || 'ctdi';
             const benchMod = el('benchModulation').value;
             const benchCountry = el('benchRefCountry')?.value || 'Thailand (2019)';
-            const hospitalMeans = hospitals.map(h => {
+            
+            const hospitalStats = hospitals.map(h => {
                 const subset = entries.filter(e => {
                     const matchHosp = (e.hospitalName||'').trim() === h;
                     const matchProt = e.protocol === benchProtocol;
@@ -959,56 +1172,77 @@
                     return matchHosp && matchProt && matchMod;
                 });
                 const vals = subset.map(e => parseFloat(e[benchMetric])).filter(n => !isNaN(n));
-                return calcStats(vals).mean;
+                const stats = calcStats(vals);
+                return { mean: stats.mean, median: stats.median };
             });
+
             const refData = INTERNATIONAL_REFS[benchCountry][benchProtocol];
             const ref75 = benchMetric === 'ctdi' ? refData.ctdi75 : refData.dlp75;
             const ref50 = benchMetric === 'ctdi' ? refData.ctdi50 : refData.dlp50;
+
             const benchDatasets = [
-                { type: 'bar', label: `Mean tại Viện`, data: hospitalMeans, backgroundColor: '#6366f1', order: 2, borderRadius: 4 },
-                { type: 'line', label: `${benchCountry} P75`, data: Array(hospitals.length).fill(ref75), borderColor: '#f43f5e', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, order: 1 },
-                { type: 'line', label: `${benchCountry} Median`, data: Array(hospitals.length).fill(ref50), borderColor: '#10b981', borderWidth: 2, borderDash: [2, 2], pointRadius: 0, order: 1 }
+                {
+                    type: 'bar',
+                    label: `Mean tại Viện`,
+                    data: hospitalStats.map(s => s.mean),
+                    backgroundColor: '#6366f1', // Indigo
+                    order: 2,
+                    borderRadius: 4
+                },
+                {
+                    type: 'bar',
+                    label: `Median tại Viện`,
+                    data: hospitalStats.map(s => s.median),
+                    backgroundColor: '#14b8a6', // Teal
+                    order: 3,
+                    borderRadius: 4
+                },
+                {
+                    type: 'line',
+                    label: `${benchCountry} P75 (DRL)`,
+                    data: Array(hospitals.length).fill(ref75),
+                    borderColor: '#f43f5e', // Rose
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    fill: false,
+                    order: 1
+                },
+                {
+                    type: 'line',
+                    label: `${benchCountry} Median`,
+                    data: Array(hospitals.length).fill(ref50),
+                    borderColor: '#10b981', // Emerald
+                    borderWidth: 2,
+                    borderDash: [2, 2],
+                    pointRadius: 0,
+                    fill: false,
+                    order: 1
+                }
             ];
+
             if(benchmarkChart) benchmarkChart.destroy();
             benchmarkChart = new Chart(el('benchmarkChart'), {
                 data: { labels: hospitals, datasets: benchDatasets },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: `ĐỐI SÁNH: ${benchProtocol.toUpperCase()}`, font: {size: 14, weight: 'bold'} } }, scales: { y: { beginAtZero: true, title: { display: true, text: benchMetric.toUpperCase() } } } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        title: { display: true, text: `ĐỐI SÁNH: ${benchProtocol.toUpperCase()} (${benchMetric.toUpperCase()})`, font: {size: 14, weight: 'bold'} }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: benchMetric.toUpperCase() } }
+                    }
+                }
             });
-            // Insight Mean
-            const meanHigh = hospitalMeans.filter(m => m > ref75).length;
-            el('insight-benchmark-mean').querySelector('.insight-content').textContent = meanHigh > 0 ? `Cảnh báo: Có ${meanHigh} bệnh viện có Mean > DRL (P75) của ${benchCountry}.` : `Tốt: Tất cả các bệnh viện đều có Mean nằm trong ngưỡng DRL.`;
+            
+            // Insight Benchmark (Combined)
+            const meanHigh = hospitalStats.filter(s => s.mean > ref75).length;
+            const medHigh = hospitalStats.filter(s => s.median > ref50).length;
+            el('insight-benchmark').querySelector('.insight-content').textContent = 
+                `Mean: ${meanHigh} viện > DRL (P75). Median: ${medHigh} viện > Chuẩn Median.`;
 
-            // 2b. Benchmarking Chart (MEDIAN)
-            const benchMedProtocol = el('benchMedProtocol').value || THAI_DRL_PROTOCOLS[0].name;
-            const benchMedMetric = el('benchMedMetric').value || 'ctdi';
-            const benchMedMod = el('benchMedModulation').value;
-            const benchMedCountry = el('benchMedRefCountry')?.value || 'Thailand (2019)';
-            const hospitalMedians = hospitals.map(h => {
-                const subset = entries.filter(e => {
-                    const matchHosp = (e.hospitalName||'').trim() === h;
-                    const matchProt = e.protocol === benchMedProtocol;
-                    const matchMod = (benchMedMod === 'all' || e.doseModulation === benchMedMod);
-                    return matchHosp && matchProt && matchMod;
-                });
-                const vals = subset.map(e => parseFloat(e[benchMedMetric])).filter(n => !isNaN(n));
-                return calcStats(vals).median;
-            });
-            const refMedData = INTERNATIONAL_REFS[benchMedCountry][benchMedProtocol];
-            const refMed75 = benchMedMetric === 'ctdi' ? refMedData.ctdi75 : refMedData.dlp75;
-            const refMed50 = benchMedMetric === 'ctdi' ? refMedData.ctdi50 : refMedData.dlp50;
-            const benchMedDatasets = [
-                { type: 'bar', label: `Median tại Viện`, data: hospitalMedians, backgroundColor: '#14b8a6', order: 2, borderRadius: 4 },
-                { type: 'line', label: `${benchMedCountry} P75`, data: Array(hospitals.length).fill(refMed75), borderColor: '#f43f5e', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, order: 1 },
-                { type: 'line', label: `${benchMedCountry} Median`, data: Array(hospitals.length).fill(refMed50), borderColor: '#10b981', borderWidth: 2, borderDash: [2, 2], pointRadius: 0, order: 1 }
-            ];
-            if(benchmarkMedianChart) benchmarkMedianChart.destroy();
-            benchmarkMedianChart = new Chart(el('benchmarkMedianChart'), {
-                data: { labels: hospitals, datasets: benchMedDatasets },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: `ĐỐI SÁNH TRUNG VỊ: ${benchMedProtocol.toUpperCase()}`, font: {size: 14, weight: 'bold'} } }, scales: { y: { beginAtZero: true, title: { display: true, text: benchMedMetric.toUpperCase() } } } }
-            });
-            // Insight Median
-            const medHigh = hospitalMedians.filter(m => m > refMed50).length;
-            el('insight-benchmark-median').querySelector('.insight-content').textContent = medHigh > 0 ? `Lưu ý: Có ${medHigh} bệnh viện có Median > Chuẩn Median của ${benchMedCountry}.` : `Tuyệt vời: Median các viện đều tốt.`;
 
             // 3. Gender Chart
             const genderMod = el('genderModulation').value;
@@ -1047,19 +1281,80 @@
             });
             el('insight-modulation').querySelector('.insight-content').textContent = `Tỷ lệ dùng Modulation: ${((modYes/(modYes+modNo))*100).toFixed(1)}%`;
 
-            // 5. DRL Levels Chart
-            const drlMod = el('drlModulation').value;
-            const drlData = protocols.map(prot => {
-                const subset = entries.filter(e => e.protocol === prot && (drlMod === 'all' || e.doseModulation === drlMod));
-                const cStats = calcStats(subset.map(e => parseFloat(e.ctdi)).filter(n => !isNaN(n)));
-                const dStats = calcStats(subset.map(e => parseFloat(e.dlp)).filter(n => !isNaN(n)));
-                return { prot, ctdi75: cStats.p75, ctdi50: cStats.median, dlp75: dStats.p75, dlp50: dStats.median };
+            // 2b. Benchmarking Chart (MEDIAN)
+            const benchMedProtocol = el('benchMedProtocol').value || THAI_DRL_PROTOCOLS[0].name;
+            const benchMedMetric = el('benchMedMetric').value || 'ctdi';
+            const benchMedMod = el('benchMedModulation').value;
+            const benchMedCountry = el('benchMedRefCountry')?.value || 'Thailand (2019)';
+            
+            const hospitalMedians = hospitals.map(h => {
+                const subset = entries.filter(e => {
+                    const matchHosp = (e.hospitalName||'').trim() === h;
+                    const matchProt = e.protocol === benchMedProtocol;
+                    const matchMod = (benchMedMod === 'all' || e.doseModulation === benchMedMod);
+                    return matchHosp && matchProt && matchMod;
+                });
+                const vals = subset.map(e => parseFloat(e[benchMedMetric])).filter(n => !isNaN(n));
+                return calcStats(vals).median;
             });
-            if(drlCtdiChart) drlCtdiChart.destroy();
-            drlCtdiChart = new Chart(el('drlCtdiChart'), { type: 'bar', data: { labels: drlData.map(d => d.prot), datasets: [{ label: 'P75', data: drlData.map(d => d.ctdi75), backgroundColor: 'rgba(244, 63, 94, 0.8)' }, { label: 'Median', data: drlData.map(d => d.ctdi50), backgroundColor: 'rgba(251, 146, 60, 0.8)' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'DRL QUỐC GIA (CTDIvol)', font: {size: 14, weight: 'bold'} } } } });
-            if(drlDlpChart) drlDlpChart.destroy();
-            drlDlpChart = new Chart(el('drlDlpChart'), { type: 'bar', data: { labels: drlData.map(d => d.prot), datasets: [{ label: 'P75', data: drlData.map(d => d.dlp75), backgroundColor: 'rgba(244, 63, 94, 0.8)' }, { label: 'Median', data: drlData.map(d => d.dlp50), backgroundColor: 'rgba(251, 146, 60, 0.8)' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'DRL QUỐC GIA (DLP)', font: {size: 14, weight: 'bold'} } } } });
-            el('insight-drl-levels').querySelector('.insight-content').textContent = "So sánh P75 và Median giúp đánh giá độ biến thiên.";
+            const refMedData = INTERNATIONAL_REFS[benchMedCountry][benchMedProtocol];
+            const refMed75 = benchMedMetric === 'ctdi' ? refMedData.ctdi75 : refMedData.dlp75;
+            const refMed50 = benchMedMetric === 'ctdi' ? refMedData.ctdi50 : refMedData.dlp50;
+            const benchMedDatasets = [
+                { type: 'bar', label: `Median tại Viện`, data: hospitalMedians, backgroundColor: '#14b8a6', order: 2, borderRadius: 4 },
+                { type: 'line', label: `${benchMedCountry} P75`, data: Array(hospitals.length).fill(refMed75), borderColor: '#f43f5e', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, order: 1 },
+                { type: 'line', label: `${benchMedCountry} Median`, data: Array(hospitals.length).fill(refMed50), borderColor: '#10b981', borderWidth: 2, borderDash: [2, 2], pointRadius: 0, order: 1 }
+            ];
+            if(benchmarkMedianChart) benchmarkMedianChart.destroy();
+            benchmarkMedianChart = new Chart(el('benchmarkMedianChart'), {
+                data: { labels: hospitals, datasets: benchMedDatasets },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: `ĐỐI SÁNH TRUNG VỊ: ${benchMedProtocol.toUpperCase()}`, font: {size: 14, weight: 'bold'} } }, scales: { y: { beginAtZero: true, title: { display: true, text: benchMedMetric.toUpperCase() } } } }
+            });
+             // Update Insight Benchmark Median
+            const medHighs = hospitalMedians.filter(m => m > refMed50).length;
+            el('insight-benchmark-median').querySelector('.insight-content').textContent = medHighs > 0 ? `Lưu ý: Có ${medHighs} bệnh viện có mức liều trung vị cao hơn chuẩn trung vị của ${benchMedCountry}.` : `Tuyệt vời: Median các viện đều tốt.`;
+
+            // NEW 2c. MULTI-PROTOCOL MEDIAN CHART
+            const multiProtMetric = el('multiProtMetric').value;
+            const multiProtMod = el('multiProtModulation').value;
+            const allHospitals = [...new Set(entries.map(e => (e.hospitalName || '').trim()))].sort();
+            const protocolsList = THAI_DRL_PROTOCOLS.map(p => p.name);
+            const protocolColors = ['#ef4444', '#3b82f6', '#eab308', '#22c55e']; // Red, Blue, Yellow, Green
+
+            const multiProtDatasets = protocolsList.map((prot, idx) => {
+                return {
+                    label: prot,
+                    data: allHospitals.map(h => {
+                        const subset = entries.filter(e => {
+                            return (e.hospitalName || '').trim() === h && 
+                                   e.protocol === prot &&
+                                   (multiProtMod === 'all' || e.doseModulation === multiProtMod);
+                        });
+                        const vals = subset.map(e => parseFloat(e[multiProtMetric])).filter(n => !isNaN(n));
+                        return calcStats(vals).median;
+                    }),
+                    backgroundColor: protocolColors[idx],
+                    borderRadius: 4,
+                    barPercentage: 0.6
+                };
+            });
+
+            if (multiProtocolMedianChart) multiProtocolMedianChart.destroy();
+            multiProtocolMedianChart = new Chart(el('multiProtocolMedianChart'), {
+                type: 'bar',
+                data: { labels: allHospitals, datasets: multiProtDatasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: `MEDIAN 4 BỘ PHẬN (${multiProtMetric.toUpperCase()})`, font: { size: 14, weight: 'bold' } },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: multiProtMetric.toUpperCase() } }
+                    }
+                }
+            });
 
             // 6. Normality Check
             const normHosp = el('normHospital').value; 
@@ -1101,25 +1396,61 @@
             if(trendChart) trendChart.destroy();
             trendChart = new Chart(el('trendChart').getContext('2d'), { type: 'line', data: { labels: trendLabels, datasets: [{ label: 'DLP', data: trendPointsDLP, borderColor: '#06b6d4', yAxisID: 'y' }, { label: 'CTDIvol', data: trendPointsCTDI, borderColor: '#8b5cf6', yAxisID: 'y1' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { type: 'linear', display: true, position: 'left' }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } } } } });
 
-            // 8. Scatter
-            const fProtS = el('scatterFilterProtocol_DLP').value;
-            const fHospS = el('scatterFilterHospital_DLP').value;
-            const fModS = el('scatterFilterModulation_DLP').value;
-            const scatterDataRaw = entries.filter(e => {
-                if (fProtS !== 'all' && e.protocol !== fProtS) return false;
-                if (fHospS !== 'all' && (e.hospitalName || '').trim() !== fHospS) return false;
-                if (fModS !== 'all' && e.doseModulation !== fModS) return false;
-                return !isNaN(parseFloat(e.weight)) && !isNaN(parseFloat(e.dlp));
+            // 6b. Scatter Manufacturer (CTDIvol/DLP vs Weight)
+            const fManuMetric = el('scatterManuMetric').value;
+            const fManuMod = el('scatterManuModulation').value;
+            const fManuHosp = el('scatterManuHospital').value;
+            const fManuProt = el('scatterManuProtocol').value;
+            
+            const manuScatterData = entries.filter(e => {
+                if (fManuMod !== 'all' && e.doseModulation !== fManuMod) return false;
+                if (fManuHosp !== 'all' && (e.hospitalName || '').trim() !== fManuHosp) return false;
+                if (fManuProt !== 'all' && e.protocol !== fManuProt) return false;
+                return !isNaN(parseFloat(e.weight)) && !isNaN(parseFloat(e[fManuMetric]));
             });
-            const scatterPoints = scatterDataRaw.map(e => ({ x: parseFloat(e.weight), y: parseFloat(e.dlp), p: e.protocol }));
-            const trendLine = calculateLinearRegression(scatterPoints);
-            if(scatterDlpChart) scatterDlpChart.destroy();
-            scatterDlpChart = new Chart(el('scatterDlpChart'), { type: 'scatter', data: { datasets: [{ label: 'Ca chụp', data: scatterPoints, backgroundColor: scatterPoints.map(d=>getContrastColor(d.p)) }, { label: 'Trendline', data: trendLine, type: 'line', borderColor: 'rgba(50,50,50,0.5)' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: {title:{display:true, text:'Kg'}}, y: {title:{display:true, text:'DLP'}} } } });
+
+            const manufacturers = [...new Set(manuScatterData.map(e => (e.manufacturer || 'Unknown').trim()))];
+            const manuColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1', '#06b6d4'];
+            
+            const manuDatasets = manufacturers.map((manu, index) => {
+                const points = manuScatterData
+                    .filter(e => (e.manufacturer || 'Unknown').trim() === manu)
+                    .map(e => ({
+                        x: parseFloat(e.weight),
+                        y: parseFloat(e[fManuMetric])
+                    }));
+                
+                return {
+                    label: manu,
+                    data: points,
+                    backgroundColor: manuColors[index % manuColors.length],
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                };
+            });
+
+            if(scatterManuChart) scatterManuChart.destroy();
+            scatterManuChart = new Chart(el('scatterManuChart').getContext('2d'), {
+                type: 'scatter',
+                data: { datasets: manuDatasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: (${ctx.raw.x}kg, ${ctx.raw.y} mGy)` } },
+                        title: { display: true, text: `PHÂN TÁN ${fManuMetric.toUpperCase()} THEO HÃNG MÁY & CÂN NẶNG`, font: {size: 14, weight: 'bold'} }
+                    },
+                    scales: {
+                        x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Cân nặng (kg)', font: {weight: 'bold'} } },
+                        y: { beginAtZero: true, title: { display: true, text: fManuMetric === 'ctdi' ? 'CTDIvol (mGy)' : 'DLP (mGy.cm)', font: {weight: 'bold'} } }
+                    }
+                }
+            });
 
             // 9. SD Analysis
             const sdMetric = el('sdCompMetric').value;
             const sdMod = el('sdModulation').value;
-            // Filter entries first for SD
             const sdEntries = entries.filter(e => sdMod === 'all' || e.doseModulation === sdMod);
             const multiHospSDData = getMultiGroupData(sdEntries, 'hospitalName', 'protocol', sdMetric, 'sd');
             if(multiHospSDChart) multiHospSDChart.destroy();
@@ -1163,6 +1494,83 @@
             const meanDlpArr = meanLabels.map(k => calcStats(groupedMean[k].dlp).mean);
             if(meanCtdiChart) meanCtdiChart.destroy(); meanCtdiChart = new Chart(el('meanCtdiChart'), { type: 'bar', data: { labels: meanLabels, datasets: [{ label: 'Mean CTDI', data: meanCtdiArr, backgroundColor: '#0ea5e9' }] }, options: { responsive: true, maintainAspectRatio: false } });
             if(meanDlpChart) meanDlpChart.destroy(); meanDlpChart = new Chart(el('meanDlpChart'), { type: 'bar', data: { labels: meanLabels, datasets: [{ label: 'Mean DLP', data: meanDlpArr, backgroundColor: '#f59e0b' }] }, options: { responsive: true, maintainAspectRatio: false } });
+
+            // --- ADVANCED FEATURES RENDER ---
+            
+            // 1. Outlier Detection
+            const outlierBody = el('outlierTableBody');
+            const outlierHtml = [];
+            let hasOutliers = false;
+            
+            // Calculate outliers per protocol
+            protocols.forEach(prot => {
+                const protEntries = entries.filter(e => e.protocol === prot);
+                const protVals = protEntries.map(e => parseFloat(e.ctdi)).filter(n => !isNaN(n));
+                const stats = calcStats(protVals);
+                const limit = stats.mean + 2 * stats.sd;
+                
+                protEntries.forEach(e => {
+                   if (parseFloat(e.ctdi) > limit) {
+                       hasOutliers = true;
+                       outlierHtml.push(`
+                        <tr class="border-b border-slate-50 hover:bg-red-50/50 transition-colors">
+                            <td class="py-2 font-bold">${e.hospitalName || 'N/A'}</td>
+                            <td class="py-2">${e.protocol}</td>
+                            <td class="py-2 text-right text-red-600 font-bold">${parseFloat(e.ctdi).toFixed(1)}</td>
+                            <td class="py-2 text-right text-slate-400 text-[9px]">>${limit.toFixed(1)}</td>
+                        </tr>
+                       `);
+                   } 
+                });
+            });
+            
+            if (hasOutliers) {
+                outlierBody.innerHTML = outlierHtml.join('');
+                el('noOutliersMsg').classList.add('hidden');
+            } else {
+                outlierBody.innerHTML = '';
+                el('noOutliersMsg').classList.remove('hidden');
+            }
+
+            // 2. Correlation Matrix
+            const validEntries = entries.filter(e => !isNaN(parseFloat(e.weight)) && !isNaN(parseFloat(e.ctdi)) && !isNaN(parseFloat(e.dlp)));
+            const weights = validEntries.map(e => parseFloat(e.weight));
+            const ctdis = validEntries.map(e => parseFloat(e.ctdi));
+            const dlps = validEntries.map(e => parseFloat(e.dlp));
+
+            const rWC = calculateCorrelation(weights, ctdis).toFixed(2);
+            const rWD = calculateCorrelation(weights, dlps).toFixed(2);
+            const rCD = calculateCorrelation(ctdis, dlps).toFixed(2);
+
+            const setCorr = (id, val) => {
+                const cell = el(id);
+                cell.textContent = val;
+                // Heatmap coloring logic
+                const v = Math.abs(parseFloat(val));
+                if (v > 0.7) cell.className = "corr-cell bg-indigo-500 text-white rounded-lg flex items-center justify-center h-12 font-bold";
+                else if (v > 0.4) cell.className = "corr-cell bg-indigo-300 text-white rounded-lg flex items-center justify-center h-12";
+                else cell.className = "corr-cell bg-indigo-50 text-indigo-900 rounded-lg flex items-center justify-center h-12";
+            };
+
+            setCorr('corr-w-c', rWC); setCorr('corr-c-w', rWC);
+            setCorr('corr-w-d', rWD); setCorr('corr-d-w', rWD);
+            setCorr('corr-c-d', rCD); setCorr('corr-d-c', rCD);
+
+            // 3. Raw Data Preview (Latest 5)
+            const sortedEntries = [...entries].sort((a,b) => new Date(b.createdAt || b.scanDate) - new Date(a.createdAt || a.scanDate));
+            const latest5 = sortedEntries.slice(0, 10);
+            const rawBody = el('rawTableBody');
+            rawBody.innerHTML = latest5.map(e => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-4 py-2">${new Date(e.createdAt || e.scanDate).toLocaleDateString('vi-VN')}</td>
+                    <td class="px-4 py-2 font-bold">${e.hospitalName || '-'}</td>
+                    <td class="px-4 py-2">${e.manufacturer || '-'}</td>
+                    <td class="px-4 py-2"><span class="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded text-[9px] font-bold border border-indigo-100">${e.protocol}</span></td>
+                    <td class="px-4 py-2 text-right">${e.weight || '-'} kg</td>
+                    <td class="px-4 py-2 text-right font-mono">${parseFloat(e.ctdi).toFixed(1)}</td>
+                    <td class="px-4 py-2 text-right font-mono">${parseFloat(e.dlp).toFixed(1)}</td>
+                </tr>
+            `).join('');
         }
 
         function populateFilters() {
@@ -1195,11 +1603,11 @@
                 list.forEach(i => s.innerHTML += `<option value="${i}">${i}</option>`);
             };
 
-            fill('scatterFilterProtocol_DLP', protocols, 'Tất cả Protocol');
-            fill('scatterFilterHospital_DLP', hospitals, 'Tất cả BV');
             fill('meanFilterHospital', hospitals, 'Tất cả BV');
             fill('meanFilterProtocol', protocols, 'Tất cả Protocol');
             fill('normHospital', hospitals, 'Tất cả BV'); 
+            fill('scatterManuHospital', hospitals, 'Tất cả BV');
+            fill('scatterManuProtocol', protocols, 'Tất cả Protocol');
         }
 
         onAuthStateChanged(auth, async (u) => {
@@ -1213,14 +1621,14 @@
 
         // Add ALL filters to the listener list so changing ANY dropdown redraws charts
         const filters = [
-            'progModulation', 'genderModulation', 'weightModulation', // Added these
+            'progModulation', 'genderModulation', 'weightModulation', 
             'multiCompMetric', 'sdCompMetric', 'sdModulation', 'trendModulation', 
-            'scatterFilterProtocol_DLP', 'scatterFilterHospital_DLP', 'scatterFilterModulation_DLP', 
             'meanStatsGroupBy', 'meanFilterHospital', 'meanFilterProtocol', 'meanFilterModulation', 
             'benchProtocol', 'benchMetric', 'benchRefCountry', 'benchModulation', 
             'benchMedProtocol', 'benchMedMetric', 'benchMedRefCountry', 'benchMedModulation', 
             'normHospital', 'normProtocol', 'normMetric', 'normModulation',
-            'drlModulation' // Added
+            'scatterManuModulation', 'scatterManuHospital', 'scatterManuProtocol', 'scatterManuMetric',
+            'multiProtModulation', 'multiProtMetric' // Added new filters
         ];
         filters.forEach(id => { const e = el(id); if(e) e.onchange = renderCharts; });
         
