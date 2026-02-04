@@ -1017,15 +1017,34 @@
                         lastActive: serverTimestamp()
                     }).catch(console.error);
 
-                    // 3. CẬP NHẬT SỐ LIỆU ĐỀ THI (Lượt thi + Lần thi gần nhất)
+                    // 3. CẬP NHẬT SỐ LIỆU ĐỀ THI (Lượt thi + Người thi + Lần thi gần nhất)
                     const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id);
                     
-                    // Lấy dữ liệu hiện tại để tăng attempts thủ công (an toàn hơn increment trong môi trường client hạn chế)
+                    // Kiểm tra xem user này đã từng thi đề này chưa (để tính số người thi duy nhất)
+                    const participantRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id, 'participants', user.uid);
+                    let isNewParticipant = false;
+                    try {
+                        const pSnap = await getDoc(participantRef);
+                        if (!pSnap.exists()) {
+                            // Nếu chưa tồn tại trong danh sách người tham gia -> Là người mới
+                            await setDoc(participantRef, { firstJoined: serverTimestamp() });
+                            isNewParticipant = true;
+                        }
+                    } catch (err) {
+                        console.log("Lỗi kiểm tra người tham gia:", err);
+                        // Nếu lỗi permission hoặc gì đó, mặc định không tăng người thi để an toàn
+                    }
+
+                    // Lấy dữ liệu hiện tại để cập nhật
                     const examSnap = await getDoc(examRef);
                     if (examSnap.exists()) {
-                        const currentAttempts = examSnap.data().attempts || 0;
+                        const data = examSnap.data();
+                        const currentAttempts = data.attempts || 0;
+                        const currentParticipants = data.participantsCount || 0; // Biến mới lưu số người thi
+
                         await updateDoc(examRef, {
-                            attempts: currentAttempts + 1,
+                            attempts: currentAttempts + 1, // Luôn tăng lượt thi
+                            participantsCount: isNewParticipant ? currentParticipants + 1 : currentParticipants, // Chỉ tăng người thi nếu là người mới
                             lastTakenAt: serverTimestamp()
                         });
                     }
@@ -1402,8 +1421,13 @@
                                                 <div className="flex gap-4 text-xs font-medium text-slate-400 mb-6 mt-auto border-t border-white/5 pt-4">
                                                     <span className="flex items-center gap-1.5"><Clock size={14} className="text-cyan-500"/> {exam.duration}p</span>
                                                     <span className="flex items-center gap-1.5"><Grid size={14} className="text-cyan-500"/> {exam.questions?.length} câu</span>
-                                                    {/* THÊM PHẦN HIỂN THỊ LƯỢT THI TẠI ĐÂY */}
-                                                    <span className="flex items-center gap-1.5" title="Tổng số lượt thi"><Users size={14} className="text-cyan-500"/> {exam.attempts || 0} lượt</span>
+                                                    {/* CẬP NHẬT: HIỂN THỊ CẢ LƯỢT THI VÀ NGƯỜI THI */}
+                                                    <span className="flex items-center gap-1.5" title="Lượt thi / Số người tham gia">
+                                                        <Users size={14} className="text-cyan-500"/> 
+                                                        <span>{exam.attempts || 0} lượt</span>
+                                                        <span className="text-slate-600 text-[10px]">•</span>
+                                                        <span>{exam.participantsCount || 0} người</span>
+                                                    </span>
                                                 </div>
                                                 
                                                 <div className="flex justify-between items-end mt-4">
