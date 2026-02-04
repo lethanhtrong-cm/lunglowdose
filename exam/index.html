@@ -804,6 +804,25 @@
                 return () => clearInterval(timer);
             }, [isDarkMode]);
 
+            // --- HEARTBEAT LOGIC (NEW) ---
+            useEffect(() => {
+                // Chỉ chạy nếu có sessionId
+                if (exam.sessionId) {
+                    const pingInterval = setInterval(async () => {
+                        try {
+                            // Cập nhật thời gian 'lastPing'
+                            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId), {
+                                lastPing: serverTimestamp()
+                            });
+                        } catch (e) { console.log("Ping error", e); }
+                    }, 30000); // 30 giây
+
+                    // Cleanup khi component unmount
+                    return () => clearInterval(pingInterval);
+                }
+            }, [exam.sessionId]); // Dependency array đảm bảo effect chạy lại khi sessionId thay đổi (nếu có)
+            // -----------------------------
+
             const finish = async (forceSubmit = false) => {
                 if(submitting) return;
                 const unansweredCount = exam.questions.length - Object.keys(answers).length;
@@ -1206,6 +1225,137 @@
             );
         }
 
+        const ResultScreen = ({ result, onBack, onReview, globalConfig, user }) => {
+            const { addToast } = useToast();
+            const [rating, setRating] = useState(0);
+            const [hasRated, setHasRated] = useState(false);
+
+            useEffect(() => {
+                const checkRating = async () => {
+                    if (!user || !result.examId) return;
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'exam_ratings', `${result.examId}_${user.uid}`);
+                    try {
+                        const snap = await getDoc(docRef);
+                        if (snap.exists()) {
+                            setRating(snap.data().rating);
+                            setHasRated(true);
+                        }
+                    } catch (e) { console.error(e); }
+                };
+                checkRating();
+            }, [result.examId, user.uid]);
+
+            const handleRate = async (score) => {
+                if (hasRated) return;
+                setRating(score);
+                try {
+                    // 1. Save individual rating to 'exam_ratings'
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exam_ratings', `${result.examId}_${user.uid}`), {
+                        uid: user.uid,
+                        examId: result.examId,
+                        rating: score,
+                        createdAt: serverTimestamp()
+                    });
+                    
+                    // 2. Update aggregate on 'exams'
+                    const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', result.examId);
+                    await updateDoc(examRef, {
+                        ratingSum: increment(score),
+                        ratingCount: increment(1)
+                    });
+
+                    // 3. Sync to 'reviews' for Admin
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), {
+                        examId: result.examId,
+                        examTitle: result.examTitle || 'Unknown Exam',
+                        userId: user.uid,
+                        displayName: user.displayName || 'Anonymous',
+                        rating: score,
+                        createdAt: serverTimestamp()
+                    });
+
+                    setHasRated(true);
+                    addToast("Đã gửi đánh giá thành công!", "success");
+                } catch (e) {
+                    console.error("Error rating:", e);
+                    addToast("Lỗi khi gửi đánh giá.", "error");
+                }
+            };
+
+            const handleDownloadResult = async () => {
+                const element = document.getElementById('result-certificate');
+                if (!element) return;
+                try {
+                    const canvas = await window.html2canvas(element, { scale: 2, backgroundColor: null });
+                    const link = document.createElement('a');
+                    link.download = `MedExam_Result_${Date.now()}.png`;
+                    link.href = canvas.toDataURL();
+                    link.click();
+                } catch (e) { console.error(e); addToast("Lỗi tạo ảnh.", "error"); }
+            };
+
+            const handleShareFacebook = () => {
+               const text = `Tôi vừa hoàn thành bài thi "${result.examTitle}" với số điểm ${result.score}/10 trên MedExam Pro!`;
+               const url = "https://medexam-pro.web.app"; 
+               window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`, '_blank');
+            };
+
+            const handleShareZalo = () => {
+                const text = `Kết quả thi MedExam Pro:\nĐề: ${result.examTitle}\nĐiểm: ${result.score}/10\nĐúng: ${result.correctCount}/${result.total}`;
+                navigator.clipboard.writeText(text).then(() => addToast("Đã sao chép kết quả!", "info"));
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in relative overflow-hidden" style={{
+                    backgroundImage: globalConfig.resultBg ? `linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.9)), url('${globalConfig.resultBg}')` : undefined,
+                    backgroundColor: '#0f172a',
+                    backgroundSize: 'cover', backgroundPosition: 'center'
+                }}>
+                    {Number(result.score) >= 8 && <Confetti />}
+                    <div className="glass-result p-8 md:p-10 rounded-3xl text-center max-w-md w-full relative overflow-hidden border border-white/10 shadow-2xl animate-scale-up" id="result-certificate">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
+                        <Award size={80} className={`mx-auto mb-6 ${Number(result.score)>=5?'text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-bounce':'text-slate-500'}`}/>
+                        <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-wide">Kết Quả Thi</h2>
+                        <h3 className="text-xl text-cyan-400 font-bold mb-4">{result.examTitle}</h3>
+                        <div className="text-6xl font-black text-white mb-2 tracking-tighter">{result.score}</div>
+                        
+                        <div className="grid grid-cols-2 gap-4 mb-6 mt-6">
+                            <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700"><p className="text-xs text-slate-500 uppercase font-bold">Câu đúng</p><p className="text-2xl font-bold text-emerald-400">{result.correctCount}/{result.total}</p></div>
+                            <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700"><p className="text-xs text-slate-500 uppercase font-bold">Trạng thái</p><p className={`text-2xl font-bold ${Number(result.score)>=5?'text-cyan-400':'text-red-400'}`}>{Number(result.score)>=5?'ĐẠT':'HỎNG'}</p></div>
+                        </div>
+
+                        {/* RATING SECTION */}
+                        <div className="mb-6 bg-slate-800/40 p-4 rounded-2xl border border-white/5">
+                            <p className="text-slate-300 text-xs font-bold uppercase mb-3 tracking-wider">Đánh giá đề thi này</p>
+                            <div className="flex justify-center gap-2">
+                                {[1,2,3,4,5].map(star => (
+                                    <button 
+                                        key={star} 
+                                        onClick={() => handleRate(star)}
+                                        disabled={hasRated}
+                                        className={`transition-all transform hover:scale-125 p-1 ${hasRated ? 'cursor-default' : 'cursor-pointer'}`}
+                                    >
+                                        <Star size={28} fill={star <= rating ? "#fbbf24" : "none"} className={star <= rating ? "text-yellow-400" : "text-slate-600"} />
+                                    </button>
+                                ))}
+                            </div>
+                            {hasRated && <p className="text-emerald-400 text-[10px] font-bold mt-2 animate-pulse">Cảm ơn bạn đã đánh giá!</p>}
+                        </div>
+
+                        <div className="flex justify-center gap-3 mb-6 relative z-10">
+                            <button onClick={handleDownloadResult} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white transition-all border border-slate-700 tooltip" title="Tải ảnh"><Download size={20}/></button>
+                            <button onClick={handleShareFacebook} className="p-3 bg-blue-600 hover:bg-blue-500 rounded-full text-white transition-all shadow-lg shadow-blue-500/20"><Facebook size={20}/></button>
+                            <button onClick={handleShareZalo} className="p-3 bg-blue-500 hover:bg-blue-400 rounded-full text-white transition-all shadow-lg shadow-blue-400/20 font-bold text-xs flex items-center">Zalo</button>
+                        </div>
+                        <div className="space-y-3 relative z-10">
+                            <button onClick={onReview} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 hover:translate-y-[-2px]"><Eye size={18}/> Xem lại đáp án</button>
+                            <button onClick={onBack} className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3.5 rounded-xl font-bold transition-all border border-slate-700 hover:border-slate-600">Về trang chủ</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         function App() {
             const [user, setUser] = useState(null);
             const [profile, setProfile] = useState(null);
@@ -1281,29 +1431,6 @@
                 } 
             };
 
-            const handleDownloadResult = async () => {
-                const element = document.getElementById('result-certificate');
-                if (!element) return;
-                try {
-                    const canvas = await window.html2canvas(element, { scale: 2, backgroundColor: null });
-                    const link = document.createElement('a');
-                    link.download = `MedExam_Result_${Date.now()}.png`;
-                    link.href = canvas.toDataURL();
-                    link.click();
-                } catch (e) { console.error(e); alert("Lỗi tạo ảnh."); }
-            };
-
-            const handleShareFacebook = () => {
-               const text = `Tôi vừa hoàn thành bài thi "${lastResult.examTitle}" với số điểm ${lastResult.score}/10 trên MedExam Pro!`;
-               const url = "https://medexam-pro.web.app"; 
-               window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`, '_blank');
-            };
-
-            const handleShareZalo = () => {
-                const text = `Kết quả thi MedExam Pro:\nĐề: ${lastResult.examTitle}\nĐiểm: ${lastResult.score}/10\nĐúng: ${lastResult.correctCount}/${lastResult.total}`;
-                navigator.clipboard.writeText(text).then(() => alert("Đã sao chép kết quả!"));
-            };
-
             // Main View Rendering Logic
             const renderContent = () => {
                 if (view === 'loading') return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-cyan-500"><Loader2 className="animate-spin" size={40}/></div>;
@@ -1313,33 +1440,13 @@
                 
                 // Result View with Confetti
                 if (view === 'result' && lastResult) return (
-                    <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in relative overflow-hidden" style={{
-                        backgroundImage: globalConfig.resultBg ? `linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.9)), url('${globalConfig.resultBg}')` : undefined,
-                        backgroundColor: '#0f172a',
-                        backgroundSize: 'cover', backgroundPosition: 'center'
-                    }}>
-                        {Number(lastResult.score) >= 8 && <Confetti />}
-                        <div className="glass-result p-10 rounded-3xl text-center max-w-md w-full relative overflow-hidden border border-white/10 shadow-2xl animate-scale-up" id="result-certificate">
-                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
-                            <Award size={80} className={`mx-auto mb-6 ${Number(lastResult.score)>=5?'text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-bounce':'text-slate-500'}`}/>
-                            <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-wide">Kết Quả Thi</h2>
-                            <h3 className="text-xl text-cyan-400 font-bold mb-4">{lastResult.examTitle}</h3>
-                            <div className="text-6xl font-black text-white mb-2 tracking-tighter">{lastResult.score}</div>
-                            <div className="grid grid-cols-2 gap-4 mb-8 mt-6">
-                                <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700"><p className="text-xs text-slate-500 uppercase font-bold">Câu đúng</p><p className="text-2xl font-bold text-emerald-400">{lastResult.correctCount}/{lastResult.total}</p></div>
-                                <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700"><p className="text-xs text-slate-500 uppercase font-bold">Trạng thái</p><p className={`text-2xl font-bold ${Number(lastResult.score)>=5?'text-cyan-400':'text-red-400'}`}>{Number(lastResult.score)>=5?'ĐẠT':'HỎNG'}</p></div>
-                            </div>
-                            <div className="flex justify-center gap-3 mb-6 relative z-10">
-                                <button onClick={handleDownloadResult} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white transition-all border border-slate-700 tooltip" title="Tải ảnh"><Download size={20}/></button>
-                                <button onClick={handleShareFacebook} className="p-3 bg-blue-600 hover:bg-blue-500 rounded-full text-white transition-all shadow-lg shadow-blue-500/20"><Facebook size={20}/></button>
-                                <button onClick={handleShareZalo} className="p-3 bg-blue-500 hover:bg-blue-400 rounded-full text-white transition-all shadow-lg shadow-blue-400/20 font-bold text-xs flex items-center">Zalo</button>
-                            </div>
-                            <div className="space-y-3 relative z-10">
-                                <button onClick={()=>setView('review')} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 hover:translate-y-[-2px]"><Eye size={18}/> Xem lại đáp án</button>
-                                <button onClick={()=>setView('dashboard')} className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3.5 rounded-xl font-bold transition-all border border-slate-700 hover:border-slate-600">Về trang chủ</button>
-                            </div>
-                        </div>
-                    </div>
+                    <ResultScreen 
+                        result={lastResult} 
+                        onBack={() => setView('dashboard')} 
+                        onReview={() => setView('review')} 
+                        globalConfig={globalConfig}
+                        user={user}
+                    />
                 );
 
                 // Default Layout for Dashboard/Profile/Leaderboard/History
