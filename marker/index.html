@@ -145,7 +145,7 @@
 </head>
 <body class="h-screen flex flex-col overflow-hidden bg-[#F2F2F7]">
 
-    <!-- Mobile Header (Only visible on small screens) -->
+    <!-- Mobile Header -->
     <div class="h-14 shrink-0 bg-[#F9F9F9]/80 backdrop-blur-xl border-b border-[#C6C6C8]/60 flex lg:hidden items-center justify-between px-4 sticky top-0 z-30">
         <div class="flex items-center gap-2">
             <div class="w-8 h-8 bg-gradient-to-br from-[#007AFF] to-[#0055B3] rounded-lg shadow-sm flex items-center justify-center text-white shrink-0">
@@ -161,14 +161,13 @@
         </button>
     </div>
 
-    <!-- Main Layout Wrapper: Mobile (Col Reverse) vs Desktop (Row) -->
+    <!-- Main Layout Wrapper -->
     <div class="flex flex-col-reverse lg:flex-row flex-1 overflow-hidden">
 
         <!-- Sidebar / Control Panel -->
-        <!-- Mobile: Bottom section (flex-1 or fixed height logic) | Desktop: Left fixed width -->
         <aside class="w-full lg:w-[400px] bg-[#F2F2F7] lg:border-r border-t lg:border-t-0 border-[#C6C6C8] flex flex-col z-20 flex-shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] lg:shadow-none h-1/2 lg:h-full">
             
-            <!-- Desktop Header (Hidden on Mobile) -->
+            <!-- Desktop Header -->
             <div class="h-16 shrink-0 bg-[#F9F9F9]/80 backdrop-blur-xl border-b border-[#C6C6C8]/60 hidden lg:flex items-center justify-between px-5 sticky top-0 z-30">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-gradient-to-br from-[#007AFF] to-[#0055B3] rounded-xl shadow-sm flex items-center justify-center text-white shrink-0">
@@ -187,10 +186,9 @@
             <!-- Scrollable Controls -->
             <div class="flex-1 overflow-y-auto custom-scroll px-4 pb-20 lg:pb-8 pt-2 space-y-2">
                 
-                <!-- Tool Selection Grid -->
+                <!-- Tool Selection Grid (Removed Adjust Icon) -->
                 <div class="sticky top-0 bg-[#F2F2F7] z-10 py-2">
-                    <!-- <div class="ios-group-title mt-0">Công cụ</div> -->
-                    <div class="ios-card grid grid-cols-7 divide-x divide-gray-200/60 bg-white overflow-x-auto">
+                    <div class="ios-card grid grid-cols-4 sm:grid-cols-7 divide-x divide-y sm:divide-y-0 divide-gray-200/60 bg-white overflow-x-auto">
                         <button onclick="setMode('move')" id="btn-move" class="tool-btn active py-3 flex flex-col items-center justify-center gap-1 min-w-[45px]" title="Di chuyển">
                             <i class="fa-solid fa-arrow-pointer text-lg"></i>
                         </button>
@@ -215,6 +213,23 @@
                     </div>
                 </div>
 
+                <!-- Separate Color Adjust Section -->
+                <div>
+                    <div class="ios-group-title">Xử lý hình ảnh</div>
+                    <button onclick="setMode('adjust')" id="btn-adjust" class="w-full flex items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-100 hover:bg-gray-50 transition-all text-left group">
+                        <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg group-[.active]:bg-purple-600 group-[.active]:text-white transition-colors shrink-0">
+                            <i class="fa-solid fa-sliders"></i>
+                        </div>
+                        <div class="ml-3 flex-1 overflow-hidden">
+                            <div class="text-sm font-semibold text-gray-900 group-[.active]:text-purple-700">Bộ lọc màu</div>
+                            <div class="text-[11px] text-gray-500 truncate">Sáng, Tương phản, Đảo màu (Âm bản)</div>
+                        </div>
+                        <div class="w-5 h-5 rounded-full border border-gray-200 flex items-center justify-center group-[.active]:border-purple-600 group-[.active]:bg-purple-600 transition-colors">
+                            <i class="fa-solid fa-check text-white text-[10px] opacity-0 group-[.active]:opacity-100"></i>
+                        </div>
+                    </button>
+                </div>
+
                 <!-- 1. Context: Crop -->
                 <div id="crop-controls" class="hidden">
                     <div class="ios-group-title">Cắt ảnh</div>
@@ -235,7 +250,45 @@
                     </button>
                 </div>
 
-                 <!-- 2. Context: Layout (Grid) -->
+                <!-- 2. Context: Adjust -->
+                <div id="adjust-controls" class="hidden">
+                    <div class="ios-group-title flex justify-between items-center">
+                        <span>Điều chỉnh</span>
+                        <button onclick="resetFilters()" class="text-[10px] text-[--ios-blue] font-medium bg-blue-50 px-2 py-0.5 rounded">Mặc định</button>
+                    </div>
+                    <div class="ios-card p-4 space-y-4 bg-white">
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-[12px] font-medium text-gray-600">
+                                <span><i class="fa-regular fa-sun mr-1"></i> Độ sáng</span>
+                                <span id="valBrightness">100%</span>
+                            </div>
+                            <input type="range" id="filterBrightness" min="0" max="200" value="100" class="accent-purple-600" oninput="updateFilters()">
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-[12px] font-medium text-gray-600">
+                                <span><i class="fa-solid fa-circle-half-stroke mr-1"></i> Tương phản</span>
+                                <span id="valContrast">100%</span>
+                            </div>
+                            <input type="range" id="filterContrast" min="0" max="200" value="100" class="accent-purple-600" oninput="updateFilters()">
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-[12px] font-medium text-gray-600">
+                                <span><i class="fa-solid fa-droplet mr-1"></i> Bão hòa</span>
+                                <span id="valSaturate">100%</span>
+                            </div>
+                            <input type="range" id="filterSaturate" min="0" max="200" value="100" class="accent-purple-600" oninput="updateFilters()">
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-gray-50">
+                            <span class="text-[12px] font-medium text-gray-600">Đảo ngược màu (Âm bản)</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="filterInvert" class="sr-only peer" onchange="updateFilters()">
+                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                 <!-- 3. Context: Layout (Grid) -->
                  <div id="layout-controls" class="hidden">
                     <div class="ios-group-title">Bố cục</div>
                     <div class="ios-card p-4 space-y-4 bg-white">
@@ -304,7 +357,7 @@
                     </div>
                 </div>
 
-                <!-- 3. Context: Draw -->
+                <!-- 4. Context: Draw -->
                 <div id="draw-controls" class="hidden">
                     <div class="ios-group-title">Vẽ</div>
                     <div class="ios-card p-4 space-y-4 bg-white">
@@ -323,7 +376,7 @@
                     </div>
                 </div>
 
-                <!-- 4. Context: Text -->
+                <!-- 5. Context: Text -->
                 <div id="text-tool-controls" class="hidden">
                     <div class="ios-group-title">Văn bản</div>
                     <div class="ios-card p-4 space-y-4 bg-white">
@@ -543,6 +596,13 @@
         let logoImg = null;
         let logoImgOriginal = null;
         let logoBgState = { type: null, tolerance: 30 };
+        // New Filter State
+        let filterState = {
+            brightness: 100,
+            contrast: 100,
+            saturate: 100,
+            invert: 0
+        };
 
         // Pending state for upload->crop flow
         let pendingCropImg = null;
@@ -611,7 +671,7 @@
 
         function setMode(mode) {
             currentMode = mode;
-            ['move', 'draw', 'arrow', 'text', 'crop', 'layout', 'pan'].forEach(m => {
+            ['move', 'draw', 'arrow', 'text', 'crop', 'layout', 'pan', 'adjust'].forEach(m => {
                 const btn = document.getElementById('btn-' + m);
                 if (btn) btn.classList.toggle('active', m === mode);
             });
@@ -620,6 +680,7 @@
             toggleElement('layout-controls', mode === 'layout');
             toggleElement('draw-controls', mode === 'draw' || mode === 'arrow');
             toggleElement('text-tool-controls', mode === 'text');
+            toggleElement('adjust-controls', mode === 'adjust');
             
             // Show cell actions if in layout mode and cell selected
             if (mode === 'layout' && activeGridCellIndex !== -1 && gridState.active) {
@@ -640,6 +701,28 @@
             else canvas.style.cursor = 'crosshair';
 
             drawCanvas();
+        }
+
+        // --- Filter Logic ---
+        function updateFilters() {
+            filterState.brightness = document.getElementById('filterBrightness').value;
+            filterState.contrast = document.getElementById('filterContrast').value;
+            filterState.saturate = document.getElementById('filterSaturate').value;
+            filterState.invert = document.getElementById('filterInvert').checked ? 1 : 0;
+
+            document.getElementById('valBrightness').innerText = filterState.brightness + '%';
+            document.getElementById('valContrast').innerText = filterState.contrast + '%';
+            document.getElementById('valSaturate').innerText = filterState.saturate + '%';
+            
+            drawCanvas();
+        }
+
+        function resetFilters() {
+            document.getElementById('filterBrightness').value = 100;
+            document.getElementById('filterContrast').value = 100;
+            document.getElementById('filterSaturate').value = 100;
+            document.getElementById('filterInvert').checked = false;
+            updateFilters();
         }
 
         // --- View Transform Logic (Zoom & Pan) ---
@@ -724,6 +807,9 @@
             updateGridDimensions();
             // Enter layout mode automatically to show cell selection
             setMode('layout');
+            
+            // FIX: Reset zoom để lưới vừa khung ngay khi khởi tạo
+            resetZoom();
         }
         
         function exitGridMode() {
@@ -749,7 +835,14 @@
         }
         
         function updateGridGap(val) { gridState.gap = parseInt(val); drawCanvas(); }
-        function setGridRatio(ratio) { gridState.ratio = ratio; updateGridDimensions(); drawCanvas(); }
+        
+        function setGridRatio(ratio) { 
+            gridState.ratio = ratio; 
+            updateGridDimensions(); 
+            drawCanvas();
+            // FIX: Reset zoom khi đổi tỷ lệ khung để tránh bị tràn
+            resetZoom();
+        }
         
         function updateGridDimensions() {
             const w = canvas.width;
@@ -1006,6 +1099,7 @@
             // 1. Draw Content
             if (pendingCropImg) {
                 // If in crop flow, ONLY draw the pending image
+                // Apply filters to preview as well for consistency? No, keep crop raw.
                 ctx.drawImage(pendingCropImg, 0, 0);
                 
                 // Draw Crop Overlay
@@ -1028,12 +1122,17 @@
                 return; // Stop here
             }
 
-            // Normal Draw Flow
+            // --- APPLY FILTERS ---
+            ctx.save();
+            ctx.filter = `brightness(${filterState.brightness}%) contrast(${filterState.contrast}%) saturate(${filterState.saturate}%) invert(${filterState.invert})`;
+
+            // Normal Draw Flow with Filter
             if (gridState.active) {
                 drawGrid();
             } else if (mainImg) {
                 ctx.drawImage(mainImg, 0, 0);
             }
+            ctx.restore(); // Restore filter context for overlays
 
             // 2. Overlays
             drawingPaths.forEach(path => {
