@@ -986,12 +986,20 @@
                 
                 try {
                     if (auth.currentUser) {
+                         // 1. Cập nhật thông tin cá nhân User
                          const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', auth.currentUser.uid);
                          updateDoc(userRef, {
                             totalScore: increment(Number(score)),
                             examsCompleted: increment(1),
                             lastActive: serverTimestamp()
                          }).catch(console.error);
+
+                         // 2. Đồng bộ lượt thi sang Admin: Tăng biến 'attempts' của đề thi lên 1
+                         const examGlobalRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id);
+                         updateDoc(examGlobalRef, {
+                            attempts: increment(1),           // Tổng số lượt thi
+                            lastTakenAt: serverTimestamp()    // Thời gian có người thi gần nhất
+                         }).catch(e => console.error("Lỗi đồng bộ Admin:", e));
                     }
 
                     if (exam.sessionId) {
