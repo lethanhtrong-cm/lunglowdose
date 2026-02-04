@@ -1019,8 +1019,14 @@
                 });
             };
 
-            const handleExit = () => {
+            const handleExit = async () => {
                 if (confirm("⚠️ XÁC NHẬN THOÁT\n\nKết quả bài làm sẽ KHÔNG được lưu lại.\nBạn có chắc chắn muốn thoát ra màn hình chính?")) {
+                    // Xóa session active khi thoát để Admin cập nhật trạng thái Not Live ngay lập tức
+                    if (exam.sessionId) {
+                        try {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId));
+                        } catch (e) { console.error("Lỗi xóa session khi thoát:", e); }
+                    }
                     onExit();
                 }
             };
