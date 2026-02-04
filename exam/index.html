@@ -126,9 +126,10 @@
             sendPasswordResetEmail,
             signInAnonymously
         } from 'firebase/auth';
+        // Đã thêm getDocs vào import
         import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc, getDocs, where, updateDoc, increment, limit, deleteDoc } from 'firebase/firestore';
-        // THÊM CÁC ICON MỚI: Maximize, Minimize, WifiOff
-        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, Users, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal, Sun, Moon, Type, X, Info, Check, Quote, Mail, Key, Flag, BarChart3, AlertCircle, RefreshCw, Maximize, Minimize, WifiOff } from 'lucide-react';
+        // Thêm 'Users' vào danh sách import
+        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, Users, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal, Sun, Moon, Type, X, Info, Check, Quote, Mail, Key, Flag, BarChart3, AlertCircle, RefreshCw } from 'lucide-react';
 
         const firebaseConfig = {
             apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
@@ -157,6 +158,7 @@
         // --- HELPER & UTILS ---
         const formatDate = (ts) => {
             if (!ts) return "---";
+            // Kiểm tra nếu là Firebase Timestamp thì dùng toDate(), nếu không thì tạo đối tượng Date mới
             const date = ts.toDate ? ts.toDate() : new Date(ts);
             return date.toLocaleDateString('vi-VN', { 
                 day: '2-digit', 
@@ -243,14 +245,17 @@
         // 3. Skeleton Loading
         const Skeleton = ({ className }) => <div className={`bg-slate-700/50 animate-pulse rounded-lg ${className}`}></div>;
 
-        // 4. Simple Performance Chart Component
+        // 4. (NEW) Simple Performance Chart Component (SVG Based)
         const PerformanceChart = ({ historyData }) => {
             if (!historyData || historyData.length === 0) return (
                 <div className="h-40 flex items-center justify-center text-slate-500 text-sm italic">Chưa có dữ liệu thi</div>
             );
 
+            // Take last 10 exams, reverse to show chronological order
             const data = [...historyData].slice(0, 10).reverse();
             const maxScore = 10;
+            const height = 150;
+            const width = 100; // percent
 
             return (
                 <div className="w-full h-48 mt-4 relative">
@@ -280,29 +285,6 @@
             )
         };
 
-        // 5. (NEW) Offline Alert Component
-        const OfflineAlert = () => {
-            const [isOnline, setIsOnline] = useState(navigator.onLine);
-            useEffect(() => {
-                const setOnline = () => setIsOnline(true);
-                const setOffline = () => setIsOnline(false);
-                window.addEventListener('online', setOnline);
-                window.addEventListener('offline', setOffline);
-                return () => {
-                    window.removeEventListener('online', setOnline);
-                    window.removeEventListener('offline', setOffline);
-                };
-            }, []);
-
-            if (isOnline) return null;
-
-            return (
-                <div className="fixed top-0 left-0 w-full bg-red-600 text-white text-xs font-bold p-2 text-center z-[100] animate-slide-up flex items-center justify-center gap-2">
-                    <WifiOff size={14} /> Mất kết nối mạng. Vui lòng kiểm tra đường truyền để tránh lỗi khi nộp bài!
-                </div>
-            );
-        };
-
         // --- MAIN COMPONENTS ---
 
         const AuthScreen = ({ globalConfig }) => {
@@ -312,9 +294,12 @@
             const [name, setName] = useState('');
             const [rememberMe, setRememberMe] = useState(true);
             const [loading, setLoading] = useState(false);
+            
+            // Password Reset State
             const [showForgot, setShowForgot] = useState(false);
             const [resetEmail, setResetEmail] = useState('');
             const [isResetting, setIsResetting] = useState(false);
+            
             const { addToast } = useToast();
 
             const DEFAULT_BG = "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&q=80";
@@ -373,6 +358,7 @@
                     backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.95)), url('${bgImage}')`,
                     backgroundSize: 'cover', backgroundPosition: 'center'
                 }}>
+                    {/* Animated Background Blobs */}
                     <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
                     <div className="absolute top-0 -right-4 w-72 h-72 bg-cyan-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
                     <div className="absolute -bottom-8 left-20 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
@@ -422,6 +408,7 @@
                         </p>
                     </div>
 
+                    {/* Forgot Password Modal */}
                     {showForgot && (
                         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
                             <div className="bg-slate-900 border border-slate-700 w-full max-w-sm p-6 rounded-3xl shadow-2xl relative animate-scale-up">
@@ -522,6 +509,7 @@
                                                 let rankIcon = <span className="font-bold text-slate-500 text-lg font-mono">#{index + 1}</span>;
                                                 let rowBg = "hover:bg-slate-700/30";
                                                 let textColor = "text-slate-200";
+                                                
                                                 if (index === 0) {
                                                     rankIcon = <div className="relative"><Medal size={32} className="text-yellow-400 mx-auto fill-yellow-400/20 drop-shadow-lg"/><div className="absolute inset-0 animate-ping opacity-20 bg-yellow-400 rounded-full"></div></div>;
                                                     rowBg = "bg-yellow-500/5 hover:bg-yellow-500/10";
@@ -531,6 +519,7 @@
                                                 } else if (index === 2) {
                                                     rankIcon = <Medal size={28} className="text-amber-600 mx-auto fill-amber-600/20"/>;
                                                 }
+
                                                 return (
                                                     <tr key={index} className={`transition-colors ${rowBg}`}>
                                                         <td className="p-5 text-center align-middle">{rankIcon}</td>
@@ -566,7 +555,6 @@
         };
 
         const ProfilePage = ({ user, profile, onBack }) => {
-            // ... (Same as before)
             const [isEditing, setIsEditing] = useState(false);
             const [formData, setFormData] = useState({
                 displayName: profile?.displayName || user.displayName || '',
@@ -611,6 +599,7 @@
                     </button>
                     
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        {/* Sidebar */}
                         <div className="lg:col-span-1 space-y-6">
                             <div className="glass-panel rounded-3xl p-6 text-center relative overflow-hidden group">
                                 <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-cyan-600 to-blue-600 transition-all group-hover:h-28"></div>
@@ -627,6 +616,7 @@
                                 </div>
                             </div>
                             
+                            {/* Short Stats */}
                             <div className="glass-panel rounded-2xl p-5">
                                 <h3 className="text-slate-400 text-xs font-bold uppercase mb-4 tracking-wider">Thống kê nhanh</h3>
                                 <div className="space-y-4 text-sm">
@@ -642,8 +632,10 @@
                             </div>
                         </div>
 
+                        {/* Main Content Area */}
                         <div className="lg:col-span-3 space-y-6">
                             <div className="space-y-6 animate-fade-in">
+                                {/* Personal Info Form */}
                                 <div className="glass-panel rounded-3xl overflow-hidden">
                                     <div className="p-6 border-b border-slate-700/50 flex justify-between items-center bg-slate-800/30">
                                         <h3 className="text-lg font-bold text-white flex items-center gap-2"><User size={20} className="text-cyan-400"/> Thông tin cá nhân</h3>
@@ -661,6 +653,7 @@
                                     </div>
                                 </div>
                                 
+                                {/* Transaction History */}
                                 <div className="glass-panel rounded-3xl overflow-hidden">
                                     <div className="p-6 border-b border-slate-700/50 bg-slate-800/30"><h3 className="text-lg font-bold text-white flex items-center gap-2"><CreditCard size={20} className="text-yellow-400"/> Lịch sử giao dịch</h3></div>
                                     <div className="p-0 overflow-x-auto">
@@ -731,12 +724,13 @@
             );
         };
 
+        // (NEW) Report Modal Component
         const ReportQuestionModal = ({ onClose, question, questionIndex, examId }) => {
-            const [reason, setReason] = useState('wrong_answer');
+            const [reason, setReason] = useState('wrong_answer'); // wrong_answer, typo, confusing, other
             const [detail, setDetail] = useState('');
             const [submitting, setSubmitting] = useState(false);
             const { addToast } = useToast();
-            const { user } = getAuth();
+            const { user } = getAuth(); // Or pass user prop
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -954,9 +948,6 @@
             const questionRefs = useRef([]);
             // Feature 1: Flagging State
             const [flags, setFlags] = useState({}); 
-            
-            // NEW: Fullscreen state
-            const [isFullscreen, setIsFullscreen] = useState(false);
 
             // Theme & Font Size State
             const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('theme') !== 'light');
@@ -967,18 +958,6 @@
                 const timer = setInterval(() => setTimeLeft(t => t <= 1 ? (finish(true), 0) : t - 1), 1000);
                 return () => clearInterval(timer);
             }, [isDarkMode]);
-
-            // NEW: Unload Protection
-            useEffect(() => {
-                const handleBeforeUnload = (e) => {
-                    if (!submitting) {
-                        e.preventDefault();
-                        e.returnValue = '';
-                    }
-                };
-                window.addEventListener('beforeunload', handleBeforeUnload);
-                return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-            }, [submitting]);
 
             // --- HEARTBEAT LOGIC ---
             useEffect(() => {
@@ -1009,18 +988,63 @@
                 }
 
                 setSubmitting(true);
-                
-                // Exit fullscreen when submitting
-                if (document.fullscreenElement) {
-                    document.exitFullscreen().catch(e => console.log(e));
-                }
-
                 let correct = 0;
                 exam.questions.forEach((q, i) => { if(answers[i] === q.correctOption) correct++; });
                 const score = (correct / exam.questions.length) * 10;
                 
-                // Chuẩn bị dữ liệu kết quả để hiển thị ngay
-                const resultData = { 
+                // 1. Xóa trạng thái đang thi (Live)
+                if (exam.sessionId) {
+                    try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId)); } catch (e) {}
+                }
+
+                try {
+                    // 2. Lưu lịch sử thi của user
+                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), {
+                        examId: exam.id, 
+                        examTitle: exam.title, 
+                        score: score.toFixed(1), 
+                        totalQuestions: exam.questions.length, 
+                        correctCount: correct, 
+                        date: serverTimestamp(), 
+                        userId: user.uid, 
+                        displayName: user.displayName || 'User'
+                    });
+
+                    // Cập nhật thông tin cá nhân User (Giữ lại để tính BXH)
+                    const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+                    updateDoc(userRef, {
+                        totalScore: increment(Number(score)),
+                        examsCompleted: increment(1),
+                        lastActive: serverTimestamp()
+                    }).catch(console.error);
+
+                    // 3. LOGIC ĐỒNG BỘ SỐ LIỆU SANG ADMIN (Lượt thi & Người thi)
+                    // Kiểm tra lịch sử xem người này đã từng làm đề này chưa
+                    const historyQuery = query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), where('examId', '==', exam.id));
+                    const historySnap = await getDocs(historyQuery);
+                    
+                    // Vì ta vừa mới add lịch sử ở bước 2, nên nếu size <= 1 nghĩa là đây là lần đầu tiên họ làm đề này.
+                    const isFirstTime = historySnap.size <= 1; 
+
+                    const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id);
+                    
+                    // Chuẩn bị dữ liệu cập nhật
+                    const updateData = {
+                        attempts: increment(1),       // Tăng số lượt thi lên 1
+                        lastTakenAt: serverTimestamp() // Cập nhật thời gian thi mới nhất
+                    };
+                    
+                    // Nếu là người mới, tăng thêm số lượng người tham gia
+                    if (isFirstTime) {
+                        updateData.participantsCount = increment(1);
+                    }
+                    
+                    // Gửi cập nhật lên Firestore
+                    await updateDoc(examRef, updateData);
+
+                } catch(e) { console.error("Save error", e); }
+                
+                onFinish({ 
                     score: score.toFixed(1), 
                     correctCount: correct, 
                     total: exam.questions.length, 
@@ -1028,71 +1052,11 @@
                     questions: exam.questions,
                     userAnswers: answers,
                     examId: exam.id
-                };
-
-                // Hàm lưu dữ liệu chạy ngầm (Không dùng await ở cấp độ finish để tránh chặn UI)
-                const saveToFirestore = async () => {
-                    // 1. Xóa trạng thái đang thi (Live)
-                    if (exam.sessionId) {
-                        try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId)); } catch (e) {}
-                    }
-
-                    try {
-                        // Kiểm tra xem đây có phải lần đầu làm đề này không (để tính số người thi)
-                        // Kiểm tra TRƯỚC khi lưu lịch sử mới
-                        const historyQuery = query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), where('examId', '==', exam.id));
-                        const historySnap = await getDocs(historyQuery);
-                        const isFirstTime = historySnap.empty; 
-
-                        // 2. Lưu lịch sử thi của user
-                        await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), {
-                            examId: exam.id, 
-                            examTitle: exam.title, 
-                            score: score.toFixed(1), 
-                            totalQuestions: exam.questions.length, 
-                            correctCount: correct, 
-                            date: serverTimestamp(), 
-                            userId: user.uid, 
-                            displayName: user.displayName || 'User'
-                        });
-
-                        // Cập nhật thông tin cá nhân User
-                        const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
-                        updateDoc(userRef, {
-                            totalScore: increment(Number(score)),
-                            examsCompleted: increment(1),
-                            lastActive: serverTimestamp()
-                        }).catch(console.error);
-
-                        // 3. CẬP NHẬT SỐ LIỆU ĐỀ THI
-                        const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id);
-                        const updateData = {
-                            attempts: increment(1),       // Luôn tăng lượt thi
-                            lastTakenAt: serverTimestamp()
-                        };
-                        
-                        // Chỉ tăng số người thi nếu đây là lần đầu họ làm
-                        if (isFirstTime) {
-                            updateData.participantsCount = increment(1);
-                        }
-                        
-                        await updateDoc(examRef, updateData);
-
-                    } catch(e) { console.error("Lỗi lưu dữ liệu:", e); }
-                };
-
-                // Kích hoạt lưu ngầm
-                saveToFirestore();
-                
-                // CHUYỂN TRANG NGAY LẬP TỨC (Không chờ lưu xong)
-                onFinish(resultData);
+                });
             };
 
             const handleExit = async () => {
                 if (confirm("⚠️ XÁC NHẬN THOÁT\n\nKết quả bài làm sẽ KHÔNG được lưu lại.\nBạn có chắc chắn muốn thoát ra màn hình chính?")) {
-                    if (document.fullscreenElement) {
-                        document.exitFullscreen().catch(e => console.log(e));
-                    }
                     // Xóa session active khi thoát để Admin cập nhật trạng thái Not Live ngay lập tức
                     if (exam.sessionId) {
                         try {
@@ -1110,15 +1074,6 @@
 
             const toggleFlag = (index) => {
                 setFlags(prev => ({ ...prev, [index]: !prev[index] }));
-            };
-
-            // NEW: Toggle Fullscreen Function
-            const toggleFullscreen = () => {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(e => console.log(e));
-                } else {
-                    document.exitFullscreen().then(() => setIsFullscreen(false));
-                }
             };
 
             const answeredCount = Object.keys(answers).length;
@@ -1178,11 +1133,6 @@
                                     <span className="text-xs font-mono w-6 text-center">{fontSizeLevel + 1}</span>
                                     <button onClick={() => setFontSizeLevel(prev => Math.min(3, prev + 1))} disabled={fontSizeLevel === 3} className={`p-1.5 rounded transition-colors ${isDarkMode ? 'hover:bg-slate-700 disabled:opacity-30' : 'hover:bg-white disabled:opacity-30'}`}><Type size={18} /></button>
                                 </div>
-
-                                {/* Fullscreen Toggle Button */}
-                                <button onClick={toggleFullscreen} className={`hidden md:block p-2 rounded-lg border transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 hover:text-cyan-400' : 'bg-gray-100 border-gray-200 text-gray-600 hover:text-cyan-600 hover:bg-white'}`} title="Toàn màn hình">
-                                    {isFullscreen ? <Minimize size={20}/> : <Maximize size={20}/>}
-                                </button>
 
                                 <button onClick={() => setIsDarkMode(!isDarkMode)} className={`hidden md:block p-2 rounded-lg border transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 hover:text-yellow-400' : 'bg-gray-100 border-gray-200 text-gray-600 hover:text-orange-500 hover:bg-white'}`}>
                                     {isDarkMode ? <Moon size={20} /> : <Sun size={20} />}
@@ -1511,6 +1461,217 @@
             );
         };
 
+        const HistoryPage = ({ user, onBack }) => {
+            const [history, setHistory] = useState([]);
+            useEffect(() => {
+                if (!user) return;
+                const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), orderBy('date', 'desc'));
+                const unsub = onSnapshot(q, s => setHistory(s.docs.map(d=>({id: d.id, ...d.data(), date: d.data().date?.toDate()}))), (error) => {
+                    console.error("History page sync error", error);
+                });
+                return unsub;
+            }, [user]);
+
+            return (
+                <div className="animate-fade-in pb-20 max-w-5xl mx-auto">
+                    <button onClick={onBack} className="mb-6 flex items-center gap-2 text-slate-400 hover:text-white transition-colors group">
+                        <div className="bg-slate-800 p-2 rounded-lg group-hover:bg-slate-700"><ChevronRight className="rotate-180" size={20}/></div>
+                        <span>Quay lại Dashboard</span>
+                    </button>
+                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-white"><div className="bg-cyan-500/20 p-2 rounded-xl text-cyan-400"><History size={24}/></div> Lịch sử làm bài</h2>
+                    <div className="glass-panel rounded-2xl overflow-hidden shadow-xl">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-slate-900/50 text-slate-400 uppercase text-xs font-bold tracking-wider"><tr><th className="p-5">Đề thi</th><th className="p-5">Ngày thi</th><th className="p-5 text-center">Kết quả</th><th className="p-5 text-center">Điểm số</th></tr></thead>
+                                <tbody className="divide-y divide-slate-700/50">
+                                    {history.map(r => (
+                                        <tr key={r.id} className="hover:bg-slate-700/30 transition-colors group">
+                                            <td className="p-5 font-bold text-white group-hover:text-cyan-400 transition-colors">{r.examTitle}</td>
+                                            <td className="p-5 text-slate-400 font-mono text-xs">{r.date?.toLocaleDateString('vi-VN')} {r.date?.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</td>
+                                            <td className="p-5 text-center"><span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${Number(r.score)>=5 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>{Number(r.score)>=5 ? 'Đạt' : 'Chưa đạt'}</span></td>
+                                            <td className="p-5 text-center"><span className="text-lg font-black text-white bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">{r.score}</span></td>
+                                        </tr>
+                                    ))}
+                                    {history.length === 0 && <tr><td colSpan="4" className="p-12 text-center text-slate-500 italic">Bạn chưa làm bài thi nào.</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const ResultScreen = ({ result, onBack, onReview, globalConfig, user }) => {
+            const { addToast } = useToast();
+            const [rating, setRating] = useState(0);
+            const [hasRated, setHasRated] = useState(false);
+            const [feedback, setFeedback] = useState("");
+            const [tempRating, setTempRating] = useState(0);
+
+            useEffect(() => {
+                const checkRating = async () => {
+                    if (!user || !result.examId) return;
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'exam_ratings', `${result.examId}_${user.uid}`);
+                    try {
+                        const snap = await getDoc(docRef);
+                        if (snap.exists()) {
+                            setRating(snap.data().rating);
+                            setHasRated(true);
+                        }
+                    } catch (e) { console.error(e); }
+                };
+                checkRating();
+            }, [result.examId, user.uid]);
+
+            const submitRating = async (score, feedbackContent) => {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exam_ratings', `${result.examId}_${user.uid}`), {
+                        uid: user.uid,
+                        examId: result.examId,
+                        rating: score,
+                        createdAt: serverTimestamp()
+                    });
+                    
+                    const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', result.examId);
+                    await updateDoc(examRef, {
+                        ratingSum: increment(score),
+                        ratingCount: increment(1)
+                    });
+
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), {
+                        examId: result.examId,
+                        examTitle: result.examTitle || 'Unknown Exam',
+                        userId: user.uid,
+                        displayName: user.displayName || 'Anonymous',
+                        rating: score,
+                        feedback: feedbackContent, 
+                        createdAt: serverTimestamp()
+                    });
+
+                    setRating(score);
+                    setHasRated(true);
+                    setTempRating(0); 
+                    addToast("Đã gửi đánh giá thành công!", "success");
+                } catch (e) {
+                    console.error("Error rating:", e);
+                    addToast("Lỗi khi gửi đánh giá.", "error");
+                }
+            };
+
+            const handleStarClick = (score) => {
+                if (hasRated) return;
+                
+                if (score > 3) {
+                    submitRating(score, "");
+                } else {
+                    setTempRating(score);
+                }
+            };
+
+            const handleDownloadResult = async () => {
+                const element = document.getElementById('result-certificate');
+                if (!element) return;
+                try {
+                    const canvas = await window.html2canvas(element, { scale: 2, backgroundColor: null });
+                    const link = document.createElement('a');
+                    link.download = `MedExam_Result_${Date.now()}.png`;
+                    link.href = canvas.toDataURL();
+                    link.click();
+                } catch (e) { console.error(e); addToast("Lỗi tạo ảnh.", "error"); }
+            };
+
+            const handleShareFacebook = () => {
+               const text = `Tôi vừa hoàn thành bài thi "${result.examTitle}" với số điểm ${result.score}/10 trên MedExam Pro!`;
+               const url = "https://medexam-pro.web.app"; 
+               window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`, '_blank');
+            };
+
+            const handleShareZalo = () => {
+                const text = `Kết quả thi MedExam Pro:\nĐề: ${result.examTitle}\nĐiểm: ${result.score}/10\nĐúng: ${result.correctCount}/${result.total}`;
+                navigator.clipboard.writeText(text).then(() => addToast("Đã sao chép kết quả!", "info"));
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in relative overflow-hidden" style={{
+                    backgroundImage: globalConfig.resultBg ? `linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.9)), url('${globalConfig.resultBg}')` : undefined,
+                    backgroundColor: '#0f172a',
+                    backgroundSize: 'cover', backgroundPosition: 'center'
+                }}>
+                    {Number(result.score) >= 8 && <Confetti />}
+                    <div className="glass-result p-8 md:p-10 rounded-3xl text-center max-w-md w-full relative overflow-hidden border border-white/10 shadow-2xl animate-scale-up" id="result-certificate">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
+                        <Award size={80} className={`mx-auto mb-6 ${Number(result.score)>=5?'text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-bounce':'text-slate-500'}`}/>
+                        <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-wide">Kết Quả Thi</h2>
+                        <h3 className="text-xl text-cyan-400 font-bold mb-4">{result.examTitle}</h3>
+                        <div className="text-6xl font-black text-white mb-2 tracking-tighter">{result.score}</div>
+                        
+                        <div className="grid grid-cols-2 gap-4 mb-6 mt-6">
+                            <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700"><p className="text-xs text-slate-500 uppercase font-bold">Câu đúng</p><p className="text-2xl font-bold text-emerald-400">{result.correctCount}/{result.total}</p></div>
+                            <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700"><p className="text-xs text-slate-500 uppercase font-bold">Trạng thái</p><p className={`text-2xl font-bold ${Number(result.score)>=5?'text-cyan-400':'text-red-400'}`}>{Number(result.score)>=5?'ĐẠT':'HỎNG'}</p></div>
+                        </div>
+
+                        {/* RATING SECTION */}
+                        <div className="mb-6 bg-slate-800/40 p-4 rounded-2xl border border-white/5 transition-all">
+                            {!hasRated ? (
+                                <>
+                                    <p className="text-slate-300 text-xs font-bold uppercase mb-3 tracking-wider">Đánh giá đề thi này</p>
+                                    <div className="flex justify-center gap-2 mb-3">
+                                        {[1,2,3,4,5].map(star => (
+                                            <button 
+                                                key={star} 
+                                                onClick={() => handleStarClick(star)}
+                                                className={`transition-all transform hover:scale-125 p-1 ${tempRating === star ? 'scale-125' : ''}`}
+                                            >
+                                                <Star size={28} fill={star <= (tempRating || rating) ? "#fbbf24" : "none"} className={star <= (tempRating || rating) ? "text-yellow-400" : "text-slate-600"} />
+                                            </button>
+                                        ))}
+                                    </div>
+                                    
+                                    {/* Feedback form for low rating */}
+                                    {tempRating > 0 && tempRating <= 3 && (
+                                        <div className="animate-fade-in mt-3">
+                                            <textarea 
+                                                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white placeholder-slate-500 mb-3 focus:border-cyan-500 outline-none"
+                                                rows="3"
+                                                placeholder="Bạn chưa hài lòng điểm nào? Hãy góp ý cho chúng tôi..."
+                                                value={feedback}
+                                                onChange={(e) => setFeedback(e.target.value)}
+                                            ></textarea>
+                                            <button 
+                                                onClick={() => submitRating(tempRating, feedback)}
+                                                className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition-all"
+                                            >
+                                                Gửi đánh giá & Góp ý
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="animate-fade-in">
+                                    <div className="flex justify-center gap-1 mb-2">
+                                        {[1,2,3,4,5].map(star => (
+                                            <Star key={star} size={20} fill={star <= rating ? "#fbbf24" : "none"} className={star <= rating ? "text-yellow-400" : "text-slate-600"} />
+                                        ))}
+                                    </div>
+                                    <p className="text-emerald-400 text-[10px] font-bold animate-pulse">Cảm ơn bạn đã đánh giá!</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-center gap-3 mb-6 relative z-10">
+                            <button onClick={handleDownloadResult} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white transition-all border border-slate-700 tooltip" title="Tải ảnh"><Download size={20}/></button>
+                            <button onClick={handleShareFacebook} className="p-3 bg-blue-600 hover:bg-blue-500 rounded-full text-white transition-all shadow-lg shadow-blue-500/20"><Facebook size={20}/></button>
+                            <button onClick={handleShareZalo} className="p-3 bg-blue-500 hover:bg-blue-400 rounded-full text-white transition-all shadow-lg shadow-blue-400/20 font-bold text-xs flex items-center">Zalo</button>
+                        </div>
+                        <div className="space-y-3 relative z-10">
+                            <button onClick={onReview} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 hover:translate-y-[-2px]"><Eye size={18}/> Xem lại đáp án</button>
+                            <button onClick={onBack} className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3.5 rounded-xl font-bold transition-all border border-slate-700 hover:border-slate-600">Về trang chủ</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         function App() {
             const [user, setUser] = useState(null);
             const [profile, setProfile] = useState(null);
@@ -1519,11 +1680,6 @@
             const [lastResult, setLastResult] = useState(null);
             const [showPay, setShowPay] = useState(false);
             const [globalConfig, setGlobalConfig] = useState({});
-
-            useEffect(() => {
-                // Scroll to top whenever view changes
-                window.scrollTo(0, 0);
-            }, [view]);
 
             useEffect(() => {
                 const configPath = doc(db, 'artifacts', appId, 'public', 'data', 'system_settings', 'config');
@@ -1650,7 +1806,6 @@
 
             return (
                 <ToastProvider>
-                    <OfflineAlert />
                     {renderContent()}
                 </ToastProvider>
             );
