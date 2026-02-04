@@ -973,48 +973,63 @@
 
             const finish = async (forceSubmit = false) => {
                 if(submitting) return;
+                
+                // Kiểm tra user đăng nhập
+                const user = auth.currentUser;
+                if (!user) return;
+
+                // Validation: Hỏi xác nhận nếu chưa hết giờ
                 const unansweredCount = exam.questions.length - Object.keys(answers).length;
                 if (!forceSubmit) {
                     if (unansweredCount > 0) { if (!confirm(`⚠️ CẢNH BÁO CHƯA LÀM HẾT\n\nBạn còn ${unansweredCount} câu hỏi chưa chọn đáp án.\nBạn có chắc chắn muốn nộp bài ngay bây giờ không?`)) return; }
                     else { if (!confirm(`XÁC NHẬN NỘP BÀI\n\nBạn đã trả lời đủ ${exam.questions.length} câu.\nBạn có muốn kết thúc bài thi không?`)) return; }
                 }
+
                 setSubmitting(true);
                 let correct = 0;
                 exam.questions.forEach((q, i) => { if(answers[i] === q.correctOption) correct++; });
                 const score = (correct / exam.questions.length) * 10;
-                const timeout = new Promise((_, r) => setTimeout(() => r(new Error("Timeout")), 3000));
                 
+                // 1. Xóa trạng thái đang thi (Live)
+                if (exam.sessionId) {
+                    try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId)); } catch (e) {}
+                }
+
                 try {
-                    if (auth.currentUser) {
-                         // 1. Cập nhật thông tin cá nhân User
-                         const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', auth.currentUser.uid);
-                         updateDoc(userRef, {
-                            totalScore: increment(Number(score)),
-                            examsCompleted: increment(1),
-                            lastActive: serverTimestamp()
-                         }).catch(console.error);
+                    // 2. Lưu lịch sử thi của user
+                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), {
+                        examId: exam.id, 
+                        examTitle: exam.title, 
+                        score: score.toFixed(1), 
+                        totalQuestions: exam.questions.length, 
+                        correctCount: correct, 
+                        date: serverTimestamp(), 
+                        userId: user.uid, 
+                        displayName: user.displayName || 'User'
+                    });
 
-                         // 2. Đồng bộ lượt thi sang Admin: Tăng biến 'attempts' của đề thi lên 1
-                         const examGlobalRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id);
-                         updateDoc(examGlobalRef, {
-                            attempts: increment(1),           // Tổng số lượt thi
-                            lastTakenAt: serverTimestamp()    // Thời gian có người thi gần nhất
-                         }).catch(e => console.error("Lỗi đồng bộ Admin:", e));
+                    // Cập nhật thông tin cá nhân User (Giữ lại để tính BXH)
+                    const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+                    updateDoc(userRef, {
+                        totalScore: increment(Number(score)),
+                        examsCompleted: increment(1),
+                        lastActive: serverTimestamp()
+                    }).catch(console.error);
+
+                    // 3. CẬP NHẬT SỐ LIỆU ĐỀ THI (Lượt thi + Lần thi gần nhất)
+                    const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id);
+                    
+                    // Lấy dữ liệu hiện tại để tăng attempts thủ công (an toàn hơn increment trong môi trường client hạn chế)
+                    const examSnap = await getDoc(examRef);
+                    if (examSnap.exists()) {
+                        const currentAttempts = examSnap.data().attempts || 0;
+                        await updateDoc(examRef, {
+                            attempts: currentAttempts + 1,
+                            lastTakenAt: serverTimestamp()
+                        });
                     }
 
-                    if (exam.sessionId) {
-                        try {
-                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId));
-                        } catch (e) { console.error("Lỗi xóa session:", e); }
-                    }
-
-                    await Promise.race([
-                        addDoc(collection(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'history'), {
-                            examId: exam.id, examTitle: exam.title, score: score.toFixed(1), totalQuestions: exam.questions.length, correctCount: correct, date: new Date(), userId: auth.currentUser.uid
-                        }),
-                        timeout
-                    ]);
-                } catch(e) { console.warn(e); }
+                } catch(e) { console.error("Save error", e); }
                 
                 onFinish({ 
                     score: score.toFixed(1), 
