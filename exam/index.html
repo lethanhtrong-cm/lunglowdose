@@ -713,8 +713,9 @@
             );
         };
 
-        // 4. Exam Creator (Existing Code)
+        // 4. Exam Creator - Updated with Selection Screen
         const ExamCreator = ({ onCancel, onSave }) => {
+            const [mode, setMode] = useState('select'); // 'select' | 'editor'
             const [title, setTitle] = useState('');
             const [duration, setDuration] = useState(30);
             const [questions, setQuestions] = useState([]);
@@ -735,13 +736,53 @@
             const handleImport = (importedQuestions) => {
                 setQuestions([...questions, ...importedQuestions]);
                 setShowImport(false);
-                alert(`Đã thêm thành công ${importedQuestions.length} câu hỏi!`);
+                setMode('editor');
+                // alert(`Đã thêm thành công ${importedQuestions.length} câu hỏi!`);
             };
 
             const handleSaveExam = () => {
                 if (!title || questions.length === 0) return alert("Cần có tên đề thi và ít nhất 1 câu hỏi");
                 onSave({ title, duration, questions, createdAt: serverTimestamp() });
             };
+
+            if (mode === 'select') {
+                return (
+                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                        <div className="bg-slate-900 w-full max-w-3xl rounded-2xl border border-slate-700 overflow-hidden flex flex-col relative">
+                            <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800">
+                                <h2 className="text-xl font-bold text-white">Chọn cách tạo đề thi</h2>
+                                <button onClick={onCancel} className="text-slate-400 hover:text-white"><XCircle /></button>
+                            </div>
+                            
+                            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <button 
+                                    onClick={() => setShowImport(true)}
+                                    className="flex flex-col items-center justify-center p-8 bg-slate-800/50 hover:bg-slate-800 border-2 border-slate-700 hover:border-emerald-500 rounded-2xl transition-all group"
+                                >
+                                    <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform mb-6">
+                                        <Upload size={40} />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-white mb-2">Import từ File</h3>
+                                    <p className="text-slate-400 text-center text-sm">Tải lên file Excel hoặc copy nội dung từ Word</p>
+                                </button>
+
+                                <button 
+                                    onClick={() => setMode('editor')}
+                                    className="flex flex-col items-center justify-center p-8 bg-slate-800/50 hover:bg-slate-800 border-2 border-slate-700 hover:border-cyan-500 rounded-2xl transition-all group"
+                                >
+                                    <div className="w-20 h-20 bg-cyan-500/10 rounded-full flex items-center justify-center text-cyan-500 group-hover:scale-110 transition-transform mb-6">
+                                        <Plus size={40} />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-white mb-2">Soạn thủ công</h3>
+                                    <p className="text-slate-400 text-center text-sm">Nhập trực tiếp câu hỏi và đáp án vào biểu mẫu</p>
+                                </button>
+                            </div>
+
+                            {showImport && <ImportModal onClose={() => setShowImport(false)} onImport={handleImport} />}
+                        </div>
+                    </div>
+                );
+            }
 
             return (
                 <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
