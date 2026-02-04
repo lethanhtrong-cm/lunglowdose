@@ -1019,59 +1019,8 @@
                 exam.questions.forEach((q, i) => { if(answers[i] === q.correctOption) correct++; });
                 const score = (correct / exam.questions.length) * 10;
                 
-                // 1. Xóa trạng thái đang thi (Live)
-                if (exam.sessionId) {
-                    try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId)); } catch (e) {}
-                }
-
-                try {
-                    // 2. Lưu lịch sử thi của user
-                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), {
-                        examId: exam.id, 
-                        examTitle: exam.title, 
-                        score: score.toFixed(1), 
-                        totalQuestions: exam.questions.length, 
-                        correctCount: correct, 
-                        date: serverTimestamp(), 
-                        userId: user.uid, 
-                        displayName: user.displayName || 'User'
-                    });
-
-                    // Cập nhật thông tin cá nhân User (Giữ lại để tính BXH)
-                    const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
-                    updateDoc(userRef, {
-                        totalScore: increment(Number(score)),
-                        examsCompleted: increment(1),
-                        lastActive: serverTimestamp()
-                    }).catch(console.error);
-
-                    // 3. LOGIC ĐỒNG BỘ SỐ LIỆU SANG ADMIN (Lượt thi & Người thi)
-                    // Kiểm tra lịch sử xem người này đã từng làm đề này chưa
-                    const historyQuery = query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), where('examId', '==', exam.id));
-                    const historySnap = await getDocs(historyQuery);
-                    
-                    // Vì ta vừa mới add lịch sử ở bước 2, nên nếu size <= 1 nghĩa là đây là lần đầu tiên họ làm đề này.
-                    const isFirstTime = historySnap.size <= 1; 
-
-                    const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id);
-                    
-                    // Chuẩn bị dữ liệu cập nhật
-                    const updateData = {
-                        attempts: increment(1),       // Tăng số lượt thi lên 1
-                        lastTakenAt: serverTimestamp() // Cập nhật thời gian thi mới nhất
-                    };
-                    
-                    // Nếu là người mới, tăng thêm số lượng người tham gia
-                    if (isFirstTime) {
-                        updateData.participantsCount = increment(1);
-                    }
-                    
-                    // Gửi cập nhật lên Firestore
-                    await updateDoc(examRef, updateData);
-
-                } catch(e) { console.error("Save error", e); }
-                
-                onFinish({ 
+                // Chuẩn bị dữ liệu kết quả để hiển thị ngay
+                const resultData = { 
                     score: score.toFixed(1), 
                     correctCount: correct, 
                     total: exam.questions.length, 
@@ -1079,7 +1028,64 @@
                     questions: exam.questions,
                     userAnswers: answers,
                     examId: exam.id
-                });
+                };
+
+                // Hàm lưu dữ liệu chạy ngầm (Không dùng await ở cấp độ finish để tránh chặn UI)
+                const saveToFirestore = async () => {
+                    // 1. Xóa trạng thái đang thi (Live)
+                    if (exam.sessionId) {
+                        try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId)); } catch (e) {}
+                    }
+
+                    try {
+                        // Kiểm tra xem đây có phải lần đầu làm đề này không (để tính số người thi)
+                        // Kiểm tra TRƯỚC khi lưu lịch sử mới
+                        const historyQuery = query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), where('examId', '==', exam.id));
+                        const historySnap = await getDocs(historyQuery);
+                        const isFirstTime = historySnap.empty; 
+
+                        // 2. Lưu lịch sử thi của user
+                        await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), {
+                            examId: exam.id, 
+                            examTitle: exam.title, 
+                            score: score.toFixed(1), 
+                            totalQuestions: exam.questions.length, 
+                            correctCount: correct, 
+                            date: serverTimestamp(), 
+                            userId: user.uid, 
+                            displayName: user.displayName || 'User'
+                        });
+
+                        // Cập nhật thông tin cá nhân User
+                        const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+                        updateDoc(userRef, {
+                            totalScore: increment(Number(score)),
+                            examsCompleted: increment(1),
+                            lastActive: serverTimestamp()
+                        }).catch(console.error);
+
+                        // 3. CẬP NHẬT SỐ LIỆU ĐỀ THI
+                        const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id);
+                        const updateData = {
+                            attempts: increment(1),       // Luôn tăng lượt thi
+                            lastTakenAt: serverTimestamp()
+                        };
+                        
+                        // Chỉ tăng số người thi nếu đây là lần đầu họ làm
+                        if (isFirstTime) {
+                            updateData.participantsCount = increment(1);
+                        }
+                        
+                        await updateDoc(examRef, updateData);
+
+                    } catch(e) { console.error("Lỗi lưu dữ liệu:", e); }
+                };
+
+                // Kích hoạt lưu ngầm
+                saveToFirestore();
+                
+                // CHUYỂN TRANG NGAY LẬP TỨC (Không chờ lưu xong)
+                onFinish(resultData);
             };
 
             const handleExit = async () => {
