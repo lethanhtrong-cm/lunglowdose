@@ -1,1 +1,1014 @@
 
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedExam Pro - Thi Trắc Nghiệm Y Khoa</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Babel Standalone -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    
+    <!-- SheetJS để đọc file Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Import Map: Định nghĩa nơi tải các thư viện -->
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "lucide-react": "https://esm.sh/lucide-react@0.344.0?deps=react@18.2.0",
+            "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+            "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"
+        }
+    }
+    </script>
+
+    <style>
+        /* Tùy chỉnh thanh cuộn cho đẹp hơn */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; 
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-200">
+    <div id="root"></div>
+
+    <!-- Main Application Script -->
+    <!-- SỬA LỖI: Chỉ dùng preset "react", bỏ "env" để tránh lỗi "require is not defined" -->
+    <script type="text/babel" data-type="module" data-presets="react">
+        import React, { useState, useEffect, useRef } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { initializeApp } from 'firebase/app';
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged,
+            updateProfile,
+            signInWithPopup,
+            GoogleAuthProvider
+        } from 'firebase/auth';
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            query, 
+            onSnapshot, 
+            serverTimestamp, 
+            orderBy 
+        } from 'firebase/firestore';
+        import { 
+            Activity, AlertTriangle, Award, CheckCircle, Clock, 
+            EyeOff, FileSpreadsheet, FileText, FileType, History, 
+            LogOut, Plus, ShieldCheck, Trash2, Upload, User, XCircle 
+        } from 'lucide-react';
+
+        // --- CẤU HÌNH FIREBASE ---
+        // BẠN CẦN THAY THẾ CÁC GIÁ TRỊ DƯỚI ĐÂY BẰNG CẤU HÌNH CỦA BẠN
+        const defaultFirebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Logic để lấy config: Ưu tiên biến môi trường (nếu chạy trong canvas) hoặc dùng default
+        let firebaseConfig;
+        try {
+            if (typeof __firebase_config !== 'undefined') {
+                firebaseConfig = JSON.parse(__firebase_config);
+            } else {
+                firebaseConfig = defaultFirebaseConfig;
+            }
+        } catch (e) {
+            firebaseConfig = defaultFirebaseConfig;
+        }
+
+        // Khởi tạo Firebase
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (error) {
+            console.error("Lỗi khởi tạo Firebase. Vui lòng kiểm tra config.", error);
+        }
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'med-exam-pro-html';
+
+        // --- CONSTANTS ---
+        const GRADIENTS = {
+            primary: "bg-gradient-to-r from-cyan-600 to-blue-700",
+            secondary: "bg-gradient-to-r from-slate-800 to-slate-900",
+            accent: "bg-gradient-to-r from-emerald-500 to-teal-600",
+            danger: "bg-gradient-to-r from-rose-500 to-pink-600",
+            card: "bg-slate-800/50 backdrop-blur-md border border-slate-700",
+        };
+
+        // --- COMPONENTS ---
+
+        // 1. Auth Component
+        const AuthScreen = ({ onLogin }) => {
+            const [isRegistering, setIsRegistering] = useState(false);
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [name, setName] = useState('');
+            const [error, setError] = useState('');
+            const [loading, setLoading] = useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setError('');
+                setLoading(true);
+                try {
+                    if (!auth) throw new Error("Firebase chưa được cấu hình đúng.");
+                    if (isRegistering) {
+                        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                        await updateProfile(userCredential.user, { displayName: name });
+                    } else {
+                        await signInWithEmailAndPassword(auth, email, password);
+                    }
+                } catch (err) {
+                    setError(err.message.replace('Firebase: ', ''));
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleGoogleLogin = async () => {
+                setError('');
+                setLoading(true);
+                try {
+                    if (!auth) throw new Error("Firebase chưa được cấu hình đúng.");
+                    const provider = new GoogleAuthProvider();
+                    await signInWithPopup(auth, provider);
+                } catch (err) {
+                    setError(err.message.replace('Firebase: ', ''));
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className={`min-h-screen flex items-center justify-center ${GRADIENTS.secondary} text-white p-4`}>
+                    <div className="max-w-md w-full bg-slate-900 p-8 rounded-2xl shadow-2xl border border-cyan-500/30">
+                        <div className="text-center mb-8">
+                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-cyan-500/20 text-cyan-400 mb-4">
+                                <Activity size={32} />
+                            </div>
+                            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-400">
+                                MedExam Pro
+                            </h1>
+                            <p className="text-slate-400 mt-2">Hệ thống ôn thi Chứng chỉ hành nghề Kỹ thuật hình ảnh</p>
+                        </div>
+
+                        {error && (
+                            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm flex items-center gap-2">
+                                <AlertTriangle size={16} />
+                                {error}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            {isRegistering && (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-1">Họ và tên</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                    />
+                                </div>
+                            )}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    required
+                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-1">Mật khẩu</label>
+                                <input
+                                    type="password"
+                                    required
+                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className={`w-full py-3 rounded-lg font-bold text-white shadow-lg transform transition-all hover:scale-[1.02] active:scale-95 ${GRADIENTS.primary}`}
+                            >
+                                {loading ? 'Đang xử lý...' : (isRegistering ? 'Đăng ký Tài khoản' : 'Đăng nhập')}
+                            </button>
+                        </form>
+
+                        <div className="relative my-6">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-slate-700"></div>
+                            </div>
+                            <div className="relative flex justify-center text-sm">
+                                <span className="px-2 bg-slate-900 text-slate-400">Hoặc đăng nhập với</span>
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={handleGoogleLogin}
+                            disabled={loading}
+                            className="w-full py-3 rounded-lg font-bold text-slate-200 bg-white/5 hover:bg-white/10 border border-slate-600 transition-all flex items-center justify-center gap-3 group"
+                        >
+                            <svg className="w-5 h-5" viewBox="0 0 24 24">
+                                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z" />
+                                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                            </svg>
+                            Google
+                        </button>
+
+                        <div className="mt-6 text-center">
+                            <button
+                                onClick={() => setIsRegistering(!isRegistering)}
+                                className="text-cyan-400 hover:text-cyan-300 text-sm underline underline-offset-4"
+                            >
+                                {isRegistering ? 'Đã có tài khoản? Đăng nhập ngay' : 'Chưa có tài khoản? Đăng ký mới'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 2. Import Modal
+        const ImportModal = ({ onClose, onImport }) => {
+            const [mode, setMode] = useState('excel');
+            const [textData, setTextData] = useState('');
+            const [isProcessing, setIsProcessing] = useState(false);
+
+            const handleExcelUpload = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                setIsProcessing(true);
+                try {
+                    // Check if XLSX is available globally
+                    if (!window.XLSX) {
+                        throw new Error("Thư viện Excel chưa tải xong. Vui lòng thử lại.");
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        try {
+                            const bstr = evt.target.result;
+                            const wb = window.XLSX.read(bstr, { type: 'binary' });
+                            const wsname = wb.SheetNames[0];
+                            const ws = wb.Sheets[wsname];
+                            const data = window.XLSX.utils.sheet_to_json(ws, { header: 1 });
+                            
+                            const questions = [];
+                            // Bỏ qua dòng tiêu đề nếu chứa "câu"
+                            const startRow = data[0] && (data[0][0] || '').toString().toLowerCase().includes('câu') ? 1 : 0;
+
+                            for (let i = startRow; i < data.length; i++) {
+                                const row = data[i];
+                                if (row && row[0]) {
+                                    let ansIndex = 0;
+                                    const ansRaw = (row[5] || '').toString().trim().toUpperCase();
+                                    if(ansRaw === 'A') ansIndex = 0;
+                                    else if(ansRaw === 'B') ansIndex = 1;
+                                    else if(ansRaw === 'C') ansIndex = 2;
+                                    else if(ansRaw === 'D') ansIndex = 3;
+                                    else if (!isNaN(parseInt(ansRaw))) ansIndex = parseInt(ansRaw) - 1;
+
+                                    questions.push({
+                                        text: row[0],
+                                        options: [row[1] || '', row[2] || '', row[3] || '', row[4] || ''],
+                                        correctOption: ansIndex
+                                    });
+                                }
+                            }
+                            onImport(questions);
+                        } catch (err) {
+                            alert("Lỗi đọc file Excel: " + err.message);
+                        } finally {
+                            setIsProcessing(false);
+                        }
+                    };
+                    reader.readAsBinaryString(file);
+                } catch (err) {
+                    alert(err.message);
+                    setIsProcessing(false);
+                }
+            };
+
+            const handleTextParse = () => {
+                if (!textData) return;
+                setIsProcessing(true);
+                try {
+                    const lines = textData.split('\n').filter(l => l.trim());
+                    const questions = [];
+                    let currentQ = null;
+
+                    lines.forEach(line => {
+                        line = line.trim();
+                        const isOption = /^[A-D][\.:\)]/.test(line);
+                        const isAnswer = /^Đáp án|^Answer/i.test(line);
+
+                        if (isAnswer) {
+                            if (currentQ) {
+                                const ansChar = line.split(/[:\.]/)[1]?.trim().toUpperCase().charAt(0);
+                                if(ansChar === 'A') currentQ.correctOption = 0;
+                                if(ansChar === 'B') currentQ.correctOption = 1;
+                                if(ansChar === 'C') currentQ.correctOption = 2;
+                                if(ansChar === 'D') currentQ.correctOption = 3;
+                            }
+                        } else if (isOption) {
+                            if (currentQ) {
+                                const optText = line.replace(/^[A-D][\.:\)]\s*/, '');
+                                const optIndex = line.charAt(0).toUpperCase().charCodeAt(0) - 65; 
+                                if(optIndex >= 0 && optIndex <=3) {
+                                    currentQ.options[optIndex] = optText;
+                                } else {
+                                    const emptyIdx = currentQ.options.findIndex(o => o === '');
+                                    if(emptyIdx !== -1) currentQ.options[emptyIdx] = optText;
+                                }
+                            }
+                        } else {
+                            if (currentQ) {
+                                if(currentQ.options.every(o => o !== '')) questions.push(currentQ);
+                            }
+                            currentQ = {
+                                text: line.replace(/^\d+[\.:\)]\s*/, ''),
+                                options: ['', '', '', ''],
+                                correctOption: 0
+                            };
+                        }
+                    });
+                    if (currentQ) questions.push(currentQ);
+
+                    if(questions.length === 0) alert("Không tìm thấy câu hỏi nào. Vui lòng kiểm tra định dạng.");
+                    else onImport(questions);
+
+                } catch (e) {
+                    alert("Lỗi xử lý văn bản: " + e.message);
+                } finally {
+                    setIsProcessing(false);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
+                    <div className="bg-slate-900 w-full max-w-2xl rounded-2xl border border-slate-700 overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+                            <h3 className="font-bold text-white flex items-center gap-2">
+                                <Upload size={20} className="text-cyan-400" /> Import Đề Thi
+                            </h3>
+                            <button onClick={onClose} className="text-slate-400 hover:text-white"><XCircle /></button>
+                        </div>
+                        
+                        <div className="flex border-b border-slate-700">
+                            <button 
+                                onClick={() => setMode('excel')}
+                                className={`flex-1 py-3 font-medium text-sm transition-colors flex items-center justify-center gap-2 ${mode === 'excel' ? 'bg-slate-800 text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400 hover:bg-slate-800/50'}`}
+                            >
+                                <FileSpreadsheet size={16} /> Excel / CSV
+                            </button>
+                            <button 
+                                onClick={() => setMode('text')}
+                                className={`flex-1 py-3 font-medium text-sm transition-colors flex items-center justify-center gap-2 ${mode === 'text' ? 'bg-slate-800 text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400 hover:bg-slate-800/50'}`}
+                            >
+                                <FileType size={16} /> Copy từ Word
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto flex-1">
+                            {mode === 'excel' ? (
+                                <div className="space-y-4">
+                                    <div className="bg-cyan-900/20 border border-cyan-500/30 p-4 rounded-lg text-sm text-cyan-100">
+                                        <p className="font-bold mb-2">Cấu trúc file Excel yêu cầu:</p>
+                                        <ul className="list-disc pl-5 space-y-1 text-slate-300">
+                                            <li>Cột A: Nội dung câu hỏi</li>
+                                            <li>Cột B, C, D, E: Các đáp án A, B, C, D</li>
+                                            <li>Cột F: Đáp án đúng (Nhập A, B, C, D hoặc 1, 2, 3, 4)</li>
+                                            <li>Không cần dòng tiêu đề (header)</li>
+                                        </ul>
+                                    </div>
+                                    <div className="border-2 border-dashed border-slate-600 rounded-xl p-8 flex flex-col items-center justify-center text-slate-400 hover:border-cyan-500 hover:bg-slate-800/50 transition-all cursor-pointer relative">
+                                        <Upload size={48} className="mb-4 text-slate-500" />
+                                        <span className="mb-2">Click để chọn file .xlsx hoặc .csv</span>
+                                        <input 
+                                            type="file" 
+                                            accept=".xlsx, .xls, .csv" 
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                            onChange={handleExcelUpload}
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-4 h-full flex flex-col">
+                                    <div className="bg-cyan-900/20 border border-cyan-500/30 p-4 rounded-lg text-sm text-cyan-100">
+                                        <p className="font-bold mb-2">Copy nội dung từ Word và dán vào bên dưới:</p>
+                                        <p className="text-slate-400 text-xs">Định dạng mẫu:<br/>1. Câu hỏi là gì?<br/>A. Đáp án 1<br/>B. Đáp án 2...<br/>Đáp án: A</p>
+                                    </div>
+                                    <textarea 
+                                        className="w-full flex-1 bg-slate-950 border border-slate-700 rounded-lg p-4 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none min-h-[200px]"
+                                        placeholder={`1. Câu hỏi ví dụ?\nA. Lựa chọn 1\nB. Lựa chọn 2\nC. Lựa chọn 3\nD. Lựa chọn 4\nĐáp án: A`}
+                                        value={textData}
+                                        onChange={e => setTextData(e.target.value)}
+                                    />
+                                    <button 
+                                        onClick={handleTextParse}
+                                        disabled={!textData}
+                                        className={`w-full py-3 rounded-lg font-bold text-white ${GRADIENTS.primary}`}
+                                    >
+                                        Phân tích & Thêm câu hỏi
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        {isProcessing && (
+                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                <div className="animate-spin text-cyan-500"><Activity size={48} /></div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // 3. Exam Interface
+        const ExamInterface = ({ exam, onFinish }) => {
+            const [timeLeft, setTimeLeft] = useState(exam.duration * 60);
+            const [answers, setAnswers] = useState({});
+            const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
+            useEffect(() => {
+                const handleVisibilityChange = () => {
+                    if (document.hidden) {
+                        alert("CẢNH BÁO: Hệ thống phát hiện bạn đã rời khỏi màn hình thi.");
+                    }
+                };
+
+                const handleContextMenu = (e) => e.preventDefault();
+                const handleCopy = (e) => {
+                    e.preventDefault();
+                    alert("Thao tác này bị cấm trong lúc thi.");
+                }
+
+                document.addEventListener("visibilitychange", handleVisibilityChange);
+                document.addEventListener("contextmenu", handleContextMenu);
+                document.addEventListener("copy", handleCopy);
+                document.addEventListener("cut", handleCopy);
+
+                return () => {
+                    document.removeEventListener("visibilitychange", handleVisibilityChange);
+                    document.removeEventListener("contextmenu", handleContextMenu);
+                    document.removeEventListener("copy", handleCopy);
+                    document.removeEventListener("cut", handleCopy);
+                };
+            }, []);
+
+            useEffect(() => {
+                if (timeLeft <= 0) {
+                    finishExam();
+                    return;
+                }
+                const timer = setInterval(() => {
+                    setTimeLeft((prev) => prev - 1);
+                }, 1000);
+                return () => clearInterval(timer);
+            }, [timeLeft]);
+
+            const finishExam = () => {
+                let correctCount = 0;
+                exam.questions.forEach((q, idx) => {
+                    if (answers[idx] === q.correctOption) {
+                        correctCount++;
+                    }
+                });
+                const score = (correctCount / exam.questions.length) * 10;
+                onFinish({
+                    examId: exam.id,
+                    examTitle: exam.title,
+                    score: score.toFixed(1),
+                    totalQuestions: exam.questions.length,
+                    correctCount,
+                    date: new Date(),
+                    answers
+                });
+            };
+
+            const formatTime = (seconds) => {
+                const m = Math.floor(seconds / 60);
+                const s = seconds % 60;
+                return `${m}:${s < 10 ? '0' : ''}${s}`;
+            };
+
+            const currentQ = exam.questions[currentQuestionIndex];
+
+            return (
+                <div className="fixed inset-0 bg-slate-900 text-white z-50 flex flex-col select-none">
+                    <div className="pointer-events-none fixed inset-0 flex items-center justify-center opacity-[0.03] z-0 overflow-hidden">
+                        <div className="rotate-45 text-6xl font-black whitespace-nowrap">
+                        CẤM SAO CHÉP - TÀI LIỆU MẬT
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-800 p-4 shadow-md flex justify-between items-center z-10 border-b border-slate-700">
+                        <div>
+                            <h2 className="text-xl font-bold text-cyan-400">{exam.title}</h2>
+                            <div className="text-xs text-slate-400">Câu {currentQuestionIndex + 1} / {exam.questions.length}</div>
+                        </div>
+                        <div className={`flex items-center gap-2 text-2xl font-mono font-bold ${timeLeft < 60 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                            <Clock size={24} />
+                            {formatTime(timeLeft)}
+                        </div>
+                        <button 
+                            onClick={finishExam}
+                            className={`${GRADIENTS.primary} px-6 py-2 rounded-lg font-bold shadow-lg hover:brightness-110`}
+                        >
+                            Nộp Bài
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 md:p-8 z-10 max-w-5xl mx-auto w-full">
+                        <div className={`${GRADIENTS.card} p-8 rounded-2xl shadow-xl`}>
+                            <div className="mb-6 text-lg md:text-xl font-medium leading-relaxed">
+                                <span className="text-cyan-400 font-bold mr-2">Câu {currentQuestionIndex + 1}:</span>
+                                {currentQ.text}
+                            </div>
+
+                            <div className="space-y-3">
+                                {currentQ.options.map((opt, idx) => (
+                                <label 
+                                    key={idx}
+                                    className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                    answers[currentQuestionIndex] === idx 
+                                        ? 'border-cyan-500 bg-cyan-500/10' 
+                                        : 'border-slate-700 hover:bg-slate-700/50'
+                                    }`}
+                                >
+                                    <div className={`w-6 h-6 rounded-full border-2 mr-4 flex items-center justify-center ${
+                                    answers[currentQuestionIndex] === idx ? 'border-cyan-500' : 'border-slate-500'
+                                    }`}>
+                                        {answers[currentQuestionIndex] === idx && <div className="w-3 h-3 rounded-full bg-cyan-500" />}
+                                    </div>
+                                    <input 
+                                    type="radio" 
+                                    name={`q-${currentQuestionIndex}`} 
+                                    className="hidden" 
+                                    checked={answers[currentQuestionIndex] === idx}
+                                    onChange={() => setAnswers({...answers, [currentQuestionIndex]: idx})}
+                                    />
+                                    <span className="text-slate-200">{opt}</span>
+                                </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between mt-8">
+                            <button
+                                disabled={currentQuestionIndex === 0}
+                                onClick={() => setCurrentQuestionIndex(prev => prev - 1)}
+                                className="px-6 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-50 font-medium"
+                            >
+                                Câu trước
+                            </button>
+                            <button
+                                disabled={currentQuestionIndex === exam.questions.length - 1}
+                                onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
+                                className="px-6 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-medium"
+                            >
+                                Câu tiếp theo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 4. Exam Creator
+        const ExamCreator = ({ onCancel, onSave }) => {
+            const [title, setTitle] = useState('');
+            const [duration, setDuration] = useState(30);
+            const [questions, setQuestions] = useState([]);
+            const [showImport, setShowImport] = useState(false);
+            
+            const [qText, setQText] = useState('');
+            const [options, setOptions] = useState(['', '', '', '']);
+            const [correct, setCorrect] = useState(0);
+
+            const addQuestion = () => {
+                if (!qText || options.some(o => !o)) return alert("Vui lòng điền đủ câu hỏi và 4 đáp án");
+                setQuestions([...questions, { text: qText, options, correctOption: correct }]);
+                setQText('');
+                setOptions(['', '', '', '']);
+                setCorrect(0);
+            };
+
+            const handleImport = (importedQuestions) => {
+                setQuestions([...questions, ...importedQuestions]);
+                setShowImport(false);
+                alert(`Đã thêm thành công ${importedQuestions.length} câu hỏi!`);
+            };
+
+            const handleSaveExam = () => {
+                if (!title || questions.length === 0) return alert("Cần có tên đề thi và ít nhất 1 câu hỏi");
+                onSave({ title, duration, questions, createdAt: serverTimestamp() });
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                    <div className="bg-slate-900 w-full max-w-4xl h-[90vh] rounded-2xl flex flex-col overflow-hidden border border-slate-700 relative">
+                        <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800">
+                            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                                <FileText className="text-cyan-400" /> Tạo Đề Thi Mới
+                            </h2>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={() => setShowImport(true)}
+                                    className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center gap-2"
+                                >
+                                    <Upload size={16} /> Import File
+                                </button>
+                                <button onClick={onCancel} className="text-slate-400 hover:text-white"><XCircle /></button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6 text-slate-200">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <div>
+                                    <label className="block text-sm text-slate-400 mb-1">Tên bài thi</label>
+                                    <input 
+                                        className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white"
+                                        placeholder="VD: Lý thuyết Cộng hưởng từ MRI"
+                                        value={title} onChange={e => setTitle(e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-slate-400 mb-1">Thời gian (phút)</label>
+                                    <input 
+                                        type="number"
+                                        className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white"
+                                        value={duration} onChange={e => setDuration(Number(e.target.value))}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700 mb-6">
+                                <h3 className="font-bold text-cyan-400 mb-4">Thêm câu hỏi thủ công</h3>
+                                <textarea 
+                                    className="w-full bg-slate-900 border border-slate-600 rounded p-3 text-white mb-4"
+                                    placeholder="Nội dung câu hỏi..."
+                                    rows={3}
+                                    value={qText} onChange={e => setQText(e.target.value)}
+                                />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {options.map((opt, idx) => (
+                                        <div key={idx} className="flex items-center gap-2">
+                                            <input 
+                                                type="radio" name="correct-opt"
+                                                checked={correct === idx}
+                                                onChange={() => setCorrect(idx)}
+                                                className="accent-cyan-500 w-5 h-5"
+                                            />
+                                            <input 
+                                                className="flex-1 bg-slate-900 border border-slate-600 rounded p-2 text-white"
+                                                placeholder={`Đáp án ${String.fromCharCode(65 + idx)}`}
+                                                value={opt}
+                                                onChange={e => {
+                                                    const newOpts = [...options];
+                                                    newOpts[idx] = e.target.value;
+                                                    setOptions(newOpts);
+                                                }}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                                <button 
+                                    onClick={addQuestion}
+                                    className="mt-4 w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg flex items-center justify-center gap-2"
+                                >
+                                    <Plus size={18} /> Thêm vào bộ đề ({questions.length} câu đã có)
+                                </button>
+                            </div>
+
+                            <div className="space-y-2">
+                                {questions.map((q, i) => (
+                                    <div key={i} className="p-3 bg-slate-800 rounded border border-slate-700 flex justify-between items-start">
+                                        <div>
+                                            <span className="font-bold text-cyan-400">Câu {i+1}:</span> {q.text}
+                                            <div className="text-sm text-green-400 mt-1">Đáp án đúng: {q.options[q.correctOption]}</div>
+                                        </div>
+                                        <button onClick={() => setQuestions(questions.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-300">
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-slate-800 border-t border-slate-700 flex justify-end gap-3">
+                            <button onClick={onCancel} className="px-4 py-2 text-slate-300 hover:text-white">Hủy bỏ</button>
+                            <button onClick={handleSaveExam} className={`${GRADIENTS.primary} px-6 py-2 rounded-lg font-bold text-white shadow-lg`}>
+                                Lưu Đề Thi
+                            </button>
+                        </div>
+                        {showImport && <ImportModal onClose={() => setShowImport(false)} onImport={handleImport} />}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP ---
+        function App() {
+            const [user, setUser] = useState(null);
+            const [view, setView] = useState('loading');
+            const [exams, setExams] = useState([]);
+            const [history, setHistory] = useState([]);
+            const [activeExam, setActiveExam] = useState(null);
+            const [lastResult, setLastResult] = useState(null);
+            const [isCreatorOpen, setIsCreatorOpen] = useState(false);
+
+            useEffect(() => {
+                // Kiểm tra xem Firebase đã khởi tạo chưa
+                if (!auth || !db) {
+                    setView('config-error');
+                    return;
+                }
+
+                const unsubscribe = onAuthStateChanged(auth, (u) => {
+                    setUser(u);
+                    setView(u ? 'dashboard' : 'auth');
+                });
+                return unsubscribe;
+            }, []);
+
+            useEffect(() => {
+                if (!user || !db) return;
+
+                const qExams = query(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), orderBy('createdAt', 'desc'));
+                const unsubExams = onSnapshot(qExams, (snap) => {
+                    setExams(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                }, (err) => console.error("Exams fetch error:", err));
+
+                const qHistory = query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), orderBy('date', 'desc'));
+                const unsubHistory = onSnapshot(qHistory, (snap) => {
+                    setHistory(snap.docs.map(d => ({ 
+                        id: d.id, 
+                        ...d.data(), 
+                        date: d.data().date?.toDate() 
+                    })));
+                }, (err) => console.error("History fetch error:", err));
+
+                return () => {
+                    unsubExams();
+                    unsubHistory();
+                };
+            }, [user]);
+
+            const handleCreateExam = async (examData) => {
+                try {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), {
+                        ...examData,
+                        authorId: user.uid,
+                        authorName: user.displayName || 'Admin'
+                    });
+                    setIsCreatorOpen(false);
+                } catch (error) {
+                    alert("Lỗi khi lưu đề thi: " + error.message);
+                }
+            };
+
+            const handleFinishExam = async (resultData) => {
+                try {
+                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), {
+                        ...resultData,
+                        userId: user.uid
+                    });
+                } catch (e) {
+                    console.error("Error saving history", e);
+                }
+                setLastResult(resultData);
+                setActiveExam(null);
+                setView('result');
+            };
+
+            if (view === 'config-error') {
+                return (
+                    <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white p-4 text-center">
+                        <div className="max-w-md">
+                            <AlertTriangle className="mx-auto text-yellow-500 mb-4" size={48} />
+                            <h2 className="text-xl font-bold mb-2">Chưa cấu hình Firebase</h2>
+                            <p className="text-slate-400 mb-4">
+                                Vui lòng mở file <code>index.html</code> bằng trình soạn thảo văn bản và cập nhật thông tin 
+                                <code>defaultFirebaseConfig</code> ở dòng 75.
+                            </p>
+                            <p className="text-xs text-slate-500 font-mono bg-slate-800 p-2 rounded">
+                                apiKey: "...", authDomain: "...", ...
+                            </p>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'loading') return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-cyan-500 animate-pulse">Loading MedExam Pro...</div>;
+
+            if (view === 'auth') return <AuthScreen />;
+
+            if (view === 'exam' && activeExam) return <ExamInterface exam={activeExam} onFinish={handleFinishExam} />;
+
+            return (
+                <div className={`min-h-screen ${GRADIENTS.secondary} text-slate-200 font-sans selection:bg-cyan-500 selection:text-white`}>
+                    <nav className="bg-slate-900/80 backdrop-blur border-b border-slate-700 sticky top-0 z-40">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex items-center justify-between h-16">
+                                <div className="flex items-center gap-2">
+                                    <div className="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2 rounded-lg">
+                                        <Activity size={20} className="text-white" />
+                                    </div>
+                                    <span className="font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-400">
+                                        MedExam Pro
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="hidden md:block text-sm text-slate-400">Xin chào, <span className="text-white font-medium">{user?.displayName || user?.email}</span></span>
+                                    <button 
+                                        onClick={() => signOut(auth)}
+                                        className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-red-400 transition-colors"
+                                        title="Đăng xuất"
+                                    >
+                                        <LogOut size={20} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+                        {view === 'result' && lastResult && (
+                            <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+                                <div className="bg-slate-900 w-full max-w-lg rounded-2xl border border-slate-700 p-8 text-center shadow-2xl relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-500 to-blue-600" />
+                                    <Award size={64} className={`mx-auto mb-4 ${Number(lastResult.score) >= 5 ? 'text-yellow-400' : 'text-slate-500'}`} />
+                                    <h2 className="text-3xl font-bold text-white mb-2">{Number(lastResult.score) >= 5 ? 'Chúc mừng!' : 'Cần cố gắng hơn!'}</h2>
+                                    <p className="text-slate-400 mb-6">Bạn vừa hoàn thành bài thi <span className="text-cyan-400">{lastResult.examTitle}</span></p>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-8">
+                                        <div className="bg-slate-800 p-4 rounded-xl">
+                                            <div className="text-3xl font-bold text-cyan-400">{lastResult.score}</div>
+                                            <div className="text-xs text-slate-500 uppercase font-bold">Điểm số</div>
+                                        </div>
+                                        <div className="bg-slate-800 p-4 rounded-xl">
+                                            <div className="text-3xl font-bold text-white">{lastResult.correctCount}/{lastResult.totalQuestions}</div>
+                                            <div className="text-xs text-slate-500 uppercase font-bold">Câu đúng</div>
+                                        </div>
+                                    </div>
+
+                                    <button 
+                                        onClick={() => { setLastResult(null); setView('dashboard'); }}
+                                        className={`w-full py-3 rounded-lg font-bold text-white ${GRADIENTS.primary}`}
+                                    >
+                                        Quay về Trang chủ
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div>
+                                <h1 className="text-3xl font-bold text-white">Thư viện đề thi</h1>
+                                <p className="text-slate-400 mt-1">Chọn đề thi để bắt đầu luyện tập chứng chỉ hành nghề</p>
+                            </div>
+                            <button 
+                                onClick={() => setIsCreatorOpen(true)}
+                                className={`${GRADIENTS.accent} px-5 py-2.5 rounded-lg font-bold text-white shadow-lg flex items-center gap-2 hover:brightness-110 transition-all`}
+                            >
+                                <Plus size={18} /> Soạn đề thi mới
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {exams.length === 0 ? (
+                                <div className="col-span-full py-12 text-center text-slate-500 bg-slate-800/30 rounded-2xl border border-slate-800 border-dashed">
+                                    <FileText size={48} className="mx-auto mb-4 opacity-50" />
+                                    <p>Chưa có đề thi nào. Hãy tạo đề thi đầu tiên!</p>
+                                </div>
+                            ) : (
+                                exams.map((exam) => (
+                                    <div key={exam.id} className={`${GRADIENTS.card} rounded-xl p-6 hover:border-cyan-500/50 transition-all group relative overflow-hidden`}>
+                                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                            <Activity size={64} />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-white mb-2 pr-8">{exam.title}</h3>
+                                        <div className="flex items-center gap-4 text-sm text-slate-400 mb-6">
+                                            <div className="flex items-center gap-1"><Clock size={14} /> {exam.duration} phút</div>
+                                            <div className="flex items-center gap-1"><FileText size={14} /> {exam.questions?.length || 0} câu</div>
+                                        </div>
+                                        <button 
+                                            onClick={() => {
+                                                if (confirm(`Bạn đã sẵn sàng bắt đầu thi "${exam.title}" trong ${exam.duration} phút?`)) {
+                                                    setActiveExam(exam);
+                                                    setView('exam');
+                                                }
+                                            }}
+                                            className="w-full py-2.5 rounded-lg bg-slate-700 hover:bg-cyan-600 hover:text-white text-slate-200 font-medium transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            Bắt đầu thi ngay
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div className="mt-12">
+                            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                                <History className="text-cyan-400" /> Lịch sử làm bài
+                            </h2>
+                            <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-slate-800 text-slate-400 text-xs uppercase font-bold">
+                                            <tr>
+                                                <th className="px-6 py-4">Tên đề thi</th>
+                                                <th className="px-6 py-4">Ngày thi</th>
+                                                <th className="px-6 py-4 text-center">Kết quả</th>
+                                                <th className="px-6 py-4 text-center">Điểm số</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-700">
+                                            {history.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan="4" className="px-6 py-8 text-center text-slate-500">Chưa có dữ liệu lịch sử</td>
+                                                </tr>
+                                            ) : (
+                                                history.map((record) => (
+                                                    <tr key={record.id} className="hover:bg-slate-700/30 transition-colors">
+                                                        <td className="px-6 py-4 font-medium text-white">{record.examTitle}</td>
+                                                        <td className="px-6 py-4 text-slate-400">
+                                                            {record.date ? record.date.toLocaleDateString('vi-VN') + ' ' + record.date.toLocaleTimeString('vi-VN') : 'N/A'}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-center">
+                                                            <span className={`px-2 py-1 rounded text-xs font-bold ${Number(record.score) >= 5 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                                                {Number(record.score) >= 5 ? 'Đạt' : 'Chưa đạt'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-center font-bold text-cyan-400">{record.score}</td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        {isCreatorOpen && (
+                            <ExamCreator 
+                                onCancel={() => setIsCreatorOpen(false)}
+                                onSave={handleCreateExam}
+                            />
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
