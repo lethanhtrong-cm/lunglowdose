@@ -111,10 +111,11 @@
             card: "bg-slate-800/50 backdrop-blur-md border border-slate-700",
         };
 
+        // CẬP NHẬT THÔNG TIN NGÂN HÀNG CỦA BẠN TẠI ĐÂY
         const BANK_INFO = {
-            bankName: "MB Bank",
-            accountNum: "0987654321", // Bạn thay số tài khoản thật vào đây
-            accountName: "NGUYEN VAN A", // Thay tên thật
+            bankName: "BIDV",
+            accountNum: "8890523877", 
+            accountName: "LE THANH TRONG", 
             amount: "50,000"
         };
 
@@ -593,6 +594,8 @@
                 });
             }, []);
 
+            const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+
             useEffect(() => {
                 if (!user || !db) return;
                 const unsubExams = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), orderBy('createdAt', 'desc')), 
@@ -603,15 +606,10 @@
             }, [user]);
 
             const handleStartExam = (exam) => {
-                // Logic kiểm tra VIP: Cho phép thi thử 1 đề đầu tiên hoặc nếu đã là VIP
-                // Ở đây mình giả định đề đầu tiên trong list là đề thi thử
-                const isFirstExam = exams.length > 0 && exams[exams.length - 1].id === exam.id; // Ví dụ đơn giản: đề cũ nhất là free
-                
-                // Logic thực tế: Nếu chưa VIP và không phải đề demo -> chặn
-                // Ở đây mình sẽ cho phép đề có tên chứa chữ "Demo" hoặc "Thử" là free
                 const isFreeExam = exam.title.toLowerCase().includes("thử") || exam.title.toLowerCase().includes("demo");
 
-                if (!userProfile?.isPremium && !isFreeExam) {
+                // Nếu là Admin thì được thi luôn, không cần check VIP
+                if (!isAdmin && !userProfile?.isPremium && !isFreeExam) {
                     setShowPayment(true);
                     return;
                 }
@@ -629,8 +627,6 @@
                 } catch (e) { alert("Lỗi lưu: " + e.message); }
             };
 
-            const isAdmin = user && ADMIN_EMAILS.includes(user.email);
-
             if (view === 'loading') return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-cyan-500"><Loader2 className="animate-spin"/></div>;
             if (view === 'auth') return <AuthScreen />;
             if (view === 'exam' && activeExam) return <ExamInterface exam={activeExam} onFinish={(res) => { setLastResult(res); setActiveExam(null); setView('result'); }} />;
@@ -641,7 +637,9 @@
                         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
                             <div className="flex items-center gap-2"><div className="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2 rounded-lg"><Activity size={20} className="text-white"/></div><span className="font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-400">MedExam Pro</span></div>
                             <div className="flex items-center gap-4">
-                                {userProfile?.isPremium ? (
+                                {isAdmin ? (
+                                    <span className="px-3 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/50 text-xs font-bold flex items-center gap-1"><ShieldCheck size={12}/> ADMINISTRATOR</span>
+                                ) : userProfile?.isPremium ? (
                                     <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/50 text-xs font-bold flex items-center gap-1"><Crown size={12}/> VIP MEMBER</span>
                                 ) : (
                                     <button onClick={() => setShowPayment(true)} className="px-3 py-1 rounded-full bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium border border-slate-600 flex items-center gap-1">Nâng cấp VIP</button>
@@ -678,7 +676,8 @@
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {exams.map((exam) => {
                                 const isFree = exam.title.toLowerCase().includes("thử") || exam.title.toLowerCase().includes("demo");
-                                const isLocked = !userProfile?.isPremium && !isFree;
+                                // Admin không bao giờ bị khóa
+                                const isLocked = !isAdmin && !userProfile?.isPremium && !isFree;
                                 
                                 return (
                                     <div key={exam.id} className={`${GRADIENTS.card} rounded-xl p-6 hover:border-cyan-500/50 transition-all group relative overflow-hidden`}>
@@ -690,7 +689,7 @@
                                         <div className="flex items-center gap-4 text-sm text-slate-400 mb-6">
                                             <div className="flex items-center gap-1"><Clock size={14}/> {exam.duration}p</div>
                                             <div className="flex items-center gap-1"><FileText size={14}/> {exam.questions?.length} câu</div>
-                                            {!isLocked && <span className="text-emerald-400 text-xs font-bold border border-emerald-500/30 px-1 rounded">FREE</span>}
+                                            {!isLocked && !isAdmin && !userProfile?.isPremium && <span className="text-emerald-400 text-xs font-bold border border-emerald-500/30 px-1 rounded">FREE</span>}
                                         </div>
                                         <button 
                                             onClick={() => handleStartExam(exam)}
