@@ -6,6 +6,8 @@
     <title>MedExam Pro - Ôn Thi Chứng Chỉ Hành Nghề</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <!-- Thêm thư viện chụp ảnh màn hình -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script type="importmap">
     {
         "imports": {
@@ -53,7 +55,7 @@
             browserSessionPersistence
         } from 'firebase/auth';
         import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc, where, updateDoc } from 'firebase/firestore';
-        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle } from 'lucide-react';
+        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy } from 'lucide-react';
 
         const firebaseConfig = {
             apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
@@ -325,7 +327,6 @@
             );
         };
 
-        // --- NEW REVIEW EXAM COMPONENT ---
         const ReviewExam = ({ result, onBack }) => {
             return (
                 <div className="min-h-screen bg-slate-950 font-sans pb-20 animate-fade-in">
@@ -487,6 +488,7 @@
 
         const Dashboard = ({ user, profile, onStartExam, onViewHistory, onUpgrade }) => {
             const [exams, setExams] = useState([]);
+            const [history, setHistory] = useState([]);
             const [stats, setStats] = useState({ totalTaken: 0, avgScore: 0, rank: 'Tập sự' });
             const [filter, setFilter] = useState('all'); 
             const [search, setSearch] = useState('');
@@ -495,8 +497,9 @@
                 const unsubExams = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), orderBy('createdAt', 'desc')), s => {
                     setExams(s.docs.map(d=>({id: d.id, ...d.data()})));
                 });
-                const unsubHistory = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'history')), s => {
+                const unsubHistory = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), orderBy('date', 'desc')), s => {
                     const records = s.docs.map(d=>d.data());
+                    setHistory(records);
                     const total = records.length;
                     const avg = total > 0 ? (records.reduce((acc, r) => acc + Number(r.score), 0) / total).toFixed(1) : 0;
                     let rank = 'Tập sự';
@@ -550,11 +553,23 @@
                             {filteredExams.map(exam => {
                                 const isFree = exam.title.toLowerCase().includes("thử") || exam.title.toLowerCase().includes("demo");
                                 const isLocked = !profile?.isPremium && !isFree;
+                                const lastAttempt = history.find(h => h.examId === exam.id);
+
                                 return (
                                     <div key={exam.id} className="glass-card rounded-2xl p-6 relative group overflow-hidden">
                                         <div className={`absolute top-0 right-0 p-3 rounded-bl-2xl text-xs font-bold ${isLocked ? 'bg-slate-700 text-slate-400' : (isFree ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400')}`}>{isLocked ? <Lock size={16}/> : (isFree ? 'FREE' : <Crown size={16}/>)}</div>
                                         <div className="mb-4"><div className="w-12 h-12 rounded-xl bg-slate-700/50 flex items-center justify-center mb-4 text-cyan-400 group-hover:bg-cyan-500 group-hover:text-white transition-colors"><BookOpen size={24}/></div><h3 className="text-lg font-bold text-white line-clamp-2 h-14" title={exam.title}>{exam.title}</h3></div>
                                         <div className="flex items-center gap-4 text-sm text-slate-400 mb-6"><span className="flex items-center gap-1.5"><Clock size={16} className="text-slate-500"/> {exam.duration}p</span><span className="flex items-center gap-1.5"><Grid size={16} className="text-slate-500"/> {exam.questions?.length} câu</span></div>
+                                        
+                                        {lastAttempt && (
+                                            <div className="mb-4 pt-3 border-t border-slate-700/50 flex justify-between items-center text-xs">
+                                                <span className="text-slate-400">Lần cuối:</span>
+                                                <span className={`font-bold ${Number(lastAttempt.score) >= 5 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                    {lastAttempt.score} điểm
+                                                </span>
+                                            </div>
+                                        )}
+
                                         <button onClick={() => isLocked ? onUpgrade() : onStartExam(exam)} className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${isLocked ? 'bg-slate-700/50 text-slate-400 hover:bg-slate-700 border border-slate-700' : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30'}`}>{isLocked ? <>Mở khóa VIP <Lock size={16}/></> : <>Bắt đầu ngay <ChevronRight size={16}/></>}</button>
                                     </div>
                                 );
@@ -646,21 +661,64 @@
 
             const startExam = (exam) => { if (confirm(`Sẵn sàng thi bài "${exam.title}"?`)) { setActiveExam(exam); setView('exam'); } };
 
+            const handleDownloadResult = async () => {
+                if (!window.html2canvas) return alert("Chức năng đang tải, vui lòng thử lại sau giây lát.");
+                const element = document.getElementById('result-certificate');
+                if (!element) return;
+                try {
+                    const canvas = await window.html2canvas(element, { scale: 2, backgroundColor: '#0f172a' });
+                    const link = document.createElement('a');
+                    link.download = `MedExam_Result_${Date.now()}.png`;
+                    link.href = canvas.toDataURL();
+                    link.click();
+                } catch (e) { console.error(e); alert("Lỗi tạo ảnh."); }
+            };
+
+            const handleShareFacebook = () => {
+               // Facebook share URL requires a public URL. Since this is likely local or specific deployment,
+               // we will share the main app URL.
+               const text = `Tôi vừa hoàn thành bài thi "${lastResult.examTitle}" với số điểm ${lastResult.score}/10 trên MedExam Pro!`;
+               // Replace with your actual deployed URL
+               const url = "https://medexam-pro.web.app"; 
+               window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`, '_blank');
+            };
+
+            const handleShareZalo = () => {
+                // Zalo doesn't have a direct "share custom text/image" URL API for web like FB.
+                // Best practice is to copy to clipboard or guide user.
+                const text = `Kết quả thi MedExam Pro:\nĐề: ${lastResult.examTitle}\nĐiểm: ${lastResult.score}/10\nĐúng: ${lastResult.correctCount}/${lastResult.total}`;
+                navigator.clipboard.writeText(text).then(() => {
+                    alert("Đã sao chép kết quả! Bạn có thể dán vào Zalo để chia sẻ.");
+                    window.open("https://chat.zalo.me/", "_blank");
+                });
+            };
+
             if (view === 'loading') return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-cyan-500"><Loader2 className="animate-spin" size={40}/></div>;
             if (view === 'auth') return <AuthScreen />;
             if (view === 'exam' && activeExam) return <ExamInterface exam={activeExam} onExit={() => { setActiveExam(null); setView('dashboard'); }} onFinish={r => { setLastResult(r); setActiveExam(null); setView('result'); }} />;
             if (view === 'review' && lastResult) return <ReviewExam result={lastResult} onBack={() => { setLastResult(null); setView('dashboard'); }} />;
             if (view === 'result' && lastResult) return (
                 <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 animate-fade-in">
-                    <div className="glass p-10 rounded-3xl text-center max-w-md w-full relative overflow-hidden">
+                    <div className="glass p-10 rounded-3xl text-center max-w-md w-full relative overflow-hidden" id="result-certificate">
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
                         <Award size={80} className={`mx-auto mb-6 ${Number(lastResult.score)>=5?'text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]':'text-slate-500'}`}/>
-                        <h2 className="text-5xl font-black text-white mb-2">{lastResult.score}</h2>
+                        <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-wide">Kết Quả Thi</h2>
+                        <h3 className="text-xl text-cyan-400 font-bold mb-4">{lastResult.examTitle}</h3>
+                        
+                        <div className="text-6xl font-black text-white mb-2">{lastResult.score}</div>
                         <p className="text-slate-400 uppercase tracking-widest text-xs font-bold mb-6">Điểm số của bạn</p>
+                        
                         <div className="grid grid-cols-2 gap-4 mb-8">
                             <div className="bg-slate-800 p-3 rounded-xl border border-slate-700"><p className="text-xs text-slate-500">Câu đúng</p><p className="text-xl font-bold text-emerald-400">{lastResult.correctCount}/{lastResult.total}</p></div>
-                            <div className="bg-slate-800 p-3 rounded-xl border border-slate-700"><p className="text-xs text-slate-500">Kết quả</p><p className={`text-xl font-bold ${Number(lastResult.score)>=5?'text-cyan-400':'text-red-400'}`}>{Number(lastResult.score)>=5?'Đạt':'Trượt'}</p></div>
+                            <div className="bg-slate-800 p-3 rounded-xl border border-slate-700"><p className="text-xs text-slate-500">Kết quả</p><p className={`text-xl font-bold ${Number(lastResult.score)>=5?'text-cyan-400':'text-red-400'}`}>{Number(lastResult.score)>=5?'ĐẠT':'TRƯỢT'}</p></div>
                         </div>
+
+                        <div className="flex justify-center gap-3 mb-6">
+                            <button onClick={handleDownloadResult} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white transition-all border border-slate-700" title="Tải ảnh"><Download size={20}/></button>
+                            <button onClick={handleShareFacebook} className="p-3 bg-blue-600 hover:bg-blue-500 rounded-full text-white transition-all shadow-lg shadow-blue-500/20" title="Chia sẻ Facebook"><Facebook size={20}/></button>
+                            <button onClick={handleShareZalo} className="p-3 bg-blue-500 hover:bg-blue-400 rounded-full text-white transition-all shadow-lg shadow-blue-400/20 font-bold text-xs flex items-center" title="Copy cho Zalo">Zalo</button>
+                        </div>
+
                         <div className="space-y-3">
                             <button onClick={()=>setView('review')} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2"><Eye size={18}/> Xem lại đáp án & Giải thích</button>
                             <button onClick={()=>setView('dashboard')} className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-bold transition-all border border-slate-700">Về trang chủ</button>
