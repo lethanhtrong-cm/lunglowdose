@@ -126,9 +126,7 @@
             sendPasswordResetEmail,
             signInAnonymously
         } from 'firebase/auth';
-        // Đã thêm getDocs vào import
         import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc, getDocs, where, updateDoc, increment, limit, deleteDoc } from 'firebase/firestore';
-        // Thêm 'Users', 'Bookmark', 'Zap' vào danh sách import
         import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, Users, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal, Sun, Moon, Type, X, Info, Check, Quote, Mail, Key, Flag, BarChart3, AlertCircle, RefreshCw, Bookmark, Zap, HelpCircle } from 'lucide-react';
 
         const firebaseConfig = {
@@ -158,7 +156,6 @@
         // --- HELPER & UTILS ---
         const formatDate = (ts) => {
             if (!ts) return "---";
-            // Kiểm tra nếu là Firebase Timestamp thì dùng toDate(), nếu không thì tạo đối tượng Date mới
             const date = ts.toDate ? ts.toDate() : new Date(ts);
             return date.toLocaleDateString('vi-VN', { 
                 day: '2-digit', 
@@ -233,7 +230,6 @@
 
         const useToast = () => useContext(ToastContext);
 
-        // 2. Confetti Effect
         const Confetti = () => (
             <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
                 {[...Array(13)].map((_, i) => (
@@ -242,20 +238,15 @@
             </div>
         );
 
-        // 3. Skeleton Loading
         const Skeleton = ({ className }) => <div className={`bg-slate-700/50 animate-pulse rounded-lg ${className}`}></div>;
 
-        // 4. (NEW) Simple Performance Chart Component (SVG Based)
         const PerformanceChart = ({ historyData }) => {
             if (!historyData || historyData.length === 0) return (
                 <div className="h-40 flex items-center justify-center text-slate-500 text-sm italic">Chưa có dữ liệu thi</div>
             );
 
-            // Take last 10 exams, reverse to show chronological order
             const data = [...historyData].slice(0, 10).reverse();
             const maxScore = 10;
-            const height = 150;
-            const width = 100; // percent
 
             return (
                 <div className="w-full h-48 mt-4 relative">
@@ -285,10 +276,8 @@
             )
         };
 
-        // --- NEW COMPONENT: START EXAM MODAL ---
+        // --- START EXAM MODAL (Simplified) ---
         const StartExamModal = ({ exam, onClose, onStart }) => {
-            const [mode, setMode] = useState('exam'); // 'exam' or 'practice'
-
             return (
                 <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
                     <div className="bg-slate-900 w-full max-w-md rounded-3xl border border-slate-700 shadow-2xl relative overflow-hidden animate-scale-up">
@@ -299,47 +288,24 @@
                                 <FileText size={40}/>
                             </div>
                             <h2 className="text-2xl font-black text-white mb-2">{exam.title}</h2>
-                            <p className="text-slate-400 text-sm">{exam.questions?.length} câu hỏi • {exam.duration} phút</p>
-                        </div>
-
-                        <div className="p-6 space-y-4">
-                            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Chọn chế độ thi</h3>
+                            <p className="text-slate-400 text-sm mb-6">{exam.questions?.length} câu hỏi • {exam.duration} phút</p>
                             
-                            <div 
-                                onClick={() => setMode('exam')}
-                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-4 ${mode === 'exam' ? 'border-cyan-500 bg-cyan-900/20' : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800'}`}
-                            >
-                                <div className={`p-3 rounded-full ${mode === 'exam' ? 'bg-cyan-500 text-white' : 'bg-slate-700 text-slate-400'}`}>
-                                    <Clock size={24}/>
-                                </div>
-                                <div>
-                                    <h4 className={`font-bold ${mode === 'exam' ? 'text-white' : 'text-slate-300'}`}>Thi Thử (Tiêu chuẩn)</h4>
-                                    <p className="text-xs text-slate-500">Tính giờ, không xem đáp án, tính điểm vào BXH.</p>
-                                </div>
-                                {mode === 'exam' && <CheckCircle2 size={24} className="ml-auto text-cyan-500"/>}
-                            </div>
-
-                            <div 
-                                onClick={() => setMode('practice')}
-                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-4 ${mode === 'practice' ? 'border-emerald-500 bg-emerald-900/20' : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800'}`}
-                            >
-                                <div className={`p-3 rounded-full ${mode === 'practice' ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-400'}`}>
-                                    <Zap size={24}/>
-                                </div>
-                                <div>
-                                    <h4 className={`font-bold ${mode === 'practice' ? 'text-white' : 'text-slate-300'}`}>Luyện Tập (Thư giãn)</h4>
-                                    <p className="text-xs text-slate-500">Không tính giờ, xem đáp án ngay, không tính điểm.</p>
-                                </div>
-                                {mode === 'practice' && <CheckCircle2 size={24} className="ml-auto text-emerald-500"/>}
+                            <div className="bg-slate-800/50 p-4 rounded-xl text-left border border-slate-700 mb-6">
+                                <h4 className="font-bold text-white text-sm mb-2 flex items-center gap-2"><Info size={16} className="text-cyan-400"/> Lưu ý:</h4>
+                                <ul className="text-xs text-slate-400 space-y-1 list-disc pl-4">
+                                    <li>Bài thi sẽ tính giờ ngay khi bắt đầu.</li>
+                                    <li>Bạn có thể nộp bài bất cứ lúc nào.</li>
+                                    <li>Kết quả sẽ được lưu vào lịch sử thi.</li>
+                                </ul>
                             </div>
                         </div>
 
                         <div className="p-6 pt-0 border-t border-slate-800 mt-2 bg-slate-900/50">
                             <button 
-                                onClick={() => onStart(mode)}
-                                className={`w-full py-4 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] active:scale-95 ${mode === 'exam' ? 'bg-gradient-to-r from-cyan-600 to-blue-600 shadow-cyan-500/20' : 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-500/20'}`}
+                                onClick={() => onStart()}
+                                className="w-full py-4 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] active:scale-95 bg-gradient-to-r from-cyan-600 to-blue-600 shadow-cyan-500/20"
                             >
-                                {mode === 'exam' ? 'Bắt Đầu Làm Bài' : 'Vào Luyện Tập'} <ChevronRight size={20}/>
+                                Bắt Đầu Làm Bài <ChevronRight size={20}/>
                             </button>
                         </div>
                     </div>
@@ -347,7 +313,7 @@
             )
         }
 
-        // --- NEW COMPONENT: NOTEBOOK (BOOKMARKS) PAGE ---
+        // --- NOTEBOOK (BOOKMARKS) PAGE ---
         const NotebookPage = ({ user, onBack }) => {
             const [bookmarks, setBookmarks] = useState([]);
             const [loading, setLoading] = useState(true);
@@ -447,12 +413,9 @@
             const [name, setName] = useState('');
             const [rememberMe, setRememberMe] = useState(true);
             const [loading, setLoading] = useState(false);
-            
-            // Password Reset State
             const [showForgot, setShowForgot] = useState(false);
             const [resetEmail, setResetEmail] = useState('');
             const [isResetting, setIsResetting] = useState(false);
-            
             const { addToast } = useToast();
 
             const DEFAULT_BG = "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&q=80";
@@ -511,7 +474,6 @@
                     backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.95)), url('${bgImage}')`,
                     backgroundSize: 'cover', backgroundPosition: 'center'
                 }}>
-                    {/* Animated Background Blobs */}
                     <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
                     <div className="absolute top-0 -right-4 w-72 h-72 bg-cyan-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
                     <div className="absolute -bottom-8 left-20 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
@@ -561,7 +523,6 @@
                         </p>
                     </div>
 
-                    {/* Forgot Password Modal */}
                     {showForgot && (
                         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
                             <div className="bg-slate-900 border border-slate-700 w-full max-w-sm p-6 rounded-3xl shadow-2xl relative animate-scale-up">
@@ -752,7 +713,6 @@
                     </button>
                     
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                        {/* Sidebar */}
                         <div className="lg:col-span-1 space-y-6">
                             <div className="glass-panel rounded-3xl p-6 text-center relative overflow-hidden group">
                                 <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-cyan-600 to-blue-600 transition-all group-hover:h-28"></div>
@@ -769,7 +729,6 @@
                                 </div>
                             </div>
                             
-                            {/* Short Stats */}
                             <div className="glass-panel rounded-2xl p-5">
                                 <h3 className="text-slate-400 text-xs font-bold uppercase mb-4 tracking-wider">Thống kê nhanh</h3>
                                 <div className="space-y-4 text-sm">
@@ -785,10 +744,8 @@
                             </div>
                         </div>
 
-                        {/* Main Content Area */}
                         <div className="lg:col-span-3 space-y-6">
                             <div className="space-y-6 animate-fade-in">
-                                {/* Personal Info Form */}
                                 <div className="glass-panel rounded-3xl overflow-hidden">
                                     <div className="p-6 border-b border-slate-700/50 flex justify-between items-center bg-slate-800/30">
                                         <h3 className="text-lg font-bold text-white flex items-center gap-2"><User size={20} className="text-cyan-400"/> Thông tin cá nhân</h3>
@@ -806,7 +763,6 @@
                                     </div>
                                 </div>
                                 
-                                {/* Transaction History */}
                                 <div className="glass-panel rounded-3xl overflow-hidden">
                                     <div className="p-6 border-b border-slate-700/50 bg-slate-800/30"><h3 className="text-lg font-bold text-white flex items-center gap-2"><CreditCard size={20} className="text-yellow-400"/> Lịch sử giao dịch</h3></div>
                                     <div className="p-0 overflow-x-auto">
@@ -877,13 +833,12 @@
             );
         };
 
-        // (NEW) Report Modal Component
         const ReportQuestionModal = ({ onClose, question, questionIndex, examId }) => {
-            const [reason, setReason] = useState('wrong_answer'); // wrong_answer, typo, confusing, other
+            const [reason, setReason] = useState('wrong_answer'); 
             const [detail, setDetail] = useState('');
             const [submitting, setSubmitting] = useState(false);
             const { addToast } = useToast();
-            const { user } = getAuth(); // Or pass user prop
+            const { user } = getAuth();
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -1099,28 +1054,22 @@
             const [submitting, setSubmitting] = useState(false);
             const [isDrawerOpen, setIsDrawerOpen] = useState(false); 
             const questionRefs = useRef([]);
-            // Feature 1: Flagging State
             const [flags, setFlags] = useState({}); 
-
-            // Feature 2: Practice Mode State
-            const isPracticeMode = exam.mode === 'practice';
-            const [revealedAnswers, setRevealedAnswers] = useState({});
             const { addToast } = useToast();
-            const { user } = getAuth();
+            
+            // --- FIX ERROR HERE: Using auth.currentUser instead of getAuth() destructuring ---
+            const auth = getAuth(); 
+            const user = auth.currentUser;
 
-            // Theme & Font Size State
             const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('theme') !== 'light');
             const [fontSizeLevel, setFontSizeLevel] = useState(1); 
 
             useEffect(() => {
                 localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-                if (!isPracticeMode) {
-                    const timer = setInterval(() => setTimeLeft(t => t <= 1 ? (finish(true), 0) : t - 1), 1000);
-                    return () => clearInterval(timer);
-                }
-            }, [isDarkMode, isPracticeMode]);
+                const timer = setInterval(() => setTimeLeft(t => t <= 1 ? (finish(true), 0) : t - 1), 1000);
+                return () => clearInterval(timer);
+            }, [isDarkMode]);
 
-            // --- HEARTBEAT LOGIC ---
             useEffect(() => {
                 if (exam.sessionId) {
                     const pingInterval = setInterval(async () => {
@@ -1137,16 +1086,12 @@
             const finish = async (forceSubmit = false) => {
                 if(submitting) return;
                 
-                // Kiểm tra user đăng nhập
-                const user = auth.currentUser;
                 if (!user) return;
 
-                if (!forceSubmit && !isPracticeMode) {
+                if (!forceSubmit) {
                     const unansweredCount = exam.questions.length - Object.keys(answers).length;
                     if (unansweredCount > 0) { if (!confirm(`⚠️ CẢNH BÁO CHƯA LÀM HẾT\n\nBạn còn ${unansweredCount} câu hỏi chưa chọn đáp án.\nBạn có chắc chắn muốn nộp bài ngay bây giờ không?`)) return; }
                     else { if (!confirm(`XÁC NHẬN NỘP BÀI\n\nBạn đã trả lời đủ ${exam.questions.length} câu.\nBạn có muốn kết thúc bài thi không?`)) return; }
-                } else if (isPracticeMode) {
-                     if (!confirm(`KẾT THÚC LUYỆN TẬP\n\nBạn có muốn dừng phiên luyện tập tại đây?`)) return;
                 }
 
                 setSubmitting(true);
@@ -1154,50 +1099,42 @@
                 exam.questions.forEach((q, i) => { if(answers[i] === q.correctOption) correct++; });
                 const score = (correct / exam.questions.length) * 10;
                 
-                // 1. Xóa trạng thái đang thi (Live)
                 if (exam.sessionId) {
                     try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId)); } catch (e) {}
                 }
 
                 try {
-                    // Practice Mode does not save to history or leaderboard stats usually, but let's save history for review
-                    // But maybe flag it as 'practice' type
-                    if (!isPracticeMode) {
-                        // 2. Lưu lịch sử thi của user
-                        await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), {
-                            examId: exam.id, 
-                            examTitle: exam.title, 
-                            score: score.toFixed(1), 
-                            totalQuestions: exam.questions.length, 
-                            correctCount: correct, 
-                            date: serverTimestamp(), 
-                            userId: user.uid, 
-                            displayName: user.displayName || 'User'
-                        });
+                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), {
+                        examId: exam.id, 
+                        examTitle: exam.title, 
+                        score: score.toFixed(1), 
+                        totalQuestions: exam.questions.length, 
+                        correctCount: correct, 
+                        date: serverTimestamp(), 
+                        userId: user.uid, 
+                        displayName: user.displayName || 'User'
+                    });
 
-                        // Cập nhật thông tin cá nhân User (Giữ lại để tính BXH)
-                        const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
-                        updateDoc(userRef, {
-                            totalScore: increment(Number(score)),
-                            examsCompleted: increment(1),
-                            lastActive: serverTimestamp()
-                        }).catch(console.error);
+                    const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+                    updateDoc(userRef, {
+                        totalScore: increment(Number(score)),
+                        examsCompleted: increment(1),
+                        lastActive: serverTimestamp()
+                    }).catch(console.error);
 
-                        // 3. LOGIC ĐỒNG BỘ SỐ LIỆU SANG ADMIN (Lượt thi & Người thi)
-                        const historyQuery = query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), where('examId', '==', exam.id));
-                        const historySnap = await getDocs(historyQuery);
-                        const isFirstTime = historySnap.size <= 1; 
+                    const historyQuery = query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), where('examId', '==', exam.id));
+                    const historySnap = await getDocs(historyQuery);
+                    const isFirstTime = historySnap.size <= 1; 
 
-                        const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id);
-                        const updateData = {
-                            attempts: increment(1),       
-                            lastTakenAt: serverTimestamp() 
-                        };
-                        if (isFirstTime) {
-                            updateData.participantsCount = increment(1);
-                        }
-                        await updateDoc(examRef, updateData);
+                    const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id);
+                    const updateData = {
+                        attempts: increment(1),       
+                        lastTakenAt: serverTimestamp() 
+                    };
+                    if (isFirstTime) {
+                        updateData.participantsCount = increment(1);
                     }
+                    await updateDoc(examRef, updateData);
 
                 } catch(e) { console.error("Save error", e); }
                 
@@ -1214,7 +1151,6 @@
 
             const handleExit = async () => {
                 if (confirm("⚠️ XÁC NHẬN THOÁT\n\nKết quả bài làm sẽ KHÔNG được lưu lại.\nBạn có chắc chắn muốn thoát ra màn hình chính?")) {
-                    // Xóa session active khi thoát để Admin cập nhật trạng thái Not Live ngay lập tức
                     if (exam.sessionId) {
                         try {
                             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId));
@@ -1233,7 +1169,6 @@
                 setFlags(prev => ({ ...prev, [index]: !prev[index] }));
             };
 
-            // NEW: Handle Saving Bookmark
             const saveBookmark = async (question, index) => {
                 try {
                     await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'bookmarks', `${exam.id}_${index}`), {
@@ -1248,18 +1183,14 @@
                     });
                     addToast("Đã lưu câu hỏi vào sổ tay!", "success");
                 } catch (e) {
+                    console.error("Bookmark Error", e);
                     addToast("Lỗi lưu bookmark.", "error");
                 }
-            };
-
-            const revealAnswer = (index) => {
-                setRevealedAnswers(prev => ({...prev, [index]: true}));
             };
 
             const answeredCount = Object.keys(answers).length;
             const progressPercent = Math.round((answeredCount / exam.questions.length) * 100);
 
-            // Style mappings based on state
             const bgClass = isDarkMode ? 'bg-slate-950' : 'bg-gray-50';
             const textClass = isDarkMode ? 'text-slate-200' : 'text-gray-800';
             const headerClass = isDarkMode ? 'glass border-white/5' : 'bg-white border-b border-gray-200 shadow-sm';
@@ -1281,13 +1212,11 @@
 
             return (
                 <div className={`fixed inset-0 z-50 flex flex-col md:flex-row h-screen overflow-hidden ${bgClass} ${textClass} transition-colors duration-300`}>
-                    {/* Top Progress Bar */}
                     <div className="absolute top-0 left-0 w-full h-1 z-[60] bg-gray-200 dark:bg-slate-800">
                          <div className="h-full bg-cyan-500 transition-all duration-300" style={{width: `${progressPercent}%`}}></div>
                     </div>
 
                     <div className="flex-1 flex flex-col h-full relative">
-                        {/* Header */}
                         <div className={`${headerClass} p-3 md:p-4 flex justify-between items-center z-10 shrink-0 shadow-lg`}>
                             <div className="flex items-center gap-4">
                                 <button onClick={handleExit} className={`p-2 rounded-lg border transition-all group ${isDarkMode ? 'bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border-slate-700 hover:border-red-500/50' : 'bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 border-gray-200 hover:border-red-200'}`} title="Thoát bài thi">
@@ -1295,7 +1224,6 @@
                                 </button>
                                 <div>
                                     <h2 className={`font-bold text-base md:text-lg line-clamp-1 max-w-[150px] md:max-w-none ${isDarkMode ? 'text-cyan-400' : 'text-cyan-700'}`}>
-                                        {isPracticeMode ? <span className="bg-emerald-500 text-white text-[10px] px-2 py-0.5 rounded-full mr-2 align-middle">LUYỆN TẬP</span> : null}
                                         {exam.title}
                                     </h2>
                                     <div className={`text-xs flex items-center gap-2 mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-gray-500'}`}>
@@ -1305,7 +1233,6 @@
                                 </div>
                             </div>
                             
-                            {/* Toolbar Controls */}
                             <div className="flex items-center gap-2 md:gap-3">
                                 <button onClick={()=>setIsDrawerOpen(!isDrawerOpen)} className={`md:hidden p-2 rounded-lg border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-cyan-400' : 'bg-white border-gray-200 text-cyan-600'}`}>
                                     <Grid size={20}/>
@@ -1321,28 +1248,19 @@
                                     {isDarkMode ? <Moon size={20} /> : <Sun size={20} />}
                                 </button>
 
-                                {isPracticeMode ? (
-                                     <div className={`font-mono text-lg md:text-xl font-bold flex gap-2 items-center px-3 py-1.5 rounded-lg border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-emerald-400' : 'bg-white border-gray-200 shadow-sm text-emerald-600'}`}>
-                                        <Zap size={18}/> Practice
-                                    </div>
-                                ) : (
-                                    <div className={`font-mono text-lg md:text-xl font-bold flex gap-2 items-center px-3 py-1.5 rounded-lg border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200 shadow-sm'} ${timeLeft < 300 ? 'text-red-500 border-red-500/30 animate-pulse' : (isDarkMode ? 'text-emerald-400 border-emerald-500/30' : 'text-emerald-600 border-emerald-200')}`}>
-                                        <Clock size={18} className="hidden md:block"/> {Math.floor(timeLeft/60)}:{timeLeft%60 < 10 ? '0'+timeLeft%60 : timeLeft%60}
-                                    </div>
-                                )}
+                                <div className={`font-mono text-lg md:text-xl font-bold flex gap-2 items-center px-3 py-1.5 rounded-lg border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200 shadow-sm'} ${timeLeft < 300 ? 'text-red-500 border-red-500/30 animate-pulse' : (isDarkMode ? 'text-emerald-400 border-emerald-500/30' : 'text-emerald-600 border-emerald-200')}`}>
+                                    <Clock size={18} className="hidden md:block"/> {Math.floor(timeLeft/60)}:{timeLeft%60 < 10 ? '0'+timeLeft%60 : timeLeft%60}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Question List Area */}
                         <div className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth" id="question-list">
                             <div className="max-w-5xl mx-auto space-y-6 pb-24">
                                 {exam.questions.map((q, index) => {
-                                    const isRevealed = revealedAnswers[index];
                                     return (
                                         <div key={index} ref={el => questionRefs.current[index] = el} className={`${cardClass} border p-5 md:p-8 rounded-2xl shadow-lg transition-all ${answers[index] !== undefined ? (isDarkMode ? 'border-cyan-500/50 shadow-cyan-900/10' : 'border-cyan-500 ring-1 ring-cyan-500/20') : ''}`}>
                                                     <div className="flex gap-4 mb-6 relative">
                                                         <div className="absolute right-0 top-0 flex gap-2">
-                                                            {/* Bookmark Button */}
                                                             <button 
                                                                 onClick={() => saveBookmark(q, index)}
                                                                 className={`p-2 rounded-full transition-colors text-slate-500 hover:text-pink-400 hover:bg-slate-700/50`}
@@ -1351,7 +1269,6 @@
                                                                 <Bookmark size={20} />
                                                             </button>
 
-                                                            {/* Flag Button (Feature 1) */}
                                                             <button 
                                                                 onClick={() => toggleFlag(index)}
                                                                 className={`p-2 rounded-full transition-colors ${flags[index] ? 'text-yellow-400 bg-yellow-500/10' : 'text-slate-500 hover:text-yellow-400 hover:bg-slate-700/50'}`}
@@ -1370,16 +1287,8 @@
                                                     </div>
                                                     <div className="space-y-3 pl-0 md:pl-12">
                                                         {q.options.map((o, optIndex) => {
-                                                            // Determine styling for practice mode answer reveal
                                                             let optionStyle = answers[index]===optIndex ? optionClassSelected : optionClassDefault;
-                                                            if (isRevealed) {
-                                                                if (optIndex === q.correctOption) {
-                                                                    optionStyle = "border-emerald-500 bg-emerald-500/10 text-emerald-400 font-bold";
-                                                                } else if (answers[index] === optIndex && optIndex !== q.correctOption) {
-                                                                    optionStyle = "border-red-500 bg-red-500/10 text-red-400";
-                                                                }
-                                                            }
-
+                                                            
                                                             return (
                                                                 <label key={optIndex} className={`flex items-center p-3 md:p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 group relative overflow-hidden ${optionStyle}`}>
                                                                     <div className={`w-5 h-5 rounded-full border-2 mr-4 flex items-center justify-center shrink-0 transition-colors z-10 ${answers[index]===optIndex ? (isDarkMode ? 'border-cyan-500' : 'border-cyan-600') : circleDefault}`}>
@@ -1391,36 +1300,19 @@
                                                             );
                                                         })}
                                                     </div>
-                                                    {/* Practice Mode Actions */}
-                                                    {isPracticeMode && (
-                                                        <div className="mt-4 md:ml-12">
-                                                            {!isRevealed ? (
-                                                                <button onClick={() => revealAnswer(index)} className="text-sm font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
-                                                                    <Eye size={16}/> Xem đáp án
-                                                                </button>
-                                                            ) : (
-                                                                <div className="animate-fade-in p-4 bg-blue-900/20 rounded-xl border border-blue-500/20 text-sm text-slate-300 mt-2">
-                                                                     <div className="font-bold text-blue-400 mb-1 flex items-center gap-2"><BookOpen size={16}/> Giải thích:</div>
-                                                                     {q.explanation || "Không có giải thích chi tiết cho câu hỏi này."}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
                                         </div>
                                     );
                                 })}
                             </div>
                         </div>
                         
-                        {/* Mobile Submit Bar */}
                         <div className={`md:hidden p-4 border-t z-20 shadow-[0_-5px_20px_rgba(0,0,0,0.1)] ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-gray-200 bg-white'}`}>
                             <button onClick={() => finish(false)} disabled={submitting} className="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl font-bold text-white shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 disabled:opacity-50">
-                                {submitting ? <Loader2 className="animate-spin" size={20}/> : <CheckCircle2 size={20}/>} {isPracticeMode ? 'Kết Thúc' : 'Nộp Bài'}
+                                {submitting ? <Loader2 className="animate-spin" size={20}/> : <CheckCircle2 size={20}/>} Nộp Bài
                             </button>
                         </div>
                     </div>
                     
-                    {/* Desktop Sidebar */}
                     <div className={`hidden md:flex w-80 border-l flex-col shrink-0 h-full ${sidebarClass}`}>
                         <div className={`p-5 border-b ${isDarkMode ? 'border-slate-800' : 'border-gray-200'}`}>
                             <h3 className={`font-bold mb-2 flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-gray-700'}`}><Grid size={18}/> Danh sách câu hỏi</h3>
@@ -1446,12 +1338,11 @@
 
                         <div className={`p-5 border-t z-20 ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-gray-200 bg-white'}`}>
                             <button onClick={() => finish(false)} disabled={submitting} className="w-full bg-emerald-600 hover:bg-emerald-500 py-3.5 rounded-xl font-bold text-white shadow-lg shadow-emerald-500/20 transition-all transform hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:transform-none flex items-center justify-center gap-2">
-                                {submitting ? <Loader2 className="animate-spin" size={20}/> : <CheckCircle2 size={20}/>} {submitting ? 'Đang xử lý...' : (isPracticeMode ? 'Kết Thúc' : 'Nộp Bài Thi')}
+                                {submitting ? <Loader2 className="animate-spin" size={20}/> : <CheckCircle2 size={20}/>} {submitting ? 'Đang xử lý...' : 'Nộp Bài Thi'}
                             </button>
                         </div>
                     </div>
 
-                    {/* Mobile Drawer */}
                     {isDrawerOpen && (
                         <div className="fixed inset-0 z-[70] md:hidden">
                             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={()=>setIsDrawerOpen(false)}></div>
@@ -1480,7 +1371,7 @@
         const Dashboard = ({ user, profile, onStartExam, onViewHistory, onUpgrade, onViewNotebook }) => {
             const [exams, setExams] = useState([]);
             const [stats, setStats] = useState({ totalTaken: 0, avgScore: 0, rank: 'Tập sự' });
-            const [historyData, setHistoryData] = useState([]); // Store raw history for chart
+            const [historyData, setHistoryData] = useState([]); 
             const [filter, setFilter] = useState('all'); 
             const [search, setSearch] = useState('');
             const [loading, setLoading] = useState(true);
@@ -1496,7 +1387,7 @@
                 });
                 const unsubHistory = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), orderBy('date', 'desc')), s => {
                     const records = s.docs.map(d=>d.data());
-                    setHistoryData(records); // For chart
+                    setHistoryData(records); 
                     const total = records.length;
                     const avg = total > 0 ? (records.reduce((acc, r) => acc + Number(r.score), 0) / total).toFixed(1) : 0;
                     let rank = 'Tập sự';
@@ -1512,7 +1403,6 @@
 
             const filteredExams = exams.filter(e => {
                 const matchesSearch = e.title.toLowerCase().includes(search.toLowerCase());
-                // Logic Filter mới dựa trên isPremium
                 if (filter === 'free') return matchesSearch && !e.isPremium;
                 if (filter === 'vip') return matchesSearch && e.isPremium;
                 return matchesSearch;
@@ -1541,7 +1431,6 @@
 
             return (
                 <div className="pb-20 animate-fade-in max-w-7xl mx-auto">
-                    {/* Header Banner */}
                     <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-3xl p-8 mb-8 relative overflow-hidden border border-slate-700 shadow-2xl group">
                         <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 transition-all duration-1000 group-hover:bg-cyan-500/20"></div>
                         <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
@@ -1596,12 +1485,10 @@
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {filteredExams.map(exam => {
-                                        // --- LOGIC MỚI: Dựa hoàn toàn vào isPremium ---
                                         const isLocked = exam.isPremium && !profile?.isPremium;
                                         
                                         return (
                                             <div key={exam.id} className="glass-card rounded-2xl p-6 relative group flex flex-col h-full hover:-translate-y-1 transition-all">
-                                                {/* Badge trạng thái */}
                                                 <div className="absolute top-0 right-0 p-3 bg-slate-800/90 rounded-bl-2xl border-b border-l border-slate-700/50 z-10 backdrop-blur-md">
                                                     {isLocked ? (
                                                         <div className="flex items-center gap-1 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
@@ -1625,7 +1512,6 @@
                                                         <span className="flex items-center gap-1"><Grid size={14}/> {exam.questions?.length} câu</span>
                                                     </div>
 
-                                                    {/* Phần hiển thị thời gian */}
                                                     <div className="flex flex-col gap-1.5 border-t border-slate-700/50 pt-3">
                                                         <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
                                                             <Calendar size={12} className="text-slate-600"/> 
@@ -1644,7 +1530,6 @@
                                                 <div className="flex gap-4 text-xs font-medium text-slate-400 mb-6 mt-auto border-t border-white/5 pt-4">
                                                     <span className="flex items-center gap-1.5"><Clock size={14} className="text-cyan-500"/> {exam.duration}p</span>
                                                     <span className="flex items-center gap-1.5"><Grid size={14} className="text-cyan-500"/> {exam.questions?.length} câu</span>
-                                                    {/* CẬP NHẬT: HIỂN THỊ CẢ LƯỢT THI VÀ NGƯỜI THI */}
                                                     <span className="flex items-center gap-1.5" title="Lượt thi / Số người tham gia">
                                                         <Users size={14} className="text-cyan-500"/> 
                                                         <span>{exam.attempts || 0} lượt</span>
@@ -1673,7 +1558,6 @@
                             )}
                         </div>
 
-                        {/* Feature 3: Performance Chart in Sidebar */}
                         <div className="lg:col-span-1 space-y-6">
                             <div className="glass-panel rounded-3xl p-6 sticky top-24">
                                 <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2"><BarChart3 size={20} className="text-cyan-400"/> Biểu đồ phong độ</h3>
@@ -1686,7 +1570,6 @@
                                 </div>
                             </div>
 
-                            {/* New Sidebar Card for Notebook */}
                             <div 
                                 onClick={onViewNotebook}
                                 className="glass-panel rounded-3xl p-6 cursor-pointer hover:bg-pink-900/10 transition-colors border-l-4 border-l-pink-500 group"
@@ -1702,217 +1585,6 @@
                                     <ChevronRight size={20} className="ml-auto text-slate-500 group-hover:text-pink-500 transition-colors"/>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const HistoryPage = ({ user, onBack }) => {
-            const [history, setHistory] = useState([]);
-            useEffect(() => {
-                if (!user) return;
-                const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), orderBy('date', 'desc'));
-                const unsub = onSnapshot(q, s => setHistory(s.docs.map(d=>({id: d.id, ...d.data(), date: d.data().date?.toDate()}))), (error) => {
-                    console.error("History page sync error", error);
-                });
-                return unsub;
-            }, [user]);
-
-            return (
-                <div className="animate-fade-in pb-20 max-w-5xl mx-auto">
-                    <button onClick={onBack} className="mb-6 flex items-center gap-2 text-slate-400 hover:text-white transition-colors group">
-                        <div className="bg-slate-800 p-2 rounded-lg group-hover:bg-slate-700"><ChevronRight className="rotate-180" size={20}/></div>
-                        <span>Quay lại Dashboard</span>
-                    </button>
-                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-white"><div className="bg-cyan-500/20 p-2 rounded-xl text-cyan-400"><History size={24}/></div> Lịch sử làm bài</h2>
-                    <div className="glass-panel rounded-2xl overflow-hidden shadow-xl">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-slate-900/50 text-slate-400 uppercase text-xs font-bold tracking-wider"><tr><th className="p-5">Đề thi</th><th className="p-5">Ngày thi</th><th className="p-5 text-center">Kết quả</th><th className="p-5 text-center">Điểm số</th></tr></thead>
-                                <tbody className="divide-y divide-slate-700/50">
-                                    {history.map(r => (
-                                        <tr key={r.id} className="hover:bg-slate-700/30 transition-colors group">
-                                            <td className="p-5 font-bold text-white group-hover:text-cyan-400 transition-colors">{r.examTitle}</td>
-                                            <td className="p-5 text-slate-400 font-mono text-xs">{r.date?.toLocaleDateString('vi-VN')} {r.date?.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</td>
-                                            <td className="p-5 text-center"><span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${Number(r.score)>=5 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>{Number(r.score)>=5 ? 'Đạt' : 'Chưa đạt'}</span></td>
-                                            <td className="p-5 text-center"><span className="text-lg font-black text-white bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">{r.score}</span></td>
-                                        </tr>
-                                    ))}
-                                    {history.length === 0 && <tr><td colSpan="4" className="p-12 text-center text-slate-500 italic">Bạn chưa làm bài thi nào.</td></tr>}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        const ResultScreen = ({ result, onBack, onReview, globalConfig, user }) => {
-            const { addToast } = useToast();
-            const [rating, setRating] = useState(0);
-            const [hasRated, setHasRated] = useState(false);
-            const [feedback, setFeedback] = useState("");
-            const [tempRating, setTempRating] = useState(0);
-
-            useEffect(() => {
-                const checkRating = async () => {
-                    if (!user || !result.examId) return;
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'exam_ratings', `${result.examId}_${user.uid}`);
-                    try {
-                        const snap = await getDoc(docRef);
-                        if (snap.exists()) {
-                            setRating(snap.data().rating);
-                            setHasRated(true);
-                        }
-                    } catch (e) { console.error(e); }
-                };
-                checkRating();
-            }, [result.examId, user.uid]);
-
-            const submitRating = async (score, feedbackContent) => {
-                try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exam_ratings', `${result.examId}_${user.uid}`), {
-                        uid: user.uid,
-                        examId: result.examId,
-                        rating: score,
-                        createdAt: serverTimestamp()
-                    });
-                    
-                    const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', result.examId);
-                    await updateDoc(examRef, {
-                        ratingSum: increment(score),
-                        ratingCount: increment(1)
-                    });
-
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), {
-                        examId: result.examId,
-                        examTitle: result.examTitle || 'Unknown Exam',
-                        userId: user.uid,
-                        displayName: user.displayName || 'Anonymous',
-                        rating: score,
-                        feedback: feedbackContent, 
-                        createdAt: serverTimestamp()
-                    });
-
-                    setRating(score);
-                    setHasRated(true);
-                    setTempRating(0); 
-                    addToast("Đã gửi đánh giá thành công!", "success");
-                } catch (e) {
-                    console.error("Error rating:", e);
-                    addToast("Lỗi khi gửi đánh giá.", "error");
-                }
-            };
-
-            const handleStarClick = (score) => {
-                if (hasRated) return;
-                
-                if (score > 3) {
-                    submitRating(score, "");
-                } else {
-                    setTempRating(score);
-                }
-            };
-
-            const handleDownloadResult = async () => {
-                const element = document.getElementById('result-certificate');
-                if (!element) return;
-                try {
-                    const canvas = await window.html2canvas(element, { scale: 2, backgroundColor: null });
-                    const link = document.createElement('a');
-                    link.download = `MedExam_Result_${Date.now()}.png`;
-                    link.href = canvas.toDataURL();
-                    link.click();
-                } catch (e) { console.error(e); addToast("Lỗi tạo ảnh.", "error"); }
-            };
-
-            const handleShareFacebook = () => {
-               const text = `Tôi vừa hoàn thành bài thi "${result.examTitle}" với số điểm ${result.score}/10 trên MedExam Pro!`;
-               const url = "https://medexam-pro.web.app"; 
-               window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`, '_blank');
-            };
-
-            const handleShareZalo = () => {
-                const text = `Kết quả thi MedExam Pro:\nĐề: ${result.examTitle}\nĐiểm: ${result.score}/10\nĐúng: ${result.correctCount}/${result.total}`;
-                navigator.clipboard.writeText(text).then(() => addToast("Đã sao chép kết quả!", "info"));
-            };
-
-            return (
-                <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in relative overflow-hidden" style={{
-                    backgroundImage: globalConfig.resultBg ? `linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.9)), url('${globalConfig.resultBg}')` : undefined,
-                    backgroundColor: '#0f172a',
-                    backgroundSize: 'cover', backgroundPosition: 'center'
-                }}>
-                    {Number(result.score) >= 8 && <Confetti />}
-                    <div className="glass-result p-8 md:p-10 rounded-3xl text-center max-w-md w-full relative overflow-hidden border border-white/10 shadow-2xl animate-scale-up" id="result-certificate">
-                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
-                        <Award size={80} className={`mx-auto mb-6 ${Number(result.score)>=5?'text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-bounce':'text-slate-500'}`}/>
-                        <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-wide">Kết Quả Thi</h2>
-                        <h3 className="text-xl text-cyan-400 font-bold mb-4">{result.examTitle}</h3>
-                        <div className="text-6xl font-black text-white mb-2 tracking-tighter">{result.score}</div>
-                        
-                        <div className="grid grid-cols-2 gap-4 mb-6 mt-6">
-                            <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700"><p className="text-xs text-slate-500 uppercase font-bold">Câu đúng</p><p className="text-2xl font-bold text-emerald-400">{result.correctCount}/{result.total}</p></div>
-                            <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700"><p className="text-xs text-slate-500 uppercase font-bold">Trạng thái</p><p className={`text-2xl font-bold ${Number(result.score)>=5?'text-cyan-400':'text-red-400'}`}>{Number(result.score)>=5?'ĐẠT':'HỎNG'}</p></div>
-                        </div>
-
-                        {/* RATING SECTION */}
-                        <div className="mb-6 bg-slate-800/40 p-4 rounded-2xl border border-white/5 transition-all">
-                            {!hasRated ? (
-                                <>
-                                    <p className="text-slate-300 text-xs font-bold uppercase mb-3 tracking-wider">Đánh giá đề thi này</p>
-                                    <div className="flex justify-center gap-2 mb-3">
-                                        {[1,2,3,4,5].map(star => (
-                                            <button 
-                                                key={star} 
-                                                onClick={() => handleStarClick(star)}
-                                                className={`transition-all transform hover:scale-125 p-1 ${tempRating === star ? 'scale-125' : ''}`}
-                                            >
-                                                <Star size={28} fill={star <= (tempRating || rating) ? "#fbbf24" : "none"} className={star <= (tempRating || rating) ? "text-yellow-400" : "text-slate-600"} />
-                                            </button>
-                                        ))}
-                                    </div>
-                                    
-                                    {/* Feedback form for low rating */}
-                                    {tempRating > 0 && tempRating <= 3 && (
-                                        <div className="animate-fade-in mt-3">
-                                            <textarea 
-                                                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white placeholder-slate-500 mb-3 focus:border-cyan-500 outline-none"
-                                                rows="3"
-                                                placeholder="Bạn chưa hài lòng điểm nào? Hãy góp ý cho chúng tôi..."
-                                                value={feedback}
-                                                onChange={(e) => setFeedback(e.target.value)}
-                                            ></textarea>
-                                            <button 
-                                                onClick={() => submitRating(tempRating, feedback)}
-                                                className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition-all"
-                                            >
-                                                Gửi đánh giá & Góp ý
-                                            </button>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="animate-fade-in">
-                                    <div className="flex justify-center gap-1 mb-2">
-                                        {[1,2,3,4,5].map(star => (
-                                            <Star key={star} size={20} fill={star <= rating ? "#fbbf24" : "none"} className={star <= rating ? "text-yellow-400" : "text-slate-600"} />
-                                        ))}
-                                    </div>
-                                    <p className="text-emerald-400 text-[10px] font-bold animate-pulse">Cảm ơn bạn đã đánh giá!</p>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex justify-center gap-3 mb-6 relative z-10">
-                            <button onClick={handleDownloadResult} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white transition-all border border-slate-700 tooltip" title="Tải ảnh"><Download size={20}/></button>
-                            <button onClick={handleShareFacebook} className="p-3 bg-blue-600 hover:bg-blue-500 rounded-full text-white transition-all shadow-lg shadow-blue-500/20"><Facebook size={20}/></button>
-                            <button onClick={handleShareZalo} className="p-3 bg-blue-500 hover:bg-blue-400 rounded-full text-white transition-all shadow-lg shadow-blue-400/20 font-bold text-xs flex items-center">Zalo</button>
-                        </div>
-                        <div className="space-y-3 relative z-10">
-                            <button onClick={onReview} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 hover:translate-y-[-2px]"><Eye size={18}/> Xem lại đáp án</button>
-                            <button onClick={onBack} className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3.5 rounded-xl font-bold transition-all border border-slate-700 hover:border-slate-600">Về trang chủ</button>
                         </div>
                     </div>
                 </div>
@@ -1977,46 +1649,40 @@
                 if (diffTime > 0) daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             }
 
-            // Updated to use Modal
             const openStartModal = (exam) => {
                 setSelectedExamToStart(exam);
                 setShowStartModal(true);
             };
 
-            const confirmStartExam = async (mode) => { 
+            const confirmStartExam = async () => { 
                 const exam = selectedExamToStart;
                 setShowStartModal(false);
                 
                 try {
-                    // Only track live session if it's a real exam, not practice
                     let sessionRefId = null;
-                    if (mode === 'exam') {
-                         const sessionRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'), {
-                            uid: user.uid,
-                            displayName: user.displayName || user.email,
-                            examId: exam.id,
-                            examTitle: exam.title,
-                            startedAt: serverTimestamp()
-                        });
-                        sessionRefId = sessionRef.id;
-                    }
+                     const sessionRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'), {
+                        uid: user.uid,
+                        displayName: user.displayName || user.email,
+                        examId: exam.id,
+                        examTitle: exam.title,
+                        startedAt: serverTimestamp()
+                    });
+                    sessionRefId = sessionRef.id;
                     
-                    setActiveExam({ ...exam, sessionId: sessionRefId, mode: mode });
+                    setActiveExam({ ...exam, sessionId: sessionRefId });
                 } catch (e) {
                     console.error("Tracking error:", e);
-                    setActiveExam({ ...exam, mode: mode });
+                    setActiveExam(exam);
                 }
                 setView('exam'); 
             };
 
-            // Main View Rendering Logic
             const renderContent = () => {
                 if (view === 'loading') return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-cyan-500"><Loader2 className="animate-spin" size={40}/></div>;
                 if (view === 'auth') return <AuthScreen globalConfig={globalConfig} />;
                 if (view === 'exam' && activeExam) return <ExamInterface exam={activeExam} onExit={() => { setActiveExam(null); setView('dashboard'); }} onFinish={r => { setLastResult(r); setActiveExam(null); setView('result'); }} />;
                 if (view === 'review' && lastResult) return <ReviewExam result={lastResult} onBack={() => { setLastResult(null); setView('dashboard'); }} user={user} />;
                 
-                // Result View with Confetti
                 if (view === 'result' && lastResult) return (
                     <ResultScreen 
                         result={lastResult} 
@@ -2027,7 +1693,6 @@
                     />
                 );
 
-                // Default Layout for Dashboard/Profile/Leaderboard/History
                 return (
                     <div className="min-h-screen bg-slate-950 font-sans text-slate-200">
                         <nav className="glass sticky top-0 z-40 border-b border-white/5">
