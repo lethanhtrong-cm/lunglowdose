@@ -52,8 +52,8 @@
             browserLocalPersistence, 
             browserSessionPersistence
         } from 'firebase/auth';
-        import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc, where } from 'firebase/firestore';
-        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send } from 'lucide-react';
+        import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc, where, updateDoc } from 'firebase/firestore';
+        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle } from 'lucide-react';
 
         const firebaseConfig = {
             apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
@@ -76,6 +76,8 @@
             accountName: "LE THANH TRONG", 
             amount: "50,000"
         };
+
+        const VIP_DURATION_DAYS = 30; // Thời hạn VIP 30 ngày
 
         // --- COMPONENTS ---
 
@@ -202,6 +204,13 @@
             };
 
             const joinDate = profile?.createdAt?.toDate ? profile.createdAt.toDate().toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN');
+            
+            let vipExpiryDateStr = "Vĩnh viễn (hoặc chưa xác định)";
+            if (profile?.vipActivatedAt) {
+                const activationDate = profile.vipActivatedAt.toDate();
+                const expiryDate = new Date(activationDate.getTime() + VIP_DURATION_DAYS * 24 * 60 * 60 * 1000);
+                vipExpiryDateStr = expiryDate.toLocaleDateString('vi-VN');
+            }
 
             return (
                 <div className="animate-fade-in pb-20 max-w-5xl mx-auto">
@@ -227,6 +236,12 @@
                                 <div className="space-y-4 text-sm">
                                     <div className="flex justify-between items-center"><span className="flex items-center gap-2 text-slate-300"><Calendar size={16} className="text-cyan-500"/> Ngày tham gia</span><span className="text-white font-medium">{joinDate}</span></div>
                                     <div className="flex justify-between items-center"><span className="flex items-center gap-2 text-slate-300"><CheckCircle2 size={16} className="text-emerald-500"/> Trạng thái</span><span className="text-emerald-400 font-bold">Hoạt động</span></div>
+                                    {profile?.isPremium && (
+                                        <div className="flex justify-between items-center border-t border-slate-700 pt-3 mt-3">
+                                            <span className="flex items-center gap-2 text-slate-300"><Hourglass size={16} className="text-yellow-500"/> Hết hạn VIP</span>
+                                            <span className="text-yellow-400 font-medium text-xs">{vipExpiryDateStr}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -310,7 +325,67 @@
             );
         };
 
-        const ExamInterface = ({ exam, onFinish }) => {
+        // --- NEW REVIEW EXAM COMPONENT ---
+        const ReviewExam = ({ result, onBack }) => {
+            return (
+                <div className="min-h-screen bg-slate-950 font-sans pb-20 animate-fade-in">
+                     <nav className="glass sticky top-0 z-40 border-b border-slate-800/50 p-4 flex justify-between items-center">
+                        <div className="font-bold text-xl text-white flex items-center gap-2"><Eye size={20} className="text-cyan-400"/> Xem lại bài thi: <span className="text-cyan-400">{result.examTitle}</span></div>
+                        <button onClick={onBack} className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-bold border border-slate-700 transition-all">Về Dashboard</button>
+                    </nav>
+                    <div className="max-w-4xl mx-auto p-4 space-y-6 mt-6">
+                        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
+                            <div className="text-4xl font-black text-white mb-2">{result.score} điểm</div>
+                            <div className="text-slate-400">Bạn đã trả lời đúng <span className="text-emerald-400 font-bold">{result.correctCount}</span>/{result.total} câu hỏi</div>
+                        </div>
+                        {result.questions.map((q, i) => {
+                            const userAnswer = result.userAnswers[i];
+                            const isCorrect = userAnswer === q.correctOption;
+                            const isSkipped = userAnswer === undefined;
+                            
+                            return (
+                                <div key={i} className={`bg-slate-900 border p-6 rounded-2xl transition-all ${isCorrect ? 'border-emerald-500/30' : 'border-red-500/30 bg-red-900/5'}`}>
+                                    <div className="flex gap-3 mb-4">
+                                        <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>{i+1}</span>
+                                        <div className="text-lg text-slate-200 font-medium">{q.text}</div>
+                                    </div>
+                                    <div className="space-y-2 pl-0 md:pl-11">
+                                        {q.options.map((o, optIdx) => {
+                                            let optionClass = "border-slate-700 bg-slate-800/50 text-slate-400";
+                                            let icon = null;
+
+                                            if (optIdx === q.correctOption) {
+                                                optionClass = "border-emerald-500 bg-emerald-500/10 text-emerald-400 font-bold";
+                                                icon = <CheckCircle2 size={18} className="text-emerald-500"/>;
+                                            } else if (optIdx === userAnswer && optIdx !== q.correctOption) {
+                                                optionClass = "border-red-500 bg-red-500/10 text-red-400 font-bold";
+                                                icon = <XCircle size={18} className="text-red-500"/>;
+                                            }
+
+                                            return (
+                                                <div key={optIdx} className={`p-3 rounded-lg border flex justify-between items-center ${optionClass}`}>
+                                                    <span>{String.fromCharCode(65+optIdx)}. {o}</span>
+                                                    {icon}
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                    {q.explanation && (
+                                        <div className="mt-4 md:ml-11 p-4 bg-blue-900/10 rounded-xl border border-blue-500/20 text-sm">
+                                            <div className="font-bold text-blue-400 mb-1 flex items-center gap-2"><BookOpen size={16}/> Giải thích chi tiết:</div>
+                                            <div className="text-slate-300 leading-relaxed">{q.explanation}</div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )
+        }
+
+        const ExamInterface = ({ exam, onFinish, onExit }) => {
             const [timeLeft, setTimeLeft] = useState(exam.duration * 60);
             const [answers, setAnswers] = useState({});
             const [submitting, setSubmitting] = useState(false);
@@ -341,7 +416,21 @@
                         timeout
                     ]);
                 } catch(e) { console.warn(e); }
-                onFinish({ score: score.toFixed(1), correctCount: correct, total: exam.questions.length, examTitle: exam.title });
+                // Pass questions and user answers to the result view for review
+                onFinish({ 
+                    score: score.toFixed(1), 
+                    correctCount: correct, 
+                    total: exam.questions.length, 
+                    examTitle: exam.title,
+                    questions: exam.questions,
+                    userAnswers: answers
+                });
+            };
+
+            const handleExit = () => {
+                if (confirm("⚠️ XÁC NHẬN THOÁT\n\nKết quả bài làm sẽ KHÔNG được lưu lại.\nBạn có chắc chắn muốn thoát ra màn hình chính?")) {
+                    onExit();
+                }
             };
 
             const scrollToQuestion = (index) => {
@@ -355,7 +444,15 @@
                 <div className="fixed inset-0 bg-slate-950 z-50 flex flex-col md:flex-row h-screen overflow-hidden">
                     <div className="flex-1 flex flex-col h-full relative">
                         <div className="glass p-4 flex justify-between items-center z-10 shrink-0 shadow-lg border-b border-white/5">
-                            <div><h2 className="font-bold text-cyan-400 text-lg line-clamp-1">{exam.title}</h2><div className="text-slate-400 text-xs flex items-center gap-2 mt-1"><span>Đã làm: {answeredCount}/{exam.questions.length} câu</span><span className="bg-slate-800 px-2 py-0.5 rounded text-cyan-400 font-bold">{progressPercent}%</span></div></div>
+                            <div className="flex items-center gap-4">
+                                <button onClick={handleExit} className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg border border-slate-700 hover:border-red-500/50 transition-all group" title="Thoát bài thi">
+                                    <LogOut size={20} className="rotate-180" />
+                                </button>
+                                <div>
+                                    <h2 className="font-bold text-cyan-400 text-lg line-clamp-1">{exam.title}</h2>
+                                    <div className="text-slate-400 text-xs flex items-center gap-2 mt-1"><span>Đã làm: {answeredCount}/{exam.questions.length} câu</span><span className="bg-slate-800 px-2 py-0.5 rounded text-cyan-400 font-bold">{progressPercent}%</span></div>
+                                </div>
+                            </div>
                             <div className={`font-mono text-xl font-bold flex gap-2 items-center px-4 py-2 rounded-lg bg-slate-800 border ${timeLeft < 300 ? 'text-red-500 border-red-500/30 animate-pulse' : 'text-emerald-400 border-emerald-500/30'}`}><Clock size={20}/> {Math.floor(timeLeft/60)}:{timeLeft%60 < 10 ? '0'+timeLeft%60 : timeLeft%60}</div>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth" id="question-list">
@@ -503,7 +600,7 @@
         function App() {
             const [user, setUser] = useState(null);
             const [profile, setProfile] = useState(null);
-            const [view, setView] = useState('loading'); // loading, auth, dashboard, history, profile, exam, result
+            const [view, setView] = useState('loading'); // loading, auth, dashboard, history, profile, exam, result, review
             const [activeExam, setActiveExam] = useState(null);
             const [lastResult, setLastResult] = useState(null);
             const [showPay, setShowPay] = useState(false);
@@ -519,11 +616,40 @@
                 });
             }, []);
 
+            // Hiệu ứng kiểm tra VIP hết hạn
+            useEffect(() => {
+                if (user && profile?.isPremium && profile?.vipActivatedAt) {
+                    const activationDate = profile.vipActivatedAt.toDate();
+                    const expiryTime = activationDate.getTime() + VIP_DURATION_DAYS * 24 * 60 * 60 * 1000;
+                    
+                    if (Date.now() > expiryTime) {
+                        // Tự động downgrade
+                        updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid), {
+                            isPremium: false
+                        }).then(() => {
+                            alert("Thông báo: Gói VIP của bạn đã hết hạn.");
+                        }).catch(err => console.error("Lỗi cập nhật hết hạn:", err));
+                    }
+                }
+            }, [profile, user]);
+
+            // Tính số ngày còn lại để hiển thị
+            let daysLeft = null;
+            if (profile?.isPremium && profile?.vipActivatedAt) {
+                const activationDate = profile.vipActivatedAt.toDate();
+                const expiryTime = activationDate.getTime() + VIP_DURATION_DAYS * 24 * 60 * 60 * 1000;
+                const diffTime = expiryTime - Date.now();
+                if (diffTime > 0) {
+                    daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                }
+            }
+
             const startExam = (exam) => { if (confirm(`Sẵn sàng thi bài "${exam.title}"?`)) { setActiveExam(exam); setView('exam'); } };
 
             if (view === 'loading') return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-cyan-500"><Loader2 className="animate-spin" size={40}/></div>;
             if (view === 'auth') return <AuthScreen />;
-            if (view === 'exam' && activeExam) return <ExamInterface exam={activeExam} onFinish={r => { setLastResult(r); setActiveExam(null); setView('result'); }} />;
+            if (view === 'exam' && activeExam) return <ExamInterface exam={activeExam} onExit={() => { setActiveExam(null); setView('dashboard'); }} onFinish={r => { setLastResult(r); setActiveExam(null); setView('result'); }} />;
+            if (view === 'review' && lastResult) return <ReviewExam result={lastResult} onBack={() => { setLastResult(null); setView('dashboard'); }} />;
             if (view === 'result' && lastResult) return (
                 <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 animate-fade-in">
                     <div className="glass p-10 rounded-3xl text-center max-w-md w-full relative overflow-hidden">
@@ -535,7 +661,10 @@
                             <div className="bg-slate-800 p-3 rounded-xl border border-slate-700"><p className="text-xs text-slate-500">Câu đúng</p><p className="text-xl font-bold text-emerald-400">{lastResult.correctCount}/{lastResult.total}</p></div>
                             <div className="bg-slate-800 p-3 rounded-xl border border-slate-700"><p className="text-xs text-slate-500">Kết quả</p><p className={`text-xl font-bold ${Number(lastResult.score)>=5?'text-cyan-400':'text-red-400'}`}>{Number(lastResult.score)>=5?'Đạt':'Trượt'}</p></div>
                         </div>
-                        <button onClick={()=>setView('dashboard')} className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-bold transition-all border border-slate-700">Về trang chủ</button>
+                        <div className="space-y-3">
+                            <button onClick={()=>setView('review')} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2"><Eye size={18}/> Xem lại đáp án & Giải thích</button>
+                            <button onClick={()=>setView('dashboard')} className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-bold transition-all border border-slate-700">Về trang chủ</button>
+                        </div>
                     </div>
                 </div>
             );
@@ -549,7 +678,18 @@
                                 <span className="font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-400">MedExam Pro</span>
                             </button>
                             <div className="flex items-center gap-4">
-                                {profile?.isPremium ? <span className="hidden md:flex bg-gradient-to-r from-yellow-500/10 to-amber-500/10 text-amber-400 text-xs font-bold border border-amber-500/20 px-3 py-1.5 rounded-full items-center gap-1.5"><Crown size={14}/> VIP MEMBER</span> : <button onClick={()=>setShowPay(true)} className="hidden md:flex bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg shadow-amber-900/20 items-center gap-1.5 transition-all transform hover:scale-105"><Crown size={14}/> Nâng cấp VIP</button>}
+                                {profile?.isPremium ? (
+                                    <div className="flex flex-col items-end">
+                                        <span className="hidden md:flex bg-gradient-to-r from-yellow-500/10 to-amber-500/10 text-amber-400 text-xs font-bold border border-amber-500/20 px-3 py-1.5 rounded-full items-center gap-1.5">
+                                            <Crown size={14}/> VIP MEMBER
+                                        </span>
+                                        {daysLeft !== null && <span className="text-[10px] text-slate-400 mr-1 mt-0.5">Còn {daysLeft} ngày</span>}
+                                    </div>
+                                ) : (
+                                    <button onClick={()=>setShowPay(true)} className="hidden md:flex bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg shadow-amber-900/20 items-center gap-1.5 transition-all transform hover:scale-105">
+                                        <Crown size={14}/> Nâng cấp VIP
+                                    </button>
+                                )}
                                 <div className="h-8 w-px bg-slate-800 mx-2 hidden md:block"></div>
                                 
                                 <div className="relative group">
