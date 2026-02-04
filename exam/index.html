@@ -39,7 +39,19 @@
         import React, { useState, useEffect, useMemo, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged, 
+            updateProfile, 
+            signInWithPopup, 
+            GoogleAuthProvider,
+            setPersistence, 
+            browserLocalPersistence, 
+            browserSessionPersistence
+        } from 'firebase/auth';
         import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc } from 'firebase/firestore';
         import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard } from 'lucide-react';
 
@@ -72,6 +84,7 @@
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
             const [name, setName] = useState('');
+            const [rememberMe, setRememberMe] = useState(true);
             const [error, setError] = useState('');
             const [loading, setLoading] = useState(false);
 
@@ -97,6 +110,10 @@
                 setError('');
                 setLoading(true);
                 try {
+                    // Thiết lập chế độ ghi nhớ đăng nhập
+                    const persistenceType = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+                    await setPersistence(auth, persistenceType);
+
                     if (isRegistering) {
                         const res = await createUserWithEmailAndPassword(auth, email, password);
                         await updateProfile(res.user, { displayName: name });
@@ -109,6 +126,8 @@
 
             const handleGoogle = async () => {
                 try {
+                    // Google login mặc định là local persistence, có thể set thêm nếu muốn chắc chắn
+                    await setPersistence(auth, browserLocalPersistence); 
                     const res = await signInWithPopup(auth, new GoogleAuthProvider());
                     await createUserProfile(res.user, res.user.displayName);
                 } catch (err) { setError(err.message); }
@@ -136,6 +155,20 @@
                                 {isRegistering && <input className="w-full bg-slate-800 p-3 rounded-lg border border-slate-700 focus:border-cyan-500 outline-none text-white transition-all" placeholder="Họ và tên" value={name} onChange={e=>setName(e.target.value)} required/>}
                                 <input className="w-full bg-slate-800 p-3 rounded-lg border border-slate-700 focus:border-cyan-500 outline-none text-white transition-all" placeholder="Email" type="email" value={email} onChange={e=>setEmail(e.target.value)} required/>
                                 <input className="w-full bg-slate-800 p-3 rounded-lg border border-slate-700 focus:border-cyan-500 outline-none text-white transition-all" placeholder="Mật khẩu" type="password" value={password} onChange={e=>setPassword(e.target.value)} required/>
+                                
+                                {!isRegistering && (
+                                    <div className="flex items-center gap-2 my-2">
+                                        <input 
+                                            type="checkbox" 
+                                            id="remember" 
+                                            className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-cyan-600 focus:ring-cyan-500 cursor-pointer accent-cyan-600"
+                                            checked={rememberMe}
+                                            onChange={(e) => setRememberMe(e.target.checked)}
+                                        />
+                                        <label htmlFor="remember" className="text-sm text-slate-400 cursor-pointer select-none">Ghi nhớ đăng nhập</label>
+                                    </div>
+                                )}
+
                                 <button disabled={loading} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 py-3.5 rounded-lg font-bold text-white shadow-lg shadow-cyan-500/20 transition-all transform hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed flex justify-center">
                                     {loading ? <Loader2 className="animate-spin"/> : (isRegistering ? 'Đăng Ký Ngay' : 'Đăng Nhập')}
                                 </button>
