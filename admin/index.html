@@ -65,11 +65,11 @@
         } from 'lucide-react';
 
         // --- CẤU HÌNH FIREBASE ---
-        // Sử dụng cấu hình từ môi trường hoặc mặc định
+        // Sử dụng cấu hình từ môi trường hoặc giá trị mặc định đã được khôi phục
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
             ? JSON.parse(__firebase_config) 
             : {
-                apiKey: "", 
+                apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo", 
                 authDomain: "rt-examination.firebaseapp.com",
                 projectId: "rt-examination",
                 storageBucket: "rt-examination.firebasestorage.app",
@@ -343,7 +343,13 @@
             const [error, setError] = useState('');
 
             useEffect(() => {
+                // Cơ chế bảo vệ: Nếu sau 5s Firebase không phản hồi, dừng màn hình loading
+                const timeoutSafety = setTimeout(() => {
+                    if (loading) setLoading(false);
+                }, 5000);
+
                 const unsubscribe = onAuthStateChanged(auth, u => {
+                    clearTimeout(timeoutSafety);
                     if (u && !ADMIN_EMAILS.includes(u.email)) {
                         setError("Tài khoản này không có quyền quản trị.");
                         signOut(auth); setUser(null);
@@ -352,8 +358,12 @@
                     }
                     setLoading(false);
                 });
-                return () => unsubscribe();
-            }, []);
+
+                return () => {
+                    unsubscribe();
+                    clearTimeout(timeoutSafety);
+                };
+            }, [loading]);
 
             const handleLogin = async (e) => {
                 e.preventDefault();
