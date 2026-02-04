@@ -1229,6 +1229,8 @@
             const { addToast } = useToast();
             const [rating, setRating] = useState(0);
             const [hasRated, setHasRated] = useState(false);
+            const [feedback, setFeedback] = useState("");
+            const [tempRating, setTempRating] = useState(0);
 
             useEffect(() => {
                 const checkRating = async () => {
@@ -1245,9 +1247,7 @@
                 checkRating();
             }, [result.examId, user.uid]);
 
-            const handleRate = async (score) => {
-                if (hasRated) return;
-                setRating(score);
+            const submitRating = async (score, feedbackContent) => {
                 try {
                     // 1. Save individual rating to 'exam_ratings'
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exam_ratings', `${result.examId}_${user.uid}`), {
@@ -1264,21 +1264,36 @@
                         ratingCount: increment(1)
                     });
 
-                    // 3. Sync to 'reviews' for Admin
+                    // 3. Sync to 'reviews' for Admin with Feedback
                     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), {
                         examId: result.examId,
                         examTitle: result.examTitle || 'Unknown Exam',
                         userId: user.uid,
                         displayName: user.displayName || 'Anonymous',
                         rating: score,
+                        feedback: feedbackContent, // Save feedback here
                         createdAt: serverTimestamp()
                     });
 
+                    setRating(score);
                     setHasRated(true);
+                    setTempRating(0); // Clear temp state
                     addToast("Đã gửi đánh giá thành công!", "success");
                 } catch (e) {
                     console.error("Error rating:", e);
                     addToast("Lỗi khi gửi đánh giá.", "error");
+                }
+            };
+
+            const handleStarClick = (score) => {
+                if (hasRated) return;
+                
+                if (score > 3) {
+                    // High rating: Submit immediately
+                    submitRating(score, "");
+                } else {
+                    // Low rating: Ask for feedback
+                    setTempRating(score);
                 }
             };
 
@@ -1325,21 +1340,51 @@
                         </div>
 
                         {/* RATING SECTION */}
-                        <div className="mb-6 bg-slate-800/40 p-4 rounded-2xl border border-white/5">
-                            <p className="text-slate-300 text-xs font-bold uppercase mb-3 tracking-wider">Đánh giá đề thi này</p>
-                            <div className="flex justify-center gap-2">
-                                {[1,2,3,4,5].map(star => (
-                                    <button 
-                                        key={star} 
-                                        onClick={() => handleRate(star)}
-                                        disabled={hasRated}
-                                        className={`transition-all transform hover:scale-125 p-1 ${hasRated ? 'cursor-default' : 'cursor-pointer'}`}
-                                    >
-                                        <Star size={28} fill={star <= rating ? "#fbbf24" : "none"} className={star <= rating ? "text-yellow-400" : "text-slate-600"} />
-                                    </button>
-                                ))}
-                            </div>
-                            {hasRated && <p className="text-emerald-400 text-[10px] font-bold mt-2 animate-pulse">Cảm ơn bạn đã đánh giá!</p>}
+                        <div className="mb-6 bg-slate-800/40 p-4 rounded-2xl border border-white/5 transition-all">
+                            {!hasRated ? (
+                                <>
+                                    <p className="text-slate-300 text-xs font-bold uppercase mb-3 tracking-wider">Đánh giá đề thi này</p>
+                                    <div className="flex justify-center gap-2 mb-3">
+                                        {[1,2,3,4,5].map(star => (
+                                            <button 
+                                                key={star} 
+                                                onClick={() => handleStarClick(star)}
+                                                className={`transition-all transform hover:scale-125 p-1 ${tempRating === star ? 'scale-125' : ''}`}
+                                            >
+                                                <Star size={28} fill={star <= (tempRating || rating) ? "#fbbf24" : "none"} className={star <= (tempRating || rating) ? "text-yellow-400" : "text-slate-600"} />
+                                            </button>
+                                        ))}
+                                    </div>
+                                    
+                                    {/* Feedback form for low rating */}
+                                    {tempRating > 0 && tempRating <= 3 && (
+                                        <div className="animate-fade-in mt-3">
+                                            <textarea 
+                                                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white placeholder-slate-500 mb-3 focus:border-cyan-500 outline-none"
+                                                rows="3"
+                                                placeholder="Bạn chưa hài lòng điểm nào? Hãy góp ý cho chúng tôi..."
+                                                value={feedback}
+                                                onChange={(e) => setFeedback(e.target.value)}
+                                            ></textarea>
+                                            <button 
+                                                onClick={() => submitRating(tempRating, feedback)}
+                                                className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition-all"
+                                            >
+                                                Gửi đánh giá & Góp ý
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="animate-fade-in">
+                                    <div className="flex justify-center gap-1 mb-2">
+                                        {[1,2,3,4,5].map(star => (
+                                            <Star key={star} size={20} fill={star <= rating ? "#fbbf24" : "none"} className={star <= rating ? "text-yellow-400" : "text-slate-600"} />
+                                        ))}
+                                    </div>
+                                    <p className="text-emerald-400 text-[10px] font-bold animate-pulse">Cảm ơn bạn đã đánh giá!</p>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex justify-center gap-3 mb-6 relative z-10">
