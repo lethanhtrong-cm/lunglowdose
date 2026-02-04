@@ -27,6 +27,7 @@
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .glass-result { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
         .glass-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.3s ease; }
         .glass-card:hover { transform: translateY(-2px); border-color: rgba(6, 182, 212, 0.3); background: rgba(30, 41, 59, 0.6); }
         .animate-fade-in { animation: fadeIn 0.5s ease-out; }
@@ -54,8 +55,8 @@
             browserLocalPersistence, 
             browserSessionPersistence
         } from 'firebase/auth';
-        import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc, where, updateDoc } from 'firebase/firestore';
-        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy } from 'lucide-react';
+        import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc, where, updateDoc, increment, limit, deleteDoc } from 'firebase/firestore';
+        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal } from 'lucide-react';
 
         const firebaseConfig = {
             apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
@@ -103,6 +104,8 @@
                         gender: 'other', 
                         phone: '',
                         address: '',
+                        totalScore: 0,
+                        examsCompleted: 0,
                         createdAt: serverTimestamp(),
                         role: 'user'
                     }, { merge: true });
@@ -177,6 +180,7 @@
         };
 
         const ProfilePage = ({ user, profile, onBack }) => {
+            const [activeTab, setActiveTab] = useState('info'); // 'info' or 'leaderboard'
             const [isEditing, setIsEditing] = useState(false);
             const [formData, setFormData] = useState({
                 displayName: profile?.displayName || user.displayName || '',
@@ -185,6 +189,23 @@
                 address: profile?.address || ''
             });
             const [loading, setLoading] = useState(false);
+            const [leaderboard, setLeaderboard] = useState([]);
+
+            // Fetch leaderboard data when tab is active
+            useEffect(() => {
+                if (activeTab === 'leaderboard') {
+                    const q = query(
+                        collection(db, 'artifacts', appId, 'public', 'data', 'users'),
+                        orderBy('totalScore', 'desc'),
+                        limit(20)
+                    );
+                    const unsubscribe = onSnapshot(q, (snapshot) => {
+                        const data = snapshot.docs.map(doc => doc.data());
+                        setLeaderboard(data);
+                    });
+                    return () => unsubscribe();
+                }
+            }, [activeTab]);
 
             const handleSave = async () => {
                 setLoading(true);
@@ -215,10 +236,12 @@
             }
 
             return (
-                <div className="animate-fade-in pb-20 max-w-5xl mx-auto">
+                <div className="animate-fade-in pb-20 max-w-6xl mx-auto">
                     <button onClick={onBack} className="mb-6 flex items-center gap-2 text-slate-400 hover:text-white transition-colors"><ChevronRight className="rotate-180" size={20}/> Quay lại Dashboard</button>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div className="md:col-span-1 space-y-6">
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        {/* Sidebar */}
+                        <div className="lg:col-span-1 space-y-6">
                             <div className="bg-slate-800 rounded-3xl border border-slate-700 p-6 text-center relative overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-cyan-600 to-blue-600"></div>
                                 <div className="relative mt-12 mb-4">
@@ -233,41 +256,132 @@
                                     {profile?.isPremium ? <><Crown size={12}/> VIP MEMBER</> : 'FREE MEMBER'}
                                 </div>
                             </div>
-                            <div className="bg-slate-800/50 rounded-2xl border border-slate-700 p-5">
-                                <h3 className="text-slate-400 text-xs font-bold uppercase mb-4 tracking-wider">Thông tin chung</h3>
-                                <div className="space-y-4 text-sm">
-                                    <div className="flex justify-between items-center"><span className="flex items-center gap-2 text-slate-300"><Calendar size={16} className="text-cyan-500"/> Ngày tham gia</span><span className="text-white font-medium">{joinDate}</span></div>
-                                    <div className="flex justify-between items-center"><span className="flex items-center gap-2 text-slate-300"><CheckCircle2 size={16} className="text-emerald-500"/> Trạng thái</span><span className="text-emerald-400 font-bold">Hoạt động</span></div>
-                                    {profile?.isPremium && (
-                                        <div className="flex justify-between items-center border-t border-slate-700 pt-3 mt-3">
-                                            <span className="flex items-center gap-2 text-slate-300"><Hourglass size={16} className="text-yellow-500"/> Hết hạn VIP</span>
-                                            <span className="text-yellow-400 font-medium text-xs">{vipExpiryDateStr}</span>
-                                        </div>
-                                    )}
-                                </div>
+
+                            <div className="bg-slate-800/50 rounded-2xl border border-slate-700 p-2">
+                                <button 
+                                    onClick={() => setActiveTab('info')}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === 'info' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-700 hover:text-white'}`}
+                                >
+                                    <User size={18} /> Thông tin cá nhân
+                                </button>
+                                <button 
+                                    onClick={() => setActiveTab('leaderboard')}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === 'leaderboard' ? 'bg-yellow-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-700 hover:text-white'}`}
+                                >
+                                    <Trophy size={18} /> Bảng xếp hạng
+                                </button>
                             </div>
                         </div>
-                        <div className="md:col-span-2 space-y-6">
-                            <div className="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden">
-                                <div className="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
-                                    <h3 className="text-lg font-bold text-white flex items-center gap-2"><User size={20} className="text-cyan-400"/> Thông tin cá nhân</h3>
-                                    {!isEditing && <button onClick={()=>setIsEditing(true)} className="flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 font-medium bg-cyan-900/20 px-3 py-1.5 rounded-lg border border-cyan-500/30 transition-all hover:bg-cyan-900/30"><Edit3 size={14}/> Chỉnh sửa</button>}
-                                </div>
-                                <div className="p-6 md:p-8 space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-2"><label className="text-sm text-slate-400 font-medium">Họ và tên</label><input disabled={!isEditing} className={`w-full bg-slate-900 border rounded-xl px-4 py-3 text-white transition-all ${isEditing ? 'border-slate-600 focus:border-cyan-500' : 'border-transparent text-slate-300'}`} value={formData.displayName} onChange={e=>setFormData({...formData, displayName: e.target.value})}/></div>
-                                        <div className="space-y-2"><label className="text-sm text-slate-400 font-medium">Email</label><input disabled className="w-full bg-slate-900/50 border border-transparent rounded-xl px-4 py-3 text-slate-500 cursor-not-allowed" value={user.email}/></div>
-                                        <div className="space-y-2"><label className="text-sm text-slate-400 font-medium">Số điện thoại</label><div className="relative"><Phone className="absolute left-4 top-3.5 text-slate-500" size={16}/><input disabled={!isEditing} className={`w-full bg-slate-900 border rounded-xl pl-12 pr-4 py-3 text-white transition-all ${isEditing ? 'border-slate-600 focus:border-cyan-500' : 'border-transparent text-slate-300'}`} value={formData.phone} placeholder={!isEditing ? "Chưa cập nhật" : "Nhập SĐT..."} onChange={e=>setFormData({...formData, phone: e.target.value})}/></div></div>
-                                        <div className="space-y-2"><label className="text-sm text-slate-400 font-medium">Giới tính</label><select disabled={!isEditing} className={`w-full bg-slate-900 border rounded-xl px-4 py-3 text-white transition-all appearance-none ${isEditing ? 'border-slate-600 focus:border-cyan-500' : 'border-transparent text-slate-300'}`} value={formData.gender} onChange={e=>setFormData({...formData, gender: e.target.value})}><option value="nam">Nam</option><option value="nu">Nữ</option><option value="khac">Khác</option></select></div>
-                                        <div className="md:col-span-2 space-y-2"><label className="text-sm text-slate-400 font-medium">Địa chỉ</label><div className="relative"><MapPin className="absolute left-4 top-3.5 text-slate-500" size={16}/><input disabled={!isEditing} className={`w-full bg-slate-900 border rounded-xl pl-12 pr-4 py-3 text-white transition-all ${isEditing ? 'border-slate-600 focus:border-cyan-500' : 'border-transparent text-slate-300'}`} value={formData.address} placeholder={!isEditing ? "Chưa cập nhật" : "Nhập địa chỉ..."} onChange={e=>setFormData({...formData, address: e.target.value})}/></div></div>
+
+                        {/* Main Content Area */}
+                        <div className="lg:col-span-3 space-y-6">
+                            {activeTab === 'info' ? (
+                                <div className="space-y-6 animate-fade-in">
+                                    {/* Personal Info Form */}
+                                    <div className="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden">
+                                        <div className="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
+                                            <h3 className="text-lg font-bold text-white flex items-center gap-2"><User size={20} className="text-cyan-400"/> Thông tin cá nhân</h3>
+                                            {!isEditing && <button onClick={()=>setIsEditing(true)} className="flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 font-medium bg-cyan-900/20 px-3 py-1.5 rounded-lg border border-cyan-500/30 transition-all hover:bg-cyan-900/30"><Edit3 size={14}/> Chỉnh sửa</button>}
+                                        </div>
+                                        <div className="p-6 md:p-8 space-y-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="space-y-2"><label className="text-sm text-slate-400 font-medium">Họ và tên</label><input disabled={!isEditing} className={`w-full bg-slate-900 border rounded-xl px-4 py-3 text-white transition-all ${isEditing ? 'border-slate-600 focus:border-cyan-500' : 'border-transparent text-slate-300'}`} value={formData.displayName} onChange={e=>setFormData({...formData, displayName: e.target.value})}/></div>
+                                                <div className="space-y-2"><label className="text-sm text-slate-400 font-medium">Email</label><input disabled className="w-full bg-slate-900/50 border border-transparent rounded-xl px-4 py-3 text-slate-500 cursor-not-allowed" value={user.email}/></div>
+                                                <div className="space-y-2"><label className="text-sm text-slate-400 font-medium">Số điện thoại</label><div className="relative"><Phone className="absolute left-4 top-3.5 text-slate-500" size={16}/><input disabled={!isEditing} className={`w-full bg-slate-900 border rounded-xl pl-12 pr-4 py-3 text-white transition-all ${isEditing ? 'border-slate-600 focus:border-cyan-500' : 'border-transparent text-slate-300'}`} value={formData.phone} placeholder={!isEditing ? "Chưa cập nhật" : "Nhập SĐT..."} onChange={e=>setFormData({...formData, phone: e.target.value})}/></div></div>
+                                                <div className="space-y-2"><label className="text-sm text-slate-400 font-medium">Giới tính</label><select disabled={!isEditing} className={`w-full bg-slate-900 border rounded-xl px-4 py-3 text-white transition-all appearance-none ${isEditing ? 'border-slate-600 focus:border-cyan-500' : 'border-transparent text-slate-300'}`} value={formData.gender} onChange={e=>setFormData({...formData, gender: e.target.value})}><option value="nam">Nam</option><option value="nu">Nữ</option><option value="khac">Khác</option></select></div>
+                                                <div className="md:col-span-2 space-y-2"><label className="text-sm text-slate-400 font-medium">Địa chỉ</label><div className="relative"><MapPin className="absolute left-4 top-3.5 text-slate-500" size={16}/><input disabled={!isEditing} className={`w-full bg-slate-900 border rounded-xl pl-12 pr-4 py-3 text-white transition-all ${isEditing ? 'border-slate-600 focus:border-cyan-500' : 'border-transparent text-slate-300'}`} value={formData.address} placeholder={!isEditing ? "Chưa cập nhật" : "Nhập địa chỉ..."} onChange={e=>setFormData({...formData, address: e.target.value})}/></div></div>
+                                            </div>
+                                            {isEditing && <div className="flex justify-end gap-3 pt-4 border-t border-slate-700/50"><button onClick={()=>setIsEditing(false)} className="px-5 py-2.5 text-slate-300 hover:text-white font-medium hover:bg-slate-700/50 rounded-lg transition-all">Hủy bỏ</button><button onClick={handleSave} disabled={loading} className="px-6 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg shadow-lg shadow-cyan-500/20 flex items-center gap-2 disabled:opacity-50">{loading ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>} Lưu thay đổi</button></div>}
+                                        </div>
                                     </div>
-                                    {isEditing && <div className="flex justify-end gap-3 pt-4 border-t border-slate-700/50"><button onClick={()=>setIsEditing(false)} className="px-5 py-2.5 text-slate-300 hover:text-white font-medium hover:bg-slate-700/50 rounded-lg transition-all">Hủy bỏ</button><button onClick={handleSave} disabled={loading} className="px-6 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg shadow-lg shadow-cyan-500/20 flex items-center gap-2 disabled:opacity-50">{loading ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>} Lưu thay đổi</button></div>}
+                                    
+                                    {/* Stats & History */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="bg-slate-800 rounded-3xl border border-slate-700 p-6">
+                                            <h3 className="text-slate-400 text-xs font-bold uppercase mb-4 tracking-wider">Thống kê hoạt động</h3>
+                                            <div className="space-y-4 text-sm">
+                                                <div className="flex justify-between items-center"><span className="flex items-center gap-2 text-slate-300"><Calendar size={16} className="text-cyan-500"/> Ngày tham gia</span><span className="text-white font-medium">{joinDate}</span></div>
+                                                <div className="flex justify-between items-center"><span className="flex items-center gap-2 text-slate-300"><CheckCircle2 size={16} className="text-emerald-500"/> Trạng thái</span><span className="text-emerald-400 font-bold">Hoạt động</span></div>
+                                                {profile?.isPremium && (
+                                                    <div className="flex justify-between items-center border-t border-slate-700 pt-3 mt-3">
+                                                        <span className="flex items-center gap-2 text-slate-300"><Hourglass size={16} className="text-yellow-500"/> Hết hạn VIP</span>
+                                                        <span className="text-yellow-400 font-medium text-xs">{vipExpiryDateStr}</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex justify-between items-center border-t border-slate-700 pt-3 mt-3">
+                                                    <span className="flex items-center gap-2 text-slate-300"><Trophy size={16} className="text-orange-400"/> Tổng điểm tích lũy</span>
+                                                    <span className="text-white font-bold text-lg">{profile?.totalScore ? profile.totalScore.toFixed(1) : 0}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden">
+                                            <div className="p-6 border-b border-slate-700 bg-slate-800/50"><h3 className="text-lg font-bold text-white flex items-center gap-2"><CreditCard size={20} className="text-yellow-400"/> Lịch sử giao dịch</h3></div>
+                                            <div className="p-0"><table className="w-full text-left text-sm"><thead className="bg-slate-900 text-slate-400 uppercase text-xs"><tr><th className="p-4 pl-6">Nội dung</th><th className="p-4">Ngày</th><th className="p-4">Số tiền</th><th className="p-4 pr-6 text-right">Trạng thái</th></tr></thead><tbody className="divide-y divide-slate-700">{profile?.isPremium ? <tr className="hover:bg-slate-700/20 transition-colors"><td className="p-4 pl-6 font-medium text-white flex items-center gap-2"><Crown size={16} className="text-yellow-500"/> Nâng cấp VIP</td><td className="p-4 text-slate-400">{joinDate}</td><td className="p-4 text-slate-300 font-mono">50,000đ</td><td className="p-4 pr-6 text-right"><span className="text-emerald-400 text-xs font-bold bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">Thành công</span></td></tr> : <tr><td colSpan="2" className="p-8 text-center text-slate-500">Chưa có giao dịch nào</td></tr>}</tbody></table></div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden">
-                                <div className="p-6 border-b border-slate-700 bg-slate-800/50"><h3 className="text-lg font-bold text-white flex items-center gap-2"><CreditCard size={20} className="text-yellow-400"/> Lịch sử giao dịch</h3></div>
-                                <div className="p-0"><table className="w-full text-left text-sm"><thead className="bg-slate-900 text-slate-400 uppercase text-xs"><tr><th className="p-4 pl-6">Nội dung</th><th className="p-4">Ngày</th><th className="p-4">Số tiền</th><th className="p-4 pr-6 text-right">Trạng thái</th></tr></thead><tbody className="divide-y divide-slate-700">{profile?.isPremium ? <tr className="hover:bg-slate-700/20 transition-colors"><td className="p-4 pl-6 font-medium text-white flex items-center gap-2"><Crown size={16} className="text-yellow-500"/> Nâng cấp VIP</td><td className="p-4 text-slate-400">{joinDate}</td><td className="p-4 text-slate-300 font-mono">50,000đ</td><td className="p-4 pr-6 text-right"><span className="text-emerald-400 text-xs font-bold bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">Thành công</span></td></tr> : <tr><td colSpan="4" className="p-8 text-center text-slate-500">Chưa có giao dịch nào</td></tr>}</tbody></table></div>
-                            </div>
+                            ) : (
+                                <div className="animate-fade-in bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden">
+                                    <div className="p-6 border-b border-slate-700 bg-gradient-to-r from-yellow-600/20 to-amber-600/20 flex justify-between items-center">
+                                        <h3 className="text-xl font-bold text-white flex items-center gap-3"><Trophy size={24} className="text-yellow-400"/> Bảng Xếp Hạng Top 20</h3>
+                                        <div className="text-xs text-slate-400 font-medium bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-700">Xếp hạng theo tổng điểm</div>
+                                    </div>
+                                    
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left">
+                                            <thead className="bg-slate-900/80 text-slate-400 text-xs uppercase font-bold sticky top-0">
+                                                <tr>
+                                                    <th className="p-5 text-center w-16">Hạng</th>
+                                                    <th className="p-5">Thành viên</th>
+                                                    <th className="p-5 text-center">Số đề đã làm</th>
+                                                    <th className="p-5 text-right pr-8">Tổng điểm</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-700/50 text-sm">
+                                                {leaderboard.length === 0 ? (
+                                                    <tr><td colSpan="4" className="p-10 text-center text-slate-500 italic">Chưa có dữ liệu xếp hạng</td></tr>
+                                                ) : (
+                                                    leaderboard.map((u, index) => {
+                                                        let rankIcon = <span className="font-bold text-slate-500">#{index + 1}</span>;
+                                                        let rowBg = "hover:bg-slate-700/30";
+                                                        
+                                                        if (index === 0) {
+                                                            rankIcon = <Medal size={24} className="text-yellow-400 mx-auto fill-yellow-400/20"/>;
+                                                            rowBg = "bg-yellow-500/5 hover:bg-yellow-500/10";
+                                                        } else if (index === 1) {
+                                                            rankIcon = <Medal size={24} className="text-slate-300 mx-auto fill-slate-300/20"/>;
+                                                        } else if (index === 2) {
+                                                            rankIcon = <Medal size={24} className="text-amber-600 mx-auto fill-amber-600/20"/>;
+                                                        }
+
+                                                        return (
+                                                            <tr key={index} className={`transition-colors ${rowBg}`}>
+                                                                <td className="p-5 text-center">{rankIcon}</td>
+                                                                <td className="p-5">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${index === 0 ? 'bg-yellow-500 text-slate-900 shadow-lg shadow-yellow-500/20' : 'bg-slate-700 text-slate-300'}`}>
+                                                                            {u.displayName?.charAt(0)?.toUpperCase()}
+                                                                        </div>
+                                                                        <div className="font-medium text-white">
+                                                                            {u.displayName}
+                                                                            {u.uid === user.uid && <span className="ml-2 text-[10px] bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-500/30">Bạn</span>}
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="p-5 text-center text-slate-400">{u.examsCompleted || 0}</td>
+                                                                <td className="p-5 text-right pr-8">
+                                                                    <span className="text-lg font-bold text-emerald-400">{u.totalScore ? Number(u.totalScore).toFixed(1) : 0}</span>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -409,7 +523,27 @@
                 exam.questions.forEach((q, i) => { if(answers[i] === q.correctOption) correct++; });
                 const score = (correct / exam.questions.length) * 10;
                 const timeout = new Promise((_, r) => setTimeout(() => r(new Error("Timeout")), 3000));
+                
                 try {
+                    // Update user total score for leaderboard
+                    if (auth.currentUser) {
+                         const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', auth.currentUser.uid);
+                         updateDoc(userRef, {
+                            totalScore: increment(Number(score)),
+                            examsCompleted: increment(1),
+                            lastActive: serverTimestamp()
+                         }).catch(console.error);
+                    }
+
+                    // Delete active session
+                    if (exam.sessionId) {
+                        try {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId));
+                        } catch (e) {
+                            console.error("Lỗi xóa session:", e);
+                        }
+                    }
+
                     await Promise.race([
                         addDoc(collection(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'history'), {
                             examId: exam.id, examTitle: exam.title, score: score.toFixed(1), totalQuestions: exam.questions.length, correctCount: correct, date: new Date(), userId: auth.currentUser.uid
@@ -659,14 +793,31 @@
                 }
             }
 
-            const startExam = (exam) => { if (confirm(`Sẵn sàng thi bài "${exam.title}"?`)) { setActiveExam(exam); setView('exam'); } };
+            const startExam = async (exam) => { 
+                if (confirm(`Sẵn sàng thi bài "${exam.title}"?`)) { 
+                    try {
+                         const sessionRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'), {
+                            uid: user.uid,
+                            displayName: user.displayName || user.email,
+                            examId: exam.id,
+                            examTitle: exam.title,
+                            startedAt: serverTimestamp()
+                        });
+                        setActiveExam({ ...exam, sessionId: sessionRef.id });
+                    } catch (e) {
+                        console.error("Tracking error:", e);
+                        setActiveExam(exam);
+                    }
+                    setView('exam'); 
+                } 
+            };
 
             const handleDownloadResult = async () => {
                 if (!window.html2canvas) return alert("Chức năng đang tải, vui lòng thử lại sau giây lát.");
                 const element = document.getElementById('result-certificate');
                 if (!element) return;
                 try {
-                    const canvas = await window.html2canvas(element, { scale: 2, backgroundColor: '#0f172a' });
+                    const canvas = await window.html2canvas(element, { scale: 2, backgroundColor: null }); // Set background to null to capture transparency or styled background
                     const link = document.createElement('a');
                     link.download = `MedExam_Result_${Date.now()}.png`;
                     link.href = canvas.toDataURL();
@@ -698,9 +849,20 @@
             if (view === 'exam' && activeExam) return <ExamInterface exam={activeExam} onExit={() => { setActiveExam(null); setView('dashboard'); }} onFinish={r => { setLastResult(r); setActiveExam(null); setView('result'); }} />;
             if (view === 'review' && lastResult) return <ReviewExam result={lastResult} onBack={() => { setLastResult(null); setView('dashboard'); }} />;
             if (view === 'result' && lastResult) return (
-                <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 animate-fade-in">
-                    <div className="glass p-10 rounded-3xl text-center max-w-md w-full relative overflow-hidden" id="result-certificate">
+                <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in bg-[url('https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&q=80')] bg-cover bg-center">
+                    {/* Dark overlay for contrast */}
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+                    
+                    <div className="glass-result p-10 rounded-3xl text-center max-w-md w-full relative overflow-hidden" id="result-certificate">
+                        
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
+                        
+                        {/* Logo/Brand Name */}
+                        <div className="mb-6 opacity-80">
+                            <h4 className="text-sm font-bold tracking-widest text-cyan-400 uppercase">MedExam Pro</h4>
+                            <p className="text-[10px] text-slate-300">Trang thi trực tuyến cấp giấy phép hành nghề</p>
+                        </div>
+
                         <Award size={80} className={`mx-auto mb-6 ${Number(lastResult.score)>=5?'text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]':'text-slate-500'}`}/>
                         <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-wide">Kết Quả Thi</h2>
                         <h3 className="text-xl text-cyan-400 font-bold mb-4">{lastResult.examTitle}</h3>
@@ -709,17 +871,17 @@
                         <p className="text-slate-400 uppercase tracking-widest text-xs font-bold mb-6">Điểm số của bạn</p>
                         
                         <div className="grid grid-cols-2 gap-4 mb-8">
-                            <div className="bg-slate-800 p-3 rounded-xl border border-slate-700"><p className="text-xs text-slate-500">Câu đúng</p><p className="text-xl font-bold text-emerald-400">{lastResult.correctCount}/{lastResult.total}</p></div>
-                            <div className="bg-slate-800 p-3 rounded-xl border border-slate-700"><p className="text-xs text-slate-500">Kết quả</p><p className={`text-xl font-bold ${Number(lastResult.score)>=5?'text-cyan-400':'text-red-400'}`}>{Number(lastResult.score)>=5?'ĐẠT':'TRƯỢT'}</p></div>
+                            <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700"><p className="text-xs text-slate-500">Câu đúng</p><p className="text-xl font-bold text-emerald-400">{lastResult.correctCount}/{lastResult.total}</p></div>
+                            <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700"><p className="text-xs text-slate-500">Kết quả</p><p className={`text-xl font-bold ${Number(lastResult.score)>=5?'text-cyan-400':'text-red-400'}`}>{Number(lastResult.score)>=5?'ĐẠT':'TRƯỢT'}</p></div>
                         </div>
 
-                        <div className="flex justify-center gap-3 mb-6">
+                        <div className="flex justify-center gap-3 mb-6 relative z-10">
                             <button onClick={handleDownloadResult} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white transition-all border border-slate-700" title="Tải ảnh"><Download size={20}/></button>
                             <button onClick={handleShareFacebook} className="p-3 bg-blue-600 hover:bg-blue-500 rounded-full text-white transition-all shadow-lg shadow-blue-500/20" title="Chia sẻ Facebook"><Facebook size={20}/></button>
                             <button onClick={handleShareZalo} className="p-3 bg-blue-500 hover:bg-blue-400 rounded-full text-white transition-all shadow-lg shadow-blue-400/20 font-bold text-xs flex items-center" title="Copy cho Zalo">Zalo</button>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-3 relative z-10">
                             <button onClick={()=>setView('review')} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2"><Eye size={18}/> Xem lại đáp án & Giải thích</button>
                             <button onClick={()=>setView('dashboard')} className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-bold transition-all border border-slate-700">Về trang chủ</button>
                         </div>
