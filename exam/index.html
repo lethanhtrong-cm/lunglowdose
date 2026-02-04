@@ -192,7 +192,6 @@
 
         // --- CUSTOM UI COMPONENTS ---
 
-        // 1. Toast Notification System
         const ToastContext = createContext();
 
         const ToastProvider = ({ children }) => {
@@ -276,7 +275,7 @@
             )
         };
 
-        // --- START EXAM MODAL (Simplified) ---
+        // --- START EXAM MODAL ---
         const StartExamModal = ({ exam, onClose, onStart }) => {
             return (
                 <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
@@ -1048,7 +1047,7 @@
             )
         }
 
-        const ExamInterface = ({ exam, onFinish, onExit }) => {
+        const ExamInterface = ({ exam, onFinish, onExit, user }) => {
             const [timeLeft, setTimeLeft] = useState(exam.duration * 60);
             const [answers, setAnswers] = useState({});
             const [submitting, setSubmitting] = useState(false);
@@ -1057,10 +1056,6 @@
             const [flags, setFlags] = useState({}); 
             const { addToast } = useToast();
             
-            // --- FIX ERROR HERE: Using auth.currentUser instead of getAuth() destructuring ---
-            const auth = getAuth(); 
-            const user = auth.currentUser;
-
             const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('theme') !== 'light');
             const [fontSizeLevel, setFontSizeLevel] = useState(1); 
 
@@ -1085,7 +1080,6 @@
 
             const finish = async (forceSubmit = false) => {
                 if(submitting) return;
-                
                 if (!user) return;
 
                 if (!forceSubmit) {
@@ -1680,7 +1674,7 @@
             const renderContent = () => {
                 if (view === 'loading') return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-cyan-500"><Loader2 className="animate-spin" size={40}/></div>;
                 if (view === 'auth') return <AuthScreen globalConfig={globalConfig} />;
-                if (view === 'exam' && activeExam) return <ExamInterface exam={activeExam} onExit={() => { setActiveExam(null); setView('dashboard'); }} onFinish={r => { setLastResult(r); setActiveExam(null); setView('result'); }} />;
+                if (view === 'exam' && activeExam) return <ExamInterface user={user} exam={activeExam} onExit={() => { setActiveExam(null); setView('dashboard'); }} onFinish={r => { setLastResult(r); setActiveExam(null); setView('result'); }} />;
                 if (view === 'review' && lastResult) return <ReviewExam result={lastResult} onBack={() => { setLastResult(null); setView('dashboard'); }} user={user} />;
                 
                 if (view === 'result' && lastResult) return (
