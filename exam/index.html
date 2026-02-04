@@ -79,11 +79,11 @@
         import { 
             Activity, AlertTriangle, Award, CheckCircle, Clock, 
             EyeOff, FileSpreadsheet, FileText, FileType, History, 
-            LogOut, Plus, ShieldCheck, Trash2, Upload, User, XCircle, Settings 
+            LogOut, Plus, ShieldCheck, Trash2, Upload, User, XCircle, Settings, Loader2, Download
         } from 'lucide-react';
 
         // --- CẤU HÌNH FIREBASE ---
-        // QUAN TRỌNG: Thay thế các giá trị bên dưới bằng thông tin từ Firebase Console của bạn
+        // Đã cập nhật theo thông tin bạn cung cấp
         const defaultFirebaseConfig = {
             apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
             authDomain: "rt-examination.firebaseapp.com",
@@ -94,7 +94,7 @@
             measurementId: "G-8N7RTTREQM"
         };
 
-        // Logic để lấy config: Ưu tiên biến môi trường (nếu chạy trong canvas) hoặc dùng default
+        // Logic để lấy config
         let firebaseConfig;
         let isConfigured = false;
 
@@ -104,8 +104,7 @@
                 isConfigured = true;
             } else {
                 firebaseConfig = defaultFirebaseConfig;
-                // Kiểm tra xem người dùng đã thay đổi API Key chưa
-                if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+                if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
                     isConfigured = true;
                 }
             }
@@ -113,7 +112,7 @@
             firebaseConfig = defaultFirebaseConfig;
         }
 
-        // Khởi tạo Firebase nếu đã cấu hình
+        // Khởi tạo Firebase
         let app, auth, db;
         if (isConfigured) {
             try {
@@ -121,8 +120,8 @@
                 auth = getAuth(app);
                 db = getFirestore(app);
             } catch (error) {
-                console.error("Lỗi khởi tạo Firebase. Vui lòng kiểm tra config.", error);
-                isConfigured = false; // Đánh dấu là chưa cấu hình nếu khởi tạo thất bại
+                console.error("Lỗi khởi tạo Firebase:", error);
+                isConfigured = false;
             }
         }
 
@@ -139,55 +138,16 @@
 
         // --- COMPONENTS ---
 
-        // 0. Config Instruction Component
-        const ConfigInstruction = () => {
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white p-4">
-                    <div className="max-w-2xl w-full bg-slate-800 p-8 rounded-2xl shadow-2xl border border-yellow-500/50">
-                        <div className="text-center mb-6">
-                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-yellow-500/20 text-yellow-400 mb-4">
-                                <Settings size={32} />
-                            </div>
-                            <h1 className="text-2xl font-bold text-white">Yêu cầu Cấu hình Firebase</h1>
-                            <p className="text-slate-400 mt-2">Ứng dụng chưa được kết nối với cơ sở dữ liệu.</p>
-                        </div>
-
-                        <div className="space-y-4 text-sm text-slate-300">
-                            <p>Để chạy ứng dụng này, bạn cần cập nhật file <code>index.html</code> với thông tin từ Firebase của bạn:</p>
-                            
-                            <ol className="list-decimal pl-5 space-y-2">
-                                <li>Truy cập <a href="https://console.firebase.google.com/" target="_blank" className="text-cyan-400 hover:underline">Firebase Console</a> và tạo một dự án mới.</li>
-                                <li>Vào mục <strong>Project Settings</strong> (Cài đặt dự án).</li>
-                                <li>Kéo xuống phần <strong>Your apps</strong>, chọn biểu tượng Web <code>&lt;/&gt;</code> để đăng ký app.</li>
-                                <li>Copy đoạn mã <code>firebaseConfig</code>.</li>
-                                <li>Mở file <code>index.html</code> này bằng trình soạn thảo văn bản (Notepad, VS Code...).</li>
-                                <li>Tìm dòng chứa <code>const defaultFirebaseConfig</code> (khoảng dòng 80) và thay thế bằng thông tin của bạn.</li>
-                            </ol>
-
-                            <div className="mt-6 p-4 bg-slate-950 rounded-lg border border-slate-700 font-mono text-xs overflow-x-auto">
-                                <p className="text-slate-500 mb-2">// Ví dụ cấu hình đúng:</p>
-                                <pre className="text-green-400">
-{`const defaultFirebaseConfig = {
-  apiKey: "AIzaSyD-BdLm...",
-  authDomain: "my-app.firebaseapp.com",
-  projectId: "my-app",
-  storageBucket: "my-app.appspot.com",
-  messagingSenderId: "123456...",
-  appId: "1:123456..."
-};`}
-                                </pre>
-                            </div>
-                        </div>
-
-                        <div className="mt-8 text-center">
-                            <button onClick={() => window.location.reload()} className="px-6 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-medium transition-colors">
-                                Đã cập nhật? Tải lại trang
-                            </button>
-                        </div>
-                    </div>
+        // Config Error Component
+        const ConfigError = () => (
+             <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white p-4">
+                <div className="max-w-md w-full bg-slate-800 p-8 rounded-2xl border border-red-500/50 text-center">
+                    <AlertTriangle size={48} className="mx-auto text-red-500 mb-4" />
+                    <h2 className="text-xl font-bold mb-2">Lỗi Cấu hình</h2>
+                    <p className="text-slate-400">Không thể kết nối đến Firebase. Vui lòng kiểm tra lại thông tin cấu hình trong code.</p>
                 </div>
-            );
-        };
+            </div>
+        );
 
         // 1. Auth Component
         const AuthScreen = ({ onLogin }) => {
@@ -212,12 +172,14 @@
                 } catch (err) {
                     console.error("Auth Error:", err);
                     let msg = err.message;
-                    if (msg.includes('auth/invalid-credential') || msg.includes('auth/wrong-password') || msg.includes('auth/user-not-found')) {
+                    if (msg.includes('auth/invalid-credential') || msg.includes('auth/wrong-password')) {
                         msg = "Email hoặc mật khẩu không chính xác.";
                     } else if (msg.includes('auth/email-already-in-use')) {
                         msg = "Email này đã được sử dụng.";
                     } else if (msg.includes('auth/weak-password')) {
-                        msg = "Mật khẩu quá yếu (cần ít nhất 6 ký tự).";
+                        msg = "Mật khẩu quá yếu.";
+                    } else if (msg.includes('api-key-not-valid')) {
+                        msg = "Lỗi hệ thống: API Key không hợp lệ.";
                     }
                     setError(msg.replace('Firebase: ', ''));
                 } finally {
@@ -249,7 +211,7 @@
                             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-400">
                                 MedExam Pro
                             </h1>
-                            <p className="text-slate-400 mt-2">Hệ thống ôn thi Chứng chỉ hành nghề Kỹ thuật hình ảnh</p>
+                            <p className="text-slate-400 mt-2">Hệ thống ôn thi Chứng chỉ hành nghề</p>
                         </div>
 
                         {error && (
@@ -339,11 +301,37 @@
             );
         };
 
-        // 2. Import Modal (Existing Code)
+        // 2. Import Modal
         const ImportModal = ({ onClose, onImport }) => {
             const [mode, setMode] = useState('excel');
             const [textData, setTextData] = useState('');
             const [isProcessing, setIsProcessing] = useState(false);
+
+            const handleDownloadTemplate = () => {
+                try {
+                    if (!window.XLSX) return alert("Thư viện Excel chưa sẵn sàng.");
+                    
+                    const wb = window.XLSX.utils.book_new();
+                    // Tạo dữ liệu mẫu
+                    const wsData = [
+                        ["Nội dung câu hỏi", "Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D", "Đáp án đúng"],
+                        ["Xương nào dài nhất cơ thể?", "Xương đùi", "Xương chậu", "Xương sườn", "Xương mác", "A"],
+                        ["MRI là viết tắt của từ gì?", "Magnetic Resonance Imaging", "Medical Radio Imaging", "Magnetic Radio Imaging", "Medical Resonance Imaging", "A"],
+                        ["Tên tiếng Việt của CT Scan là gì?", "Chụp cắt lớp vi tính", "Chụp X-quang", "Chụp cộng hưởng từ", "Siêu âm", "A"],
+                        ["Đơn vị đo liều bức xạ?", "Sievert (Sv)", "Met", "Joule", "Pascal", "A"]
+                    ];
+                    const ws = window.XLSX.utils.aoa_to_sheet(wsData);
+                    
+                    // Thiết lập độ rộng cột (tùy chọn, để xem cho đẹp)
+                    ws['!cols'] = [{wch: 40}, {wch: 20}, {wch: 20}, {wch: 20}, {wch: 20}, {wch: 15}];
+
+                    window.XLSX.utils.book_append_sheet(wb, ws, "Mau_De_Thi");
+                    window.XLSX.writeFile(wb, "MedExam_Mau_De_Thi.xlsx");
+                } catch (e) {
+                    console.error(e);
+                    alert("Lỗi khi tạo file mẫu: " + e.message);
+                }
+            };
 
             const handleExcelUpload = async (e) => {
                 const file = e.target.files[0];
@@ -351,7 +339,6 @@
 
                 setIsProcessing(true);
                 try {
-                    // Check if XLSX is available globally
                     if (!window.XLSX) {
                         throw new Error("Thư viện Excel chưa tải xong. Vui lòng thử lại.");
                     }
@@ -366,8 +353,8 @@
                             const data = window.XLSX.utils.sheet_to_json(ws, { header: 1 });
                             
                             const questions = [];
-                            // Bỏ qua dòng tiêu đề nếu chứa "câu"
-                            const startRow = data[0] && (data[0][0] || '').toString().toLowerCase().includes('câu') ? 1 : 0;
+                            // Bỏ qua dòng tiêu đề nếu chứa "câu hỏi"
+                            const startRow = data[0] && (data[0][0] || '').toString().toLowerCase().includes('câu hỏi') ? 1 : 0;
 
                             for (let i = startRow; i < data.length; i++) {
                                 const row = data[i];
@@ -484,14 +471,21 @@
                         <div className="p-6 overflow-y-auto flex-1">
                             {mode === 'excel' ? (
                                 <div className="space-y-4">
-                                    <div className="bg-cyan-900/20 border border-cyan-500/30 p-4 rounded-lg text-sm text-cyan-100">
-                                        <p className="font-bold mb-2">Cấu trúc file Excel yêu cầu:</p>
-                                        <ul className="list-disc pl-5 space-y-1 text-slate-300">
-                                            <li>Cột A: Nội dung câu hỏi</li>
-                                            <li>Cột B, C, D, E: Các đáp án A, B, C, D</li>
-                                            <li>Cột F: Đáp án đúng (Nhập A, B, C, D hoặc 1, 2, 3, 4)</li>
-                                            <li>Không cần dòng tiêu đề (header)</li>
-                                        </ul>
+                                    <div className="bg-cyan-900/20 border border-cyan-500/30 p-4 rounded-lg text-sm text-cyan-100 flex flex-col md:flex-row justify-between items-start gap-4">
+                                        <div>
+                                            <p className="font-bold mb-2">Cấu trúc file Excel yêu cầu:</p>
+                                            <ul className="list-disc pl-5 space-y-1 text-slate-300">
+                                                <li>Cột A: Nội dung câu hỏi</li>
+                                                <li>Cột B, C, D, E: Các đáp án A, B, C, D</li>
+                                                <li>Cột F: Đáp án đúng (Nhập A, B, C, D)</li>
+                                            </ul>
+                                        </div>
+                                        <button 
+                                            onClick={handleDownloadTemplate}
+                                            className="shrink-0 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-white font-bold text-xs flex items-center gap-2 shadow-lg transition-transform hover:scale-105"
+                                        >
+                                            <Download size={16} /> Tải file mẫu
+                                        </button>
                                     </div>
                                     <div className="border-2 border-dashed border-slate-600 rounded-xl p-8 flex flex-col items-center justify-center text-slate-400 hover:border-cyan-500 hover:bg-slate-800/50 transition-all cursor-pointer relative">
                                         <Upload size={48} className="mb-4 text-slate-500" />
@@ -536,11 +530,12 @@
             );
         };
 
-        // 3. Exam Interface (Existing Code)
+        // 3. Exam Interface - Updated with Submitting State
         const ExamInterface = ({ exam, onFinish }) => {
             const [timeLeft, setTimeLeft] = useState(exam.duration * 60);
             const [answers, setAnswers] = useState({});
             const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+            const [isSubmitting, setIsSubmitting] = useState(false);
 
             useEffect(() => {
                 const handleVisibilityChange = () => {
@@ -569,7 +564,7 @@
             }, []);
 
             useEffect(() => {
-                if (timeLeft <= 0) {
+                if (timeLeft <= 0 && !isSubmitting) {
                     finishExam();
                     return;
                 }
@@ -577,9 +572,12 @@
                     setTimeLeft((prev) => prev - 1);
                 }, 1000);
                 return () => clearInterval(timer);
-            }, [timeLeft]);
+            }, [timeLeft, isSubmitting]);
 
-            const finishExam = () => {
+            const finishExam = async () => {
+                if (isSubmitting) return;
+                setIsSubmitting(true);
+
                 let correctCount = 0;
                 exam.questions.forEach((q, idx) => {
                     if (answers[idx] === q.correctOption) {
@@ -587,7 +585,9 @@
                     }
                 });
                 const score = (correctCount / exam.questions.length) * 10;
-                onFinish({
+                
+                // Gọi hàm lưu (async)
+                await onFinish({
                     examId: exam.id,
                     examTitle: exam.title,
                     score: score.toFixed(1),
@@ -596,6 +596,7 @@
                     date: new Date(),
                     answers
                 });
+                // Không cần setSubmitting(false) vì component sẽ unmount
             };
 
             const formatTime = (seconds) => {
@@ -614,7 +615,7 @@
                         </div>
                     </div>
 
-                    <div className="bg-slate-800 p-4 shadow-md flex justify-between items-center z-10 border-b border-slate-700">
+                    <div className="bg-slate-800 p-4 shadow-md flex justify-between items-center z-10 border-b border-slate-700 relative z-20">
                         <div>
                             <h2 className="text-xl font-bold text-cyan-400">{exam.title}</h2>
                             <div className="text-xs text-slate-400">Câu {currentQuestionIndex + 1} / {exam.questions.length}</div>
@@ -625,9 +626,15 @@
                         </div>
                         <button 
                             onClick={finishExam}
-                            className={`${GRADIENTS.primary} px-6 py-2 rounded-lg font-bold shadow-lg hover:brightness-110`}
+                            disabled={isSubmitting}
+                            className={`${GRADIENTS.primary} px-6 py-2 rounded-lg font-bold shadow-lg hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 min-w-[120px] justify-center`}
                         >
-                            Nộp Bài
+                            {isSubmitting ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    <span>Xử lý...</span>
+                                </>
+                            ) : 'Nộp Bài'}
                         </button>
                     </div>
 
@@ -822,10 +829,7 @@
 
         // --- MAIN APP ---
         function App() {
-            // Nếu chưa cấu hình, hiển thị màn hình hướng dẫn
-            if (!isConfigured) {
-                return <ConfigInstruction />;
-            }
+            if (!isConfigured) return <ConfigError />;
 
             const [user, setUser] = useState(null);
             const [view, setView] = useState('loading');
@@ -836,9 +840,8 @@
             const [isCreatorOpen, setIsCreatorOpen] = useState(false);
 
             useEffect(() => {
-                // Kiểm tra xem Firebase đã khởi tạo chưa
                 if (!auth || !db) {
-                    setView('config-error');
+                    // Nếu lỗi khởi tạo, isConfigured đã là false ở trên
                     return;
                 }
 
@@ -893,16 +896,12 @@
                     });
                 } catch (e) {
                     console.error("Error saving history", e);
+                    // Vẫn hiện kết quả kể cả khi lưu thất bại
                 }
                 setLastResult(resultData);
                 setActiveExam(null);
                 setView('result');
             };
-
-            if (view === 'config-error') {
-                 // Fallback if config passed check but initialization failed
-                return <ConfigInstruction />;
-            }
 
             if (view === 'loading') return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-cyan-500 animate-pulse">Loading MedExam Pro...</div>;
 
