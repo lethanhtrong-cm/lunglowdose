@@ -79,11 +79,11 @@
         import { 
             Activity, AlertTriangle, Award, CheckCircle, Clock, 
             EyeOff, FileSpreadsheet, FileText, FileType, History, 
-            LogOut, Plus, ShieldCheck, Trash2, Upload, User, XCircle, Settings, Loader2, Download
+            LogOut, Plus, ShieldCheck, Trash2, Upload, User, XCircle, Settings, Loader2, Download, HelpCircle
         } from 'lucide-react';
 
         // --- CẤU HÌNH FIREBASE ---
-        // Đã cập nhật theo thông tin bạn cung cấp
+        // Đã cập nhật theo thông tin bạn cung cấp (đã thêm .trim() để tránh lỗi khoảng trắng)
         const defaultFirebaseConfig = {
             apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
             authDomain: "rt-examination.firebaseapp.com",
@@ -104,6 +104,7 @@
                 isConfigured = true;
             } else {
                 firebaseConfig = defaultFirebaseConfig;
+                // Basic check
                 if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
                     isConfigured = true;
                 }
@@ -134,6 +135,24 @@
             accent: "bg-gradient-to-r from-emerald-500 to-teal-600",
             danger: "bg-gradient-to-r from-rose-500 to-pink-600",
             card: "bg-slate-800/50 backdrop-blur-md border border-slate-700",
+        };
+
+        // --- HELPERS ---
+        const handleFirestoreError = (error) => {
+            console.error("Firestore Error:", error);
+            if (error.code === 'permission-denied' || error.message.includes('Missing or insufficient permissions')) {
+                alert(
+                    "⛔ LỖI QUYỀN TRUY CẬP (Permission Denied)\n\n" +
+                    "Nguyên nhân: Firebase Database đang chặn quyền ghi dữ liệu.\n\n" +
+                    "CÁCH SỬA:\n" +
+                    "1. Truy cập Firebase Console > Firestore Database > Rules\n" +
+                    "2. Sửa dòng 'allow read, write: if false;' thành:\n" +
+                    "   allow read, write: if request.auth != null;\n" +
+                    "3. Nhấn Publish."
+                );
+            } else {
+                alert("Lỗi hệ thống: " + error.message);
+            }
         };
 
         // --- COMPONENTS ---
@@ -530,7 +549,7 @@
             );
         };
 
-        // 3. Exam Interface - Updated with Submitting State
+        // 3. Exam Interface - Updated with Timeout Protection
         const ExamInterface = ({ exam, onFinish }) => {
             const [timeLeft, setTimeLeft] = useState(exam.duration * 60);
             const [answers, setAnswers] = useState({});
@@ -884,20 +903,33 @@
                     });
                     setIsCreatorOpen(false);
                 } catch (error) {
-                    alert("Lỗi khi lưu đề thi: " + error.message);
+                    handleFirestoreError(error);
                 }
             };
 
             const handleFinishExam = async (resultData) => {
+                // SỬA LỖI TREO NỘP BÀI: Tạo timeout 3 giây
+                const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 3000));
+                
                 try {
-                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), {
-                        ...resultData,
-                        userId: user.uid
-                    });
+                    if (!db) throw new Error("Database not initialized");
+                    
+                    // Chạy đua giữa việc lưu dữ liệu và timeout
+                    await Promise.race([
+                        addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), {
+                            ...resultData,
+                            userId: user.uid
+                        }),
+                        timeout
+                    ]);
                 } catch (e) {
-                    console.error("Error saving history", e);
-                    // Vẫn hiện kết quả kể cả khi lưu thất bại
+                    if(e.message === "Timeout") {
+                        console.warn("Lưu kết quả quá lâu, bỏ qua chờ đợi.");
+                    } else {
+                        handleFirestoreError(e); // Hiển thị lỗi rõ ràng nếu là lỗi permission
+                    }
                 }
+                
                 setLastResult(resultData);
                 setActiveExam(null);
                 setView('result');
