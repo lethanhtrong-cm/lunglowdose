@@ -3,51 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Watermark Pro Ultimate - Collage Grid</title>
+    <title>Studio Pro - KTV 3 Miền</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Dancing+Script:wght@700&family=Lobster&family=Oswald:wght@500&family=Pacifico&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
     
     <style>
         :root {
+            --ios-bg: #F2F2F7;
             --ios-blue: #007AFF;
             --ios-green: #34C759;
-            --ios-gray-bg: #F2F2F7;
+            --ios-red: #FF3B30;
             --ios-separator: #C6C6C8;
+            --ios-text-secondary: #8E8E93;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Be Vietnam Pro", sans-serif;
-            background-color: var(--ios-gray-bg);
-            color: #1c1c1e;
+            background-color: var(--ios-bg);
+            color: #000;
             -webkit-font-smoothing: antialiased;
             overscroll-behavior: none;
         }
 
-        /* iOS Slider Style */
+        /* iOS Custom Scrollbar */
+        .custom-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.1);
+            border-radius: 10px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(0,0,0,0.2);
+        }
+
+        /* iOS Inputs */
         input[type=range] {
             -webkit-appearance: none;
             width: 100%;
             background: transparent;
         }
-        
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            height: 28px;
-            width: 28px;
+            height: 24px;
+            width: 24px;
             border-radius: 50%;
             background: #ffffff;
             cursor: pointer;
-            margin-top: -12px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15), 0 1px 1px rgba(0,0,0,0.1);
-            border: 0.5px solid rgba(0,0,0,0.04);
+            margin-top: -10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(0,0,0,0.05);
             transition: transform 0.1s;
         }
-
-        input[type=range]::-webkit-slider-thumb:active {
-            transform: scale(0.95);
-        }
-
         input[type=range]::-webkit-slider-runnable-track {
             width: 100%;
             height: 4px;
@@ -55,46 +65,47 @@
             background: #E5E5EA;
             border-radius: 2px;
         }
-        
-        .custom-scroll::-webkit-scrollbar {
-            width: 0px;
-            background: transparent;
-        }
 
         .ios-card {
             background: white;
-            border-radius: 12px;
+            border-radius: 14px;
             overflow: hidden;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
         }
 
         .ios-group-title {
             padding-left: 16px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            margin-top: 16px;
             font-size: 13px;
             text-transform: uppercase;
-            color: #6c6c70;
+            color: var(--ios-text-secondary);
             font-weight: 500;
+            letter-spacing: 0.2px;
         }
 
         .canvas-bg {
+            background-color: #F2F2F7;
             background-image: radial-gradient(#C7C7CC 1px, transparent 1px);
-            background-size: 20px 20px;
+            background-size: 24px 24px;
         }
         
-        .peer:checked ~ .peer-checked-bg {
-            background-color: var(--ios-green);
+        .tool-btn {
+            color: #8E8E93;
+            transition: all 0.2s;
         }
-
         .tool-btn.active {
-            background-color: #E5E5EA;
             color: var(--ios-blue);
+            background-color: #F2F2F7;
+        }
+        .tool-btn:active {
+            opacity: 0.6;
         }
 
         #canvas-wrapper {
             transform-origin: center center;
             transition: transform 0.1s ease-out;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
         }
 
         .screenshot-flash {
@@ -119,12 +130,11 @@
             100% { opacity: 0; }
         }
 
-        /* Grid Icons CSS */
         .grid-icon {
             display: grid;
             gap: 2px;
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             margin: 0 auto;
         }
         .grid-icon div {
@@ -133,323 +143,399 @@
         }
     </style>
 </head>
-<body class="h-screen flex flex-col lg:flex-row overflow-hidden">
+<body class="h-screen flex flex-col overflow-hidden bg-[#F2F2F7]">
 
-    <!-- Sidebar / Control Panel -->
-    <aside class="w-full lg:w-[400px] bg-[#F2F2F7] lg:border-r border-[#C6C6C8] flex flex-col h-full z-20 flex-shrink-0">
-        
-        <!-- Header -->
-        <div class="h-14 shrink-0 bg-[#F2F2F7]/90 backdrop-blur-md border-b border-[#C6C6C8] flex items-center justify-between px-4 sticky top-0 z-10">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i>
-                </div>
-                <h1 class="text-lg font-bold tracking-tight">Studio Pro</h1>
+    <!-- Mobile Header (Only visible on small screens) -->
+    <div class="h-14 shrink-0 bg-[#F9F9F9]/80 backdrop-blur-xl border-b border-[#C6C6C8]/60 flex lg:hidden items-center justify-between px-4 sticky top-0 z-30">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-gradient-to-br from-[#007AFF] to-[#0055B3] rounded-lg shadow-sm flex items-center justify-center text-white shrink-0">
+                <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
             </div>
-            <button onclick="downloadImage()" id="downloadBtn" class="text-[--ios-blue] font-semibold text-lg opacity-50 cursor-not-allowed transition-opacity disabled:opacity-30" disabled>
-                Lưu
-            </button>
+            <div class="flex flex-col justify-center overflow-hidden">
+                <h1 class="text-[15px] font-bold leading-tight text-black tracking-tight truncate">Studio Pro</h1>
+                <span class="text-[10px] font-medium text-[#8E8E93] leading-tight truncate">KTV hình ảnh y học 3 Miền</span>
+            </div>
         </div>
+        <button onclick="downloadImage()" id="downloadBtnMobile" class="text-[--ios-blue] font-semibold text-[15px] opacity-50 cursor-not-allowed transition-opacity disabled:opacity-30 hover:opacity-80" disabled>
+            Lưu
+        </button>
+    </div>
 
-        <!-- Scrollable Controls -->
-        <div class="flex-1 overflow-y-auto custom-scroll p-4 space-y-6 pb-20">
+    <!-- Main Layout Wrapper: Mobile (Col Reverse) vs Desktop (Row) -->
+    <div class="flex flex-col-reverse lg:flex-row flex-1 overflow-hidden">
+
+        <!-- Sidebar / Control Panel -->
+        <!-- Mobile: Bottom section (flex-1 or fixed height logic) | Desktop: Left fixed width -->
+        <aside class="w-full lg:w-[400px] bg-[#F2F2F7] lg:border-r border-t lg:border-t-0 border-[#C6C6C8] flex flex-col z-20 flex-shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] lg:shadow-none h-1/2 lg:h-full">
             
-            <!-- Tool Selection Grid -->
-            <div>
-                <div class="ios-group-title">Công cụ</div>
-                <div class="ios-card grid grid-cols-3 sm:grid-cols-6 divide-x divide-y sm:divide-y-0 divide-gray-200">
-                    <button onclick="setMode('move')" id="btn-move" class="tool-btn active py-3 flex flex-col items-center justify-center gap-1 hover:bg-gray-50 transition-colors" title="Di chuyển">
-                        <i class="fa-solid fa-arrow-pointer text-lg"></i>
-                    </button>
-                    <button onclick="setMode('draw')" id="btn-draw" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 hover:bg-gray-50 transition-colors" title="Vẽ tay">
-                        <i class="fa-solid fa-paintbrush text-lg"></i>
-                    </button>
-                    <button onclick="setMode('arrow')" id="btn-arrow" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 hover:bg-gray-50 transition-colors" title="Vẽ mũi tên">
-                        <i class="fa-solid fa-arrow-right-long text-lg"></i>
-                    </button>
-                    <button onclick="setMode('text')" id="btn-text" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 hover:bg-gray-50 transition-colors" title="Thêm chữ">
-                        <i class="fa-solid fa-t text-lg"></i>
-                    </button>
-                    <button onclick="setMode('crop')" id="btn-crop" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 hover:bg-gray-50 transition-colors" title="Cắt ảnh">
-                        <i class="fa-solid fa-crop-simple text-lg"></i>
-                    </button>
-                    <button onclick="setMode('layout')" id="btn-layout" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 hover:bg-gray-50 transition-colors" title="Ghép ảnh">
-                        <i class="fa-solid fa-table-cells-large text-lg"></i>
-                    </button>
+            <!-- Desktop Header (Hidden on Mobile) -->
+            <div class="h-16 shrink-0 bg-[#F9F9F9]/80 backdrop-blur-xl border-b border-[#C6C6C8]/60 hidden lg:flex items-center justify-between px-5 sticky top-0 z-30">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-[#007AFF] to-[#0055B3] rounded-xl shadow-sm flex items-center justify-center text-white shrink-0">
+                        <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
+                    </div>
+                    <div class="flex flex-col justify-center">
+                        <h1 class="text-[17px] font-bold leading-tight text-black tracking-tight">Studio Pro</h1>
+                        <span class="text-[12px] font-medium text-[#8E8E93] leading-tight mt-0.5">KTV hình ảnh y học 3 Miền</span>
+                    </div>
                 </div>
+                <button onclick="downloadImage()" id="downloadBtn" class="text-[--ios-blue] font-semibold text-[17px] opacity-50 cursor-not-allowed transition-opacity disabled:opacity-30 hover:opacity-80" disabled>
+                    Lưu
+                </button>
             </div>
 
-            <!-- 1. Context: Crop -->
-            <div id="crop-controls" class="hidden">
-                <div class="ios-group-title">Cắt ảnh</div>
-                <div class="ios-card p-2 grid grid-cols-4 gap-2">
-                    <button onclick="applyCropRatio(0)" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium text-center">Tự do</button>
-                    <button onclick="applyCropRatio(1)" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium text-center">1:1</button>
-                    <button onclick="applyCropRatio(16/9)" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium text-center">16:9</button>
-                    <button onclick="applyCropRatio(4/5)" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium text-center">4:5</button>
-                </div>
-                <button onclick="performCrop()" class="w-full mt-3 bg-blue-600 text-white py-3 rounded-xl font-medium shadow-sm hover:bg-blue-700">Xác nhận Cắt</button>
-            </div>
-
-             <!-- 2. Context: Layout (Grid Collage) -->
-             <div id="layout-controls" class="hidden">
-                <div class="ios-group-title">Ghép Ảnh (Layout)</div>
-                <div class="ios-card p-4 space-y-5">
-                    <!-- Grid Selection -->
-                    <div class="space-y-2">
-                        <label class="text-[11px] font-bold text-gray-500 uppercase">Chọn kiểu lưới</label>
-                        <div class="grid grid-cols-3 gap-3">
-                            <!-- 1x1 -->
-                            <button onclick="setGridConfig(1, 1)" class="grid-btn py-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 rounded-lg flex flex-col items-center justify-center gap-1 active:ring-2 ring-blue-500">
-                                <div class="w-6 h-6 border-2 border-current rounded-sm"></div>
-                                <span class="text-[10px] font-medium text-gray-600">1x1</span>
-                            </button>
-                            <!-- 1x2 -->
-                            <button onclick="setGridConfig(1, 2)" class="grid-btn py-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 rounded-lg flex flex-col items-center justify-center gap-1">
-                                <div class="grid-icon" style="grid-template-columns: 1fr 1fr;"><div></div><div></div></div>
-                                <span class="text-[10px] font-medium text-gray-600">1x2</span>
-                            </button>
-                            <!-- 2x1 -->
-                            <button onclick="setGridConfig(2, 1)" class="grid-btn py-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 rounded-lg flex flex-col items-center justify-center gap-1">
-                                <div class="grid-icon" style="grid-template-rows: 1fr 1fr;"><div></div><div></div></div>
-                                <span class="text-[10px] font-medium text-gray-600">2x1</span>
-                            </button>
-                            <!-- 2x2 -->
-                            <button onclick="setGridConfig(2, 2)" class="grid-btn py-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 rounded-lg flex flex-col items-center justify-center gap-1">
-                                <div class="grid-icon" style="grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;"><div></div><div></div><div></div><div></div></div>
-                                <span class="text-[10px] font-medium text-gray-600">2x2</span>
-                            </button>
-                            <!-- 2x3 -->
-                            <button onclick="setGridConfig(2, 3)" class="grid-btn py-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 rounded-lg flex flex-col items-center justify-center gap-1">
-                                <div class="grid-icon" style="grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr;"><div></div><div></div><div></div><div></div><div></div><div></div></div>
-                                <span class="text-[10px] font-medium text-gray-600">2x3</span>
-                            </button>
-                            <!-- 3x3 -->
-                            <button onclick="setGridConfig(3, 3)" class="grid-btn py-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 rounded-lg flex flex-col items-center justify-center gap-1">
-                                <div class="grid-icon" style="grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr;"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
-                                <span class="text-[10px] font-medium text-gray-600">3x3</span>
-                            </button>
-                        </div>
-                    </div>
-                    <!-- Spacing Slider -->
-                    <div class="space-y-1">
-                        <div class="flex justify-between text-xs text-gray-500"><span>Khoảng cách</span><span id="gridGapVal">0px</span></div>
-                        <input type="range" id="gridGap" min="0" max="50" value="0" oninput="updateGridGap(this.value)">
-                    </div>
-                    <!-- Ratio -->
-                    <div class="space-y-2 pt-2 border-t border-gray-100">
-                        <label class="text-[11px] font-bold text-gray-500 uppercase">Tỉ lệ tổng thể</label>
-                        <div class="flex gap-2">
-                            <button onclick="setGridRatio(1)" class="flex-1 py-1.5 text-xs bg-gray-100 rounded hover:bg-gray-200">1:1</button>
-                            <button onclick="setGridRatio(4/3)" class="flex-1 py-1.5 text-xs bg-gray-100 rounded hover:bg-gray-200">4:3</button>
-                            <button onclick="setGridRatio(16/9)" class="flex-1 py-1.5 text-xs bg-gray-100 rounded hover:bg-gray-200">16:9</button>
-                        </div>
-                    </div>
-                    <p class="text-[10px] text-gray-400 italic text-center pt-2">
-                        * Nhấn vào ô trống để thêm ảnh. Nhấn đúp để thay thế.
-                    </p>
-                </div>
-            </div>
-
-            <!-- 3. Context: Draw & Arrow -->
-            <div id="draw-controls" class="hidden">
-                <div class="ios-group-title">Tùy chỉnh nét vẽ</div>
-                <div class="ios-card p-4 space-y-4">
-                    <div class="flex items-center gap-3">
-                         <input type="color" id="drawColor" value="#FF3B30" class="w-10 h-10 rounded-full border-none cursor-pointer overflow-hidden p-0">
-                         <div class="flex-1 space-y-1">
-                             <div class="flex justify-between text-xs text-gray-500"><span>Độ dày</span><span id="brushSizeVal">5px</span></div>
-                             <input type="range" id="brushSize" min="2" max="30" value="5" oninput="document.getElementById('brushSizeVal').innerText = this.value + 'px'">
-                         </div>
-                    </div>
-                    <button onclick="undoLastPath()" class="w-full py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200 text-gray-700">
-                        <i class="fa-solid fa-rotate-left mr-2"></i> Hoàn tác nét cuối
-                    </button>
-                </div>
-            </div>
-
-            <!-- 4. Context: Add Text -->
-            <div id="text-tool-controls" class="hidden">
-                <div class="ios-group-title">Chỉnh sửa văn bản</div>
-                <div class="ios-card p-4 space-y-4">
-                    <p class="text-[11px] text-gray-400 italic mb-2 text-center">Nhấn vào ảnh để thêm chữ, hoặc chọn chữ có sẵn để sửa.</p>
-                    <div id="text-edit-panel" class="opacity-50 pointer-events-none transition-opacity">
-                        <textarea id="annotationInput" rows="2" class="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-[--ios-blue] outline-none mb-3" placeholder="Nội dung..."></textarea>
-                        <div class="flex gap-2 mb-3">
-                            <input type="color" id="annotationColor" class="w-10 h-10 rounded border-none p-0 cursor-pointer flex-shrink-0">
-                            <select id="annotationFont" class="flex-1 text-sm border border-gray-200 rounded-lg p-2 bg-white">
-                                <option value="Arial">Arial</option>
-                                <option value="'Be Vietnam Pro'">Be Vietnam Pro</option>
-                                <option value="'Dancing Script'">Dancing Script</option>
-                                <option value="'Lobster'">Lobster</option>
-                                <option value="'Oswald'">Oswald</option>
-                                <option value="'Pacifico'">Pacifico</option>
-                                <option value="'Roboto Mono'">Roboto Mono</option>
-                            </select>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 mb-3">
-                            <button onclick="toggleAnnotationStyle('bold')" id="btn-bold" class="py-2 bg-gray-100 rounded hover:bg-gray-200 text-sm font-bold">B</button>
-                            <button onclick="toggleAnnotationStyle('italic')" id="btn-italic" class="py-2 bg-gray-100 rounded hover:bg-gray-200 text-sm italic">I</button>
-                        </div>
-                        <div class="space-y-1">
-                             <div class="flex justify-between text-xs text-gray-500"><span>Kích thước</span><span id="annotationSizeVal">40</span></div>
-                             <input type="range" id="annotationSize" min="10" max="500" value="40">
-                        </div>
-                        <button onclick="deleteSelectedText()" class="w-full mt-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100">
-                            <i class="fa-regular fa-trash-can mr-2"></i> Xóa chữ này
+            <!-- Scrollable Controls -->
+            <div class="flex-1 overflow-y-auto custom-scroll px-4 pb-20 lg:pb-8 pt-2 space-y-2">
+                
+                <!-- Tool Selection Grid -->
+                <div class="sticky top-0 bg-[#F2F2F7] z-10 py-2">
+                    <!-- <div class="ios-group-title mt-0">Công cụ</div> -->
+                    <div class="ios-card grid grid-cols-7 divide-x divide-gray-200/60 bg-white overflow-x-auto">
+                        <button onclick="setMode('move')" id="btn-move" class="tool-btn active py-3 flex flex-col items-center justify-center gap-1 min-w-[45px]" title="Di chuyển">
+                            <i class="fa-solid fa-arrow-pointer text-lg"></i>
+                        </button>
+                        <button onclick="setMode('pan')" id="btn-pan" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 min-w-[45px]" title="Pan">
+                            <i class="fa-solid fa-hand text-lg"></i>
+                        </button>
+                        <button onclick="setMode('draw')" id="btn-draw" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 min-w-[45px]" title="Vẽ">
+                            <i class="fa-solid fa-paintbrush text-lg"></i>
+                        </button>
+                        <button onclick="setMode('arrow')" id="btn-arrow" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 min-w-[45px]" title="Mũi tên">
+                            <i class="fa-solid fa-arrow-right-long text-lg"></i>
+                        </button>
+                        <button onclick="setMode('text')" id="btn-text" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 min-w-[45px]" title="Chữ">
+                            <i class="fa-solid fa-font text-lg"></i>
+                        </button>
+                        <button onclick="setMode('crop')" id="btn-crop" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 min-w-[45px]" title="Cắt">
+                            <i class="fa-solid fa-crop-simple text-lg"></i>
+                        </button>
+                        <button onclick="setMode('layout')" id="btn-layout" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 min-w-[45px]" title="Ghép">
+                            <i class="fa-solid fa-table-cells-large text-lg"></i>
                         </button>
                     </div>
                 </div>
-            </div>
 
-            <!-- Standard Controls -->
-            <div id="standard-controls">
-                <div>
-                    <div class="ios-group-title">Ảnh gốc / Grid Cell</div>
-                    <div class="space-y-3">
-                        <input type="file" id="gridCellInput" accept="image/*" class="hidden" onchange="handleGridImageUpload(event)">
-                         <button onclick="handleScreenCapture()" class="w-full bg-blue-50 text-blue-600 hover:bg-blue-100 active:bg-blue-200 py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2 shadow-sm border border-blue-100">
-                            <i class="fa-solid fa-desktop"></i>
-                            <span>Chụp Màn Hình</span>
-                        </button>
-                        <div class="ios-card">
-                            <div class="relative group active:opacity-70 transition-opacity">
-                                <input type="file" id="uploadImage" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
-                                <label for="uploadImage" class="flex items-center p-3 cursor-pointer">
-                                    <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 mr-3">
-                                        <i class="fa-regular fa-folder-open text-lg"></i>
-                                    </div>
-                                    <div class="flex-1 overflow-hidden">
-                                        <div class="font-medium text-[15px] truncate" id="fileName">Chọn file từ máy...</div>
-                                    </div>
-                                    <div class="text-xs text-gray-400">JPG/PNG</div>
-                                </label>
-                            </div>
-                        </div>
+                <!-- 1. Context: Crop -->
+                <div id="crop-controls" class="hidden">
+                    <div class="ios-group-title">Cắt ảnh</div>
+                    <div class="ios-card p-3 bg-[#FFF9C4]/30 border border-[#FBC02D]/20 mb-2">
+                        <p class="text-[11px] text-[#826A20] font-medium text-center flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-scissors"></i> Kéo khung để cắt
+                        </p>
                     </div>
+                    <div class="ios-card p-1.5 grid grid-cols-5 gap-1.5 bg-white">
+                        <button onclick="applyCropRatio(0)" class="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-[11px] font-semibold text-center text-gray-700 transition">Tự do</button>
+                        <button onclick="applyCropRatio(1)" class="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-[11px] font-semibold text-center text-gray-700 transition">1:1</button>
+                        <button onclick="applyCropRatio(16/9)" class="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-[11px] font-semibold text-center text-gray-700 transition">16:9</button>
+                        <button onclick="applyCropRatio(4/5)" class="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-[11px] font-semibold text-center text-gray-700 transition">4:5</button>
+                        <button onclick="applyCropRatio(0.5)" class="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-[11px] font-semibold text-center text-gray-700 transition">1:2</button>
+                    </div>
+                    <button onclick="performCrop()" class="w-full mt-3 bg-[--ios-blue] text-white py-2.5 rounded-xl font-semibold shadow-md shadow-blue-200 active:scale-[0.98] transition-transform text-sm">
+                        <i class="fa-solid fa-check mr-2"></i> Xác nhận Cắt
+                    </button>
                 </div>
 
-                <!-- Logo Section -->
-                <div class="mt-6">
-                    <div class="ios-group-title">Logo Bản Quyền</div>
-                    <div class="ios-card divide-y divide-[#C6C6C8]/30">
-                        <div class="flex items-center justify-between p-3">
-                            <span class="text-[15px] font-medium flex items-center gap-2"><i class="fa-solid fa-stamp text-pink-500"></i> Bật Logo</span>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="enableLogo" class="sr-only peer" onchange="toggleSection('enableLogo', 'logoControls')">
-                                <div class="w-[42px] h-[26px] bg-[#E9E9EA] peer-focus:outline-none rounded-full peer peer-checked-bg transition-colors duration-200"></div>
-                                <div class="absolute left-[2px] top-[2px] bg-white w-[22px] h-[22px] rounded-full shadow-sm transition-transform duration-200 peer-checked:translate-x-[16px]"></div>
-                            </label>
-                        </div>
-                        <div id="logoControls" class="hidden p-3 bg-[#F9F9FB] space-y-4">
-                            <input type="file" id="uploadLogo" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
-                            <label for="uploadLogo" class="block w-full text-center py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium shadow-sm cursor-pointer hover:bg-gray-50">
-                                Chọn file Logo
-                            </label>
-                            
-                            <!-- BG Removal -->
-                            <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm space-y-2">
-                                <div class="flex items-center justify-between mb-1">
-                                    <label class="text-[11px] font-bold text-gray-600 uppercase tracking-wide">Xóa nền Logo</label>
-                                    <button onclick="resetLogo()" class="text-[10px] text-blue-500 hover:text-blue-700 font-medium">Khôi phục</button>
-                                </div>
-                                <div>
-                                    <button onclick="removeLogoBackground('white')" class="w-full flex items-center justify-center gap-2 py-2 bg-gray-50 border border-gray-200 rounded text-xs font-medium hover:bg-white hover:border-gray-300 transition-all text-gray-700">
-                                        <div class="w-3 h-3 bg-white border border-gray-300 rounded-sm"></div> Xóa Nền Trắng
-                                    </button>
-                                </div>
-                                <label class="flex items-center gap-2 text-[11px] text-gray-600 mt-2 bg-gray-50 p-1.5 rounded border border-gray-100">
-                                    <input type="checkbox" id="floodFillMode" checked class="rounded text-blue-600 focus:ring-blue-500 w-3.5 h-3.5" onchange="reapplyBackgroundRemoval()"> 
-                                    <span>Chỉ xóa viền ngoài (Giữ nội dung)</span>
-                                </label>
-                                <div class="flex items-center gap-2 pt-1">
-                                    <span class="text-[10px] text-gray-400 w-12">Độ nhạy:</span>
-                                    <input type="range" id="bgTolerance" min="1" max="150" value="30" class="flex-1 h-1.5" oninput="reapplyBackgroundRemoval()"> 
-                                </div>
+                 <!-- 2. Context: Layout (Grid) -->
+                 <div id="layout-controls" class="hidden">
+                    <div class="ios-group-title">Bố cục</div>
+                    <div class="ios-card p-4 space-y-4 bg-white">
+                        
+                        <!-- Cell Actions -->
+                        <div id="cell-actions" class="hidden p-3 bg-blue-50/50 rounded-xl border border-blue-100 space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[11px] font-bold text-blue-600 uppercase tracking-wide">Ô Đang Chọn</span>
+                                <button onclick="replaceSelectedCell()" class="text-xs bg-white border border-blue-200 px-3 py-1 rounded-full text-blue-600 font-medium shadow-sm active:bg-blue-50">Đổi ảnh</button>
                             </div>
-
-                            <div class="space-y-3 pt-2">
-                                <div class="space-y-1">
-                                    <div class="flex justify-between text-xs text-gray-500"><span>Kích thước</span><span id="logoSizeVal">30%</span></div>
-                                    <input type="range" id="logoSize" min="5" max="100" value="30" oninput="drawCanvas()">
-                                </div>
-                                <div class="space-y-1">
-                                    <div class="flex justify-between text-xs text-gray-500"><span>Độ mờ</span><span id="logoOpacityVal">100%</span></div>
-                                    <input type="range" id="logoOpacity" min="0" max="100" value="100" oninput="drawCanvas()">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Watermark Text -->
-                <div class="mt-6">
-                    <div class="ios-group-title">Watermark Text (Cố định)</div>
-                    <div class="ios-card divide-y divide-[#C6C6C8]/30">
-                        <div class="flex items-center justify-between p-3">
-                            <span class="text-[15px] font-medium flex items-center gap-2"><i class="fa-solid fa-copyright text-indigo-500"></i> Bật Watermark</span>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="enableText" class="sr-only peer" onchange="toggleSection('enableText', 'textControls')">
-                                <div class="w-[42px] h-[26px] bg-[#E9E9EA] peer-focus:outline-none rounded-full peer peer-checked-bg transition-colors duration-200"></div>
-                                <div class="absolute left-[2px] top-[2px] bg-white w-[22px] h-[22px] rounded-full shadow-sm transition-transform duration-200 peer-checked:translate-x-[16px]"></div>
-                            </label>
-                        </div>
-                        <div id="textControls" class="hidden p-3 bg-[#F9F9FB] space-y-4">
-                            <input type="text" id="watermarkText" placeholder="Nhập nội dung..." class="w-full border-none rounded-lg p-2 text-sm shadow-sm focus:ring-2 focus:ring-[--ios-blue]" oninput="drawCanvas()">
                             <div class="flex gap-2">
-                                <input type="color" id="textColor" value="#ffffff" class="w-10 h-10 rounded border-none p-0 cursor-pointer" oninput="drawCanvas()">
-                                <select id="textFont" class="flex-1 text-sm border-none rounded-lg p-2 shadow-sm" onchange="drawCanvas()">
+                                <button onclick="fitSelectedCell('contain')" class="flex-1 py-1.5 bg-white border border-blue-200 rounded-lg text-xs font-medium text-blue-700 shadow-sm">Vừa khung</button>
+                                <button onclick="fitSelectedCell('cover')" class="flex-1 py-1.5 bg-white border border-blue-200 rounded-lg text-xs font-medium text-blue-700 shadow-sm">Lấp đầy</button>
+                            </div>
+                        </div>
+
+                        <!-- Grid Picker -->
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <label class="text-[12px] font-semibold text-gray-900">Kiểu lưới</label>
+                                <button onclick="exitGridMode()" class="text-[11px] text-red-500 hover:text-red-600 font-medium px-2 py-1 rounded bg-red-50">Hủy ghép</button>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button onclick="setGridConfig(1, 1)" class="grid-btn py-3 bg-gray-50 border border-gray-200 rounded-lg flex flex-col items-center justify-center gap-1 active:ring-2 ring-[--ios-blue] transition-all">
+                                    <div class="w-5 h-5 border-2 border-gray-400 rounded-sm"></div>
+                                    <span class="text-[10px] font-medium text-gray-500">1x1</span>
+                                </button>
+                                <button onclick="setGridConfig(1, 2)" class="grid-btn py-3 bg-gray-50 border border-gray-200 rounded-lg flex flex-col items-center justify-center gap-1">
+                                    <div class="grid-icon text-gray-400" style="grid-template-columns: 1fr 1fr;"><div></div><div></div></div>
+                                    <span class="text-[10px] font-medium text-gray-500">1x2</span>
+                                </button>
+                                <button onclick="setGridConfig(2, 1)" class="grid-btn py-3 bg-gray-50 border border-gray-200 rounded-lg flex flex-col items-center justify-center gap-1">
+                                    <div class="grid-icon text-gray-400" style="grid-template-rows: 1fr 1fr;"><div></div><div></div></div>
+                                    <span class="text-[10px] font-medium text-gray-500">2x1</span>
+                                </button>
+                                <button onclick="setGridConfig(2, 2)" class="grid-btn py-3 bg-gray-50 border border-gray-200 rounded-lg flex flex-col items-center justify-center gap-1">
+                                    <div class="grid-icon text-gray-400" style="grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;"><div></div><div></div><div></div><div></div></div>
+                                    <span class="text-[10px] font-medium text-gray-500">2x2</span>
+                                </button>
+                                <button onclick="setGridConfig(2, 3)" class="grid-btn py-3 bg-gray-50 border border-gray-200 rounded-lg flex flex-col items-center justify-center gap-1">
+                                    <div class="grid-icon text-gray-400" style="grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr;"><div></div><div></div><div></div><div></div><div></div><div></div></div>
+                                    <span class="text-[10px] font-medium text-gray-500">2x3</span>
+                                </button>
+                                <button onclick="setGridConfig(3, 3)" class="grid-btn py-3 bg-gray-50 border border-gray-200 rounded-lg flex flex-col items-center justify-center gap-1">
+                                    <div class="grid-icon text-gray-400" style="grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr;"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+                                    <span class="text-[10px] font-medium text-gray-500">3x3</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Spacing -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-[12px] font-medium text-gray-500"><span>Khoảng cách</span><span id="gridGapVal">0px</span></div>
+                            <input type="range" id="gridGap" min="0" max="50" value="0" oninput="updateGridGap(this.value)" class="accent-[--ios-blue]">
+                        </div>
+                        
+                        <!-- Ratio -->
+                        <div class="space-y-2 pt-3 border-t border-gray-100">
+                            <label class="text-[12px] font-semibold text-gray-900">Tỉ lệ khung</label>
+                            <div class="flex gap-2">
+                                <button onclick="setGridRatio(1)" class="flex-1 py-1.5 text-xs bg-gray-100 rounded-lg hover:bg-gray-200 font-medium text-gray-600 transition">1:1</button>
+                                <button onclick="setGridRatio(4/3)" class="flex-1 py-1.5 text-xs bg-gray-100 rounded-lg hover:bg-gray-200 font-medium text-gray-600 transition">4:3</button>
+                                <button onclick="setGridRatio(16/9)" class="flex-1 py-1.5 text-xs bg-gray-100 rounded-lg hover:bg-gray-200 font-medium text-gray-600 transition">16:9</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Context: Draw -->
+                <div id="draw-controls" class="hidden">
+                    <div class="ios-group-title">Vẽ</div>
+                    <div class="ios-card p-4 space-y-4 bg-white">
+                        <div class="flex items-center gap-4">
+                             <div class="relative w-10 h-10 rounded-full overflow-hidden shadow-sm ring-1 ring-gray-200">
+                                 <input type="color" id="drawColor" value="#FF3B30" class="absolute -top-2 -left-2 w-16 h-16 cursor-pointer">
+                             </div>
+                             <div class="flex-1 space-y-1">
+                                 <div class="flex justify-between text-xs text-gray-500 font-medium"><span>Độ dày</span><span id="brushSizeVal">5px</span></div>
+                                 <input type="range" id="brushSize" min="2" max="30" value="5" oninput="document.getElementById('brushSizeVal').innerText = this.value + 'px'" class="accent-[--ios-blue]">
+                             </div>
+                        </div>
+                        <button onclick="undoLastPath()" class="w-full py-2.5 bg-gray-100 rounded-xl text-sm font-medium hover:bg-gray-200 text-gray-700 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-rotate-left text-gray-500"></i> Hoàn tác
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4. Context: Text -->
+                <div id="text-tool-controls" class="hidden">
+                    <div class="ios-group-title">Văn bản</div>
+                    <div class="ios-card p-4 space-y-4 bg-white">
+                        <div id="text-edit-panel" class="opacity-50 pointer-events-none transition-opacity">
+                            <textarea id="annotationInput" rows="2" class="w-full bg-[#F2F2F7] border-none rounded-xl p-3 text-[15px] focus:ring-2 focus:ring-[--ios-blue] placeholder-gray-400 mb-3 resize-none" placeholder="Nhập nội dung..."></textarea>
+                            
+                            <div class="flex gap-2 mb-3">
+                                <div class="w-10 h-10 rounded-lg overflow-hidden shadow-sm ring-1 ring-gray-200 shrink-0 relative">
+                                    <input type="color" id="annotationColor" class="absolute -top-2 -left-2 w-16 h-16 cursor-pointer">
+                                </div>
+                                <select id="annotationFont" class="flex-1 text-sm bg-[#F2F2F7] border-none rounded-xl px-3 font-medium text-gray-700">
                                     <option value="Arial">Arial</option>
                                     <option value="'Be Vietnam Pro'">Be Vietnam Pro</option>
+                                    <option value="'Dancing Script'">Dancing Script</option>
+                                    <option value="'Lobster'">Lobster</option>
+                                    <option value="'Oswald'">Oswald</option>
+                                    <option value="'Pacifico'">Pacifico</option>
                                     <option value="'Roboto Mono'">Roboto Mono</option>
                                 </select>
                             </div>
+
+                            <div class="grid grid-cols-2 gap-2 mb-4">
+                                <button onclick="toggleAnnotationStyle('bold')" id="btn-bold" class="py-2 bg-[#F2F2F7] rounded-lg hover:bg-gray-200 text-sm font-bold text-gray-700">B</button>
+                                <button onclick="toggleAnnotationStyle('italic')" id="btn-italic" class="py-2 bg-[#F2F2F7] rounded-lg hover:bg-gray-200 text-sm italic text-gray-700">I</button>
+                            </div>
+
+                            <div class="space-y-2">
+                                 <div class="flex justify-between text-xs text-gray-500 font-medium"><span>Kích thước</span><span id="annotationSizeVal">40</span></div>
+                                 <input type="range" id="annotationSize" min="10" max="500" value="40" class="accent-[--ios-blue]">
+                            </div>
                             
-                            <!-- Text Controls & Rotation -->
-                            <div class="space-y-3">
-                                <div class="space-y-1">
-                                    <div class="flex justify-between text-xs text-gray-500"><span>Cỡ chữ</span><span id="textSizeVal">40</span></div>
-                                    <input type="range" id="textSize" min="10" max="500" value="40" oninput="drawCanvas()">
+                            <button onclick="deleteSelectedText()" class="w-full mt-5 py-2.5 bg-red-50 text-[--ios-red] rounded-xl text-sm font-semibold hover:bg-red-100 flex items-center justify-center gap-2 transition">
+                                <i class="fa-regular fa-trash-can"></i> Xóa chữ này
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Standard Controls -->
+                <div id="standard-controls">
+                    <div>
+                        <div class="ios-group-title">Nguồn Ảnh</div>
+                        <div class="space-y-3">
+                            <input type="file" id="gridCellInput" accept="image/*" class="hidden" onchange="handleGridImageUpload(event)">
+                             <button onclick="handleScreenCapture()" class="w-full bg-white text-[--ios-blue] hover:bg-blue-50 active:scale-[0.99] py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-sm border border-gray-200">
+                                <i class="fa-solid fa-desktop"></i>
+                                <span>Chụp Màn Hình</span>
+                            </button>
+                            <div class="ios-card bg-white">
+                                <div class="relative group active:opacity-70 transition-opacity">
+                                    <input type="file" id="uploadImage" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                                    <label for="uploadImage" class="flex items-center p-3.5 cursor-pointer">
+                                        <div class="w-10 h-10 rounded-xl bg-[#F2F2F7] flex items-center justify-center text-gray-500 mr-3">
+                                            <i class="fa-regular fa-folder-open text-lg"></i>
+                                        </div>
+                                        <div class="flex-1 overflow-hidden">
+                                            <div class="font-semibold text-[15px] text-gray-900 truncate" id="fileName">Tải ảnh lên...</div>
+                                            <div class="text-[11px] text-gray-400 mt-0.5">JPG, PNG, WEBP</div>
+                                        </div>
+                                        <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
+                                    </label>
                                 </div>
-                                <div class="space-y-1">
-                                    <div class="flex justify-between text-xs text-gray-500"><span>Độ mờ</span><span id="textOpacityVal">80%</span></div>
-                                    <input type="range" id="textOpacity" min="0" max="100" value="80" oninput="drawCanvas()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logo Section -->
+                    <div class="mt-4">
+                        <div class="ios-group-title">Logo</div>
+                        <div class="ios-card bg-white">
+                            <div class="flex items-center justify-between p-3.5 border-b border-gray-100">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-7 h-7 rounded-lg bg-pink-500 flex items-center justify-center text-white text-xs">
+                                        <i class="fa-solid fa-stamp"></i>
+                                    </div>
+                                    <span class="text-[15px] font-semibold text-gray-900">Chèn Logo</span>
                                 </div>
-                                <!-- New Rotation Slider -->
-                                <div class="space-y-1">
-                                    <div class="flex justify-between text-xs text-gray-500"><span>Góc xoay</span><span id="textRotationVal">0°</span></div>
-                                    <input type="range" id="textRotation" min="-180" max="180" value="0" oninput="drawCanvas()">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="enableLogo" class="sr-only peer" onchange="toggleSection('enableLogo', 'logoControls')">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[--ios-green]"></div>
+                                </label>
+                            </div>
+                            
+                            <div id="logoControls" class="hidden p-4 bg-[#F9F9F9] space-y-4">
+                                <!-- Upload Area -->
+                                <div class="flex gap-2">
+                                    <input type="file" id="uploadLogo" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
+                                    <label for="uploadLogo" class="flex-1 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold shadow-sm cursor-pointer hover:bg-gray-50 flex items-center justify-center gap-2 text-gray-700">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i> Chọn Logo
+                                    </label>
+                                    <button onclick="removeCurrentLogo()" id="btnRemoveLogo" class="hidden px-3 py-2 bg-white border border-red-200 text-[--ios-red] rounded-lg text-xs hover:bg-red-50">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- BG Removal -->
+                                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <label class="text-[11px] font-bold text-gray-500 uppercase">Xóa nền</label>
+                                        <button onclick="resetLogo()" class="text-[11px] text-[--ios-blue] font-medium">Khôi phục</button>
+                                    </div>
+                                    <button onclick="removeLogoBackground('white')" class="w-full py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 transition flex items-center justify-center gap-2">
+                                        <div class="w-3 h-3 bg-white border border-gray-300 rounded-sm"></div> Xóa Nền Trắng
+                                    </button>
+                                    
+                                    <div class="space-y-2 pt-1 border-t border-gray-50">
+                                        <div class="flex justify-between text-[11px] text-gray-400"><span>Độ nhạy</span></div>
+                                        <input type="range" id="bgTolerance" min="1" max="150" value="30" class="accent-gray-500" oninput="reapplyBackgroundRemoval()"> 
+                                    </div>
+                                    <label class="flex items-center gap-2 text-[11px] text-gray-500">
+                                        <input type="checkbox" id="floodFillMode" checked class="rounded text-[--ios-blue] focus:ring-0 w-3.5 h-3.5" onchange="reapplyBackgroundRemoval()"> 
+                                        <span>Chỉ xóa viền ngoài</span>
+                                    </label>
+                                </div>
+
+                                <div class="space-y-3 pt-1">
+                                    <div class="space-y-1">
+                                        <div class="flex justify-between text-[12px] font-medium text-gray-500"><span>Kích thước</span><span id="logoSizeVal">30%</span></div>
+                                        <input type="range" id="logoSize" min="5" max="100" value="30" class="accent-[--ios-blue]" oninput="drawCanvas()">
+                                    </div>
+                                    <div class="space-y-1">
+                                        <div class="flex justify-between text-[12px] font-medium text-gray-500"><span>Độ mờ</span><span id="logoOpacityVal">100%</span></div>
+                                        <input type="range" id="logoOpacity" min="0" max="100" value="100" class="accent-[--ios-blue]" oninput="drawCanvas()">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Watermark Text -->
+                    <div class="mt-4">
+                        <div class="ios-group-title">Chữ ký</div>
+                        <div class="ios-card bg-white">
+                            <div class="flex items-center justify-between p-3.5 border-b border-gray-100">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center text-white text-xs">
+                                        <i class="fa-solid fa-copyright"></i>
+                                    </div>
+                                    <span class="text-[15px] font-semibold text-gray-900">Watermark</span>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="enableText" class="sr-only peer" onchange="toggleSection('enableText', 'textControls')">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[--ios-green]"></div>
+                                </label>
+                            </div>
+                            <div id="textControls" class="hidden p-4 bg-[#F9F9F9] space-y-4">
+                                <input type="text" id="watermarkText" placeholder="Nhập nội dung..." class="w-full bg-white border border-gray-200 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[--ios-blue] outline-none" oninput="drawCanvas()">
+                                
+                                <div class="flex gap-2">
+                                    <div class="w-10 h-10 rounded-lg overflow-hidden shadow-sm ring-1 ring-gray-200 shrink-0 relative bg-white">
+                                        <input type="color" id="textColor" value="#ffffff" class="absolute -top-2 -left-2 w-16 h-16 cursor-pointer" oninput="drawCanvas()">
+                                    </div>
+                                    <select id="textFont" class="flex-1 text-sm bg-white border border-gray-200 rounded-lg px-2 font-medium text-gray-700" onchange="drawCanvas()">
+                                        <option value="Arial">Arial</option>
+                                        <option value="'Be Vietnam Pro'">Be Vietnam Pro</option>
+                                        <option value="'Roboto Mono'">Roboto Mono</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="space-y-3">
+                                    <div class="space-y-1">
+                                        <div class="flex justify-between text-[12px] font-medium text-gray-500"><span>Cỡ chữ</span><span id="textSizeVal">40</span></div>
+                                        <input type="range" id="textSize" min="10" max="500" value="40" class="accent-[--ios-blue]" oninput="drawCanvas()">
+                                    </div>
+                                    <div class="space-y-1">
+                                        <div class="flex justify-between text-[12px] font-medium text-gray-500"><span>Độ mờ</span><span id="textOpacityVal">80%</span></div>
+                                        <input type="range" id="textOpacity" min="0" max="100" value="80" class="accent-[--ios-blue]" oninput="drawCanvas()">
+                                    </div>
+                                    <div class="space-y-1">
+                                        <div class="flex justify-between text-[12px] font-medium text-gray-500"><span>Góc xoay</span><span id="textRotationVal">0°</span></div>
+                                        <input type="range" id="textRotation" min="-180" max="180" value="0" class="accent-[--ios-blue]" oninput="drawCanvas()">
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </aside>
 
-    <!-- Main Workspace -->
-    <main class="flex-1 relative bg-[#E5E5EA] flex flex-col overflow-hidden">
-        <!-- Zoom -->
-        <div class="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-white/80 backdrop-blur rounded-full shadow-sm px-4 py-2 flex items-center gap-4 border border-white/20 select-none">
-            <button onclick="adjustZoom(-0.1)" class="text-gray-600 hover:text-black w-6 text-center"><i class="fa-solid fa-minus"></i></button>
-            <span id="zoomLevel" class="text-xs font-bold font-mono w-12 text-center">100%</span>
-            <button onclick="adjustZoom(0.1)" class="text-gray-600 hover:text-black w-6 text-center"><i class="fa-solid fa-plus"></i></button>
-            <div class="w-px h-4 bg-gray-300 mx-1"></div>
-            <button onclick="resetZoom()" class="text-xs font-medium text-blue-600">Fit</button>
-        </div>
+                <!-- Footer -->
+                <div class="pt-8 pb-4 text-center">
+                    <p class="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">© 2024 KTV hình ảnh y học 3 Miền</p>
+                    <p class="text-[10px] text-gray-300">Privacy Safe • Local Processing</p>
+                </div>
+            </div>
+        </aside>
 
-        <div class="flex-1 flex items-center justify-center p-8 overflow-hidden relative canvas-bg" id="canvas-container">
-            <div id="placeholder" class="absolute z-10 text-center text-gray-400 pointer-events-none">
-                <i class="fa-regular fa-images text-5xl mb-4 opacity-50"></i>
-                <p class="text-[17px] font-medium mt-4">Chưa có ảnh</p>
-                <p class="text-sm mt-1">Dán ảnh (Ctrl+V) hoặc Chọn kiểu lưới (Layout)</p>
+        <!-- Main Workspace (Canvas) -->
+        <!-- Mobile: Top section (fixed height) | Desktop: Right fluid width -->
+        <main class="w-full lg:flex-1 h-[50vh] lg:h-full relative bg-[#E5E5EA] flex flex-col overflow-hidden border-b lg:border-b-0 lg:border-l border-[#C6C6C8]">
+            <!-- Zoom -->
+            <div class="absolute top-6 left-1/2 -translate-x-1/2 z-30 bg-white/80 backdrop-blur-xl rounded-full shadow-lg border border-white/40 px-4 py-2 flex items-center gap-4 select-none">
+                <button onclick="adjustZoom(-0.1)" class="text-gray-600 hover:text-black w-6 text-center text-lg font-bold transition">-</button>
+                <span id="zoomLevel" class="text-xs font-bold font-mono w-10 text-center text-gray-800">100%</span>
+                <button onclick="adjustZoom(0.1)" class="text-gray-600 hover:text-black w-6 text-center text-lg font-bold transition">+</button>
+                <div class="w-px h-4 bg-gray-300 mx-1"></div>
+                <button onclick="resetZoom()" class="text-xs font-semibold text-[--ios-blue] hover:text-blue-700 transition">Fit</button>
             </div>
-            <div id="canvas-wrapper">
-                <canvas id="canvas" class="hidden cursor-crosshair shadow-2xl bg-white"></canvas>
+
+            <div class="flex-1 flex items-center justify-center p-8 overflow-hidden relative canvas-bg" id="canvas-container">
+                <div id="placeholder" class="absolute z-10 text-center text-gray-400 pointer-events-none">
+                    <i class="fa-regular fa-images text-6xl mb-6 opacity-30 text-gray-400"></i>
+                    <p class="text-lg font-semibold text-gray-500">Chưa có ảnh</p>
+                    <p class="text-sm text-gray-400 mt-1 font-medium">Chọn ảnh hoặc Layout để bắt đầu</p>
+                </div>
+                <!-- Canvas Wrapper for Zoom & Pan -->
+                <div id="canvas-wrapper">
+                    <canvas id="canvas" class="hidden cursor-crosshair shadow-2xl rounded-sm bg-white"></canvas>
+                </div>
             </div>
-        </div>
-    </main>
+        </main>
+
+    </div>
 
     <script>
         // --- Global State ---
@@ -458,8 +544,15 @@
         let logoImgOriginal = null;
         let logoBgState = { type: null, tolerance: 30 };
 
+        // Pending state for upload->crop flow
+        let pendingCropImg = null;
+        let pendingCropTarget = null; // 'main' or {type: 'grid', index: 0}
+
         let currentMode = 'move'; 
         let zoomScale = 1.0;
+        let panOffset = { x: 0, y: 0 }; // Viewport Pan offset
+        let isPanningView = false;
+        let startPanClient = { x: 0, y: 0 };
         
         // Grid State
         let gridState = {
@@ -468,10 +561,10 @@
             cols: 1,
             gap: 0,
             ratio: 1,
-            images: [], // Array of { img: ImageObject } or null. Index = cell index.
+            images: [], // Array of { img: ImageObject, x:0, y:0, scale:1, fit:'cover' }
             cells: [] // Array of rects {x,y,w,h} calculated on draw
         };
-        let activeGridCellIndex = -1; // For uploading
+        let activeGridCellIndex = -1; // Currently selected cell
 
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -486,15 +579,29 @@
 
         let isDrawing = false;
         let cropStart = null, cropCurrent = null, isCropping = false;
+        
+        // Move Crop Vars
+        let isMovingCrop = false;
+        let lastCropPos = {x: 0, y: 0};
+        
+        // Resize Crop Vars
+        let isResizingCrop = false;
+        let resizeHandle = null; 
+        
+        // Grid Interaction Vars
+        let isDraggingGridImage = false;
+        let lastGridDragPos = {x: 0, y: 0};
 
         function init() {
             canvas.addEventListener('mousedown', handlePointerDown);
             window.addEventListener('mousemove', handlePointerMove);
             window.addEventListener('mouseup', handlePointerUp);
             canvas.addEventListener('dblclick', handleDoubleClick);
+            // Add wheel listener for zooming inside grid cells
+            canvas.addEventListener('wheel', handleWheel, {passive: false});
             
             canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handlePointerDown(e.touches[0]); }, {passive: false});
-            window.addEventListener('touchmove', (e) => { if(isDrawing || isCropping) e.preventDefault(); handlePointerMove(e.touches[0]); }, {passive: false});
+            window.addEventListener('touchmove', (e) => { if(isDrawing || isCropping || isPanningView || isMovingCrop || isDraggingGridImage) e.preventDefault(); handlePointerMove(e.touches[0]); }, {passive: false});
             window.addEventListener('touchend', handlePointerUp);
             
             window.addEventListener('paste', handlePaste);
@@ -504,7 +611,7 @@
 
         function setMode(mode) {
             currentMode = mode;
-            ['move', 'draw', 'arrow', 'text', 'crop', 'layout'].forEach(m => {
+            ['move', 'draw', 'arrow', 'text', 'crop', 'layout', 'pan'].forEach(m => {
                 const btn = document.getElementById('btn-' + m);
                 if (btn) btn.classList.toggle('active', m === mode);
             });
@@ -514,108 +621,250 @@
             toggleElement('draw-controls', mode === 'draw' || mode === 'arrow');
             toggleElement('text-tool-controls', mode === 'text');
             
-            const isEditing = mode === 'crop'; // Layout is now a primary mode
+            // Show cell actions if in layout mode and cell selected
+            if (mode === 'layout' && activeGridCellIndex !== -1 && gridState.active) {
+                document.getElementById('cell-actions').classList.remove('hidden');
+            } else {
+                document.getElementById('cell-actions').classList.add('hidden');
+            }
+            
+            const isEditing = mode === 'crop' || mode === 'layout';
             document.getElementById('standard-controls').classList.toggle('opacity-30', isEditing);
             document.getElementById('standard-controls').classList.toggle('pointer-events-none', isEditing);
             
+            // Cursor
             if (mode === 'move') canvas.style.cursor = 'default';
             else if (mode === 'text') canvas.style.cursor = 'text';
             else if (mode === 'crop') canvas.style.cursor = 'crosshair';
+            else if (mode === 'pan') canvas.style.cursor = 'grab';
             else canvas.style.cursor = 'crosshair';
 
             drawCanvas();
         }
 
+        // --- View Transform Logic (Zoom & Pan) ---
+        function updateTransform() {
+            wrapper.style.transform = `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale})`;
+            document.getElementById('zoomLevel').innerText = Math.round(zoomScale * 100) + '%';
+        }
+
+        function adjustZoom(delta) {
+            let newScale = zoomScale + delta;
+            newScale = Math.round(newScale * 10) / 10;
+            zoomScale = Math.max(0.1, Math.min(5.0, newScale));
+            updateTransform();
+        }
+
+        function resetZoom() {
+            let contentW, contentH;
+            
+            // Xác định kích thước nội dung hiện tại
+            if (pendingCropImg) {
+                contentW = pendingCropImg.width;
+                contentH = pendingCropImg.height;
+            } else if (gridState.active) {
+                contentW = canvas.width;
+                contentH = canvas.height;
+            } else if (mainImg) {
+                contentW = mainImg.width;
+                contentH = mainImg.height;
+            } else {
+                return;
+            }
+
+            // Kích thước khung chứa (trừ padding)
+            const containerW = container.clientWidth - 60; 
+            const containerH = container.clientHeight - 60;
+
+            // Tính tỷ lệ để vừa khít cả chiều ngang và dọc
+            const scaleX = containerW / contentW;
+            const scaleY = containerH / contentH;
+            
+            // Chọn tỷ lệ nhỏ hơn để đảm bảo ảnh nằm gọn trong khung
+            let fitScale = Math.min(scaleX, scaleY);
+
+            // Giới hạn: Không tự động phóng to quá 100% nếu ảnh nhỏ hơn khung
+            if (fitScale > 1.0) fitScale = 1.0;
+            
+            zoomScale = fitScale;
+            panOffset = {x:0, y:0}; 
+            updateTransform();
+        }
+
         // --- Grid Logic ---
         function setGridConfig(rows, cols) {
+            if (pendingCropImg) return;
+
             gridState.active = true;
             gridState.rows = rows;
             gridState.cols = cols;
-            // Initialize images array if smaller
             const count = rows * cols;
-            // Keep existing images if possible, otherwise null
             const newImages = new Array(count).fill(null);
             
-            // If mainImg exists and we are starting grid, put it in first cell
+            // Nếu có ảnh Main (ở chế độ đơn) và chưa có ảnh trong grid, đưa ảnh Main vào ô đầu tiên
             if (mainImg && !gridState.images.length) {
-                newImages[0] = { img: mainImg };
+                newImages[0] = { img: mainImg, x:0, y:0, scale:1, fit:'cover' };
             } else {
-                // Transfer existing
+                // Nếu đã có Grid, copy ảnh cũ sang layout mới
                 for(let i=0; i<Math.min(gridState.images.length, count); i++) {
                     newImages[i] = gridState.images[i];
                 }
             }
-            gridState.images = newImages;
             
-            // Set canvas size for grid if not set (default 2048px base)
+            gridState.images = newImages;
+            activeGridCellIndex = -1;
+            
             if (!mainImg) {
                 canvas.width = 1500;
-                canvas.height = 1500; // Default square
+                canvas.height = 1500;
                 document.getElementById('placeholder').classList.add('hidden');
                 canvas.classList.remove('hidden');
             }
             
-            // Recalculate aspect based on ratio
             updateGridDimensions();
+            // Enter layout mode automatically to show cell selection
+            setMode('layout');
+        }
+        
+        function exitGridMode() {
+            // Revert to Single Mode
+            // Logic: Take the first image from grid as Main Image, or clear if empty
+            if (gridState.images[0] && gridState.images[0].img) {
+                mainImg = gridState.images[0].img;
+            }
+            gridState.active = false;
+            // gridState.images = []; // Optional: keep or clear? Clearing avoids ghosting later
+            // Better clear to be safe when toggling back
+            // But user might want to toggle back and forth?
+            // "Hủy ghép" implies resetting to single.
+            
+            // Reset canvas size to image size
+            if (mainImg) {
+                canvas.width = mainImg.width;
+                canvas.height = mainImg.height;
+                resetZoom();
+            }
+            setMode('move');
             drawCanvas();
         }
         
-        function updateGridGap(val) {
-            gridState.gap = parseInt(val);
-            drawCanvas();
-        }
-        
-        function setGridRatio(ratio) {
-            gridState.ratio = ratio;
-            updateGridDimensions();
-            drawCanvas();
-        }
+        function updateGridGap(val) { gridState.gap = parseInt(val); drawCanvas(); }
+        function setGridRatio(ratio) { gridState.ratio = ratio; updateGridDimensions(); drawCanvas(); }
         
         function updateGridDimensions() {
-            // Adjust canvas height based on width to match ratio
-            // Keep width fixed or max
             const w = canvas.width;
             const h = w / gridState.ratio;
             canvas.height = h;
         }
 
         function handleGridClick(pos) {
-            // Find which cell
             for (let i = 0; i < gridState.cells.length; i++) {
                 const r = gridState.cells[i];
                 if (pos.x >= r.x && pos.x <= r.x + r.w && pos.y >= r.y && pos.y <= r.y + r.h) {
                     // Clicked cell i
-                    activeGridCellIndex = i;
-                    document.getElementById('gridCellInput').click();
+                    const cellData = gridState.images[i];
+                    
+                    if (cellData && cellData.img) {
+                        // Select Cell
+                        activeGridCellIndex = i;
+                        // Enable layout mode to show controls
+                        setMode('layout');
+                    } else {
+                        // Empty cell -> Upload
+                        activeGridCellIndex = i;
+                        document.getElementById('gridCellInput').click();
+                    }
+                    drawCanvas();
                     return true;
                 }
             }
+            // Click outside cells -> Deselect
+            if (gridState.active && activeGridCellIndex !== -1) {
+                activeGridCellIndex = -1;
+                drawCanvas();
+                // Update UI visibility
+                if (currentMode === 'layout') setMode('layout');
+            }
             return false;
         }
+        
+        // Grid Cell Actions
+        function replaceSelectedCell() {
+            if(activeGridCellIndex !== -1) {
+                document.getElementById('gridCellInput').click();
+            }
+        }
+        
+        function fitSelectedCell(mode) {
+            if(activeGridCellIndex !== -1 && gridState.images[activeGridCellIndex]) {
+                const cell = gridState.images[activeGridCellIndex];
+                cell.fit = mode; // 'cover' or 'contain'
+                // Reset transform
+                cell.x = 0; cell.y = 0; cell.scale = 1;
+                drawCanvas();
+            }
+        }
+
+        // --- Upload & Crop Flow Handlers ---
 
         function handleGridImageUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
+            startUploadFlow(file, {type: 'grid', index: activeGridCellIndex});
+            e.target.value = '';
+        }
+
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            startUploadFlow(file, 'main');
+            e.target.value = '';
+        }
+
+        function handlePaste(e) {
+            const items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile();
+                    // If grid active, paste into first empty or active? Default to main for now to trigger flow
+                    startUploadFlow(blob, gridState.active ? {type: 'grid', index: 0} : 'main');
+                    e.preventDefault();
+                    break;
+                }
+            }
+        }
+
+        function startUploadFlow(fileBlob, target) {
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = new Image();
                 img.onload = function() {
-                    if (activeGridCellIndex >= 0 && activeGridCellIndex < gridState.images.length) {
-                        gridState.images[activeGridCellIndex] = { img: img };
-                        
-                        // If 1x1, treat as mainImg update too
-                        if (gridState.rows === 1 && gridState.cols === 1) {
-                            mainImg = img;
-                        }
-                        drawCanvas();
-                    }
+                    // Set Pending State
+                    pendingCropImg = img;
+                    pendingCropTarget = target;
+                    
+                    // Switch to Crop Mode automatically
+                    setMode('crop');
+                    
+                    // Initialize Crop Rect to full image
+                    const w = img.width;
+                    const h = img.height;
+                    cropStart = { x: 0, y: 0 };
+                    cropCurrent = { x: w, y: h };
+                    
+                    // Temporarily resize canvas to fit pending image for cropping
+                    canvas.width = w;
+                    canvas.height = h;
+                    
+                    resetZoom();
+                    document.getElementById('placeholder').classList.add('hidden');
+                    canvas.classList.remove('hidden');
+                    drawCanvas();
                 }
                 img.src = event.target.result;
             }
-            reader.readAsDataURL(file);
-            e.target.value = ''; // Reset
+            reader.readAsDataURL(fileBlob);
         }
-
 
         // --- Standard Image Logic ---
 
@@ -639,66 +888,13 @@
                         document.body.appendChild(flash);
                         setTimeout(() => flash.remove(), 500);
 
-                        loadMainImage(captureCanvas.toDataURL("image/png"));
+                        captureCanvas.toBlob(blob => startUploadFlow(blob, 'main'));
+                        
                     }, 300);
                 };
             } catch (err) {
                 console.error(err);
-                if (err.name !== 'NotAllowedError') alert("Lỗi chụp màn hình.");
             }
-        }
-
-        function handlePaste(e) {
-            const items = e.clipboardData.items;
-            for (let i = 0; i < items.length; i++) {
-                if (items[i].type.indexOf('image') !== -1) {
-                    const blob = items[i].getAsFile();
-                    const reader = new FileReader();
-                    reader.onload = (event) => loadMainImage(event.target.result);
-                    reader.readAsDataURL(blob);
-                    e.preventDefault();
-                    break;
-                }
-            }
-        }
-
-        function handleImageUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            document.getElementById('fileName').innerText = file.name;
-            const reader = new FileReader();
-            reader.onload = (event) => loadMainImage(event.target.result);
-            reader.readAsDataURL(file);
-        }
-
-        function loadMainImage(src) {
-            const img = new Image();
-            img.onload = function() {
-                mainImg = img;
-                // If grid is not active, reset canvas to this image
-                if (!gridState.active) {
-                    canvas.width = mainImg.width;
-                    canvas.height = mainImg.height;
-                } else {
-                    // If grid is active, put this in cell 0 or active cell?
-                    // Let's assume standard upload replaces main canvas -> resets grid
-                    // Unless specifically in layout mode.
-                    // For simplicity: Loading "Main Image" resets to Single Mode
-                    gridState.active = false;
-                    canvas.width = mainImg.width;
-                    canvas.height = mainImg.height;
-                }
-                
-                drawingPaths = []; textObjects = [];
-                resetZoom();
-                document.getElementById('placeholder').classList.add('hidden');
-                canvas.classList.remove('hidden');
-                document.getElementById('downloadBtn').disabled = false;
-                document.getElementById('downloadBtn').classList.remove('opacity-50', 'cursor-not-allowed');
-                document.getElementById('fileName').innerText = "Đã tải ảnh";
-                drawCanvas();
-            }
-            img.src = src;
         }
 
         function handleLogoUpload(e) {
@@ -710,6 +906,10 @@
                 img.onload = function() {
                     logoImg = img; logoImgOriginal = img; logoBgState.type = null;
                     if (!document.getElementById('enableLogo').checked) document.getElementById('enableLogo').click();
+                    
+                    // Hiển thị nút xóa logo
+                    document.getElementById('btnRemoveLogo').classList.remove('hidden');
+                    
                     drawCanvas();
                 }
                 img.src = event.target.result;
@@ -717,29 +917,36 @@
             reader.readAsDataURL(file);
         }
 
+        // Hàm xóa logo mới
+        function removeCurrentLogo() {
+            logoImg = null;
+            logoImgOriginal = null;
+            logoBgState.type = null;
+            document.getElementById('uploadLogo').value = ''; // Reset input file
+            document.getElementById('btnRemoveLogo').classList.add('hidden'); // Ẩn nút xóa
+            drawCanvas();
+        }
+
+        // --- Logo BG Removal ---
         function removeLogoBackground(type) {
             if (!logoImgOriginal) return;
             logoBgState.type = type;
             processLogoBackground();
         }
-
         function reapplyBackgroundRemoval() {
             if (!logoBgState.type || !logoImgOriginal) return;
             logoBgState.tolerance = parseInt(document.getElementById('bgTolerance').value);
             processLogoBackground();
         }
-
         function resetLogo() {
             if (!logoImgOriginal) return;
             logoImg = logoImgOriginal; logoBgState.type = null;
             drawCanvas();
         }
-
         function processLogoBackground() {
             const tol = logoBgState.tolerance;
             const type = logoBgState.type;
             const floodFillMode = document.getElementById('floodFillMode').checked;
-
             const c = document.createElement('canvas');
             c.width = logoImgOriginal.width; c.height = logoImgOriginal.height;
             const cx = c.getContext('2d');
@@ -793,19 +1000,42 @@
         // --- Drawing Logic ---
 
         function drawCanvas() {
-            // Clear
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
             updateLabels();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw Base: Either Main Image or Grid
+            // 1. Draw Content
+            if (pendingCropImg) {
+                // If in crop flow, ONLY draw the pending image
+                ctx.drawImage(pendingCropImg, 0, 0);
+                
+                // Draw Crop Overlay
+                if (cropStart && cropCurrent) {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx.fillRect(0,0, canvas.width, canvas.height);
+                    const rx = Math.min(cropStart.x, cropCurrent.x);
+                    const ry = Math.min(cropStart.y, cropCurrent.y);
+                    const rw = Math.abs(cropStart.x - cropCurrent.x);
+                    const rh = Math.abs(cropStart.y - cropCurrent.y);
+                    
+                    ctx.clearRect(rx, ry, rw, rh);
+                    ctx.drawImage(pendingCropImg, rx, ry, rw, rh, rx, ry, rw, rh);
+                    
+                    // Style
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'; ctx.lineWidth = 4; ctx.strokeRect(rx, ry, rw, rh);
+                    ctx.strokeStyle = '#007AFF'; ctx.lineWidth = 2; ctx.strokeRect(rx, ry, rw, rh);
+                    drawCropHandles(ctx, rx, ry, rw, rh);
+                }
+                return; // Stop here
+            }
+
+            // Normal Draw Flow
             if (gridState.active) {
                 drawGrid();
             } else if (mainImg) {
                 ctx.drawImage(mainImg, 0, 0);
             }
 
-            // Don't draw overlays if we are just setting up layout? No, we should allow overlays.
-
+            // 2. Overlays
             drawingPaths.forEach(path => {
                 if (path.points.length < 2) return;
                 ctx.beginPath(); ctx.lineWidth = path.size; ctx.strokeStyle = path.color;
@@ -871,63 +1101,75 @@
                     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                     ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 4 * scaleFactor;
                     
-                    // Translate to position, rotate, then draw at origin
                     ctx.translate(x, y);
                     ctx.rotate(rotationRad);
                     ctx.fillText(text, 0, 0);
-                    
                     const metrics = ctx.measureText(text);
-                    const w = metrics.width; 
-                    const h = fontSize;
-                    
-                    // Store hit rect parameters (center, dims, angle)
-                    wmHit = { cx: x, cy: y, w: w, h: h, angle: rotationRad };
-                    
+                    wmHit = { cx: x, cy: y, w: metrics.width, h: fontSize, angle: rotationRad };
                     ctx.restore();
                 }
             }
             canvas.hitRects.logo = logoHit; canvas.hitRects.wm = wmHit;
 
-            if (currentMode === 'crop' && cropStart && cropCurrent) {
+            // Main crop mode (manual re-crop)
+            if (!pendingCropImg && currentMode === 'crop' && cropStart && cropCurrent) {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; ctx.fillRect(0,0, canvas.width, canvas.height);
                 const rx = Math.min(cropStart.x, cropCurrent.x); const ry = Math.min(cropStart.y, cropCurrent.y);
                 const rw = Math.abs(cropStart.x - cropCurrent.x); const rh = Math.abs(cropStart.y - cropCurrent.y);
-                
-                // Draw Base again to clear dim
                 if(gridState.active) {
                      ctx.save(); ctx.beginPath(); ctx.rect(rx, ry, rw, rh); ctx.clip(); drawGrid(); ctx.restore();
                 } else if(mainImg) {
                     ctx.drawImage(mainImg, rx, ry, rw, rh, rx, ry, rw, rh);
                 }
-
-                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(rx, ry, rw, rh);
-                ctx.fillStyle = 'white'; ctx.font = 'bold 12px sans-serif'; ctx.fillText("Nhấp đúp để cắt", rx + 5, ry - 8);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'; ctx.lineWidth = 4; ctx.strokeRect(rx, ry, rw, rh);
+                ctx.strokeStyle = '#007AFF'; ctx.lineWidth = 2; ctx.strokeRect(rx, ry, rw, rh);
+                drawCropHandles(ctx, rx, ry, rw, rh);
             }
         }
         
+        function drawCropHandles(ctx, x, y, w, h) {
+            const size = Math.max(12, canvas.width / 120); 
+            ctx.fillStyle = '#007AFF'; ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2;
+            const handles = [
+                {x: x, y: y}, {x: x + w/2, y: y}, {x: x + w, y: y},
+                {x: x + w, y: y + h/2}, {x: x + w, y: y + h}, {x: x + w/2, y: y + h},
+                {x: x, y: y + h}, {x: x, y: y + h/2}
+            ];
+            handles.forEach(h => {
+                ctx.beginPath(); ctx.arc(h.x, h.y, size/2, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+            });
+        }
+
+        function getResizeHandle(pos, x, y, w, h) {
+            const size = Math.max(24, canvas.width / 80); 
+            const handles = {
+                'nw': {x: x, y: y}, 'n': {x: x + w/2, y: y}, 'ne': {x: x + w, y: y},
+                'e': {x: x + w, y: y + h/2}, 'se': {x: x + w, y: y + h}, 's': {x: x + w/2, y: y + h},
+                'sw': {x: x, y: y + h}, 'w': {x: x, y: y + h/2}
+            };
+            for (const [key, p] of Object.entries(handles)) {
+                if (pos.x >= p.x - size/2 && pos.x <= p.x + size/2 && pos.y >= p.y - size/2 && pos.y <= p.y + size/2) return key;
+            }
+            return null;
+        }
+        
         function drawGrid() {
-            // Draw background (white)
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
             const gap = gridState.gap;
             const rows = gridState.rows;
             const cols = gridState.cols;
-            
             const cellW = (canvas.width - gap * (cols - 1)) / cols;
             const cellH = (canvas.height - gap * (rows - 1)) / rows;
             
             gridState.cells = [];
-            
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
                     const idx = r * cols + c;
                     const cellX = c * (cellW + gap);
                     const cellY = r * (cellH + gap);
-                    
                     gridState.cells[idx] = { x: cellX, y: cellY, w: cellW, h: cellH };
                     
-                    // Draw cell content
                     ctx.save();
                     ctx.beginPath();
                     ctx.rect(cellX, cellY, cellW, cellH);
@@ -935,53 +1177,63 @@
                     
                     const cellData = gridState.images[idx];
                     if (cellData && cellData.img) {
-                        drawImageCover(ctx, cellData.img, cellX, cellY, cellW, cellH);
+                        drawGridImage(ctx, cellData, cellX, cellY, cellW, cellH);
                     } else {
-                        // Draw Placeholder
                         ctx.fillStyle = '#f3f4f6';
                         ctx.fillRect(cellX, cellY, cellW, cellH);
-                        
-                        // Plus Icon
-                        ctx.strokeStyle = '#d1d5db';
-                        ctx.lineWidth = 3;
-                        const cx = cellX + cellW/2;
-                        const cy = cellY + cellH/2;
-                        const s = Math.min(cellW, cellH) * 0.15;
-                        
+                        ctx.strokeStyle = '#d1d5db'; ctx.lineWidth = 3;
+                        const cx = cellX + cellW/2; const cy = cellY + cellH/2; const s = Math.min(cellW, cellH) * 0.15;
                         ctx.beginPath();
                         ctx.moveTo(cx - s, cy); ctx.lineTo(cx + s, cy);
                         ctx.moveTo(cx, cy - s); ctx.lineTo(cx, cy + s);
                         ctx.stroke();
-                        
-                        ctx.fillStyle = '#9ca3af';
-                        ctx.font = '12px sans-serif';
-                        ctx.textAlign = 'center';
+                        ctx.fillStyle = '#9ca3af'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
                         ctx.fillText('Thêm ảnh', cx, cy + s + 15);
                     }
-                    
                     ctx.restore();
+                    
+                    // Draw selection border
+                    if (idx === activeGridCellIndex) {
+                        ctx.strokeStyle = '#007AFF'; ctx.lineWidth = 4;
+                        ctx.strokeRect(cellX, cellY, cellW, cellH);
+                    }
                 }
             }
         }
         
-        function drawImageCover(ctx, img, x, y, w, h) {
+        function drawGridImage(ctx, cellData, x, y, w, h) {
+            const img = cellData.img;
             const imgRatio = img.width / img.height;
             const containerRatio = w / h;
             let sx, sy, sWidth, sHeight;
 
-            if (containerRatio > imgRatio) {
-                sWidth = img.width;
-                sHeight = img.width / containerRatio;
-                sx = 0;
-                sy = (img.height - sHeight) / 2;
-            } else {
-                sWidth = img.height * containerRatio;
-                sHeight = img.height;
-                sx = (img.width - sWidth) / 2;
-                sy = 0;
+            // Base dimensions to Fit/Cover
+            if (cellData.fit === 'contain') {
+                if (containerRatio > imgRatio) {
+                    sHeight = h; sWidth = h * imgRatio;
+                } else {
+                    sWidth = w; sHeight = w / imgRatio;
+                }
+            } else { // 'cover' (default)
+                if (containerRatio > imgRatio) {
+                    sWidth = w; sHeight = w / imgRatio;
+                } else {
+                    sHeight = h; sWidth = h * imgRatio;
+                }
             }
+            
+            // Apply Transform
+            const scale = cellData.scale || 1;
+            const finalW = sWidth * scale;
+            const finalH = sHeight * scale;
+            
+            // Center + Offset
+            const centerX = x + w/2;
+            const centerY = y + h/2;
+            const drawX = centerX - finalW/2 + (cellData.x || 0);
+            const drawY = centerY - finalH/2 + (cellData.y || 0);
 
-            ctx.drawImage(img, sx, sy, sWidth, sHeight, x, y, w, h);
+            ctx.drawImage(img, drawX, drawY, finalW, finalH);
         }
 
         function drawArrow(ctx, x1, y1, x2, y2, size) {
@@ -1000,55 +1252,100 @@
         }
 
         function handlePointerDown(e) {
-            // Check grid click first if active
             const pos = getCanvasPos(e);
             
-            if (gridState.active) {
-                // Check Grid Cells
-                if (handleGridClick(pos)) return;
-            } else if (!mainImg) {
-                // If no image and not grid, do nothing or trigger main upload
+            // Pan Tool (Global View)
+            if (currentMode === 'pan') {
+                isPanningView = true;
+                startPanClient = { x: e.clientX, y: e.clientY };
+                canvas.style.cursor = 'grabbing';
                 return;
             }
 
-            // Standard handlers
+            // Grid Logic
+            if (gridState.active && !pendingCropImg && currentMode !== 'crop') {
+                // Annotations Priority check
+                if(currentMode === 'move' || currentMode === 'text') {
+                    const hits = canvas.hitRects || {};
+                    if(hits.wm && hits.wm.angle) {
+                         const dx = pos.x - hits.wm.cx; const dy = pos.y - hits.wm.cy;
+                         const cos = Math.cos(-hits.wm.angle); const sin = Math.sin(-hits.wm.angle);
+                         const rx = dx * cos - dy * sin; const ry = dx * sin + dy * cos;
+                         if (rx >= -hits.wm.w/2 && rx <= hits.wm.w/2 && ry >= -hits.wm.h/2 && ry <= hits.wm.h/2) { watermarkState.isDragging = true; return; }
+                    } else if (hits.wm && hitTest(pos, hits.wm)) { watermarkState.isDragging = true; return; }
+                    if (hits.logo && hitTest(pos, hits.logo)) { logoState.isDragging = true; return; }
+                    // Annotations...
+                    for (let i = hits.texts.length - 1; i >= 0; i--) {
+                        const r = hits.texts[i];
+                        if (pos.x >= r.x && pos.x <= r.x + r.w && pos.y >= r.y && pos.y <= r.y + r.h) {
+                            selectedTextIndex = i; textObjects[i].isDragging = true; setMode('text'); updateTextPanelUI(); return;
+                        }
+                    }
+                }
+                
+                // Grid Selection / Interaction
+                // FIX: Chỉ cho phép chọn ô lưới khi KHÔNG phải là các chế độ vẽ/text
+                if (currentMode !== 'draw' && currentMode !== 'arrow' && currentMode !== 'text') {
+                    if (handleGridClick(pos)) {
+                        // Check if we started dragging a selected filled cell
+                        if (activeGridCellIndex !== -1 && gridState.images[activeGridCellIndex]) {
+                            isDraggingGridImage = true;
+                            lastGridDragPos = pos;
+                            canvas.style.cursor = 'move';
+                        }
+                        return;
+                    }
+                }
+            }
+
+            // FIX: Cho phép vẽ khi đang dùng Grid (gridState.active) dù mainImg null
+            if (!mainImg && !gridState.active && !pendingCropImg) return;
+
+            // Crop Mode
+            if (currentMode === 'crop') {
+                if (cropStart && cropCurrent) {
+                    const rx = Math.min(cropStart.x, cropCurrent.x);
+                    const ry = Math.min(cropStart.y, cropCurrent.y);
+                    const rw = Math.abs(cropStart.x - cropCurrent.x);
+                    const rh = Math.abs(cropStart.y - cropCurrent.y);
+
+                    const handle = getResizeHandle(pos, rx, ry, rw, rh);
+                    if (handle) {
+                        isResizingCrop = true; resizeHandle = handle;
+                        cropStart = {x: rx, y: ry}; cropCurrent = {x: rx + rw, y: ry + rh};
+                        return;
+                    }
+                    if (pos.x >= rx && pos.x <= rx + rw && pos.y >= ry && pos.y <= ry + rh) {
+                        isMovingCrop = true; lastCropPos = pos; canvas.style.cursor = 'move';
+                        return;
+                    }
+                }
+                isCropping = true;
+                if (!cropStart) { cropStart = pos; cropCurrent = pos; } else { cropStart = pos; cropCurrent = pos; }
+                drawCanvas();
+                return;
+            }
+
+            // Standard Move/Text logic ...
             if (currentMode === 'move') {
                 const hits = canvas.hitRects || {};
-                
-                // 1. Text Annotations
                 for (let i = hits.texts.length - 1; i >= 0; i--) {
                     const r = hits.texts[i];
                     if (pos.x >= r.x && pos.x <= r.x + r.w && pos.y >= r.y && pos.y <= r.y + r.h) {
                         selectedTextIndex = i; textObjects[i].isDragging = true; setMode('text'); updateTextPanelUI(); return;
                     }
                 }
-                
-                // 2. Global Watermark (Now with Rotation support)
                 if (hits.wm) {
-                    // Specialized Hit Test for Rotated Text
                     if (hits.wm.angle) {
-                        // Translate point relative to center
-                        const dx = pos.x - hits.wm.cx;
-                        const dy = pos.y - hits.wm.cy;
-                        // Rotate point inverse
-                        const cos = Math.cos(-hits.wm.angle);
-                        const sin = Math.sin(-hits.wm.angle);
-                        const rx = dx * cos - dy * sin;
-                        const ry = dx * sin + dy * cos;
-                        
-                        // Check axis aligned box centered at 0
-                        if (rx >= -hits.wm.w/2 && rx <= hits.wm.w/2 && ry >= -hits.wm.h/2 && ry <= hits.wm.h/2) {
-                            watermarkState.isDragging = true; return;
-                        }
-                    } else if (hitTest(pos, hits.wm)) {
-                        // Fallback for non-rotated (should not happen with new structure but safe to keep)
-                        watermarkState.isDragging = true; return; 
-                    }
+                        const dx = pos.x - hits.wm.cx; const dy = pos.y - hits.wm.cy;
+                        const cos = Math.cos(-hits.wm.angle); const sin = Math.sin(-hits.wm.angle);
+                        const rx = dx * cos - dy * sin; const ry = dx * sin + dy * cos;
+                        if (rx >= -hits.wm.w/2 && rx <= hits.wm.w/2 && ry >= -hits.wm.h/2 && ry <= hits.wm.h/2) { watermarkState.isDragging = true; return; }
+                    } else if (hitTest(pos, hits.wm)) { watermarkState.isDragging = true; return; }
                 }
-                
-                // 3. Logo
                 if (hits.logo && hitTest(pos, hits.logo)) { logoState.isDragging = true; return; }
             } else if (currentMode === 'text') {
+                // ... (Text adding/selecting logic) ...
                 const hits = canvas.hitRects || {}; let hitFound = false;
                 for (let i = hits.texts.length - 1; i >= 0; i--) {
                     const r = hits.texts[i];
@@ -1065,44 +1362,113 @@
                 const size = parseInt(document.getElementById('brushSize').value) * (canvas.width / 1000);
                 drawingPaths.push({ type: currentMode === 'arrow'?'arrow':'brush', points: [pos], color: color, size: size });
                 drawCanvas();
-            } else if (currentMode === 'crop') {
-                isCropping = true; cropStart = pos; cropCurrent = pos; drawCanvas();
             }
         }
 
         function handlePointerMove(e) {
-            if (!mainImg && !gridState.active) return;
-            const pos = getCanvasPos(e);
-            if (logoState.isDragging) {
-                const hit = canvas.hitRects.logo;
-                if(hit) { logoState.x = Math.max(0, Math.min(1, (pos.x - hit.w/2) / (canvas.width - hit.w))); logoState.y = Math.max(0, Math.min(1, (pos.y - hit.h/2) / (canvas.height - hit.h))); drawCanvas(); }
+            if (isPanningView) {
+                const dx = e.clientX - startPanClient.x; const dy = e.clientY - startPanClient.y;
+                startPanClient = { x: e.clientX, y: e.clientY };
+                panOffset.x += dx; panOffset.y += dy; updateTransform(); return;
             }
+
+            if (!mainImg && !gridState.active && !pendingCropImg) return;
+            const pos = getCanvasPos(e);
+
+            // Grid Image Dragging (Pan inside cell)
+            if (isDraggingGridImage && activeGridCellIndex !== -1) {
+                const dx = pos.x - lastGridDragPos.x;
+                const dy = pos.y - lastGridDragPos.y;
+                const cell = gridState.images[activeGridCellIndex];
+                if(cell) {
+                    cell.x = (cell.x || 0) + dx;
+                    cell.y = (cell.y || 0) + dy;
+                    drawCanvas();
+                }
+                lastGridDragPos = pos;
+                return;
+            }
+
+            // Crop Handles Cursor
+            if (currentMode === 'crop' && cropStart && cropCurrent && !isCropping && !isMovingCrop && !isResizingCrop) {
+                const rx = Math.min(cropStart.x, cropCurrent.x); const ry = Math.min(cropStart.y, cropCurrent.y);
+                const rw = Math.abs(cropStart.x - cropCurrent.x); const rh = Math.abs(cropStart.y - cropCurrent.y);
+                const handle = getResizeHandle(pos, rx, ry, rw, rh);
+                if (handle) {
+                    const cursorMap = { 'n': 'ns-resize', 's': 'ns-resize', 'e': 'ew-resize', 'w': 'ew-resize', 'ne': 'nesw-resize', 'sw': 'nesw-resize', 'nw': 'nwse-resize', 'se': 'nwse-resize' };
+                    canvas.style.cursor = cursorMap[handle];
+                } else if (pos.x >= rx && pos.x <= rx + rw && pos.y >= ry && pos.y <= ry + rh) {
+                    canvas.style.cursor = 'move';
+                } else { canvas.style.cursor = 'crosshair'; }
+            }
+
+            if (isResizingCrop) {
+                if (resizeHandle.includes('e')) cropCurrent.x = pos.x;
+                if (resizeHandle.includes('w')) cropStart.x = pos.x;
+                if (resizeHandle.includes('s')) cropCurrent.y = pos.y;
+                if (resizeHandle.includes('n')) cropStart.y = pos.y;
+                drawCanvas(); return;
+            }
+
+            if (isMovingCrop) {
+                const dx = pos.x - lastCropPos.x; const dy = pos.y - lastCropPos.y;
+                // ... (clamp logic same as v8) ...
+                cropStart.x += dx; cropStart.y += dy; cropCurrent.x += dx; cropCurrent.y += dy;
+                lastCropPos = pos; drawCanvas(); return;
+            }
+
+            if (isCropping) { cropCurrent = pos; drawCanvas(); return; }
+
+            if (logoState.isDragging) { /* ... */ logoState.x = Math.max(0, Math.min(1, (pos.x - canvas.hitRects.logo.w/2) / (canvas.width - canvas.hitRects.logo.w))); logoState.y = Math.max(0, Math.min(1, (pos.y - canvas.hitRects.logo.h/2) / (canvas.height - canvas.hitRects.logo.h))); drawCanvas(); }
             if (watermarkState.isDragging) { watermarkState.x = Math.max(0, Math.min(1, pos.x/canvas.width)); watermarkState.y = Math.max(0, Math.min(1, pos.y/canvas.height)); drawCanvas(); }
-            if (currentMode === 'text' || currentMode === 'move') {
-                const obj = textObjects.find(t => t.isDragging);
-                if (obj) { obj.x = Math.max(0, Math.min(1, pos.x/canvas.width)); obj.y = Math.max(0, Math.min(1, pos.y/canvas.height)); drawCanvas(); }
+            if ((currentMode === 'text' || currentMode === 'move') && textObjects.find(t => t.isDragging)) {
+                const obj = textObjects.find(t => t.isDragging); obj.x = Math.max(0, Math.min(1, pos.x/canvas.width)); obj.y = Math.max(0, Math.min(1, pos.y/canvas.height)); drawCanvas();
             }
             if (isDrawing) { drawingPaths[drawingPaths.length-1].points.push(pos); drawCanvas(); }
-            if (isCropping) { cropCurrent = pos; drawCanvas(); }
         }
 
         function handlePointerUp() {
             logoState.isDragging = false; watermarkState.isDragging = false;
-            textObjects.forEach(t => t.isDragging = false); isDrawing = false; isCropping = false;
+            textObjects.forEach(t => t.isDragging = false); 
+            isDrawing = false; isCropping = false; isResizingCrop = false; isMovingCrop = false; isPanningView = false;
+            
+            isDraggingGridImage = false;
+            
+            if (currentMode === 'crop') canvas.style.cursor = 'crosshair';
+            if (currentMode === 'pan') canvas.style.cursor = 'grab';
+        }
+        
+        function handleWheel(e) {
+            // Check if hovering a filled grid cell
+            if (gridState.active && !pendingCropImg) {
+                const pos = getCanvasPos(e);
+                for (let i = 0; i < gridState.cells.length; i++) {
+                    const r = gridState.cells[i];
+                    if (pos.x >= r.x && pos.x <= r.x + r.w && pos.y >= r.y && pos.y <= r.y + r.h) {
+                        const cell = gridState.images[i];
+                        if (cell) {
+                            e.preventDefault();
+                            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                            cell.scale = (cell.scale || 1) * delta;
+                            // Clamp scale?
+                            cell.scale = Math.max(0.1, Math.min(10, cell.scale));
+                            drawCanvas();
+                            return;
+                        }
+                    }
+                }
+            }
         }
 
         function handleDoubleClick(e) {
             if (currentMode === 'crop' && cropStart && cropCurrent) {
                 performCrop();
-            } else if (gridState.active) {
-                // Double click grid cell to replace
-                const pos = getCanvasPos(e);
-                handleGridClick(pos);
             }
         }
 
         function hitTest(pos, rect) { return pos.x >= rect.x && pos.x <= rect.x + rect.w && pos.y >= rect.y && pos.y <= rect.y + rect.h; }
         
+        // ... (Listeners and other logic same as v8) ...
         function setupAnnotationListeners() {
             document.getElementById('annotationInput').addEventListener('input', (e) => updateSelectedText('text', e.target.value));
             document.getElementById('annotationColor').addEventListener('input', (e) => updateSelectedText('color', e.target.value));
@@ -1128,63 +1494,57 @@
         function deleteSelectedText() { if (selectedTextIndex !== -1) { textObjects.splice(selectedTextIndex, 1); selectedTextIndex = -1; updateTextPanelUI(); drawCanvas(); } }
 
         function applyCropRatio(ratio) {
-            if (!mainImg && !gridState.active) return;
+            if (!pendingCropImg && !mainImg && !gridState.active) return;
             let w = canvas.width, h = canvas.height;
             if (ratio === 0) { cropStart = null; cropCurrent = null; drawCanvas(); return; }
             if (ratio > w/h) h = w/ratio; else w = h*ratio;
             const cx = canvas.width/2, cy = canvas.height/2;
             cropStart = { x: cx-w/2, y: cy-h/2 }; cropCurrent = { x: cx+w/2, y: cy+h/2 };
-            setMode('crop'); drawCanvas();
+            if(!pendingCropImg) setMode('crop'); 
+            drawCanvas();
         }
+
         function performCrop() {
             if (!cropStart || !cropCurrent) return;
             const rx = Math.min(cropStart.x, cropCurrent.x), ry = Math.min(cropStart.y, cropCurrent.y);
             const rw = Math.abs(cropStart.x - cropCurrent.x), rh = Math.abs(cropStart.y - cropCurrent.y);
-            
-            // If grid active, render it to temp canvas first
-            const tempC = document.createElement('canvas'); tempC.width = canvas.width; tempC.height = canvas.height;
-            const tCtx = tempC.getContext('2d');
-            
-            // Re-render what's on canvas (base layer only) to temp
-            if(gridState.active) {
-                // We need to use the current grid drawing logic on tempCtx
-                // This is a bit complex to duplicate. Easier trick:
-                // Since canvas is already drawn, just copy from canvas?
-                // NO, canvas has overlays (crop rect).
-                // We need to redraw clean base to tempC.
-                // Refactor drawGrid to accept context?
-            }
-            
-            // Simplification: Capture current canvas state w/o overlays
-            // 1. Save current mode
-            const savedMode = currentMode;
-            // 2. Clear overlays
-            cropStart = null; cropCurrent = null;
-            drawCanvas(); // Draw clean
-            
-            // 3. Capture
+            const source = pendingCropImg || canvas;
             const croppedC = document.createElement('canvas'); croppedC.width = rw; croppedC.height = rh;
             const cCtx = croppedC.getContext('2d');
-            cCtx.drawImage(canvas, rx, ry, rw, rh, 0, 0, rw, rh);
             
-            // 4. Load as new Main Image
+            if (pendingCropImg) {
+                cCtx.drawImage(pendingCropImg, rx, ry, rw, rh, 0, 0, rw, rh);
+            } else {
+                const savedMode = currentMode; cropStart = null; cropCurrent = null; drawCanvas();
+                cCtx.drawImage(canvas, rx, ry, rw, rh, 0, 0, rw, rh);
+            }
+            
             const newImg = new Image();
             newImg.onload = function() {
-                mainImg = newImg;
-                // Crop collapses grid to single image
-                gridState.active = false;
-                canvas.width = rw; canvas.height = rh;
-                drawingPaths = []; textObjects = [];
-                setMode('move');
-                drawCanvas();
+                if (pendingCropImg) {
+                    if (pendingCropTarget === 'main') {
+                        mainImg = newImg; 
+                        gridState.active = false; 
+                        gridState.images = []; // FIX: Clear grid data when loading new main image
+                        canvas.width = rw; canvas.height = rh; drawingPaths = []; textObjects = [];
+                    } else if (typeof pendingCropTarget === 'object' && pendingCropTarget.type === 'grid') {
+                        if (gridState.active && pendingCropTarget.index < gridState.images.length) {
+                            gridState.images[pendingCropTarget.index] = { img: newImg, x:0, y:0, scale:1, fit: 'cover' };
+                            updateGridDimensions();
+                        }
+                    }
+                    pendingCropImg = null; pendingCropTarget = null;
+                    setMode('move'); resetZoom(); drawCanvas();
+                    document.getElementById('downloadBtn').disabled = false;
+                    document.getElementById('downloadBtn').classList.remove('opacity-50', 'cursor-not-allowed');
+                } else {
+                    mainImg = newImg; gridState.active = false; canvas.width = rw; canvas.height = rh; drawingPaths = []; textObjects = [];
+                    setMode('move'); drawCanvas();
+                }
             }
             newImg.src = croppedC.toDataURL();
         }
 
-        function adjustZoom(delta) { zoomScale = Math.max(0.1, Math.min(3.0, zoomScale + delta)); updateZoomUI(); }
-        function resetZoom() { if (!mainImg && !gridState.active) return; const w = mainImg ? mainImg.width : canvas.width; const scaleW = (wrapper.parentElement.clientWidth - 40) / w; zoomScale = Math.min(scaleW, 1.0); updateZoomUI(); }
-        function updateZoomUI() { wrapper.style.transform = `scale(${zoomScale})`; document.getElementById('zoomLevel').innerText = Math.round(zoomScale * 100) + '%'; }
-        function undoLastPath() { drawingPaths.pop(); drawCanvas(); }
         function toggleSection(checkId, sectionId) { document.getElementById(sectionId).classList.toggle('hidden', !document.getElementById(checkId).checked); drawCanvas(); }
         function toggleElement(id, show) { document.getElementById(id).classList.toggle('hidden', !show); }
         function updateLabels() {
@@ -1197,7 +1557,7 @@
         function downloadImage() {
             if (!mainImg && !gridState.active) return;
             const link = document.createElement('a'); link.download = `watermark_pro_${Date.now()}.png`;
-            selectedTextIndex = -1; drawCanvas();
+            selectedTextIndex = -1; activeGridCellIndex = -1; drawCanvas();
             link.href = canvas.toDataURL('image/png', 1.0); link.click();
         }
         
