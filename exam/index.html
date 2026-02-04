@@ -126,7 +126,8 @@
             sendPasswordResetEmail,
             signInAnonymously
         } from 'firebase/auth';
-        import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc, where, updateDoc, increment, limit, deleteDoc } from 'firebase/firestore';
+        // Đã thêm getDocs vào import
+        import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc, getDocs, where, updateDoc, increment, limit, deleteDoc } from 'firebase/firestore';
         // Thêm 'Users' vào danh sách import
         import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, Users, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal, Sun, Moon, Type, X, Info, Check, Quote, Mail, Key, Flag, BarChart3, AlertCircle, RefreshCw } from 'lucide-react';
 
@@ -1017,37 +1018,29 @@
                         lastActive: serverTimestamp()
                     }).catch(console.error);
 
-                    // 3. CẬP NHẬT SỐ LIỆU ĐỀ THI (Lượt thi + Người thi + Lần thi gần nhất)
+                    // 3. LOGIC ĐỒNG BỘ SỐ LIỆU SANG ADMIN (Lượt thi & Người thi)
+                    // Kiểm tra lịch sử xem người này đã từng làm đề này chưa
+                    const historyQuery = query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), where('examId', '==', exam.id));
+                    const historySnap = await getDocs(historyQuery);
+                    
+                    // Vì ta vừa mới add lịch sử ở bước 2, nên nếu size <= 1 nghĩa là đây là lần đầu tiên họ làm đề này.
+                    const isFirstTime = historySnap.size <= 1; 
+
                     const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id);
                     
-                    // Kiểm tra xem user này đã từng thi đề này chưa (để tính số người thi duy nhất)
-                    const participantRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id, 'participants', user.uid);
-                    let isNewParticipant = false;
-                    try {
-                        const pSnap = await getDoc(participantRef);
-                        if (!pSnap.exists()) {
-                            // Nếu chưa tồn tại trong danh sách người tham gia -> Là người mới
-                            await setDoc(participantRef, { firstJoined: serverTimestamp() });
-                            isNewParticipant = true;
-                        }
-                    } catch (err) {
-                        console.log("Lỗi kiểm tra người tham gia:", err);
-                        // Nếu lỗi permission hoặc gì đó, mặc định không tăng người thi để an toàn
+                    // Chuẩn bị dữ liệu cập nhật
+                    const updateData = {
+                        attempts: increment(1),       // Tăng số lượt thi lên 1
+                        lastTakenAt: serverTimestamp() // Cập nhật thời gian thi mới nhất
+                    };
+                    
+                    // Nếu là người mới, tăng thêm số lượng người tham gia
+                    if (isFirstTime) {
+                        updateData.participantsCount = increment(1);
                     }
-
-                    // Lấy dữ liệu hiện tại để cập nhật
-                    const examSnap = await getDoc(examRef);
-                    if (examSnap.exists()) {
-                        const data = examSnap.data();
-                        const currentAttempts = data.attempts || 0;
-                        const currentParticipants = data.participantsCount || 0; // Biến mới lưu số người thi
-
-                        await updateDoc(examRef, {
-                            attempts: currentAttempts + 1, // Luôn tăng lượt thi
-                            participantsCount: isNewParticipant ? currentParticipants + 1 : currentParticipants, // Chỉ tăng người thi nếu là người mới
-                            lastTakenAt: serverTimestamp()
-                        });
-                    }
+                    
+                    // Gửi cập nhật lên Firestore
+                    await updateDoc(examRef, updateData);
 
                 } catch(e) { console.error("Save error", e); }
                 
