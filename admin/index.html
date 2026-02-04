@@ -21,16 +21,15 @@
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020617; }
-        .glass-panel { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; padding: 0; }
+        .animate-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .glass-card { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
     </style>
 </head>
-<body class="text-slate-200 antialiased custom-scrollbar">
+<body class="antialiased custom-scrollbar">
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
@@ -42,8 +41,8 @@
         import { 
             ShieldCheck, Users, BookOpen, LogOut, Search, Trash2, Plus, 
             Upload, Download, X, CheckCircle2, AlertCircle, Edit3, 
-            LayoutDashboard, FileText, Loader2, Info, Database, PieChart, 
-            TrendingUp, Tag, ChevronRight, MoreVertical, Filter, Bell, Crown, Lock, Unlock
+            LayoutDashboard, FileText, Loader2, Info, Database,
+            TrendingUp, Tag, ChevronRight, Bell, Crown, Unlock, CreditCard, Check, FileUp
         } from 'lucide-react';
 
         const firebaseConfig = {
@@ -63,48 +62,62 @@
         const ADMIN_EMAILS = ["thanhtrong.yds@gmail.com", "vnrad.tech@gmail.com", "test@gmail.com"];
 
         // --- UI UTILS ---
-
         const Toast = ({ message, type, onClose }) => {
             useEffect(() => {
                 const timer = setTimeout(onClose, 3000);
                 return () => clearTimeout(timer);
             }, [onClose]);
-
             const styles = {
                 success: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
                 error: "bg-red-500/10 border-red-500/20 text-red-400",
                 info: "bg-blue-500/10 border-blue-500/20 text-blue-400"
             };
-
             return (
                 <div className={`fixed bottom-6 right-6 px-6 py-3 rounded-2xl border ${styles[type]} shadow-2xl flex items-center gap-3 animate-fade-in z-[100] backdrop-blur-xl`}>
-                    {type === 'success' && <CheckCircle2 size={18}/>}
-                    {type === 'error' && <AlertCircle size={18}/>}
                     <span className="font-bold text-sm">{message}</span>
                 </div>
             );
         };
 
-        // --- MAIN COMPONENTS ---
+        // --- COMPONENTS ---
 
-        const ImportModal = ({ onClose, onImport, notify }) => {
-            const [isProcessing, setIsProcessing] = useState(false);
+        const ExamEditor = ({ exam, onClose, notify }) => {
+            const [title, setTitle] = useState(exam?.title || '');
+            const [category, setCategory] = useState(exam?.category || 'Chung');
+            const [isPremium, setIsPremium] = useState(exam?.isPremium || false);
+            const [duration, setDuration] = useState(exam?.duration || 30);
+            const [questions, setQuestions] = useState(exam?.questions || []);
+            const [isSaving, setIsSaving] = useState(false);
+            const [isImporting, setIsImporting] = useState(false);
+
+            // Manual inputs
+            const [qText, setQText] = useState('');
+            const [opts, setOpts] = useState(['', '', '', '']);
+            const [correct, setCorrect] = useState(0);
+            const [expl, setExpl] = useState('');
+
+            const addQ = () => {
+                if (!qText.trim() || opts.some(o => !o.trim())) return notify("Vui lòng điền đủ thông tin câu hỏi", "error");
+                setQuestions([...questions, { text: qText, options: opts, correctOption: correct, explanation: expl }]);
+                setQText(''); setOpts(['','','','']); setCorrect(0); setExpl('');
+                notify("Đã thêm câu hỏi vào danh sách", "info");
+            };
 
             const downloadTemplate = () => {
                 const wsData = [
                     ["Câu hỏi", "A", "B", "C", "D", "Đáp án (A/B/C/D)", "Giải thích"],
-                    ["Nội dung câu hỏi mẫu?", "Lựa chọn 1", "Lựa chọn 2", "Lựa chọn 3", "Lựa chọn 4", "B", "Giải thích vì sao B đúng."]
+                    ["Nơi nào là trung tâm hô hấp?", "Cầu não", "Hành não", "Trung não", "Tiểu não", "B", "Hành não chứa các nhóm neuron kiểm soát nhịp thở cơ bản."]
                 ];
                 const wb = XLSX.utils.book_new();
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
-                XLSX.utils.book_append_sheet(wb, ws, "Dữ liệu");
-                XLSX.writeFile(wb, "Mau_Import_Cau_Hoi.xlsx");
+                XLSX.utils.book_append_sheet(wb, ws, "Mẫu");
+                XLSX.writeFile(wb, "Mau_MedExam_Pro.xlsx");
             };
 
-            const handleFile = (e) => {
+            const handleFileImport = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-                setIsProcessing(true);
+                setIsImporting(true);
                 const reader = new FileReader();
                 reader.onload = (evt) => {
                     try {
@@ -117,235 +130,171 @@
                             correctOption: "ABCD".indexOf(String(r[5]||'A').toUpperCase().trim()),
                             explanation: String(r[6] || '')
                         }));
-                        onImport(imported);
-                        notify(`Đã nhập thành công ${imported.length} câu hỏi`, 'success');
-                        onClose();
+                        setQuestions([...questions, ...imported]);
+                        notify(`Đã nạp thêm ${imported.length} câu hỏi từ tệp`, 'success');
                     } catch (err) { notify("Lỗi cấu trúc tệp Excel", "error"); }
-                    finally { setIsProcessing(false); }
+                    finally { setIsImporting(false); }
                 };
                 reader.readAsArrayBuffer(file);
             };
 
-            return (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-[70]">
-                    <div className="bg-slate-900 w-full max-w-md rounded-[2.5rem] border border-slate-800 p-10 text-center space-y-8 animate-in">
-                        <div className="w-20 h-20 bg-emerald-500/10 rounded-3xl mx-auto flex items-center justify-center text-emerald-500 shadow-inner">
-                            <Database size={32}/>
-                        </div>
-                        <div>
-                            <h3 className="text-2xl font-black text-white">Import Dữ Liệu</h3>
-                            <p className="text-slate-500 text-sm mt-2">Hệ thống tự động nhận diện câu hỏi và giải thích từ Excel</p>
-                        </div>
-                        <div className="space-y-4">
-                            <label className="block w-full py-14 border-2 border-dashed border-slate-700 rounded-[2rem] hover:border-emerald-500 cursor-pointer group transition-all relative overflow-hidden">
-                                <input type="file" className="hidden" accept=".xlsx, .xls" onChange={handleFile} />
-                                <div className="relative z-10">
-                                    <Plus size={24} className="mx-auto text-slate-500 group-hover:text-emerald-500 mb-2 transition-colors"/>
-                                    <span className="text-slate-400 group-hover:text-emerald-400 font-bold text-sm">
-                                        {isProcessing ? "Đang xử lý..." : "Chọn tệp Excel"}
-                                    </span>
-                                </div>
-                            </label>
-                            <button onClick={downloadTemplate} className="text-emerald-500 text-xs font-black uppercase tracking-widest hover:text-emerald-400 flex items-center justify-center gap-2 w-full transition-colors">
-                                <Download size={14}/> Tải file mẫu (.xlsx)
-                            </button>
-                        </div>
-                        <button onClick={onClose} className="text-slate-600 hover:text-white font-bold text-sm">Đóng cửa sổ</button>
-                    </div>
-                </div>
-            );
-        };
-
-        const ExamEditor = ({ exam, onClose, notify }) => {
-            const [title, setTitle] = useState(exam?.title || '');
-            const [category, setCategory] = useState(exam?.category || 'Chung');
-            const [isPremium, setIsPremium] = useState(exam?.isPremium || false);
-            const [duration, setDuration] = useState(exam?.duration || 30);
-            const [questions, setQuestions] = useState(exam?.questions || []);
-            const [showImport, setShowImport] = useState(false);
-            const [isSaving, setIsSaving] = useState(false);
-
-            // Inputs cho câu hỏi mới
-            const [qText, setQText] = useState('');
-            const [opts, setOpts] = useState(['', '', '', '']);
-            const [correct, setCorrect] = useState(0);
-            const [expl, setExpl] = useState('');
-
-            const addQ = () => {
-                if (!qText.trim() || opts.some(o => !o.trim())) {
-                    notify("Thiếu thông tin câu hỏi hoặc phương án", "error");
-                    return;
-                }
-                setQuestions([...questions, { text: qText, options: opts, correctOption: correct, explanation: expl }]);
-                setQText(''); setOpts(['','','','']); setCorrect(0); setExpl('');
-                notify("Đã thêm câu hỏi vào danh sách", "info");
-            };
-
             const save = async () => {
-                if (!title.trim() || questions.length === 0) {
-                    notify("Vui lòng nhập tên đề và ít nhất 1 câu hỏi", "error");
-                    return;
-                }
+                if (!title.trim() || questions.length === 0) return notify("Thiếu tên đề hoặc nội dung câu hỏi", "error");
                 setIsSaving(true);
                 try {
-                    const data = { 
-                        title, 
-                        category,
-                        isPremium, // Đồng bộ loại đề Vip/Miễn phí
-                        duration: Number(duration), 
-                        questions, 
-                        updatedAt: serverTimestamp() 
-                    };
+                    const data = { title, category, isPremium, duration: Number(duration), questions, updatedAt: serverTimestamp() };
                     if (exam?.id) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id), data);
                     else await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), { ...data, createdAt: serverTimestamp() });
-                    notify("Đã lưu đề thi thành công", "success");
+                    notify("Lưu đề thi thành công", "success");
                     onClose();
                 } catch (e) { notify(e.message, "error"); }
                 finally { setIsSaving(false); }
             };
 
             return (
-                <div className="fixed inset-0 bg-slate-950/98 flex items-center justify-center p-4 z-50 overflow-hidden">
-                    <div className="bg-slate-900 w-full max-w-6xl h-[95vh] rounded-[3rem] border border-slate-800 flex flex-col shadow-2xl animate-in">
-                        {/* Header Editor */}
-                        <div className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900/50 sticky top-0 z-20 backdrop-blur-xl">
-                            <div>
-                                <h2 className="text-2xl font-black text-white flex items-center gap-3">
-                                    {exam ? <Edit3 className="text-blue-500"/> : <Plus className="text-emerald-500"/>}
-                                    {exam ? 'Chỉnh Sửa Đề Thi' : 'Tạo Đề Thi Mới'}
-                                </h2>
-                                <p className="text-slate-500 text-xs mt-1 font-medium">Cấu hình đồng bộ hóa Cloud</p>
+                <div className="fixed inset-0 bg-slate-950/98 flex items-center justify-center p-4 z-50">
+                    <div className="bg-slate-900 w-full max-w-7xl h-[95vh] rounded-[2.5rem] border border-slate-800 flex flex-col shadow-2xl animate-in overflow-hidden">
+                        {/* Header */}
+                        <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50 backdrop-blur-xl">
+                            <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${exam ? 'bg-blue-500/10 text-blue-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                                    {exam ? <Edit3 size={24}/> : <Plus size={24}/>}
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-black uppercase tracking-tight">{exam ? 'Chỉnh sửa đề thi' : 'Tạo đề thi mới'}</h2>
+                                    <p className="text-slate-500 text-[10px] font-bold tracking-widest uppercase">Admin Management Console</p>
+                                </div>
                             </div>
-                            <div className="flex gap-4">
-                                <button onClick={()=>setShowImport(true)} className="bg-emerald-600/10 text-emerald-400 hover:bg-emerald-600 hover:text-white px-6 py-2.5 rounded-2xl text-sm font-black flex items-center gap-2 transition-all border border-emerald-500/20"><Upload size={16}/> NHẬP EXCEL</button>
-                                <button onClick={onClose} className="bg-slate-800 p-2.5 rounded-full text-slate-400 hover:text-white transition-all"><X size={24}/></button>
-                            </div>
+                            <button onClick={onClose} className="p-2 text-slate-500 hover:text-white transition-all bg-slate-800 rounded-full"><X size={20}/></button>
                         </div>
 
-                        {/* Content Editor */}
+                        {/* Body */}
                         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-10">
-                            {/* Meta Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                                <div className="md:col-span-2 space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Tên bộ đề</label>
-                                    <input className="w-full bg-slate-950 p-4 rounded-2xl border border-slate-800 outline-none focus:border-blue-500 transition-all font-bold shadow-inner" value={title} onChange={e=>setTitle(e.target.value)} placeholder="VD: Giải phẫu Đại cương"/>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Danh mục</label>
-                                    <select className="w-full bg-slate-950 p-4 rounded-2xl border border-slate-800 outline-none focus:border-blue-500 transition-all font-bold text-sm" value={category} onChange={e=>setCategory(e.target.value)}>
-                                        <option value="Chung">Chung</option>
-                                        <option value="Nội khoa">Nội khoa</option>
-                                        <option value="Ngoại khoa">Ngoại khoa</option>
-                                        <option value="Sản khoa">Sản khoa</option>
-                                        <option value="Nhi khoa">Nhi khoa</option>
-                                        <option value="Cận lâm sàng">Cận lâm sàng</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Loại đề thi</label>
-                                    <div className="flex bg-slate-950 p-1.5 rounded-2xl border border-slate-800 shadow-inner">
-                                        <button 
-                                            onClick={() => setIsPremium(false)}
-                                            className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${!isPremium ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-                                        >
-                                            {!isPremium && <Unlock size={12}/>} MIỄN PHÍ
-                                        </button>
-                                        <button 
-                                            onClick={() => setIsPremium(true)}
-                                            className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${isPremium ? 'bg-yellow-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-                                        >
-                                            {isPremium && <Crown size={12}/>} VIP
-                                        </button>
+                            {/* 1. Cấu hình chung */}
+                            <section className="space-y-4">
+                                <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] px-2 border-l-4 border-blue-600 ml-2">1. Cấu hình chung</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 bg-slate-950/50 p-6 rounded-3xl border border-white/5">
+                                    <div className="md:col-span-2 space-y-2">
+                                        <label className="text-[10px] font-black text-slate-600 uppercase ml-2">Tên đề thi</label>
+                                        <input className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 outline-none focus:border-blue-600 font-bold" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Nhập tiêu đề..."/>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-600 uppercase ml-2">Thời gian (Phút)</label>
+                                        <input type="number" className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 outline-none focus:border-blue-600 font-bold" value={duration} onChange={e=>setDuration(e.target.value)}/>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-600 uppercase ml-2">Loại đề & Truy cập</label>
+                                        <div className="flex bg-slate-900 p-1.5 rounded-2xl border border-slate-800 shadow-inner h-[58px]">
+                                            <button onClick={()=>setIsPremium(false)} className={`flex-1 rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-2 ${!isPremium ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-600 hover:text-slate-400'}`}>
+                                                <Unlock size={12}/> FREE
+                                            </button>
+                                            <button onClick={()=>setIsPremium(true)} className={`flex-1 rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-2 ${isPremium ? 'bg-yellow-600 text-white shadow-lg' : 'text-slate-600 hover:text-slate-400'}`}>
+                                                <Crown size={12}/> VIP
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Thời gian (Phút)</label>
-                                    <input type="number" className="w-full bg-slate-950 p-4 rounded-2xl border border-slate-800 outline-none focus:border-blue-500 transition-all font-bold shadow-inner" value={duration} onChange={e=>setDuration(e.target.value)}/>
-                                </div>
-                            </div>
+                            </section>
 
-                            {/* Manual Question Box */}
-                            <div className="bg-slate-950 border border-slate-800 p-8 rounded-[2.5rem] space-y-6 shadow-inner relative overflow-hidden group">
-                                <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-500/5 rounded-full -mr-10 -mt-10 blur-2xl group-focus-within:bg-emerald-500/10 transition-all"></div>
-                                <div className="flex items-center gap-3">
-                                    <Plus size={20} className="text-emerald-500"/>
-                                    <h3 className="font-black text-sm tracking-widest text-slate-300 uppercase">Soạn thảo câu hỏi chi tiết</h3>
-                                </div>
-                                <textarea className="w-full bg-slate-900 p-6 rounded-2xl border border-slate-800 min-h-[120px] outline-none focus:border-emerald-600 transition-all text-lg leading-relaxed shadow-sm" placeholder="Nhập nội dung câu hỏi y khoa..." value={qText} onChange={e=>setQText(e.target.value)}/>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {opts.map((o, i) => (
-                                        <div key={i} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${correct === i ? 'bg-emerald-500/10 border-emerald-500' : 'bg-slate-900 border-slate-800 hover:border-slate-700'}`}>
-                                            <div className="relative">
-                                                <input type="radio" checked={correct === i} onChange={()=>setCorrect(i)} className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"/>
-                                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${correct === i ? 'border-emerald-500 bg-emerald-500' : 'border-slate-600'}`}>
-                                                    {correct === i && <CheckCircle2 size={14} className="text-slate-950"/>}
-                                                </div>
+                            {/* 2. Phương thức thêm câu hỏi (2 CỘT) */}
+                            <section className="space-y-4">
+                                <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] px-2 border-l-4 border-emerald-600 ml-2">2. Xây dựng nội dung</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                                    {/* Cột 1: Import File */}
+                                    <div className="bg-slate-950/50 p-8 rounded-[2.5rem] border border-white/5 space-y-6 h-full flex flex-col justify-center">
+                                        <div className="text-center space-y-4">
+                                            <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                                                <FileUp size={32}/>
                                             </div>
-                                            <input className="bg-transparent flex-1 outline-none text-sm font-medium" value={o} onChange={e=>{const n=[...opts]; n[i]=e.target.value; setOpts(n)}} placeholder={`Phương án ${String.fromCharCode(65+i)}`}/>
+                                            <div>
+                                                <h4 className="font-black text-lg">Import từ tệp Excel</h4>
+                                                <p className="text-slate-500 text-xs mt-1">Nạp hàng loạt câu hỏi từ tệp bảng tính</p>
+                                            </div>
                                         </div>
-                                    ))}
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 flex items-center gap-2 ml-2 uppercase tracking-widest"><Info size={14} className="text-blue-500"/> Giải thích đáp án chuyên sâu</label>
-                                    <textarea className="w-full bg-slate-900 p-4 rounded-2xl border border-slate-800 text-sm italic outline-none focus:border-blue-500 transition-all min-h-[80px]" placeholder="VD: Triệu chứng này điển hình cho chẩn đoán phân biệt..." value={expl} onChange={e=>setExpl(e.target.value)}/>
-                                </div>
-                                <button onClick={addQ} className="w-full py-5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl font-black transition-all active:scale-[0.99] border border-slate-700/50 shadow-lg">THÊM CÂU HỎI VÀO DANH SÁCH</button>
-                            </div>
+                                        <div className="space-y-4 pt-4">
+                                            <label className="block w-full py-12 border-2 border-dashed border-slate-800 rounded-3xl hover:border-emerald-600 cursor-pointer transition-all group relative overflow-hidden bg-slate-900/50">
+                                                <input type="file" className="hidden" accept=".xlsx, .xls" onChange={handleFileImport} />
+                                                <div className="relative z-10 text-center">
+                                                    {isImporting ? (
+                                                        <Loader2 className="animate-spin mx-auto text-emerald-500 mb-2"/>
+                                                    ) : (
+                                                        <Plus className="mx-auto text-slate-600 group-hover:text-emerald-500 mb-2"/>
+                                                    )}
+                                                    <span className="text-slate-500 group-hover:text-emerald-400 font-bold text-sm tracking-tight">
+                                                        {isImporting ? "Đang nạp dữ liệu..." : "Chọn tệp Excel .xlsx"}
+                                                    </span>
+                                                </div>
+                                            </label>
+                                            <button onClick={downloadTemplate} className="w-full flex items-center justify-center gap-2 text-emerald-500 text-[10px] font-black uppercase hover:underline transition-all">
+                                                <Download size={14}/> Tải file Excel mẫu tại đây
+                                            </button>
+                                        </div>
+                                    </div>
 
-                            {/* Questions List */}
-                            <div className="space-y-6">
-                                <div className="flex justify-between items-center px-4">
-                                    <h3 className="font-black text-blue-400 flex items-center gap-3 uppercase tracking-tighter text-xl">
-                                        <FileText size={24}/> Ngân hàng đề hiện tại ({questions.length})
-                                    </h3>
-                                    {questions.length > 0 && <button onClick={()=>setQuestions([])} className="text-red-500 text-xs font-bold hover:underline">Xóa sạch danh sách</button>}
+                                    {/* Cột 2: Nhập thủ công */}
+                                    <div className="bg-slate-950 border border-slate-800 p-8 rounded-[2.5rem] space-y-6 shadow-2xl relative overflow-hidden">
+                                        <div className="flex items-center gap-3">
+                                            <Edit3 size={18} className="text-blue-500"/>
+                                            <h4 className="font-black text-sm tracking-widest text-slate-300 uppercase">Soạn câu hỏi thủ công</h4>
+                                        </div>
+                                        <textarea className="w-full bg-slate-900 p-5 rounded-2xl border border-slate-800 min-h-[100px] outline-none focus:border-blue-600 text-sm leading-relaxed" placeholder="Nội dung câu hỏi..." value={qText} onChange={e=>setQText(e.target.value)}/>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {opts.map((o, i) => (
+                                                <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${correct === i ? 'bg-blue-500/10 border-blue-500' : 'bg-slate-900 border-slate-800'}`}>
+                                                    <input type="radio" checked={correct === i} onChange={()=>setCorrect(i)} className="accent-blue-500"/>
+                                                    <input className="bg-transparent flex-1 outline-none text-xs font-bold" value={o} onChange={e=>{const n=[...opts]; n[i]=e.target.value; setOpts(n)}} placeholder={`Phương án ${String.fromCharCode(65+i)}`}/>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <textarea className="w-full bg-slate-900/50 p-4 rounded-xl border border-slate-800 text-[11px] italic outline-none focus:border-blue-500" placeholder="Giải thích đáp án (Nếu có)..." value={expl} onChange={e=>setExpl(e.target.value)}/>
+                                        <button onClick={addQ} className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all">Lưu vào ngân hàng dưới</button>
+                                    </div>
                                 </div>
-                                
+                            </section>
+
+                            {/* 3. Danh sách câu hỏi */}
+                            <section className="space-y-6">
+                                <div className="flex justify-between items-center px-4">
+                                    <h3 className="font-black text-blue-400 text-xl uppercase tracking-tighter flex items-center gap-3">
+                                        <Database size={20}/> Ngân hàng đề hiện tại ({questions.length})
+                                    </h3>
+                                    {questions.length > 0 && (
+                                        <button onClick={()=>setQuestions([])} className="px-4 py-1.5 bg-red-500/10 text-red-500 rounded-lg text-[10px] font-black hover:bg-red-500 hover:text-white transition-all">XÓA TẤT CẢ</button>
+                                    )}
+                                </div>
                                 {questions.length === 0 ? (
-                                    <div className="py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] group">
-                                        <BookOpen size={48} className="mx-auto text-slate-800 group-hover:text-slate-700 transition-colors mb-4"/>
-                                        <p className="text-slate-600 font-bold uppercase tracking-widest text-xs">Danh sách câu hỏi đang trống</p>
+                                    <div className="py-20 text-center border-2 border-dashed border-slate-800 rounded-[3rem] text-slate-600">
+                                        <p className="font-bold uppercase tracking-widest text-[10px]">Chưa có câu hỏi nào được nạp</p>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 gap-4">
                                         {questions.map((q, i) => (
-                                            <div key={i} className="bg-slate-900/40 p-6 rounded-3xl flex justify-between items-start group border border-slate-800 hover:border-slate-700 transition-all shadow-sm">
+                                            <div key={i} className="bg-slate-900/40 p-6 rounded-3xl flex justify-between items-start border border-slate-800 hover:border-blue-900/30 transition-all group">
                                                 <div className="flex-1 pr-6">
-                                                    <div className="flex items-center gap-3 mb-3">
-                                                        <span className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center font-black text-xs">#{i+1}</span>
-                                                        <p className="font-bold text-slate-200 text-lg leading-tight">{q.text}</p>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                                                    <p className="font-bold text-slate-200"><span className="text-blue-500 mr-2">#{i+1}</span> {q.text}</p>
+                                                    <div className="flex flex-wrap gap-2 mt-3">
                                                         {q.options.map((opt, idx) => (
-                                                            <div key={idx} className={`text-[10px] p-2 rounded-xl border font-bold ${q.correctOption === idx ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-600'}`}>
-                                                                {String.fromCharCode(65+idx)}. {opt}
+                                                            <div key={idx} className={`text-[9px] px-3 py-1.5 rounded-lg border font-bold uppercase tracking-wider ${q.correctOption === idx ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-600'}`}>
+                                                                {String.fromCharCode(65+idx)}: {opt}
                                                             </div>
                                                         ))}
                                                     </div>
-                                                    {q.explanation && (
-                                                        <div className="bg-slate-950 p-4 rounded-xl border border-slate-800/50 flex items-start gap-3">
-                                                            <div className="mt-0.5 text-blue-500"><Info size={14}/></div>
-                                                            <p className="text-[11px] text-slate-500 italic leading-relaxed">{q.explanation}</p>
-                                                        </div>
-                                                    )}
                                                 </div>
-                                                <button onClick={()=>setQuestions(questions.filter((_,idx)=>idx!==i))} className="p-3 text-slate-600 hover:text-red-500 hover:bg-red-500/5 rounded-2xl transition-all"><Trash2 size={18}/></button>
+                                                <button onClick={()=>setQuestions(questions.filter((_,idx)=>idx!==i))} className="p-3 text-slate-600 hover:text-red-500 transition-all"><Trash2 size={16}/></button>
                                             </div>
                                         ))}
                                     </div>
                                 )}
-                            </div>
+                            </section>
                         </div>
 
-                        {/* Footer Editor */}
-                        <div className="p-8 border-t border-slate-800 flex justify-end gap-4 bg-slate-900/80 backdrop-blur-xl rounded-b-[3rem]">
-                            <button onClick={onClose} className="px-10 py-3 text-slate-500 hover:text-white font-bold transition-all">Hủy bỏ</button>
-                            <button onClick={save} disabled={isSaving} className="px-16 py-4 bg-blue-600 hover:bg-blue-500 rounded-[1.5rem] font-black text-white flex gap-3 items-center shadow-2xl shadow-blue-900/40 transition-all active:scale-95 disabled:opacity-50">
-                                {isSaving ? <Loader2 className="animate-spin" size={20}/> : <CheckCircle2 size={20}/>}
-                                {exam ? 'CẬP NHẬT TOÀN BỘ' : 'PHÁT HÀNH ĐỀ THI'}
+                        {/* Footer */}
+                        <div className="p-6 border-t border-slate-800 flex justify-end gap-4 bg-slate-900/80 backdrop-blur-xl">
+                            <button onClick={onClose} className="px-8 py-3 text-slate-500 font-bold hover:text-white transition-all uppercase text-xs tracking-widest">Đóng</button>
+                            <button onClick={save} disabled={isSaving} className="px-16 py-4 bg-blue-600 hover:bg-blue-500 rounded-[1.5rem] font-black text-white flex gap-3 shadow-2xl transition-all active:scale-95 disabled:opacity-50">
+                                {isSaving ? <Loader2 className="animate-spin" size={20}/> : <Check size={20}/>} {exam ? 'CẬP NHẬT' : 'PHÁT HÀNH ĐỀ'}
                             </button>
                         </div>
-                        {showImport && <ImportModal onClose={()=>setShowImport(false)} onImport={qs=>setQuestions([...questions, ...qs])} notify={notify}/>}
                     </div>
                 </div>
             );
@@ -355,9 +304,10 @@
             const [tab, setTab] = useState('overview');
             const [users, setUsers] = useState([]);
             const [exams, setExams] = useState([]);
+            const [requests, setRequests] = useState([]);
             const [search, setSearch] = useState('');
             const [filterType, setFilterType] = useState('all');
-            const [examFilter, setExamFilter] = useState('all'); // all, free, vip
+            const [examAccessFilter, setExamAccessFilter] = useState('all');
             const [editing, setEditing] = useState(null);
             const [showAdd, setShowAdd] = useState(false);
             const [toast, setToast] = useState(null);
@@ -367,9 +317,10 @@
             }, []);
 
             useEffect(() => {
-                const unsubUsers = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'users')), s => setUsers(s.docs.map(d=>({id: d.id, ...d.data()}))));
-                const unsubExams = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'exams')), s => setExams(s.docs.map(d=>({id: d.id, ...d.data()}))));
-                return () => { unsubUsers(); unsubExams(); };
+                const unsubU = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'users')), s => setUsers(s.docs.map(d=>({id: d.id, ...d.data()}))));
+                const unsubE = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'exams')), s => setExams(s.docs.map(d=>({id: d.id, ...d.data()}))));
+                const unsubR = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'paymentRequests')), s => setRequests(s.docs.map(d=>({id: d.id, ...d.data()}))));
+                return () => { unsubU(); unsubE(); unsubR(); };
             }, []);
 
             const filteredUsers = useMemo(() => {
@@ -383,281 +334,164 @@
             const filteredExams = useMemo(() => {
                 return exams.filter(e => {
                     const matchSearch = (e.title||'').toLowerCase().includes(search.toLowerCase());
-                    const matchCategory = filterType === 'all' || e.category === filterType;
-                    const matchAccess = examFilter === 'all' || (examFilter === 'vip' && e.isPremium) || (examFilter === 'free' && !e.isPremium);
-                    return matchSearch && matchCategory && matchAccess;
+                    const matchAccess = examAccessFilter === 'all' || (examAccessFilter === 'vip' && e.isPremium) || (examAccessFilter === 'free' && !e.isPremium);
+                    return matchSearch && matchAccess;
                 });
-            }, [exams, search, filterType, examFilter]);
-
-            const categories = useMemo(() => {
-                const cats = new Set(exams.map(e => e.category).filter(Boolean));
-                return ['all', ...Array.from(cats)];
-            }, [exams]);
+            }, [exams, search, examAccessFilter]);
 
             return (
-                <div className="flex min-h-screen bg-[#020617]">
-                    {/* Sidebar */}
-                    <aside className="w-80 bg-slate-900/40 border-r border-white/5 flex flex-col fixed h-full z-40 backdrop-blur-3xl">
-                        <div className="p-10 border-b border-white/5 flex items-center gap-4 text-red-500 font-black text-2xl tracking-tighter">
-                            <div className="w-12 h-12 bg-red-600/10 rounded-2xl flex items-center justify-center shadow-inner">
-                                <ShieldCheck size={28} className="drop-shadow-[0_0_12px_rgba(239,68,68,0.5)]"/> 
-                            </div>
-                            <div className="leading-none">
-                                <span className="text-white">PRO</span>ADMIN
-                                <small className="text-[10px] text-slate-500 tracking-[0.4em] uppercase block mt-1">Medical Exam Pro</small>
-                            </div>
+                <div className="flex min-h-screen">
+                    <aside className="w-72 bg-slate-900/50 border-r border-white/5 flex flex-col fixed h-full z-40 backdrop-blur-xl">
+                        <div className="p-8 border-b border-white/5 flex items-center gap-4 text-red-500 font-black text-2xl tracking-tighter">
+                            <ShieldCheck size={32} className="drop-shadow-[0_0_12px_rgba(239,68,68,0.5)]"/> 
+                            <div className="leading-none text-white font-black uppercase">Admin<br/><small className="text-slate-500 text-[10px] tracking-[0.4em]">Control</small></div>
                         </div>
 
-                        <nav className="flex-1 p-8 space-y-4 mt-4">
+                        <nav className="flex-1 p-6 space-y-4 mt-4">
                             {[
-                                { id: 'overview', label: 'Tổng quan hệ thống', icon: LayoutDashboard },
-                                { id: 'users', label: 'Quản lý học viên', icon: Users },
-                                { id: 'exams', label: 'Ngân hàng đề thi', icon: BookOpen }
+                                { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
+                                { id: 'users', label: 'Học viên', icon: Users },
+                                { id: 'exams', label: 'Đề thi', icon: BookOpen },
+                                { id: 'requests', label: 'Yêu cầu VIP', icon: CreditCard, count: requests.length }
                             ].map(item => (
-                                <button key={item.id} onClick={()=>{setTab(item.id); setFilterType('all'); setExamFilter('all');}} className={`w-full flex items-center gap-4 px-6 py-5 rounded-3xl transition-all duration-300 relative group overflow-hidden ${tab === item.id ? 'bg-blue-600 text-white shadow-2xl shadow-blue-900/40 scale-105' : 'text-slate-400 hover:bg-white/5'}`}>
-                                    {tab === item.id && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-300 rounded-full"></div>}
-                                    <item.icon size={22} className={tab === item.id ? 'animate-pulse' : ''}/> 
-                                    <span className="font-extrabold tracking-tight text-sm">{item.label}</span>
+                                <button key={item.id} onClick={()=>setTab(item.id)} className={`w-full flex items-center justify-between px-6 py-5 rounded-3xl transition-all ${tab === item.id ? 'bg-blue-600 text-white shadow-xl scale-105' : 'text-slate-400 hover:bg-white/5'}`}>
+                                    <div className="flex items-center gap-4">
+                                        <item.icon size={20}/> 
+                                        <span className="font-extrabold text-sm">{item.label}</span>
+                                    </div>
+                                    {item.count > 0 && <span className="bg-red-500 text-[10px] font-black px-2 py-1 rounded-full animate-pulse">{item.count}</span>}
                                 </button>
                             ))}
                         </nav>
 
-                        <div className="p-8 border-t border-white/5">
-                            <div className="bg-slate-950/50 p-6 rounded-3xl mb-6 border border-white/5 shadow-inner">
-                                <div className="flex items-center gap-3 mb-2 text-xs text-slate-500 font-bold tracking-widest uppercase"><Bell size={12}/> Hỗ trợ Admin</div>
-                                <p className="text-[10px] text-slate-600 leading-relaxed font-medium italic">Thay đổi tại đây sẽ cập nhật trực tiếp lên ứng dụng người dùng.</p>
-                            </div>
-                            <button onClick={()=>signOut(auth)} className="w-full flex items-center justify-center gap-3 px-6 py-4 text-slate-500 hover:text-red-400 hover:bg-red-400/5 rounded-[1.5rem] transition-all font-black text-xs uppercase tracking-[0.2em]">
-                                <LogOut size={18}/> Thoát hệ thống
-                            </button>
-                        </div>
+                        <div className="p-8 border-t border-white/5"><button onClick={()=>signOut(auth)} className="w-full flex items-center justify-center gap-3 px-6 py-4 text-slate-500 hover:text-red-400 transition-all font-black text-xs uppercase tracking-widest"><LogOut size={18}/> Thoát</button></div>
                     </aside>
 
-                    {/* Main Content */}
-                    <main className="flex-1 ml-80 p-12 custom-scrollbar">
-                        {/* Title Section */}
+                    <main className="flex-1 ml-72 p-12 custom-scrollbar">
                         <div className="flex flex-col lg:flex-row justify-between lg:items-end mb-16 gap-8">
-                            <div className="space-y-2">
-                                <h1 className="text-5xl font-black text-white tracking-tighter capitalize drop-shadow-sm">
-                                    {tab === 'overview' ? 'Thống kê' : tab === 'users' ? 'Học viên' : 'Đề thi'}
-                                </h1>
-                                <p className="text-slate-500 font-bold flex items-center gap-2 uppercase tracking-widest text-[10px]">
-                                    <TrendingUp size={14} className="text-emerald-500"/> Real-time Firestore Sync Active
-                                </p>
-                            </div>
-
+                            <h1 className="text-5xl font-black text-white tracking-tighter capitalize">{tab === 'requests' ? 'Yêu cầu kích hoạt' : tab === 'exams' ? 'Quản lý đề thi' : tab}</h1>
                             <div className="flex flex-wrap gap-4 items-center">
                                 <div className="relative group">
-                                    <Search className="absolute left-5 top-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={20}/>
-                                    <input className="bg-slate-900/50 border border-white/5 rounded-[1.5rem] pl-14 pr-8 py-4 w-80 outline-none focus:border-blue-600 transition-all text-sm font-bold backdrop-blur shadow-inner" placeholder="Tìm kiếm nhanh..." value={search} onChange={e=>setSearch(e.target.value)}/>
+                                    <Search className="absolute left-4 top-3.5 text-slate-500 group-focus-within:text-blue-600 transition-colors" size={20}/>
+                                    <input className="bg-slate-900/50 border border-white/5 rounded-2xl pl-12 pr-6 py-3.5 w-72 outline-none focus:border-blue-600 font-bold backdrop-blur" placeholder="Tìm nhanh..." value={search} onChange={e=>setSearch(e.target.value)}/>
                                 </div>
-                                
-                                {tab === 'users' && (
-                                    <div className="flex bg-slate-900/80 p-1.5 rounded-2xl border border-white/5 backdrop-blur shadow-sm">
-                                        {['all', 'free', 'vip'].map(f => (
-                                            <button key={f} onClick={()=>setFilterType(f)} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === f ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/20' : 'text-slate-500 hover:text-slate-300'}`}>
-                                                {f === 'all' ? 'Tất cả' : f}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {tab === 'exams' && (
-                                    <div className="flex gap-4">
-                                        <select className="bg-slate-900 border border-white/5 rounded-2xl px-4 py-3.5 text-[10px] font-black uppercase tracking-widest outline-none text-slate-400 focus:border-blue-500 transition-all shadow-inner" value={examFilter} onChange={e=>setExamFilter(e.target.value)}>
-                                            <option value="all">Tất cả loại đề</option>
+                                {tab==='exams' && (
+                                    <>
+                                        <select className="bg-slate-900 border border-white/5 rounded-2xl px-4 py-3.5 text-[10px] font-black uppercase outline-none text-slate-400 focus:border-blue-600 transition-all" value={examAccessFilter} onChange={e=>setExamAccessFilter(e.target.value)}>
+                                            <option value="all">Tất cả</option>
                                             <option value="free">Miễn phí</option>
                                             <option value="vip">VIP</option>
                                         </select>
-                                        <select className="bg-slate-900 border border-white/5 rounded-2xl px-4 py-3.5 text-[10px] font-black uppercase tracking-widest outline-none text-slate-400 focus:border-blue-500 transition-all shadow-inner" value={filterType} onChange={e=>setFilterType(e.target.value)}>
-                                            {categories.map(c => <option key={c} value={c}>{c === 'all' ? 'Tất cả chuyên khoa' : c}</option>)}
-                                        </select>
-                                        <button onClick={()=>setShowAdd(true)} className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 px-10 py-4 rounded-[1.5rem] font-black flex items-center gap-3 shadow-2xl shadow-emerald-900/30 transition-all active:scale-95 group">
-                                            <Plus size={20}/> THÊM ĐỀ
-                                        </button>
-                                    </div>
+                                        <button onClick={()=>setShowAdd(true)} className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 px-10 py-4 rounded-[1.5rem] font-black flex items-center gap-3 transition-all active:scale-95 shadow-xl"><Plus size={20}/> TẠO ĐỀ</button>
+                                    </>
                                 )}
                             </div>
                         </div>
 
-                        {/* Contents */}
-                        <div className="animate-fade-in">
-                            {tab === 'overview' && (
-                                <div className="space-y-12">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                                        {[
-                                            { title: 'Tổng học viên', val: users.length, color: 'text-white', icon: Users, bg: 'bg-white/5' },
-                                            { title: 'Gói VIP Active', val: users.filter(u=>u.isPremium).length, color: 'text-yellow-500', icon: Crown, bg: 'bg-yellow-500/5' },
-                                            { title: 'Số lượng đề thi', val: exams.length, color: 'text-emerald-400', icon: BookOpen, bg: 'bg-emerald-400/5' },
-                                            { title: 'Ngân hàng câu hỏi', val: exams.reduce((a,c)=>a+(c.questions?.length||0),0), color: 'text-blue-400', icon: FileText, bg: 'bg-blue-400/5' }
-                                        ].map((s, i) => (
-                                            <div key={i} className={`${s.bg} p-10 rounded-[2.5rem] border border-white/5 relative overflow-hidden group hover:scale-[1.02] transition-all`}>
-                                                <s.icon className={`absolute -right-6 -bottom-6 w-32 h-32 opacity-[0.03] group-hover:opacity-[0.08] transition-all rotate-12`} />
-                                                <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mb-3">{s.title}</p>
-                                                <p className={`text-5xl font-black ${s.color} tracking-tighter`}>{s.val}</p>
-                                                <div className="mt-6 flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                                    <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Đang kết nối</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                        <div className="bg-slate-900/40 p-8 rounded-[3rem] border border-white/5 shadow-sm space-y-6">
-                                            <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter"><TrendingUp size={24} className="text-blue-500"/> Người dùng mới nhất</h3>
-                                            <div className="space-y-4">
-                                                {users.slice(0, 5).map((u, i) => (
-                                                    <div key={i} className="flex items-center justify-between p-5 rounded-3xl bg-slate-950/50 border border-white/5 group hover:bg-slate-950 transition-all">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-black text-slate-400 shadow-inner">{u.displayName?.charAt(0) || 'U'}</div>
-                                                            <div>
-                                                                <p className="font-bold text-slate-200 text-sm leading-none mb-1">{u.displayName || u.email}</p>
-                                                                <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Học viên hệ thống</p>
-                                                            </div>
-                                                        </div>
-                                                        {u.isPremium && <Crown size={16} className="text-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]"/>}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-slate-900/40 p-8 rounded-[3rem] border border-white/5 shadow-sm space-y-6">
-                                            <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter"><Tag size={24} className="text-emerald-500"/> Phân phối chuyên khoa</h3>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                {categories.filter(c=>c!=='all').map((cat, i) => (
-                                                    <div key={i} className="p-8 rounded-[2rem] bg-slate-950/50 border border-white/5 flex flex-col items-center justify-center text-center group hover:bg-slate-900 transition-all">
-                                                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2">{cat}</p>
-                                                        <p className="text-3xl font-black text-white group-hover:text-blue-400 transition-colors">{exams.filter(e=>e.category===cat).length}</p>
-                                                        <p className="text-[10px] text-slate-700 font-bold uppercase mt-1">Đề thi</p>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {tab === 'users' && (
-                                <div className="bg-slate-900/40 border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl animate-in backdrop-blur-xl">
-                                    <table className="w-full text-left text-sm border-collapse">
-                                        <thead className="bg-slate-800/30 text-slate-500 uppercase text-[10px] font-black tracking-[0.2em] sticky top-0 z-10 backdrop-blur">
-                                            <tr>
-                                                <th className="p-8">Thành viên</th>
-                                                <th className="p-8">Liên hệ</th>
-                                                <th className="p-8 text-center">Tình trạng</th>
-                                                <th className="p-8 text-right">Quản trị</th>
+                        {tab === 'requests' && (
+                            <div className="bg-slate-900/40 border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl animate-in backdrop-blur-xl">
+                                <table className="w-full text-left text-sm border-collapse">
+                                    <thead className="bg-slate-800/30 text-slate-500 uppercase text-[10px] font-black tracking-[0.2em]">
+                                        <tr><th className="p-8">Người gửi</th><th className="p-8">Thời gian</th><th className="p-8">Trạng thái</th><th className="p-8 text-right">Thao tác</th></tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {requests.length > 0 ? requests.map(req => (
+                                            <tr key={req.id} className="hover:bg-white/5 transition-all group font-bold">
+                                                <td className="p-8"><span className="text-slate-200 text-lg block font-black">{req.displayName || req.email}</span></td>
+                                                <td className="p-8 text-slate-500 text-xs">{req.createdAt?.toDate ? req.createdAt.toDate().toLocaleString('vi-VN') : '---'}</td>
+                                                <td className="p-8"><span className="px-4 py-2 bg-yellow-500/10 text-yellow-500 text-[10px] font-black rounded-full border border-yellow-500/20 uppercase">Chờ duyệt</span></td>
+                                                <td className="p-8 text-right">
+                                                    <button 
+                                                        onClick={async()=>{
+                                                            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', req.uid), { isPremium: true });
+                                                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'paymentRequests', req.id));
+                                                            notify("Đã duyệt yêu cầu VIP", "success");
+                                                        }} 
+                                                        className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-2xl font-black text-[10px] uppercase shadow-lg flex items-center gap-2 float-right active:scale-95 transition-all"
+                                                    >
+                                                        <Check size={14}/> Xác nhận ngay
+                                                    </button>
+                                                </td>
                                             </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-white/5 font-medium">
-                                            {filteredUsers.length > 0 ? filteredUsers.map(u => (
-                                                <tr key={u.id} className="hover:bg-white/5 transition-all group">
-                                                    <td className="p-8">
-                                                        <div className="flex items-center gap-5">
-                                                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg shadow-inner ${u.isPremium ? 'bg-yellow-500/10 text-yellow-500' : 'bg-slate-800 text-slate-500'}`}>
-                                                                {u.displayName?.charAt(0) || 'U'}
-                                                            </div>
-                                                            <div>
-                                                                <span className="font-black text-slate-200 text-lg block">{u.displayName || 'Học viên ẩn danh'}</span>
-                                                                <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Tài khoản chuẩn</span>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-8 text-slate-500 font-bold italic text-xs tracking-tight">{u.email}</td>
-                                                    <td className="p-8 text-center">
-                                                        {u.isPremium ? (
-                                                            <span className="inline-flex items-center gap-2 px-5 py-2 bg-yellow-500/10 text-yellow-500 text-[10px] font-black rounded-full border border-yellow-500/20 shadow-[0_0_15px_rgba(234,179,8,0.1)] uppercase tracking-tighter">VIP Member</span>
-                                                        ) : (
-                                                            <span className="text-slate-700 text-[10px] font-black uppercase tracking-[0.2em]">Cơ bản</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="p-8 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
-                                                        <button 
-                                                            onClick={async() => {
-                                                                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.id), {isPremium: !u.isPremium});
-                                                                notify(`Đã ${u.isPremium ? 'hủy' : 'cấp'} VIP cho ${u.displayName}`, "success");
-                                                            }} 
-                                                            className={`px-6 py-3 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all shadow-sm ${u.isPremium ? 'bg-red-500/10 text-red-400 hover:bg-red-600 hover:text-white' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-600 hover:text-white'}`}
-                                                        >
-                                                            {u.isPremium ? 'HỦY VIP' : 'CẤP VIP'}
-                                                        </button>
-                                                        <button 
-                                                            onClick={async() => {
-                                                                if(window.confirm("Xóa vĩnh viễn học viên này?")) {
-                                                                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.id));
-                                                                    notify("Đã xóa học viên", "error");
-                                                                }
-                                                            }} 
-                                                            className="p-3 text-slate-600 hover:text-red-500 hover:bg-red-500/5 rounded-2xl transition-all"
-                                                        >
-                                                            <Trash2 size={20}/>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            )) : (
-                                                <tr><td colSpan="4" className="p-32 text-center text-slate-600 italic font-black uppercase tracking-widest text-xs">Không có dữ liệu</td></tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
+                                        )) : (
+                                            <tr><td colSpan="4" className="p-32 text-center text-slate-600 italic font-black uppercase tracking-widest text-xs">Hộp thư yêu cầu đang trống</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
 
-                            {tab === 'exams' && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8 animate-in">
-                                    {filteredExams.length > 0 ? filteredExams.map(e => (
-                                        <div key={e.id} className="bg-slate-900/50 border border-white/5 p-8 rounded-[3rem] hover:border-blue-500/50 transition-all group relative shadow-xl overflow-hidden flex flex-col backdrop-blur-sm">
-                                            <div className="absolute -right-8 -top-8 w-32 h-32 bg-blue-500/5 rounded-full group-hover:scale-150 transition-all duration-700"></div>
-                                            
-                                            <div className="flex justify-between items-start mb-8 relative z-10">
-                                                <div className={`p-5 rounded-3xl shadow-inner transition-all flex items-center justify-center ${e.isPremium ? 'bg-yellow-500/10 text-yellow-500' : 'bg-emerald-500/10 text-emerald-400'}`}>
-                                                    {e.isPremium ? <Crown size={28}/> : <Unlock size={28}/>}
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <button onClick={()=>setEditing(e)} className="p-3 bg-slate-950/50 text-slate-500 hover:text-blue-400 rounded-2xl transition-all hover:scale-110 shadow-lg border border-white/5"><Edit3 size={18}/></button>
-                                                    <button onClick={async() => {
-                                                        if(window.confirm("Xóa bộ đề thi này?")) {
-                                                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', e.id));
-                                                            notify("Đã xóa đề thi", "error");
-                                                        }
-                                                    }} className="p-3 bg-slate-950/50 text-slate-500 hover:text-red-400 rounded-2xl transition-all hover:scale-110 shadow-lg border border-white/5"><Trash2 size={18}/></button>
-                                                </div>
-                                            </div>
+                        {tab === 'users' && (
+                             <div className="bg-slate-900/40 border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl animate-in backdrop-blur-xl">
+                                <table className="w-full text-left text-sm border-collapse font-bold">
+                                    <thead className="bg-slate-800/30 text-slate-500 uppercase text-[10px] font-black tracking-[0.2em]">
+                                        <tr><th className="p-8">Học viên</th><th className="p-8">Truy cập</th><th className="p-8 text-right">Tác vụ</th></tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {filteredUsers.map(u => (
+                                            <tr key={u.id} className="hover:bg-white/5 transition-all group">
+                                                <td className="p-8">
+                                                    <span className="font-black text-slate-200 text-lg block tracking-tight">{u.displayName || 'Học viên ẩn danh'}</span>
+                                                    <span className="text-[10px] text-slate-500 uppercase tracking-widest">{u.email}</span>
+                                                </td>
+                                                <td className="p-8 text-center">{u.isPremium ? <span className="px-5 py-2 bg-yellow-500/10 text-yellow-500 text-[10px] font-black rounded-full border border-yellow-500/20 shadow-[0_0_15px_rgba(234,179,8,0.1)]">VIP ACCESS</span> : <span className="text-slate-700 text-[10px] font-black uppercase">Standard</span>}</td>
+                                                <td className="p-8 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                                                    <button onClick={async() => {await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.id), {isPremium: !u.isPremium}); notify("Đã cập nhật trạng thái", "success");}} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase transition-all shadow-sm ${u.isPremium ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                                                        {u.isPremium ? 'Hủy VIP' : 'Cấp VIP'}
+                                                    </button>
+                                                    <button onClick={async() => { if(window.confirm("Xóa vĩnh viễn?")) {await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.id)); notify("Đã xóa học viên", "error");}}} className="p-3 text-slate-600 hover:text-red-500 transition-all bg-slate-800 rounded-xl"><Trash2 size={18}/></button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
 
-                                            <div className="flex-1 space-y-4 relative z-10">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="px-3 py-1 bg-white/5 text-slate-500 text-[10px] font-black rounded-full border border-white/5 uppercase tracking-widest">{e.category || 'Chung'}</span>
-                                                    {e.isPremium ? (
-                                                        <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest bg-yellow-500/5 px-2 py-0.5 rounded border border-yellow-500/10">VIP Only</span>
-                                                    ) : (
-                                                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/10">Public</span>
-                                                    )}
-                                                </div>
-                                                <h3 className="text-2xl font-black text-slate-100 line-clamp-2 min-h-[4rem] leading-tight tracking-tighter group-hover:text-blue-300 transition-colors">{e.title}</h3>
-                                            </div>
-
-                                            <div className="mt-10 pt-6 border-t border-white/5 flex justify-between text-[11px] font-black text-slate-600 tracking-widest relative z-10 uppercase">
-                                                <span className="flex items-center gap-2"><FileText size={14} className="text-slate-700"/> {e.questions?.length || 0} câu</span>
-                                                <span className="flex items-center gap-2"><Clock size={14} className="text-slate-700"/> {e.duration}p</span>
-                                            </div>
-                                            
-                                            <button onClick={()=>setEditing(e)} className="mt-6 w-full py-4 rounded-2xl border border-white/5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0">Chỉnh sửa nội dung</button>
+                        {tab === 'exams' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8 animate-in">
+                                {filteredExams.length > 0 ? filteredExams.map(e => (
+                                    <div key={e.id} className="bg-slate-900/50 border border-white/5 p-8 rounded-[3rem] hover:border-blue-600/50 transition-all group relative shadow-2xl overflow-hidden flex flex-col backdrop-blur-sm">
+                                        <div className="absolute -right-10 -top-10 w-32 h-32 bg-blue-600/5 rounded-full group-hover:scale-[2.5] transition-all duration-700"></div>
+                                        <div className={`p-5 rounded-3xl mb-6 inline-flex w-fit relative z-10 shadow-inner ${e.isPremium ? 'bg-yellow-500/10 text-yellow-500' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                                            {e.isPremium ? <Crown size={24}/> : <Unlock size={24}/>}
                                         </div>
-                                    )) : (
-                                        <div className="col-span-full py-40 text-center border-2 border-dashed border-slate-800 rounded-[4rem] text-slate-700 space-y-6">
-                                            <Database size={64} className="mx-auto opacity-10"/>
-                                            <div className="space-y-2">
-                                                <p className="font-black tracking-[0.3em] uppercase text-xs">Kho dữ liệu trống</p>
-                                                <p className="text-slate-800 font-medium italic">Hãy thử thay đổi bộ lọc hoặc tạo đề thi mới</p>
+                                        <h3 className="text-xl font-black text-slate-100 line-clamp-2 min-h-[4rem] leading-none mb-6 relative z-10 group-hover:text-blue-400 transition-colors uppercase tracking-tight">{e.title}</h3>
+                                        <div className="flex justify-between items-center mt-auto pt-6 border-t border-white/5 text-[10px] font-black text-slate-600 tracking-[0.2em] uppercase relative z-10">
+                                            <span className="flex items-center gap-2"><FileText size={14} className="text-slate-700"/> {e.questions?.length || 0} câu</span>
+                                            <div className="flex gap-2">
+                                                <button onClick={()=>setEditing(e)} className="p-2.5 bg-slate-950/80 text-blue-400 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-xl"><Edit3 size={16}/></button>
+                                                <button onClick={async() => { if(window.confirm("Xóa đề thi này?")) {await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', e.id)); notify("Đã xóa đề", "error");}}} className="p-2.5 bg-slate-950/80 text-red-400 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-xl"><Trash2 size={16}/></button>
                                             </div>
-                                            <button onClick={()=>setShowAdd(true)} className="text-blue-500 hover:text-blue-400 font-black uppercase tracking-widest text-[10px] underline underline-offset-8 transition-all">Bắt đầu ngay</button>
                                         </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                                    </div>
+                                )) : (
+                                    <div className="col-span-full py-40 text-center border-2 border-dashed border-slate-800 rounded-[4rem] text-slate-700 space-y-6">
+                                        <Database size={64} className="mx-auto opacity-10"/>
+                                        <button onClick={()=>setShowAdd(true)} className="text-blue-500 underline font-black uppercase text-[10px] tracking-widest">Tạo bộ đề đầu tiên ngay</button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {tab === 'overview' && (
+                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 animate-in">
+                                {[
+                                    { title: 'Học viên', val: users.length, color: 'text-white', icon: Users, bg: 'bg-white/5' },
+                                    { title: 'VIP Premium', val: users.filter(u=>u.isPremium).length, color: 'text-yellow-500', icon: Crown, bg: 'bg-yellow-500/5' },
+                                    { title: 'Đề thi', val: exams.length, color: 'text-emerald-400', icon: BookOpen, bg: 'bg-emerald-400/5' },
+                                    { title: 'Chờ duyệt', val: requests.length, color: 'text-red-400', icon: CreditCard, bg: 'bg-red-400/5' }
+                                ].map((s, i) => (
+                                    <div key={i} className={`${s.bg} p-10 rounded-[2.5rem] border border-white/5 group hover:scale-[1.02] transition-all shadow-lg overflow-hidden relative`}>
+                                        <s.icon className="absolute -right-6 -bottom-6 w-32 h-32 text-white/5 rotate-12 group-hover:text-white/10 transition-all"/>
+                                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mb-3 relative z-10">{s.title}</p>
+                                        <p className={`text-5xl font-black ${s.color} tracking-tighter relative z-10`}>{s.val}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </main>
 
-                    {/* OVERLAYS */}
                     {showAdd && <ExamEditor onClose={()=>setShowAdd(false)} notify={notify}/>}
                     {editing && <ExamEditor exam={editing} onClose={()=>setEditing(null)} notify={notify}/>}
                     {toast && <Toast {...toast} onClose={() => setToast(null)} />}
@@ -671,16 +505,12 @@
             const [err, setErr] = useState('');
 
             useEffect(() => {
-                const unsub = onAuthStateChanged(auth, u => {
-                    if (u) {
-                        if (!ADMIN_EMAILS.includes(u.email)) {
-                            setErr("Tài khoản không đủ quyền truy cập Admin.");
-                            signOut(auth); setUser(null);
-                        } else { setUser(u); setErr(''); }
-                    } else { setUser(null); }
+                return onAuthStateChanged(auth, u => {
+                    if (u && ADMIN_EMAILS.includes(u.email)) { setUser(u); setErr(''); }
+                    else if (u) { setErr("Truy cập bị từ chối."); signOut(auth); setUser(null); }
+                    else { setUser(null); }
                     setLoading(false);
                 });
-                return unsub;
             }, []);
 
             const handleLogin = async (e) => {
@@ -688,62 +518,32 @@
                 const { email, password } = e.target.elements;
                 setLoading(true); setErr('');
                 try {
-                    const res = await signInWithEmailAndPassword(auth, email.value, password.value);
-                    if (!ADMIN_EMAILS.includes(res.user.email)) throw new Error("Quyền truy cập bị từ chối.");
-                } catch (e) { 
-                    setErr(e.message === "Quyền truy cập bị từ chối." ? e.message : "Mật khẩu hoặc Email không chính xác");
-                    signOut(auth); 
-                }
+                    await signInWithEmailAndPassword(auth, email.value, password.value);
+                } catch (e) { setErr("Email hoặc mật khẩu không đúng."); signOut(auth); }
                 finally { setLoading(false); }
             };
 
             if (loading) return (
                 <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center space-y-8">
-                    <div className="relative">
-                        <div className="w-24 h-24 border-2 border-slate-800 rounded-full shadow-[0_0_30px_rgba(239,68,68,0.05)]"></div>
-                        <div className="w-24 h-24 border-t-2 border-red-600 rounded-full animate-spin absolute inset-0"></div>
-                        <ShieldCheck size={32} className="absolute inset-0 m-auto text-red-600 animate-pulse"/>
-                    </div>
-                    <div className="text-center space-y-2">
-                        <p className="text-white font-black tracking-[0.5em] uppercase text-[10px] opacity-80">Security Check</p>
-                        <p className="text-slate-600 font-bold text-[10px] uppercase tracking-widest animate-pulse">Đang nạp hệ thống Admin Portal...</p>
-                    </div>
+                    <div className="w-16 h-16 border-2 border-slate-800 border-t-red-600 rounded-full animate-spin"></div>
+                    <p className="text-white font-black tracking-[0.5em] uppercase text-[10px]">Loading Console...</p>
                 </div>
             );
 
             if (!user) return (
-                <div className="min-h-screen flex items-center justify-center p-4 bg-[#020617] relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.03),transparent_60%)]"></div>
-                    
-                    <div className="w-full max-w-lg bg-slate-900/60 border border-white/5 p-16 rounded-[4rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)] animate-in relative z-10 backdrop-blur-3xl">
+                <div className="min-h-screen flex items-center justify-center p-4 bg-[#020617] relative">
+                    <div className="w-full max-w-lg bg-slate-900/60 border border-white/5 p-16 rounded-[4rem] shadow-2xl animate-in relative z-10 backdrop-blur-3xl">
                         <div className="text-center mb-12">
-                            <div className="w-24 h-24 bg-red-600/10 rounded-[2rem] mx-auto flex items-center justify-center mb-8 shadow-inner border border-red-600/5 group">
-                                <ShieldCheck size={56} className="text-red-600 drop-shadow-[0_0_20px_rgba(239,68,68,0.4)] group-hover:scale-110 transition-transform duration-500"/>
-                            </div>
-                            <h1 className="text-4xl font-black text-white tracking-tighter leading-none mb-4">ADMIN<br/>PORTAL</h1>
-                            <div className="h-1 w-12 bg-red-600 mx-auto rounded-full mb-6"></div>
-                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em] leading-relaxed">Medical Practice Exams Management</p>
+                            <ShieldCheck size={56} className="text-red-600 mx-auto mb-6"/>
+                            <h1 className="text-4xl font-black text-white tracking-tighter mb-4 uppercase">Admin</h1>
+                            <div className="h-1 w-12 bg-red-600 mx-auto rounded-full"></div>
                         </div>
-
-                        {err && (
-                            <div className="mb-10 p-5 bg-red-500/5 border border-red-500/10 text-red-400 text-[10px] font-black rounded-3xl flex items-center gap-4 animate-in uppercase tracking-widest shadow-lg">
-                                <AlertCircle size={20} className="shrink-0"/> {err}
-                            </div>
-                        )}
-
+                        {err && <div className="mb-10 p-5 bg-red-500/5 text-red-400 text-[10px] font-black rounded-3xl flex items-center gap-4 uppercase">{err}</div>}
                         <form onSubmit={handleLogin} className="space-y-8">
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] ml-2">Email Quản Trị</label>
-                                <input name="email" type="email" required className="w-full bg-slate-950 border border-white/5 rounded-3xl p-5 outline-none focus:border-red-600 transition-all text-sm font-bold text-slate-200 shadow-inner" placeholder="admin@medexam.pro"/>
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] ml-2">Mật khẩu</label>
-                                <input name="password" type="password" required className="w-full bg-slate-950 border border-white/5 rounded-3xl p-5 outline-none focus:border-red-600 transition-all text-sm font-bold text-slate-200 shadow-inner" placeholder="••••••••"/>
-                            </div>
-                            <button className="w-full bg-red-600 hover:bg-red-500 text-white font-black py-6 rounded-3xl transition-all shadow-2xl shadow-red-900/40 mt-6 active:scale-95 text-xs tracking-[0.3em] uppercase">Xác thực danh tính</button>
+                            <input name="email" type="email" required className="w-full bg-slate-950 border border-white/5 rounded-3xl p-5 outline-none focus:border-red-600 font-bold" placeholder="Admin Email"/>
+                            <input name="password" type="password" required className="w-full bg-slate-950 border border-white/5 rounded-3xl p-5 outline-none focus:border-red-600 font-bold" placeholder="••••••••"/>
+                            <button className="w-full bg-red-600 hover:bg-red-500 text-white font-black py-6 rounded-3xl transition-all shadow-2xl uppercase text-xs">Verify & Login</button>
                         </form>
-                        
-                        <p className="text-center text-slate-700 text-[9px] font-black uppercase tracking-widest mt-12 opacity-50">Authorized Personnel Only</p>
                     </div>
                 </div>
             );
