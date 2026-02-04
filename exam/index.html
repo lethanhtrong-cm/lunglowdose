@@ -128,8 +128,8 @@
         } from 'firebase/auth';
         // Đã thêm getDocs vào import
         import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc, getDocs, where, updateDoc, increment, limit, deleteDoc } from 'firebase/firestore';
-        // Thêm 'Users' vào danh sách import
-        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, Users, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal, Sun, Moon, Type, X, Info, Check, Quote, Mail, Key, Flag, BarChart3, AlertCircle, RefreshCw } from 'lucide-react';
+        // Thêm 'Users', 'Bookmark', 'Zap' vào danh sách import
+        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, Users, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal, Sun, Moon, Type, X, Info, Check, Quote, Mail, Key, Flag, BarChart3, AlertCircle, RefreshCw, Bookmark, Zap, HelpCircle } from 'lucide-react';
 
         const firebaseConfig = {
             apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
@@ -259,7 +259,7 @@
 
             return (
                 <div className="w-full h-48 mt-4 relative">
-                     <div className="absolute inset-0 flex flex-col justify-between text-xs text-slate-600">
+                      <div className="absolute inset-0 flex flex-col justify-between text-xs text-slate-600">
                         <span>10</span>
                         <span>5</span>
                         <span>0</span>
@@ -281,6 +281,159 @@
                             )
                         })}
                     </div>
+                </div>
+            )
+        };
+
+        // --- NEW COMPONENT: START EXAM MODAL ---
+        const StartExamModal = ({ exam, onClose, onStart }) => {
+            const [mode, setMode] = useState('exam'); // 'exam' or 'practice'
+
+            return (
+                <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-slate-900 w-full max-w-md rounded-3xl border border-slate-700 shadow-2xl relative overflow-hidden animate-scale-up">
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800 p-1.5 rounded-full transition-colors z-10"><X size={20}/></button>
+                        
+                        <div className="p-8 pb-0 text-center">
+                            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-3xl shadow-lg mx-auto mb-4">
+                                <FileText size={40}/>
+                            </div>
+                            <h2 className="text-2xl font-black text-white mb-2">{exam.title}</h2>
+                            <p className="text-slate-400 text-sm">{exam.questions?.length} câu hỏi • {exam.duration} phút</p>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Chọn chế độ thi</h3>
+                            
+                            <div 
+                                onClick={() => setMode('exam')}
+                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-4 ${mode === 'exam' ? 'border-cyan-500 bg-cyan-900/20' : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800'}`}
+                            >
+                                <div className={`p-3 rounded-full ${mode === 'exam' ? 'bg-cyan-500 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                                    <Clock size={24}/>
+                                </div>
+                                <div>
+                                    <h4 className={`font-bold ${mode === 'exam' ? 'text-white' : 'text-slate-300'}`}>Thi Thử (Tiêu chuẩn)</h4>
+                                    <p className="text-xs text-slate-500">Tính giờ, không xem đáp án, tính điểm vào BXH.</p>
+                                </div>
+                                {mode === 'exam' && <CheckCircle2 size={24} className="ml-auto text-cyan-500"/>}
+                            </div>
+
+                            <div 
+                                onClick={() => setMode('practice')}
+                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-4 ${mode === 'practice' ? 'border-emerald-500 bg-emerald-900/20' : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800'}`}
+                            >
+                                <div className={`p-3 rounded-full ${mode === 'practice' ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                                    <Zap size={24}/>
+                                </div>
+                                <div>
+                                    <h4 className={`font-bold ${mode === 'practice' ? 'text-white' : 'text-slate-300'}`}>Luyện Tập (Thư giãn)</h4>
+                                    <p className="text-xs text-slate-500">Không tính giờ, xem đáp án ngay, không tính điểm.</p>
+                                </div>
+                                {mode === 'practice' && <CheckCircle2 size={24} className="ml-auto text-emerald-500"/>}
+                            </div>
+                        </div>
+
+                        <div className="p-6 pt-0 border-t border-slate-800 mt-2 bg-slate-900/50">
+                            <button 
+                                onClick={() => onStart(mode)}
+                                className={`w-full py-4 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] active:scale-95 ${mode === 'exam' ? 'bg-gradient-to-r from-cyan-600 to-blue-600 shadow-cyan-500/20' : 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-500/20'}`}
+                            >
+                                {mode === 'exam' ? 'Bắt Đầu Làm Bài' : 'Vào Luyện Tập'} <ChevronRight size={20}/>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )
+        }
+
+        // --- NEW COMPONENT: NOTEBOOK (BOOKMARKS) PAGE ---
+        const NotebookPage = ({ user, onBack }) => {
+            const [bookmarks, setBookmarks] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const { addToast } = useToast();
+
+            useEffect(() => {
+                if (!user) return;
+                const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'bookmarks'), orderBy('savedAt', 'desc'));
+                const unsub = onSnapshot(q, (snap) => {
+                    setBookmarks(snap.docs.map(d => ({id: d.id, ...d.data()})));
+                    setLoading(false);
+                }, (err) => {
+                    console.error("Bookmark sync error:", err);
+                    setLoading(false);
+                });
+                return unsub;
+            }, [user]);
+
+            const deleteBookmark = async (id) => {
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'bookmarks', id));
+                    addToast("Đã xóa khỏi sổ tay.", "success");
+                } catch (e) {
+                    addToast("Lỗi khi xóa bookmark.", "error");
+                }
+            };
+
+            return (
+                <div className="animate-fade-in pb-20 max-w-5xl mx-auto">
+                    <button onClick={onBack} className="mb-6 flex items-center gap-2 text-slate-400 hover:text-white transition-colors group">
+                        <div className="bg-slate-800 p-2 rounded-lg group-hover:bg-slate-700"><ChevronRight className="rotate-180" size={20}/></div>
+                        <span>Quay lại Dashboard</span>
+                    </button>
+
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h2 className="text-3xl font-black text-white flex items-center gap-3">
+                                <span className="bg-pink-500/20 text-pink-500 p-2 rounded-xl"><Bookmark size={32}/></span>
+                                Sổ Tay Ôn Tập
+                            </h2>
+                            <p className="text-slate-400 mt-1">Lưu trữ các câu hỏi khó để ôn luyện lại</p>
+                        </div>
+                        <div className="bg-slate-800 px-4 py-2 rounded-full border border-slate-700 text-sm font-bold text-slate-300">
+                            {bookmarks.length} câu đã lưu
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-pink-500" size={40}/></div>
+                    ) : bookmarks.length === 0 ? (
+                        <div className="text-center py-24 bg-slate-900/50 rounded-3xl border border-slate-800 border-dashed">
+                            <div className="bg-slate-800 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"><Bookmark className="text-slate-600" size={40}/></div>
+                            <h3 className="text-xl font-bold text-white mb-2">Sổ tay trống</h3>
+                            <p className="text-slate-500 max-w-md mx-auto">Bạn chưa lưu câu hỏi nào. Khi làm bài, hãy nhấn vào biểu tượng Bookmark để lưu câu khó vào đây nhé.</p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-6">
+                            {bookmarks.map((item, idx) => (
+                                <div key={item.id} className="glass-card p-6 rounded-2xl relative group">
+                                    <div className="absolute top-4 right-4 flex gap-2">
+                                        <button onClick={() => deleteBookmark(item.id)} className="p-2 bg-slate-800 text-slate-400 hover:text-red-400 rounded-lg hover:bg-slate-700 transition-colors" title="Xóa">
+                                            <X size={16}/>
+                                        </button>
+                                    </div>
+                                    <div className="pr-10 mb-4">
+                                        <span className="text-xs font-bold text-pink-400 uppercase tracking-wider mb-1 block">Câu hỏi từ: {item.examTitle}</span>
+                                        <h3 className="text-lg font-bold text-white">{item.questionText}</h3>
+                                    </div>
+                                    <div className="space-y-3 mb-4">
+                                        {item.options.map((opt, i) => (
+                                            <div key={i} className={`p-3 rounded-lg border text-sm ${i === item.correctOption ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold' : 'bg-slate-900/50 border-slate-700 text-slate-400'}`}>
+                                                {String.fromCharCode(65+i)}. {opt}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {item.explanation && (
+                                        <div className="bg-blue-900/20 p-4 rounded-xl border border-blue-500/20 text-sm text-blue-200">
+                                            <div className="font-bold mb-1 flex items-center gap-2"><BookOpen size={14}/> Giải thích:</div>
+                                            {item.explanation}
+                                        </div>
+                                    )}
+                                    <div className="text-[10px] text-slate-600 mt-4 text-right">Lưu lúc: {formatDate(item.savedAt)}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )
         };
@@ -949,15 +1102,23 @@
             // Feature 1: Flagging State
             const [flags, setFlags] = useState({}); 
 
+            // Feature 2: Practice Mode State
+            const isPracticeMode = exam.mode === 'practice';
+            const [revealedAnswers, setRevealedAnswers] = useState({});
+            const { addToast } = useToast();
+            const { user } = getAuth();
+
             // Theme & Font Size State
             const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('theme') !== 'light');
             const [fontSizeLevel, setFontSizeLevel] = useState(1); 
 
             useEffect(() => {
                 localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-                const timer = setInterval(() => setTimeLeft(t => t <= 1 ? (finish(true), 0) : t - 1), 1000);
-                return () => clearInterval(timer);
-            }, [isDarkMode]);
+                if (!isPracticeMode) {
+                    const timer = setInterval(() => setTimeLeft(t => t <= 1 ? (finish(true), 0) : t - 1), 1000);
+                    return () => clearInterval(timer);
+                }
+            }, [isDarkMode, isPracticeMode]);
 
             // --- HEARTBEAT LOGIC ---
             useEffect(() => {
@@ -980,11 +1141,12 @@
                 const user = auth.currentUser;
                 if (!user) return;
 
-                // Validation: Hỏi xác nhận nếu chưa hết giờ
-                const unansweredCount = exam.questions.length - Object.keys(answers).length;
-                if (!forceSubmit) {
+                if (!forceSubmit && !isPracticeMode) {
+                    const unansweredCount = exam.questions.length - Object.keys(answers).length;
                     if (unansweredCount > 0) { if (!confirm(`⚠️ CẢNH BÁO CHƯA LÀM HẾT\n\nBạn còn ${unansweredCount} câu hỏi chưa chọn đáp án.\nBạn có chắc chắn muốn nộp bài ngay bây giờ không?`)) return; }
                     else { if (!confirm(`XÁC NHẬN NỘP BÀI\n\nBạn đã trả lời đủ ${exam.questions.length} câu.\nBạn có muốn kết thúc bài thi không?`)) return; }
+                } else if (isPracticeMode) {
+                     if (!confirm(`KẾT THÚC LUYỆN TẬP\n\nBạn có muốn dừng phiên luyện tập tại đây?`)) return;
                 }
 
                 setSubmitting(true);
@@ -998,49 +1160,44 @@
                 }
 
                 try {
-                    // 2. Lưu lịch sử thi của user
-                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), {
-                        examId: exam.id, 
-                        examTitle: exam.title, 
-                        score: score.toFixed(1), 
-                        totalQuestions: exam.questions.length, 
-                        correctCount: correct, 
-                        date: serverTimestamp(), 
-                        userId: user.uid, 
-                        displayName: user.displayName || 'User'
-                    });
+                    // Practice Mode does not save to history or leaderboard stats usually, but let's save history for review
+                    // But maybe flag it as 'practice' type
+                    if (!isPracticeMode) {
+                        // 2. Lưu lịch sử thi của user
+                        await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), {
+                            examId: exam.id, 
+                            examTitle: exam.title, 
+                            score: score.toFixed(1), 
+                            totalQuestions: exam.questions.length, 
+                            correctCount: correct, 
+                            date: serverTimestamp(), 
+                            userId: user.uid, 
+                            displayName: user.displayName || 'User'
+                        });
 
-                    // Cập nhật thông tin cá nhân User (Giữ lại để tính BXH)
-                    const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
-                    updateDoc(userRef, {
-                        totalScore: increment(Number(score)),
-                        examsCompleted: increment(1),
-                        lastActive: serverTimestamp()
-                    }).catch(console.error);
+                        // Cập nhật thông tin cá nhân User (Giữ lại để tính BXH)
+                        const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+                        updateDoc(userRef, {
+                            totalScore: increment(Number(score)),
+                            examsCompleted: increment(1),
+                            lastActive: serverTimestamp()
+                        }).catch(console.error);
 
-                    // 3. LOGIC ĐỒNG BỘ SỐ LIỆU SANG ADMIN (Lượt thi & Người thi)
-                    // Kiểm tra lịch sử xem người này đã từng làm đề này chưa
-                    const historyQuery = query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), where('examId', '==', exam.id));
-                    const historySnap = await getDocs(historyQuery);
-                    
-                    // Vì ta vừa mới add lịch sử ở bước 2, nên nếu size <= 1 nghĩa là đây là lần đầu tiên họ làm đề này.
-                    const isFirstTime = historySnap.size <= 1; 
+                        // 3. LOGIC ĐỒNG BỘ SỐ LIỆU SANG ADMIN (Lượt thi & Người thi)
+                        const historyQuery = query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), where('examId', '==', exam.id));
+                        const historySnap = await getDocs(historyQuery);
+                        const isFirstTime = historySnap.size <= 1; 
 
-                    const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id);
-                    
-                    // Chuẩn bị dữ liệu cập nhật
-                    const updateData = {
-                        attempts: increment(1),       // Tăng số lượt thi lên 1
-                        lastTakenAt: serverTimestamp() // Cập nhật thời gian thi mới nhất
-                    };
-                    
-                    // Nếu là người mới, tăng thêm số lượng người tham gia
-                    if (isFirstTime) {
-                        updateData.participantsCount = increment(1);
+                        const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id);
+                        const updateData = {
+                            attempts: increment(1),       
+                            lastTakenAt: serverTimestamp() 
+                        };
+                        if (isFirstTime) {
+                            updateData.participantsCount = increment(1);
+                        }
+                        await updateDoc(examRef, updateData);
                     }
-                    
-                    // Gửi cập nhật lên Firestore
-                    await updateDoc(examRef, updateData);
 
                 } catch(e) { console.error("Save error", e); }
                 
@@ -1076,6 +1233,29 @@
                 setFlags(prev => ({ ...prev, [index]: !prev[index] }));
             };
 
+            // NEW: Handle Saving Bookmark
+            const saveBookmark = async (question, index) => {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'bookmarks', `${exam.id}_${index}`), {
+                        examId: exam.id,
+                        examTitle: exam.title,
+                        questionIndex: index,
+                        questionText: question.text,
+                        options: question.options,
+                        correctOption: question.correctOption,
+                        explanation: question.explanation || '',
+                        savedAt: serverTimestamp()
+                    });
+                    addToast("Đã lưu câu hỏi vào sổ tay!", "success");
+                } catch (e) {
+                    addToast("Lỗi lưu bookmark.", "error");
+                }
+            };
+
+            const revealAnswer = (index) => {
+                setRevealedAnswers(prev => ({...prev, [index]: true}));
+            };
+
             const answeredCount = Object.keys(answers).length;
             const progressPercent = Math.round((answeredCount / exam.questions.length) * 100);
 
@@ -1093,9 +1273,9 @@
             
             const fontSizes = [
                 { q: 'text-base', o: 'text-sm' },   
-                { q: 'text-lg', o: 'text-base' },   
-                { q: 'text-xl', o: 'text-lg' },     
-                { q: 'text-2xl', o: 'text-xl' }     
+                { q: 'text-lg', o: 'text-base' },    
+                { q: 'text-xl', o: 'text-lg' },      
+                { q: 'text-2xl', o: 'text-xl' }      
             ];
             const currentFont = fontSizes[fontSizeLevel];
 
@@ -1114,7 +1294,10 @@
                                     <LogOut size={20} className="rotate-180" />
                                 </button>
                                 <div>
-                                    <h2 className={`font-bold text-base md:text-lg line-clamp-1 max-w-[150px] md:max-w-none ${isDarkMode ? 'text-cyan-400' : 'text-cyan-700'}`}>{exam.title}</h2>
+                                    <h2 className={`font-bold text-base md:text-lg line-clamp-1 max-w-[150px] md:max-w-none ${isDarkMode ? 'text-cyan-400' : 'text-cyan-700'}`}>
+                                        {isPracticeMode ? <span className="bg-emerald-500 text-white text-[10px] px-2 py-0.5 rounded-full mr-2 align-middle">LUYỆN TẬP</span> : null}
+                                        {exam.title}
+                                    </h2>
                                     <div className={`text-xs flex items-center gap-2 mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-gray-500'}`}>
                                         <span className="hidden md:inline">Đã làm: {answeredCount}/{exam.questions.length}</span>
                                         <span className={`px-2 py-0.5 rounded font-bold ${isDarkMode ? 'bg-slate-800 text-cyan-400' : 'bg-gray-200 text-cyan-700'}`}>{progressPercent}%</span>
@@ -1138,54 +1321,101 @@
                                     {isDarkMode ? <Moon size={20} /> : <Sun size={20} />}
                                 </button>
 
-                                <div className={`font-mono text-lg md:text-xl font-bold flex gap-2 items-center px-3 py-1.5 rounded-lg border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200 shadow-sm'} ${timeLeft < 300 ? 'text-red-500 border-red-500/30 animate-pulse' : (isDarkMode ? 'text-emerald-400 border-emerald-500/30' : 'text-emerald-600 border-emerald-200')}`}>
-                                    <Clock size={18} className="hidden md:block"/> {Math.floor(timeLeft/60)}:{timeLeft%60 < 10 ? '0'+timeLeft%60 : timeLeft%60}
-                                </div>
+                                {isPracticeMode ? (
+                                     <div className={`font-mono text-lg md:text-xl font-bold flex gap-2 items-center px-3 py-1.5 rounded-lg border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-emerald-400' : 'bg-white border-gray-200 shadow-sm text-emerald-600'}`}>
+                                        <Zap size={18}/> Practice
+                                    </div>
+                                ) : (
+                                    <div className={`font-mono text-lg md:text-xl font-bold flex gap-2 items-center px-3 py-1.5 rounded-lg border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200 shadow-sm'} ${timeLeft < 300 ? 'text-red-500 border-red-500/30 animate-pulse' : (isDarkMode ? 'text-emerald-400 border-emerald-500/30' : 'text-emerald-600 border-emerald-200')}`}>
+                                        <Clock size={18} className="hidden md:block"/> {Math.floor(timeLeft/60)}:{timeLeft%60 < 10 ? '0'+timeLeft%60 : timeLeft%60}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         {/* Question List Area */}
                         <div className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth" id="question-list">
                             <div className="max-w-5xl mx-auto space-y-6 pb-24">
-                                {exam.questions.map((q, index) => (
-                                    <div key={index} ref={el => questionRefs.current[index] = el} className={`${cardClass} border p-5 md:p-8 rounded-2xl shadow-lg transition-all ${answers[index] !== undefined ? (isDarkMode ? 'border-cyan-500/50 shadow-cyan-900/10' : 'border-cyan-500 ring-1 ring-cyan-500/20') : ''}`}>
-                                            <div className="flex gap-4 mb-6 relative">
-                                                {/* Flag Button (Feature 1) */}
-                                                <button 
-                                                    onClick={() => toggleFlag(index)}
-                                                    className={`absolute right-0 top-0 p-2 rounded-full transition-colors ${flags[index] ? 'text-yellow-400 bg-yellow-500/10' : 'text-slate-500 hover:text-yellow-400 hover:bg-slate-700/50'}`}
-                                                    title="Đánh dấu câu hỏi này để xem lại"
-                                                >
-                                                    <Flag size={20} fill={flags[index] ? "currentColor" : "none"} />
-                                                </button>
+                                {exam.questions.map((q, index) => {
+                                    const isRevealed = revealedAnswers[index];
+                                    return (
+                                        <div key={index} ref={el => questionRefs.current[index] = el} className={`${cardClass} border p-5 md:p-8 rounded-2xl shadow-lg transition-all ${answers[index] !== undefined ? (isDarkMode ? 'border-cyan-500/50 shadow-cyan-900/10' : 'border-cyan-500 ring-1 ring-cyan-500/20') : ''}`}>
+                                                    <div className="flex gap-4 mb-6 relative">
+                                                        <div className="absolute right-0 top-0 flex gap-2">
+                                                            {/* Bookmark Button */}
+                                                            <button 
+                                                                onClick={() => saveBookmark(q, index)}
+                                                                className={`p-2 rounded-full transition-colors text-slate-500 hover:text-pink-400 hover:bg-slate-700/50`}
+                                                                title="Lưu câu hỏi vào sổ tay"
+                                                            >
+                                                                <Bookmark size={20} />
+                                                            </button>
 
-                                                <span className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${answers[index] !== undefined ? 'bg-cyan-600 text-white' : (isDarkMode ? 'bg-slate-700 text-slate-400' : 'bg-gray-200 text-gray-600')}`}>
-                                                    {index + 1}
-                                                </span>
-                                                <div className={`${currentFont.q} font-medium leading-relaxed ${isDarkMode ? 'text-slate-100' : 'text-gray-900'} pr-8`}>
-                                                    {q.text}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-3 pl-0 md:pl-12">
-                                                {q.options.map((o, optIndex) => (
-                                                    <label key={optIndex} className={`flex items-center p-3 md:p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 group relative overflow-hidden ${answers[index]===optIndex ? optionClassSelected : optionClassDefault}`}>
-                                                        <div className={`w-5 h-5 rounded-full border-2 mr-4 flex items-center justify-center shrink-0 transition-colors z-10 ${answers[index]===optIndex ? (isDarkMode ? 'border-cyan-500' : 'border-cyan-600') : circleDefault}`}>
-                                                            {answers[index]===optIndex && <div className={`w-2.5 h-2.5 rounded-full ${isDarkMode ? 'bg-cyan-500' : 'bg-cyan-600'}`}></div>}
+                                                            {/* Flag Button (Feature 1) */}
+                                                            <button 
+                                                                onClick={() => toggleFlag(index)}
+                                                                className={`p-2 rounded-full transition-colors ${flags[index] ? 'text-yellow-400 bg-yellow-500/10' : 'text-slate-500 hover:text-yellow-400 hover:bg-slate-700/50'}`}
+                                                                title="Đánh dấu câu hỏi này để xem lại"
+                                                            >
+                                                                <Flag size={20} fill={flags[index] ? "currentColor" : "none"} />
+                                                            </button>
                                                         </div>
-                                                        <span className={`${currentFont.o} z-10 ${answers[index]===optIndex ? textSelected : textNormal}`}>{o}</span>
-                                                        <input type="radio" className="hidden" checked={answers[index]===optIndex} onChange={()=>setAnswers(prev => ({...prev, [index]: optIndex}))} />
-                                                    </label>
-                                                ))}
-                                            </div>
+
+                                                        <span className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${answers[index] !== undefined ? 'bg-cyan-600 text-white' : (isDarkMode ? 'bg-slate-700 text-slate-400' : 'bg-gray-200 text-gray-600')}`}>
+                                                            {index + 1}
+                                                        </span>
+                                                        <div className={`${currentFont.q} font-medium leading-relaxed ${isDarkMode ? 'text-slate-100' : 'text-gray-900'} pr-20`}>
+                                                            {q.text}
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-3 pl-0 md:pl-12">
+                                                        {q.options.map((o, optIndex) => {
+                                                            // Determine styling for practice mode answer reveal
+                                                            let optionStyle = answers[index]===optIndex ? optionClassSelected : optionClassDefault;
+                                                            if (isRevealed) {
+                                                                if (optIndex === q.correctOption) {
+                                                                    optionStyle = "border-emerald-500 bg-emerald-500/10 text-emerald-400 font-bold";
+                                                                } else if (answers[index] === optIndex && optIndex !== q.correctOption) {
+                                                                    optionStyle = "border-red-500 bg-red-500/10 text-red-400";
+                                                                }
+                                                            }
+
+                                                            return (
+                                                                <label key={optIndex} className={`flex items-center p-3 md:p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 group relative overflow-hidden ${optionStyle}`}>
+                                                                    <div className={`w-5 h-5 rounded-full border-2 mr-4 flex items-center justify-center shrink-0 transition-colors z-10 ${answers[index]===optIndex ? (isDarkMode ? 'border-cyan-500' : 'border-cyan-600') : circleDefault}`}>
+                                                                        {answers[index]===optIndex && <div className={`w-2.5 h-2.5 rounded-full ${isDarkMode ? 'bg-cyan-500' : 'bg-cyan-600'}`}></div>}
+                                                                    </div>
+                                                                    <span className={`${currentFont.o} z-10 ${answers[index]===optIndex ? textSelected : textNormal}`}>{o}</span>
+                                                                    <input type="radio" className="hidden" checked={answers[index]===optIndex} onChange={()=>setAnswers(prev => ({...prev, [index]: optIndex}))} />
+                                                                </label>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    {/* Practice Mode Actions */}
+                                                    {isPracticeMode && (
+                                                        <div className="mt-4 md:ml-12">
+                                                            {!isRevealed ? (
+                                                                <button onClick={() => revealAnswer(index)} className="text-sm font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
+                                                                    <Eye size={16}/> Xem đáp án
+                                                                </button>
+                                                            ) : (
+                                                                <div className="animate-fade-in p-4 bg-blue-900/20 rounded-xl border border-blue-500/20 text-sm text-slate-300 mt-2">
+                                                                     <div className="font-bold text-blue-400 mb-1 flex items-center gap-2"><BookOpen size={16}/> Giải thích:</div>
+                                                                     {q.explanation || "Không có giải thích chi tiết cho câu hỏi này."}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                         </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                         
                         {/* Mobile Submit Bar */}
                         <div className={`md:hidden p-4 border-t z-20 shadow-[0_-5px_20px_rgba(0,0,0,0.1)] ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-gray-200 bg-white'}`}>
                             <button onClick={() => finish(false)} disabled={submitting} className="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl font-bold text-white shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 disabled:opacity-50">
-                                {submitting ? <Loader2 className="animate-spin" size={20}/> : <CheckCircle2 size={20}/>} Nộp Bài
+                                {submitting ? <Loader2 className="animate-spin" size={20}/> : <CheckCircle2 size={20}/>} {isPracticeMode ? 'Kết Thúc' : 'Nộp Bài'}
                             </button>
                         </div>
                     </div>
@@ -1216,7 +1446,7 @@
 
                         <div className={`p-5 border-t z-20 ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-gray-200 bg-white'}`}>
                             <button onClick={() => finish(false)} disabled={submitting} className="w-full bg-emerald-600 hover:bg-emerald-500 py-3.5 rounded-xl font-bold text-white shadow-lg shadow-emerald-500/20 transition-all transform hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:transform-none flex items-center justify-center gap-2">
-                                {submitting ? <Loader2 className="animate-spin" size={20}/> : <CheckCircle2 size={20}/>} {submitting ? 'Đang nộp...' : 'Nộp Bài Thi'}
+                                {submitting ? <Loader2 className="animate-spin" size={20}/> : <CheckCircle2 size={20}/>} {submitting ? 'Đang xử lý...' : (isPracticeMode ? 'Kết Thúc' : 'Nộp Bài Thi')}
                             </button>
                         </div>
                     </div>
@@ -1247,7 +1477,7 @@
             );
         };
 
-        const Dashboard = ({ user, profile, onStartExam, onViewHistory, onUpgrade }) => {
+        const Dashboard = ({ user, profile, onStartExam, onViewHistory, onUpgrade, onViewNotebook }) => {
             const [exams, setExams] = useState([]);
             const [stats, setStats] = useState({ totalTaken: 0, avgScore: 0, rank: 'Tập sự' });
             const [historyData, setHistoryData] = useState([]); // Store raw history for chart
@@ -1444,17 +1674,34 @@
                         </div>
 
                         {/* Feature 3: Performance Chart in Sidebar */}
-                        <div className="lg:col-span-1">
-                             <div className="glass-panel rounded-3xl p-6 sticky top-24">
+                        <div className="lg:col-span-1 space-y-6">
+                            <div className="glass-panel rounded-3xl p-6 sticky top-24">
                                 <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2"><BarChart3 size={20} className="text-cyan-400"/> Biểu đồ phong độ</h3>
                                 <p className="text-xs text-slate-400 mb-4">Kết quả 10 bài thi gần nhất của bạn</p>
                                 <PerformanceChart historyData={historyData} />
-                                <div className="mt-6 pt-4 border-t border-slate-700/50">
+                                <div className="mt-6 pt-4 border-t border-slate-700/50 space-y-2">
                                      <button onClick={onViewHistory} className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-sm transition-colors flex items-center justify-center gap-2 group">
                                         Xem lịch sử chi tiết <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform"/>
                                      </button>
                                 </div>
-                             </div>
+                            </div>
+
+                            {/* New Sidebar Card for Notebook */}
+                            <div 
+                                onClick={onViewNotebook}
+                                className="glass-panel rounded-3xl p-6 cursor-pointer hover:bg-pink-900/10 transition-colors border-l-4 border-l-pink-500 group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 rounded-full bg-pink-500/20 text-pink-500 group-hover:scale-110 transition-transform">
+                                        <Bookmark size={24}/>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-white group-hover:text-pink-400 transition-colors">Sổ Tay Ôn Tập</h3>
+                                        <p className="text-xs text-slate-400 mt-1">Xem lại các câu hỏi khó bạn đã lưu</p>
+                                    </div>
+                                    <ChevronRight size={20} className="ml-auto text-slate-500 group-hover:text-pink-500 transition-colors"/>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1680,6 +1927,8 @@
             const [lastResult, setLastResult] = useState(null);
             const [showPay, setShowPay] = useState(false);
             const [globalConfig, setGlobalConfig] = useState({});
+            const [showStartModal, setShowStartModal] = useState(false);
+            const [selectedExamToStart, setSelectedExamToStart] = useState(null);
 
             useEffect(() => {
                 const configPath = doc(db, 'artifacts', appId, 'public', 'data', 'system_settings', 'config');
@@ -1728,9 +1977,20 @@
                 if (diffTime > 0) daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             }
 
-            const startExam = async (exam) => { 
-                if (confirm(`Sẵn sàng thi bài "${exam.title}"?`)) { 
-                    try {
+            // Updated to use Modal
+            const openStartModal = (exam) => {
+                setSelectedExamToStart(exam);
+                setShowStartModal(true);
+            };
+
+            const confirmStartExam = async (mode) => { 
+                const exam = selectedExamToStart;
+                setShowStartModal(false);
+                
+                try {
+                    // Only track live session if it's a real exam, not practice
+                    let sessionRefId = null;
+                    if (mode === 'exam') {
                          const sessionRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'), {
                             uid: user.uid,
                             displayName: user.displayName || user.email,
@@ -1738,13 +1998,15 @@
                             examTitle: exam.title,
                             startedAt: serverTimestamp()
                         });
-                        setActiveExam({ ...exam, sessionId: sessionRef.id });
-                    } catch (e) {
-                        console.error("Tracking error:", e);
-                        setActiveExam(exam);
+                        sessionRefId = sessionRef.id;
                     }
-                    setView('exam'); 
-                } 
+                    
+                    setActiveExam({ ...exam, sessionId: sessionRefId, mode: mode });
+                } catch (e) {
+                    console.error("Tracking error:", e);
+                    setActiveExam({ ...exam, mode: mode });
+                }
+                setView('exam'); 
             };
 
             // Main View Rendering Logic
@@ -1797,9 +2059,11 @@
                             {view === 'history' ? <HistoryPage user={user} onBack={()=>setView('dashboard')}/> : 
                              view === 'profile' ? <ProfilePage user={user} profile={profile} onBack={()=>setView('dashboard')} /> :
                              view === 'leaderboard' ? <LeaderboardPage user={user} onBack={()=>setView('dashboard')} /> :
-                             <Dashboard user={user} profile={profile} onStartExam={startExam} onUpgrade={()=>setShowPay(true)} onViewHistory={()=>setView('history')} />}
+                             view === 'notebook' ? <NotebookPage user={user} onBack={()=>setView('dashboard')} /> :
+                             <Dashboard user={user} profile={profile} onStartExam={openStartModal} onUpgrade={()=>setShowPay(true)} onViewHistory={()=>setView('history')} onViewNotebook={()=>setView('notebook')} />}
                         </div>
                         {showPay && <PaymentModal onClose={()=>setShowPay(false)} user={user}/>}
+                        {showStartModal && selectedExamToStart && <StartExamModal exam={selectedExamToStart} onClose={() => setShowStartModal(false)} onStart={confirmStartExam}/>}
                     </div>
                 );
             };
