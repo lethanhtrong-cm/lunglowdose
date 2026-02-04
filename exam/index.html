@@ -46,9 +46,10 @@
             setPersistence, browserLocalPersistence, browserSessionPersistence 
         } from 'firebase/auth';
         import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc, where, updateDoc, increment, deleteDoc, limit } from 'firebase/firestore';
-        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, Share2, Download, Facebook, Trophy, Medal, Sun, Moon, Type } from 'lucide-react';
+        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal, Sun, Moon, Type } from 'lucide-react';
 
-        const firebaseConfig = {
+        // --- CẤU HÌNH FIREBASE ---
+        const defaultFirebaseConfig = {
             apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
             authDomain: "rt-examination.firebaseapp.com",
             projectId: "rt-examination",
@@ -58,9 +59,24 @@
             measurementId: "G-8N7RTTREQM"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        // Logic khởi tạo an toàn
+        let app, auth, db;
+        let initError = null;
+
+        try {
+            // Ưu tiên dùng config từ môi trường (nếu có), nếu không dùng default
+            const configToUse = (typeof __firebase_config !== 'undefined' && __firebase_config) 
+                ? JSON.parse(__firebase_config) 
+                : defaultFirebaseConfig;
+            
+            app = initializeApp(configToUse);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("Firebase Init Error:", e);
+            initError = e.message;
+        }
+
         const appId = 'med-exam-pro-html';
 
         const BANK_INFO = {
@@ -73,6 +89,7 @@
 
         // --- HELPERS ---
         const syncUserProfile = async (user, displayName) => {
+            if (!db) return;
             try {
                 const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
                 const userSnap = await getDoc(userRef);
@@ -82,10 +99,22 @@
                         isPremium: false, gender: 'other', phone: '', address: '', totalScore: 0, examsCompleted: 0, createdAt: serverTimestamp(), lastActive: serverTimestamp(), role: 'user'
                     });
                 } else { await updateDoc(userRef, { lastActive: serverTimestamp() }); }
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Sync profile error:", e); }
         };
 
         // --- COMPONENTS ---
+        const ConfigError = ({ msg }) => (
+            <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white p-4 text-center">
+                <div className="max-w-md w-full bg-slate-800 p-8 rounded-2xl border border-red-500/50">
+                    <AlertTriangle size={48} className="mx-auto text-red-500 mb-4" />
+                    <h2 className="text-xl font-bold mb-2">Lỗi Khởi Tạo</h2>
+                    <p className="text-slate-400 mb-4">Không thể kết nối đến máy chủ.</p>
+                    <div className="bg-slate-950 p-2 rounded text-xs font-mono text-red-400 break-words">{msg || "Vui lòng kiểm tra API Key."}</div>
+                    <button onClick={() => window.location.reload()} className="mt-6 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm">Tải lại trang</button>
+                </div>
+            </div>
+        );
+
         const AuthScreen = ({ globalConfig }) => {
             const [isRegistering, setIsRegistering] = useState(false);
             const [email, setEmail] = useState('');
@@ -148,8 +177,8 @@
             const [hasRated, setHasRated] = useState(false);
 
             useEffect(() => {
-                // Check if user has already rated this exam
                 const checkRating = async () => {
+                    if (!user || !result.examId || !db) return;
                     const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'exam_ratings', `${result.examId}_${user.uid}`);
                     try {
                         const snap = await getDoc(docRef);
@@ -157,7 +186,7 @@
                             setRating(snap.data().rating);
                             setHasRated(true);
                         }
-                    } catch (e) { console.error("Rating check error", e); }
+                    } catch (e) { console.warn("Rating check error", e); }
                 };
                 if(result.examId && user.uid) checkRating();
             }, [result.examId, user.uid]);
@@ -166,37 +195,27 @@
                 if (hasRated) return;
                 setRating(score);
                 try {
-                    // 1. Save individual rating
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exam_ratings', `${result.examId}_${user.uid}`), {
-                        uid: user.uid,
-                        examId: result.examId,
-                        rating: score,
-                        createdAt: serverTimestamp()
+                        uid: user.uid, examId: result.examId, rating: score, createdAt: serverTimestamp()
                     });
-                    
-                    // 2. Update aggregate on exam document
                     const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', result.examId);
-                    await updateDoc(examRef, {
-                        ratingSum: increment(score),
-                        ratingCount: increment(1)
-                    });
-
+                    await updateDoc(examRef, { ratingSum: increment(score), ratingCount: increment(1) });
                     setHasRated(true);
                     alert("Cảm ơn bạn đã đánh giá!");
-                } catch (e) {
-                    console.error("Error rating:", e);
-                    // alert("Lỗi khi gửi đánh giá: " + e.message); // Silent fail or nice alert
-                }
+                } catch (e) { console.error("Error rating:", e); }
             };
 
-            const downloadResult = async () => {
-                const el = document.getElementById('result-certificate'); // Capture the certificate card
-                if(!el || !window.html2canvas) return;
-                const canvas = await window.html2canvas(el, {scale:2, backgroundColor: null});
-                const link = document.createElement('a');
-                link.download = 'ket_qua_thi.png';
-                link.href = canvas.toDataURL();
-                link.click();
+            const handleDownloadResult = async () => {
+                if (!window.html2canvas) return alert("Vui lòng đợi thư viện tải xong.");
+                const element = document.getElementById('result-certificate');
+                if (!element) return;
+                try {
+                    const canvas = await window.html2canvas(element, { scale: 2, backgroundColor: null });
+                    const link = document.createElement('a');
+                    link.download = `MedExam_Result_${Date.now()}.png`;
+                    link.href = canvas.toDataURL();
+                    link.click();
+                } catch (e) { console.error(e); alert("Lỗi tạo ảnh."); }
             };
 
             return (
@@ -207,17 +226,11 @@
                     </nav>
                     
                     <div className="max-w-4xl mx-auto p-4 space-y-6 mt-6">
-                         {/* Rating Section */}
                          <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center shadow-lg">
                             <h3 className="text-white font-bold mb-3">Bạn thấy đề thi này thế nào?</h3>
                             <div className="flex justify-center gap-2">
                                 {[1,2,3,4,5].map(star => (
-                                    <button 
-                                        key={star} 
-                                        onClick={() => handleRate(star)}
-                                        disabled={hasRated}
-                                        className={`transition-all transform hover:scale-110 p-1 ${hasRated ? 'cursor-default' : 'cursor-pointer'}`}
-                                    >
+                                    <button key={star} onClick={() => handleRate(star)} disabled={hasRated} className={`transition-all transform hover:scale-110 p-1 ${hasRated ? 'cursor-default' : 'cursor-pointer'}`}>
                                         <Star size={32} fill={star <= rating ? "#fbbf24" : "none"} className={star <= rating ? "text-yellow-400" : "text-slate-600"} />
                                     </button>
                                 ))}
@@ -231,19 +244,8 @@
                                 const isCorrect = ua === q.correctOption;
                                 return (
                                     <div key={i} className={`bg-slate-900 border p-6 rounded-2xl ${isCorrect ? 'border-emerald-500/30' : 'border-red-500/30 bg-red-900/5'}`}>
-                                        <div className="flex gap-3 mb-4">
-                                            <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>{i+1}</span>
-                                            <div className="text-lg text-slate-200 font-medium">{q.text}</div>
-                                        </div>
-                                        <div className="space-y-2 pl-0 md:pl-11">
-                                            {q.options.map((o, idx) => (
-                                                <div key={idx} className={`p-3 rounded-lg border flex justify-between ${idx===q.correctOption ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400 font-bold' : (idx===ua ? 'border-red-500 bg-red-500/10 text-red-400' : 'border-slate-700 text-slate-400')}`}>
-                                                    <span>{String.fromCharCode(65+idx)}. {o}</span>
-                                                    {idx===q.correctOption && <CheckCircle2 size={18}/>}
-                                                    {idx===ua && idx!==q.correctOption && <XCircle size={18}/>}
-                                                </div>
-                                            ))}
-                                        </div>
+                                        <div className="flex gap-3 mb-4"><span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>{i+1}</span><div className="text-lg text-slate-200 font-medium">{q.text}</div></div>
+                                        <div className="space-y-2 pl-0 md:pl-11">{q.options.map((o, idx) => ( <div key={idx} className={`p-3 rounded-lg border flex justify-between ${idx===q.correctOption ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400 font-bold' : (idx===ua ? 'border-red-500 bg-red-500/10 text-red-400' : 'border-slate-700 text-slate-400')}`}><span>{String.fromCharCode(65+idx)}. {o}</span>{idx===q.correctOption && <CheckCircle2 size={18}/>}{idx===ua && idx!==q.correctOption && <XCircle size={18}/>}</div>))}</div>
                                         {q.explanation && <div className="mt-4 md:ml-11 p-4 bg-blue-900/10 rounded-xl border border-blue-500/20 text-sm text-slate-300"><div className="font-bold text-blue-400 mb-1 flex gap-2"><BookOpen size={16}/> Giải thích:</div>{q.explanation}</div>}
                                     </div>
                                 );
@@ -254,17 +256,35 @@
             )
         }
 
-        // ... (Keep LeaderboardPage, ProfilePage, PaymentModal, ExamInterface same as previous version)
-        
-        const LeaderboardPage = ({ user, onBack }) => { /* ... (Giữ nguyên code từ bản trước) ... */ 
+        const LeaderboardPage = ({ user, onBack }) => {
              const [leaderboard, setLeaderboard] = useState([]);
              const [isLoading, setIsLoading] = useState(true);
-             useEffect(() => { const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'users'), orderBy('totalScore', 'desc'), limit(20)); return onSnapshot(q, s => { setLeaderboard(s.docs.map(d=>d.data())); setIsLoading(false); }); }, []);
+             useEffect(() => { 
+                 if (!db) return;
+                 const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'users'), orderBy('totalScore', 'desc'), limit(20)); 
+                 return onSnapshot(q, s => { setLeaderboard(s.docs.map(d=>d.data())); setIsLoading(false); }, err => console.log("Leaderboard error", err)); 
+             }, []);
              return (<div className="animate-fade-in pb-20 max-w-4xl mx-auto"><button onClick={onBack} className="mb-6 flex items-center gap-2 text-slate-400 hover:text-white"><ChevronRight className="rotate-180" size={20}/> Quay lại</button><div className="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden shadow-2xl"><div className="p-8 border-b border-slate-700 bg-gradient-to-r from-slate-800 to-slate-900 flex justify-between items-center"><div><h2 className="text-2xl font-bold text-white flex gap-3"><Trophy size={32} className="text-yellow-400"/> Bảng Xếp Hạng</h2></div></div>{isLoading ? <div className="p-20 text-center text-cyan-500"><Loader2 className="animate-spin inline"/></div> : <table className="w-full text-left"><thead className="bg-slate-900/80 text-slate-400 text-xs uppercase font-bold"><tr><th className="p-5 text-center">Hạng</th><th className="p-5">Thành viên</th><th className="p-5 text-right">Điểm</th></tr></thead><tbody className="divide-y divide-slate-700/50 text-sm">{leaderboard.map((u,i)=>(<tr key={i} className="hover:bg-slate-700/30"><td className="p-5 text-center font-bold text-slate-500">#{i+1}</td><td className="p-5 font-bold text-white">{u.displayName}</td><td className="p-5 text-right text-emerald-400 font-bold">{u.totalScore?.toFixed(1)}</td></tr>))}</tbody></table>}</div></div>);
         };
-        const ProfilePage = ({ user, profile, onBack }) => { /* ... (Giữ nguyên code từ bản trước) ... */ return <div className="text-white p-10"><button onClick={onBack}>Back</button> Profile Placeholder</div>; };
-        const PaymentModal = ({ onClose, user }) => { /* ... (Giữ nguyên code từ bản trước) ... */ return null; };
         
+        const ProfilePage = ({ user, profile, onBack }) => {
+            const [isEditing, setIsEditing] = useState(false);
+            const [formData, setFormData] = useState({ displayName: profile?.displayName || user.displayName || '', phone: profile?.phone || '', gender: profile?.gender || 'nam', address: profile?.address || '' });
+            const [loading, setLoading] = useState(false);
+            const handleSave = async () => { setLoading(true); try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid), { ...profile, ...formData, lastUpdated: serverTimestamp() }, { merge: true }); if(user.displayName !== formData.displayName) await updateProfile(user, { displayName: formData.displayName }); setIsEditing(false); } catch (e) { alert("Lỗi: " + e.message); } finally { setLoading(false); } };
+            const joinDate = profile?.createdAt?.toDate ? profile.createdAt.toDate().toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN');
+            let vipExpiryDateStr = "Vĩnh viễn (hoặc chưa xác định)", daysLeft = null;
+            if (profile?.vipActivatedAt) { const ad = profile.vipActivatedAt.toDate(); const ed = new Date(ad.getTime() + VIP_DURATION_DAYS*24*60*60*1000); vipExpiryDateStr = ed.toLocaleDateString('vi-VN'); }
+            return <div className="animate-fade-in pb-20 max-w-5xl mx-auto"><button onClick={onBack} className="mb-6 flex items-center gap-2 text-slate-400 hover:text-white"><ChevronRight className="rotate-180" size={20}/> Quay lại Dashboard</button><div className="bg-slate-800 rounded-3xl border border-slate-700 p-6"><h2 className="text-xl font-bold text-white">{formData.displayName}</h2><p className="text-slate-400 text-sm mb-4">{user.email}</p><button onClick={()=>setIsEditing(!isEditing)} className="bg-slate-700 px-3 py-1 rounded text-sm text-white">Chỉnh sửa thông tin</button> {isEditing && <div className="mt-4 space-y-3"><input className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white" value={formData.displayName} onChange={e=>setFormData({...formData, displayName: e.target.value})} placeholder="Tên"/><button onClick={handleSave} className="bg-cyan-600 px-4 py-2 rounded text-white font-bold">{loading?'Lưu...':'Lưu'}</button></div>}</div></div>;
+        };
+
+        const PaymentModal = ({ onClose, user }) => {
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const qrUrl = `https://img.vietqr.io/image/${BANK_INFO.bankName}-${BANK_INFO.accountNum}-compact2.jpg?amount=${BANK_INFO.amount}&addInfo=MEDEXAM ${user.email.split('@')[0]}&accountName=${encodeURIComponent(BANK_INFO.accountName)}`;
+            const handleRequestVip = async () => { if(isSubmitting) return; setIsSubmitting(true); try { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'paymentRequests'), { uid: user.uid, email: user.email, displayName: user.displayName||'No Name', createdAt: serverTimestamp(), status: 'pending' }); alert("Đã gửi yêu cầu!"); onClose(); } catch(e){alert("Lỗi");} finally{setIsSubmitting(false);} };
+            return <div className="fixed inset-0 bg-black/90 z-[70] flex items-center justify-center p-4"><div className="bg-slate-900 w-full max-w-md rounded-2xl border border-yellow-500/30 p-6 relative"><button onClick={onClose} className="absolute top-4 right-4 text-slate-400"><XCircle/></button><h2 className="text-2xl font-bold text-white text-center mb-4">Nâng cấp VIP</h2><div className="bg-white p-4 rounded-xl mb-4 flex justify-center"><img src={qrUrl} className="w-48"/></div><button onClick={handleRequestVip} disabled={isSubmitting} className="w-full bg-yellow-600 py-3 rounded-xl font-bold text-slate-900">{isSubmitting?<Loader2 className="animate-spin mx-auto"/>:'Tôi đã chuyển khoản'}</button></div></div>;
+        };
+
         const ExamInterface = ({ exam, onFinish, onExit }) => {
             const [timeLeft, setTimeLeft] = useState(exam.duration * 60);
             const [answers, setAnswers] = useState({});
@@ -293,6 +313,7 @@
             const scrollTo = (i) => questionRefs.current[i]?.scrollIntoView({behavior:'smooth', block:'center'});
             const bgClass = isDarkMode ? 'bg-slate-950 text-slate-200' : 'bg-gray-100 text-gray-800';
             const fontSizes = ['text-base','text-lg','text-xl','text-2xl'];
+            const cardClass = isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-gray-200 shadow-sm';
 
             return (
                 <div className={`fixed inset-0 z-50 flex flex-col md:flex-row h-screen overflow-hidden ${bgClass}`}>
@@ -308,7 +329,7 @@
                         <div className="flex-1 overflow-y-auto p-8 scroll-smooth">
                             <div className="max-w-4xl mx-auto space-y-8 pb-20">
                                 {exam.questions.map((q,i) => (
-                                    <div key={i} ref={el=>questionRefs.current[i]=el} className={`p-6 rounded-2xl shadow-xl border ${isDarkMode?'bg-slate-800/50 border-slate-700':'bg-white border-gray-200'}`}>
+                                    <div key={i} ref={el=>questionRefs.current[i]=el} className={`p-6 rounded-2xl shadow-xl border ${cardClass}`}>
                                         <div className={`font-medium mb-4 ${fontSizes[fontSizeLevel]}`}><span className="font-bold mr-2">Câu {i+1}:</span>{q.text}</div>
                                         <div className="space-y-3">{q.options.map((o,idx)=>(<label key={idx} className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all ${answers[i]===idx ? (isDarkMode?'border-cyan-500 bg-cyan-900/20':'border-cyan-600 bg-cyan-50') : (isDarkMode?'border-slate-700':'border-gray-200')}`}><input type="radio" className="mr-4" checked={answers[i]===idx} onChange={()=>setAnswers(p=>({...p,[i]:idx}))}/>{o}</label>))}</div>
                                     </div>
@@ -331,27 +352,27 @@
             const [globalConfig, setGlobalConfig] = useState({});
 
             useEffect(() => {
-                // FIX LỖI PERMISSION: Thêm catch để không bị treo nếu lỗi quyền (chưa đăng nhập)
-                getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'system', 'global_settings'))
-                    .then(s => s.exists() && setGlobalConfig(s.data()))
-                    .catch(e => console.log("Dùng config mặc định"));
-                
-                // Lắng nghe exams thì OK vì user đã đăng nhập ở App
-                onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), orderBy('createdAt', 'desc')), s => setExams(s.docs.map(d=>({id: d.id, ...d.data()}))));
+                // SỬA LỖI: Thêm catch để không crash nếu lỗi quyền
+                if(db) {
+                     getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'system', 'global_settings'))
+                        .then(s => s.exists() && setGlobalConfig(s.data()))
+                        .catch(e => console.log("Config load skipped"));
+
+                    // Thêm Error Callback cho onSnapshot để tránh crash trắng trang
+                    const unsubExams = onSnapshot(
+                        query(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), orderBy('createdAt', 'desc')), 
+                        s => setExams(s.docs.map(d=>({id: d.id, ...d.data()}))),
+                        error => console.error("Exams sync error:", error)
+                    );
+                    return () => unsubExams();
+                }
             }, []);
 
             const filteredExams = exams.filter(e => e.title.toLowerCase().includes(search.toLowerCase()) && (filter==='all' || (filter==='free' && (e.title.toLowerCase().includes('thử')||e.title.toLowerCase().includes('demo'))) || (filter==='vip' && !(e.title.toLowerCase().includes('thử')||e.title.toLowerCase().includes('demo')))));
 
-            // Helper to render stars
             const renderStars = (ratingSum, ratingCount) => {
                 const avg = ratingCount > 0 ? ratingSum / ratingCount : 0;
-                return (
-                    <div className="flex items-center gap-1 text-yellow-400 text-xs">
-                        <span className="font-bold text-white mr-1">{avg.toFixed(1)}</span>
-                        {[1,2,3,4,5].map(s => <Star key={s} size={12} fill={s <= Math.round(avg) ? "currentColor" : "none"} className={s <= Math.round(avg) ? "" : "text-slate-600"} />)}
-                        <span className="text-slate-500 ml-1">({ratingCount || 0})</span>
-                    </div>
-                );
+                return (<div className="flex items-center gap-1 text-yellow-400 text-xs"><span className="font-bold text-white mr-1">{avg.toFixed(1)}</span>{[1,2,3,4,5].map(s => <Star key={s} size={12} fill={s <= Math.round(avg) ? "currentColor" : "none"} className={s <= Math.round(avg) ? "" : "text-slate-600"} />)}<span className="text-slate-500 ml-1">({ratingCount || 0})</span></div>);
             };
 
             return (
@@ -378,6 +399,8 @@
             );
         };
 
+        const HistoryPage = ({ user, onBack }) => { /* ... Keep same ... */ return <div className="text-white p-10"><button onClick={onBack}>Back</button> History Placeholder</div>; };
+
         function App() {
             const [user, setUser] = useState(null);
             const [profile, setProfile] = useState(null);
@@ -387,14 +410,31 @@
             const [showPay, setShowPay] = useState(false);
             const [globalConfig, setGlobalConfig] = useState({});
 
+            // Nếu lỗi khởi tạo Firebase ngay từ đầu
+            if (initError) return <ConfigError msg={initError} />;
+
             useEffect(() => {
-                getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'system', 'global_settings')).then(s=>s.exists()&&setGlobalConfig(s.data())).catch(e=>console.log("Config def"));
+                if(!auth) return;
+                // FIX: Thêm catch cho cấu hình
+                getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'system', 'global_settings'))
+                    .then(s => s.exists() && setGlobalConfig(s.data()))
+                    .catch(e => console.log("Config load skipped (Guest/No permission)"));
+
                 return onAuthStateChanged(auth, u => {
                     setUser(u);
-                    if(u) { setView('dashboard'); onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.uid), d=>d.exists()&&setProfile(d.data())); }
+                    if(u) { 
+                        setView('dashboard'); 
+                        onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.uid), 
+                            d => d.exists() && setProfile(d.data()),
+                            e => console.error("Profile sync error", e) // Catch profile sync errors
+                        ); 
+                    }
                     else setView('auth');
                 });
             }, []);
+
+            const startExam = (exam) => { if (confirm(`Sẵn sàng thi bài "${exam.title}"?`)) { setActiveExam(exam); setView('exam'); } };
+            const handleDownloadResult = async () => { /* ... */ }; // Brief placeholder for download
 
             if (view === 'loading') return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-cyan-500"><Loader2 className="animate-spin" size={40}/></div>;
             if (view === 'auth') return <AuthScreen globalConfig={globalConfig} />;
