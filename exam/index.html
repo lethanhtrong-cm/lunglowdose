@@ -117,7 +117,8 @@
             setPersistence, 
             browserLocalPersistence, 
             browserSessionPersistence,
-            sendPasswordResetEmail
+            sendPasswordResetEmail,
+            signInAnonymously
         } from 'firebase/auth';
         import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc, where, updateDoc, increment, limit, deleteDoc } from 'firebase/firestore';
         import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal, Sun, Moon, Type, X, Info, Check, Quote, Mail, Key } from 'lucide-react';
@@ -389,6 +390,7 @@
             const [isLoading, setIsLoading] = useState(true);
 
             useEffect(() => {
+                if (!user) return;
                 const q = query(
                     collection(db, 'artifacts', appId, 'public', 'data', 'users'),
                     orderBy('totalScore', 'desc'),
@@ -398,9 +400,12 @@
                     const data = snapshot.docs.map(doc => doc.data());
                     setLeaderboard(data);
                     setIsLoading(false);
+                }, (error) => {
+                    console.error("Leaderboard load error:", error);
+                    setIsLoading(false);
                 });
                 return () => unsubscribe();
-            }, []);
+            }, [user]);
 
             return (
                 <div className="animate-fade-in pb-20 max-w-5xl mx-auto">
@@ -682,6 +687,7 @@
                 if (hasRated) return;
                 setRating(score);
                 try {
+                    // 1. Save individual rating to 'exam_ratings' (Old system)
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exam_ratings', `${result.examId}_${user.uid}`), {
                         uid: user.uid,
                         examId: result.examId,
@@ -689,11 +695,24 @@
                         createdAt: serverTimestamp()
                     });
                     
+                    // 2. Update aggregate on 'exams' collection (Old system)
                     const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', result.examId);
                     await updateDoc(examRef, {
                         ratingSum: increment(score),
                         ratingCount: increment(1)
                     });
+
+                    // --- NEW SYNC LOGIC ---
+                    // Sync to 'reviews' collection so admin can see it (Requested by User)
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), {
+                        examId: result.examId,
+                        examTitle: result.examTitle || 'Unknown Exam',
+                        userId: user.uid,
+                        displayName: user.displayName || 'Anonymous',
+                        rating: score,
+                        createdAt: serverTimestamp()
+                    });
+                    // ---------------------
 
                     setHasRated(true);
                     addToast("Cảm ơn đánh giá của bạn!", "success");
@@ -1008,8 +1027,12 @@
             const [loading, setLoading] = useState(true);
 
             useEffect(() => {
+                if (!user) return;
                 const unsubExams = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), orderBy('createdAt', 'desc')), s => {
                     setExams(s.docs.map(d=>({id: d.id, ...d.data()})));
+                    setLoading(false);
+                }, (error) => {
+                    console.error("Exams sync error", error);
                     setLoading(false);
                 });
                 const unsubHistory = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'history')), s => {
@@ -1021,6 +1044,8 @@
                     if (total > 20 && avg > 7) rank = 'Chuyên cần';
                     if (total > 50 && avg > 8.5) rank = 'Tinh anh';
                     setStats({ totalTaken: total, avgScore: avg, rank });
+                }, (error) => {
+                    console.error("History sync error", error);
                 });
                 return () => { unsubExams(); unsubHistory(); };
             }, [user]);
@@ -1144,8 +1169,11 @@
         const HistoryPage = ({ user, onBack }) => {
             const [history, setHistory] = useState([]);
             useEffect(() => {
+                if (!user) return;
                 const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), orderBy('date', 'desc'));
-                const unsub = onSnapshot(q, s => setHistory(s.docs.map(d=>({id: d.id, ...d.data(), date: d.data().date?.toDate()}))));
+                const unsub = onSnapshot(q, s => setHistory(s.docs.map(d=>({id: d.id, ...d.data(), date: d.data().date?.toDate()}))), (error) => {
+                    console.error("History page sync error", error);
+                });
                 return unsub;
             }, [user]);
 
@@ -1188,15 +1216,28 @@
             const [globalConfig, setGlobalConfig] = useState({});
 
             useEffect(() => {
-                getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'system', 'global_settings'))
-                    .then(s => s.exists() && setGlobalConfig(s.data()))
-                    .catch(e => console.warn("Global config load failed", e));
+                const configPath = doc(db, 'artifacts', appId, 'public', 'data', 'system_settings', 'config');
+                const unsubscribe = onSnapshot(configPath, (s) => {
+                    if (s.exists()) {
+                        setGlobalConfig(s.data());
+                    } else {
+                        getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'system', 'global_settings'))
+                            .then(s => s.exists() && setGlobalConfig(s.data()))
+                            .catch(console.warn);
+                    }
+                }, (error) => {
+                    console.warn("Config load failed (likely permissions):", error);
+                });
 
+                return () => unsubscribe();
+            }, []);
+
+            useEffect(() => {
                 return onAuthStateChanged(auth, u => {
                     setUser(u);
                     if (u) {
                         setView('dashboard');
-                        const unsub = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.uid), d => d.exists() && setProfile(d.data()));
+                        const unsub = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.uid), d => d.exists() && setProfile(d.data()), (error) => console.error("Profile sync error", error));
                         return () => unsub();
                     } else setView('auth');
                 });
