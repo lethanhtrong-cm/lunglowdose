@@ -45,11 +45,10 @@
             ShieldCheck, Users, BookOpen, LogOut, Search, Trash2, Plus, 
             Upload, Download, X, CheckCircle2, AlertCircle, Edit3, 
             LayoutDashboard, FileText, Loader2, Info, Database,
-            TrendingUp, Tag, ChevronRight, Bell, Crown, Unlock, CreditCard, Check, FileUp, ListChecks, Lock, Activity, Trophy, Settings, Image as ImageIcon, Save, Star, Calendar, RefreshCw, PlayCircle, Clock, MessageSquare, ExternalLink
+            TrendingUp, Tag, ChevronRight, Bell, Crown, Unlock, CreditCard, Check, FileUp, ListChecks, Lock, Activity, Trophy, Settings, Image as ImageIcon, Save, Star, Calendar, RefreshCw, PlayCircle, Clock, MessageSquare, ExternalLink, Zap
         } from 'lucide-react';
 
         // --- CẤU HÌNH AN TOÀN ---
-        // Sử dụng try-catch để tránh crash nếu biến môi trường lỗi
         let firebaseConfig;
         try {
             firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
@@ -68,7 +67,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // AppId phải khớp chính xác với trang User để đồng bộ dữ liệu
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'med-exam-pro-html';
 
         const ADMIN_EMAILS = ["thanhtrong.yds@gmail.com", "vnrad.tech@gmail.com", "test@gmail.com"];
@@ -131,7 +129,7 @@
             const [activeSessions, setActiveSessions] = useState([]); 
             const [scores, setScores] = useState([]); 
             const [allReviews, setAllReviews] = useState([]);
-            const [reports, setReports] = useState([]); // NEW STATE FOR REPORTS
+            const [reports, setReports] = useState([]); 
             const [lbError, setLbError] = useState(null); 
             const [search, setSearch] = useState('');
             const [filterType, setFilterType] = useState('all');
@@ -238,7 +236,6 @@
                 }
             };
 
-            // Report Actions
             const resolveReport = async (reportId) => {
                 await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', reportId), { status: 'resolved' });
                 notify("Đã xử lý báo cáo", "success");
@@ -268,11 +265,8 @@
 
             const formatDate = (ts) => ts?.toDate ? ts.toDate().toLocaleDateString('vi-VN') : 'Vừa xong';
             const formatDateTime = (ts) => ts?.toDate ? ts.toDate().toLocaleString('vi-VN') : 'Vừa xong';
-
-            const getReasonText = (reason) => {
-                const map = { 'wrong_answer': 'Đáp án sai', 'typo': 'Lỗi chính tả', 'confusing': 'Câu hỏi khó hiểu', 'other': 'Khác' };
-                return map[reason] || reason;
-            };
+            const onlineUsersCount = useMemo(() => { const now = Date.now(); return users.filter(u => u.lastLogin?.toMillis && (now - u.lastLogin.toMillis() < 10 * 60 * 1000)).length; }, [users]);
+            const getReasonText = (reason) => { const map = { 'wrong_answer': 'Đáp án sai', 'typo': 'Lỗi chính tả', 'confusing': 'Câu hỏi khó hiểu', 'other': 'Khác' }; return map[reason] || reason; };
 
             return (
                 <div className="flex min-h-screen">
@@ -283,7 +277,7 @@
                                 { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
                                 { id: 'exams', label: 'Quản lý đề', icon: BookOpen },
                                 { id: 'requests', label: 'Duyệt VIP', icon: CreditCard, count: requests.length },
-                                { id: 'reports', label: 'Báo cáo lỗi', icon: Settings, count: reports.filter(r => r.status === 'pending').length }, // NEW ITEM
+                                { id: 'reports', label: 'Báo cáo lỗi', icon: Settings, count: reports.filter(r => r.status === 'pending').length }, 
                                 { id: 'reviews', label: 'Đánh giá & Góp ý', icon: MessageSquare, count: allReviews.length },
                                 { id: 'live_exam', label: 'Monitor (Live)', icon: Activity },
                                 { id: 'score_rank', label: 'Bảng xếp hạng', icon: Trophy },
@@ -307,6 +301,51 @@
                                 {tab==='exams' && <><select className="bg-slate-900 border border-white/5 rounded-2xl px-4 py-3.5 text-[10px] font-black uppercase outline-none text-slate-400 focus:border-blue-500 transition-all" value={examAccessFilter} onChange={e=>setExamAccessFilter(e.target.value)}><option value="all">Tất cả</option><option value="free">Miễn phí</option><option value="vip">VIP</option></select><button onClick={()=>setShowAdd(true)} className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 px-10 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl transition-all active:scale-95"><Plus size={20}/> TẠO ĐỀ</button></>}
                             </div>}
                         </div>
+
+                        {tab === 'overview' && (
+                            <div className="space-y-8 animate-in">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                                    {[
+                                        { title: 'Đang Online', val: onlineUsersCount, color: 'text-green-400', icon: Zap, bg: 'bg-green-400/10 border-green-500/20' },
+                                        { title: 'Đang thi (Live)', val: activeSessions.length, color: 'text-cyan-400', icon: Activity, bg: 'bg-cyan-400/10 border-cyan-500/20' },
+                                        { title: 'Học viên', val: users.length, color: 'text-white', icon: Users, bg: 'bg-white/5 border-white/10' },
+                                        { title: 'VIP Premium', val: users.filter(u=>u.isPremium).length, color: 'text-yellow-500', icon: Crown, bg: 'bg-yellow-500/5 border-yellow-500/10' },
+                                        { title: 'Đề thi', val: exams.length, color: 'text-emerald-400', icon: BookOpen, bg: 'bg-emerald-400/5 border-emerald-500/10' }
+                                    ].map((s, i) => (
+                                        <div key={i} className={`${s.bg} p-8 rounded-[2rem] border group hover:scale-[1.02] transition-all shadow-lg overflow-hidden relative`}>
+                                            <s.icon className="absolute -right-4 -bottom-4 w-24 h-24 text-white/5 rotate-12 group-hover:text-white/10 transition-all"/>
+                                            <div className="relative z-10">
+                                                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">{s.title}</p>
+                                                <p className={`text-4xl font-black ${s.color} tracking-tighter`}>{s.val}</p>
+                                                {(s.title.includes('Live') || s.title.includes('Online')) && <span className="absolute top-0 right-0 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span></span>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* LIVE MONITOR LIST */}
+                                <div className="bg-slate-900/40 border border-white/5 rounded-[3rem] p-8 shadow-xl backdrop-blur-sm">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="relative"><Activity size={24} className="text-cyan-400"/><span className="absolute -top-1 -right-1 w-2 h-2 bg-cyan-500 rounded-full animate-ping"></span></div>
+                                        <h3 className="text-xl font-black text-white uppercase tracking-tighter">Học viên đang làm bài ({activeSessions.length})</h3>
+                                    </div>
+                                    {activeSessions.length > 0 ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                            {activeSessions.map(session => (
+                                                <div key={session.id} className="bg-slate-950/60 border border-cyan-500/20 p-5 rounded-3xl flex items-center gap-4 relative overflow-hidden group hover:bg-slate-950 transition-all shadow-lg">
+                                                    <div className="w-12 h-12 rounded-2xl bg-cyan-900/20 text-cyan-400 flex items-center justify-center shrink-0 font-bold text-lg">{session.displayName ? session.displayName.charAt(0).toUpperCase() : 'U'}</div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="font-bold text-slate-200 text-sm truncate leading-tight">{session.displayName || 'Học viên ẩn danh'}</p>
+                                                        <p className="text-[10px] text-cyan-500/80 font-bold uppercase tracking-wider truncate mt-1">{session.examTitle}</p>
+                                                    </div>
+                                                    <button onClick={()=>removeSession(session.id)} className="p-2 bg-red-500/10 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all"><Trash2 size={12}/></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : <div className="py-12 text-center border-2 border-dashed border-slate-800 rounded-[2rem] bg-slate-900/20"><p className="text-slate-600 font-bold uppercase tracking-widest text-xs">Hệ thống đang chờ lượt thi mới</p></div>}
+                                </div>
+                            </div>
+                        )}
 
                         {/* TAB: REPORTS (NEW) */}
                         {tab === 'reports' && (
@@ -401,60 +440,6 @@
                                         </div>
                                     );
                                 }) : <div className="col-span-full py-40 text-center border-2 border-dashed border-slate-800 rounded-[4rem] text-slate-700 space-y-6"><Database size={64} className="mx-auto opacity-10"/><button onClick={()=>setShowAdd(true)} className="text-blue-500 underline font-black uppercase text-[10px] tracking-widest">Tạo bộ đề mới</button></div>}
-                            </div>
-                        )}
-
-                        {tab === 'overview' && (
-                            <div className="space-y-8 animate-in">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-                                    {[
-                                        { title: 'Đang thi (Live)', val: activeSessions.length, color: 'text-cyan-400', icon: Activity, bg: 'bg-cyan-400/10 border-cyan-500/20' },
-                                        { title: 'Học viên', val: users.length, color: 'text-white', icon: Users, bg: 'bg-white/5 border-white/10' },
-                                        { title: 'VIP Premium', val: users.filter(u=>u.isPremium).length, color: 'text-yellow-500', icon: Crown, bg: 'bg-yellow-500/5 border-yellow-500/10' },
-                                        { title: 'Đề thi', val: exams.length, color: 'text-emerald-400', icon: BookOpen, bg: 'bg-emerald-400/5 border-emerald-500/10' },
-                                        { title: 'Chờ duyệt', val: requests.length, color: 'text-red-400', icon: CreditCard, bg: 'bg-red-400/5 border-red-500/10' }
-                                    ].map((s, i) => (
-                                        <div key={i} className={`${s.bg} p-8 rounded-[2rem] border group hover:scale-[1.02] transition-all shadow-lg overflow-hidden relative`}>
-                                            <s.icon className="absolute -right-4 -bottom-4 w-24 h-24 text-white/5 rotate-12 group-hover:text-white/10 transition-all"/>
-                                            <div className="relative z-10">
-                                                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">{s.title}</p>
-                                                <p className={`text-4xl font-black ${s.color} tracking-tighter`}>{s.val}</p>
-                                                {s.title.includes('Live') && <span className="absolute top-0 right-0 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span></span>}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="bg-slate-900/40 border border-white/5 rounded-[3rem] p-8 shadow-xl backdrop-blur-sm">
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="relative">
-                                            <Activity size={24} className="text-cyan-400"/>
-                                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-cyan-500 rounded-full animate-ping"></span>
-                                        </div>
-                                        <h3 className="text-xl font-black text-white uppercase tracking-tighter">Học viên đang làm bài ({activeSessions.length})</h3>
-                                    </div>
-
-                                    {activeSessions.length > 0 ? (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                            {activeSessions.map(session => (
-                                                <div key={session.id} className="bg-slate-950/60 border border-cyan-500/20 p-5 rounded-3xl flex items-center gap-4 relative overflow-hidden group hover:bg-slate-950 transition-all shadow-lg">
-                                                    <div className="w-12 h-12 rounded-2xl bg-cyan-900/20 text-cyan-400 flex items-center justify-center shrink-0 font-bold text-lg">
-                                                        {session.displayName ? session.displayName.charAt(0).toUpperCase() : 'U'}
-                                                    </div>
-                                                    <div className="min-w-0 flex-1">
-                                                        <p className="font-bold text-slate-200 text-sm truncate leading-tight">{session.displayName || 'Học viên ẩn danh'}</p>
-                                                        <p className="text-[10px] text-cyan-500/80 font-bold uppercase tracking-wider truncate mt-1">{session.examTitle}</p>
-                                                    </div>
-                                                    <button onClick={()=>removeSession(session.id)} className="p-2 bg-red-500/10 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all"><Trash2 size={12}/></button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="py-12 text-center border-2 border-dashed border-slate-800 rounded-[2rem] bg-slate-900/20">
-                                            <p className="text-slate-600 font-bold uppercase tracking-widest text-xs">Hệ thống đang chờ lượt thi mới</p>
-                                        </div>
-                                    )}
-                                </div>
                             </div>
                         )}
                     </main>
