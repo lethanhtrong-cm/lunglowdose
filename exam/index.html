@@ -1240,9 +1240,9 @@
 
             const filteredExams = exams.filter(e => {
                 const matchesSearch = e.title.toLowerCase().includes(search.toLowerCase());
-                const isFree = e.title.toLowerCase().includes("thử") || e.title.toLowerCase().includes("demo");
-                if (filter === 'free') return matchesSearch && isFree;
-                if (filter === 'vip') return matchesSearch && !isFree;
+                // Logic Filter mới dựa trên isPremium
+                if (filter === 'free') return matchesSearch && !e.isPremium;
+                if (filter === 'vip') return matchesSearch && e.isPremium;
                 return matchesSearch;
             });
 
@@ -1324,15 +1324,28 @@
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {filteredExams.map(exam => {
-                                        const isFree = exam.title.toLowerCase().includes("thử") || exam.title.toLowerCase().includes("demo");
-                                        const isLocked = !profile?.isPremium && !isFree;
+                                        // --- LOGIC MỚI: Dựa hoàn toàn vào isPremium ---
+                                        const isLocked = exam.isPremium && !profile?.isPremium;
+                                        
                                         return (
-                                            <div key={exam.id} className="glass-card rounded-2xl p-6 relative group flex flex-col h-full">
-                                                <div className="absolute top-0 right-0 p-3 z-10">
-                                                    {isLocked ? <div className="bg-slate-900/80 p-1.5 rounded-lg border border-slate-700"><Lock className="text-slate-500" size={16}/></div> : 
-                                                    (isFree ? <span className="text-emerald-400 text-[10px] font-bold bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 tracking-wider">FREE</span> : 
-                                                    <span className="bg-yellow-500/10 border border-yellow-500/20 p-1.5 rounded-lg block"><Crown className="text-yellow-400" size={16}/></span>)}
+                                            <div key={exam.id} className="glass-card rounded-2xl p-6 relative group flex flex-col h-full hover:-translate-y-1 transition-all">
+                                                {/* Badge trạng thái */}
+                                                <div className="absolute top-0 right-0 p-3 bg-slate-800/90 rounded-bl-2xl border-b border-l border-slate-700/50 z-10 backdrop-blur-md">
+                                                    {isLocked ? (
+                                                        <div className="flex items-center gap-1 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
+                                                            <Lock size={14}/> VIP ONLY
+                                                        </div>
+                                                    ) : (
+                                                        exam.isPremium ? (
+                                                            <div className="flex items-center gap-1 text-yellow-400 font-bold text-[10px] uppercase tracking-wider">
+                                                                <Crown size={14}/> VIP OPEN
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-emerald-400 text-[10px] font-bold tracking-widest uppercase">Miễn phí</span>
+                                                        )
+                                                    )}
                                                 </div>
+
                                                 <div className="mb-4 flex-1">
                                                     <h3 className="text-lg font-bold text-white line-clamp-2 group-hover:text-cyan-400 transition-colors mb-2">{exam.title}</h3>
                                                     <div className="text-slate-400 text-xs flex gap-3 font-medium mb-3">
@@ -1357,8 +1370,15 @@
                                                 </div>
                                                 <div className="flex justify-between items-end mt-4">
                                                     {renderStars(exam.ratingSum, exam.ratingCount)}
-                                                    <button onClick={()=> isLocked ? onUpgrade() : onStartExam(exam)} className={`px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all transform group-hover:scale-105 active:scale-95 ${isLocked ? 'bg-slate-800 text-slate-500 hover:bg-slate-700' : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-500/20'}`}>
-                                                        {isLocked ? 'Mở khóa' : 'Bắt đầu'}
+                                                    <button 
+                                                        onClick={()=> isLocked ? onUpgrade() : onStartExam(exam)} 
+                                                        className={`px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all transform group-hover:scale-105 active:scale-95 flex items-center gap-2 ${
+                                                            isLocked 
+                                                            ? 'bg-slate-800 text-slate-500 hover:bg-slate-700 border border-white/5 cursor-not-allowed' 
+                                                            : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-500/20'
+                                                        }`}
+                                                    >
+                                                        {isLocked ? <><Lock size={14}/> Nâng cấp</> : 'Bắt đầu'}
                                                     </button>
                                                 </div>
                                             </div>
