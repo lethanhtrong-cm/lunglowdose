@@ -30,6 +30,7 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         .tab-active { color: #3b82f6; border-bottom: 2px solid #3b82f6; }
         .login-bg { background-image: linear-gradient(rgba(2, 6, 23, 0.85), rgba(2, 6, 23, 0.85)), url('https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80'); background-size: cover; background-position: center; }
+        .stats-card { background: linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.8) 100%); }
     </style>
 </head>
 <body class="antialiased custom-scrollbar">
@@ -45,7 +46,7 @@
             ShieldCheck, Users, BookOpen, LogOut, Search, Trash2, Plus, 
             Upload, Download, X, CheckCircle2, AlertCircle, Edit3, 
             LayoutDashboard, FileText, Loader2, Info, Database,
-            TrendingUp, Tag, ChevronRight, Bell, Crown, Unlock, CreditCard, Check, FileUp, ListChecks, Lock, Activity, Trophy, Settings, Image as ImageIcon, Save, Star, Calendar, RefreshCw, PlayCircle, Clock, Send, FileSpreadsheet
+            TrendingUp, Tag, ChevronRight, Bell, Crown, Unlock, CreditCard, Check, FileUp, ListChecks, Lock, Activity, Trophy, Settings, Image as ImageIcon, Save, Star, Calendar, RefreshCw, PlayCircle, Clock, Send, FileSpreadsheet, BarChart3
         } from 'lucide-react';
 
         // --- CẤU HÌNH AN TOÀN ---
@@ -78,8 +79,6 @@
             );
         };
 
-        // --- COMPONENTS ---
-        
         const ImportModal = ({ onClose, onImport, notify }) => {
             const [isProcessing, setIsProcessing] = useState(false);
             const downloadTemplate = () => { const wsData = [["Câu hỏi", "A", "B", "C", "D", "Đáp án (A/B/C/D)", "Giải thích", "Link Hình Ảnh (Nếu có)"], ["Vị trí tim?", "Hố chậu", "Trung thất", "Hạ sườn", "Thượng vị", "B", "Tim nằm ở trung thất giữa.", "https://example.com/tim.jpg"]]; const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(wsData), "Mẫu"); XLSX.writeFile(wb, "Mau_MedExam_HinhAnh.xlsx"); };
@@ -95,8 +94,6 @@
             const [questions, setQuestions] = useState(exam?.questions || []);
             const [showImport, setShowImport] = useState(false);
             const [isSaving, setIsSaving] = useState(false);
-
-            // Xóa bỏ hoàn toàn các state và hàm liên quan đến soạn thủ công
 
             const saveExam = async () => { if (!title.trim()) return notify("Vui lòng nhập tên đề thi", "error"); if (questions.length === 0) return notify("Danh sách câu hỏi đang trống. Vui lòng Import Excel.", "error"); setIsSaving(true); try { const data = { title, category, isPremium, duration: Number(duration), questions, updatedAt: serverTimestamp() }; if (exam?.id) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id), data); else await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), { ...data, createdAt: serverTimestamp() }); notify("Lưu đề thi thành công", "success"); onClose(); } catch (e) { notify(e.message, "error"); } finally { setIsSaving(false); } };
 
@@ -168,7 +165,7 @@
         };
 
         const Dashboard = ({ user }) => {
-            const [tab, setTab] = useState('exams'); // Changed default to 'exams'
+            const [tab, setTab] = useState('stats'); // Changed default to 'stats'
             const [users, setUsers] = useState([]);
             const [exams, setExams] = useState([]);
             const [requests, setRequests] = useState([]);
@@ -181,7 +178,7 @@
             const [toast, setToast] = useState(null);
             const [sysLoginBg, setSysLoginBg] = useState('');
             const [sysResultBg, setSysResultBg] = useState('');
-            const [notiMsg, setNotiMsg] = useState(''); // Notification message state
+            const [notiMsg, setNotiMsg] = useState(''); 
 
             const notify = useCallback((message, type = 'info') => { setToast({ message, type }); }, []);
 
@@ -204,9 +201,19 @@
                 return () => { unsubU(); unsubE(); unsubR(); unsubActive(); unsubSettings(); };
             }, []);
 
+            // --- THỐNG KÊ LOGIC ---
+            const stats = useMemo(() => {
+                const totalUsers = users.length;
+                const vipUsers = users.filter(u => u.isPremium).length;
+                const freeUsers = totalUsers - vipUsers;
+                const totalExams = exams.length;
+                const vipExams = exams.filter(e => e.isPremium).length;
+                const freeExams = totalExams - vipExams;
+                
+                return { totalUsers, vipUsers, freeUsers, totalExams, vipExams, freeExams };
+            }, [users, exams]);
+
             const saveSystemConfig = async () => { try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'system_settings', 'config'), { loginBg: sysLoginBg, resultBg: sysResultBg, updatedAt: serverTimestamp() }); notify("Đã lưu cấu hình!", "success"); } catch (e) { notify("Lỗi: " + e.message, "error"); } };
-            const removeSession = async (id) => { if(confirm("Xóa phiên thi này?")) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', id)); notify("Đã xóa", "success"); } catch (e) { notify("Lỗi", "error"); } } };
-            const clearAllSessions = async () => { if(confirm("XÓA TẤT CẢ?")) { activeSessions.forEach(async (s) => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', s.id))); notify("Đã làm sạch", "success"); } };
             const exportToExcel = (data, fileName) => { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Data"); XLSX.writeFile(wb, `${fileName}.xlsx`); notify("Đã xuất file Excel", "success"); };
             const sendNotification = async () => { if(!notiMsg.trim()) return notify("Vui lòng nhập nội dung", "error"); try { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'notifications'), { message: notiMsg, createdAt: serverTimestamp() }); setNotiMsg(''); notify("Đã gửi thông báo đến toàn bộ học viên", "success"); } catch(e) { notify("Lỗi gửi thông báo", "error"); } };
 
@@ -219,7 +226,14 @@
                     <aside className="w-72 bg-slate-900/50 border-r border-white/5 flex flex-col fixed h-full z-40 backdrop-blur-xl">
                         <div className="p-8 border-b border-white/5 flex items-center gap-4 text-red-500 font-black text-2xl tracking-tighter"><ShieldCheck size={32}/><div className="leading-none text-white font-black uppercase tracking-tight">Admin<br/><small className="text-slate-500 text-[10px] tracking-[0.4em]">MedExam</small></div></div>
                         <nav className="flex-1 p-6 space-y-4 mt-4">
-                            {[ { id: 'exams', label: 'Quản lý đề', icon: BookOpen }, { id: 'requests', label: 'Duyệt VIP', icon: CreditCard, count: requests.length }, { id: 'users', label: 'Học viên', icon: Users }, { id: 'notifications', label: 'Gửi Thông báo', icon: Bell }, { id: 'settings', label: 'Cấu hình', icon: Settings } ].map(item => (
+                            {[ 
+                                { id: 'stats', label: 'Thống kê', icon: BarChart3 },
+                                { id: 'exams', label: 'Quản lý đề', icon: BookOpen }, 
+                                { id: 'requests', label: 'Duyệt VIP', icon: CreditCard, count: requests.length }, 
+                                { id: 'users', label: 'Học viên', icon: Users }, 
+                                { id: 'notifications', label: 'Gửi Thông báo', icon: Bell }, 
+                                { id: 'settings', label: 'Cấu hình', icon: Settings } 
+                            ].map(item => (
                                 <button key={item.id} onClick={()=>setTab(item.id)} className={`w-full flex items-center justify-between px-6 py-5 rounded-3xl transition-all ${tab === item.id ? 'bg-blue-600 text-white shadow-xl scale-105' : 'text-slate-400 hover:bg-white/5'}`}> <div className="flex items-center gap-4"><item.icon size={20}/><span className="font-extrabold text-sm">{item.label}</span></div> {item.count > 0 && <span className="bg-red-500 text-[10px] font-black px-2 py-1 rounded-full animate-pulse">{item.count}</span>} </button>
                             ))}
                         </nav>
@@ -228,12 +242,81 @@
 
                     <main className="flex-1 ml-72 p-12 custom-scrollbar">
                         <div className="flex flex-col lg:flex-row justify-between lg:items-end mb-16 gap-8">
-                            <h1 className="text-5xl font-black text-white tracking-tighter capitalize">{tab === 'requests' ? 'Yêu cầu kích hoạt' : tab === 'exams' ? 'Ngân hàng đề thi' : tab === 'users' ? 'Học viên' : tab === 'notifications' ? 'Trung tâm thông báo' : 'Cấu hình hệ thống'}</h1>
-                            {tab !== 'settings' && tab !== 'notifications' && <div className="flex flex-wrap gap-4 items-center">
+                            <h1 className="text-5xl font-black text-white tracking-tighter capitalize">
+                                {tab === 'stats' ? 'Tổng quan hệ thống' : tab === 'requests' ? 'Yêu cầu kích hoạt' : tab === 'exams' ? 'Ngân hàng đề thi' : tab === 'users' ? 'Học viên' : tab === 'notifications' ? 'Trung tâm thông báo' : 'Cấu hình hệ thống'}
+                            </h1>
+                            {tab !== 'settings' && tab !== 'notifications' && tab !== 'stats' && <div className="flex flex-wrap gap-4 items-center">
                                 <div className="relative group"><Search className="absolute left-4 top-3.5 text-slate-500 group-focus-within:text-blue-600 transition-colors" size={20}/><input className="bg-slate-900/50 border border-white/5 rounded-2xl pl-12 pr-6 py-3.5 w-72 outline-none focus:border-blue-600 font-bold backdrop-blur" placeholder="Tìm nhanh..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
                                 {tab==='exams' && <><select className="bg-slate-900 border border-white/5 rounded-2xl px-4 py-3.5 text-[10px] font-black uppercase outline-none text-slate-400 focus:border-blue-500 transition-all" value={examAccessFilter} onChange={e=>setExamAccessFilter(e.target.value)}><option value="all">Tất cả</option><option value="free">Miễn phí</option><option value="vip">VIP</option></select><button onClick={()=>setShowAdd(true)} className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 px-10 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl transition-all active:scale-95"><Plus size={20}/> TẠO ĐỀ</button></>}
                             </div>}
                         </div>
+
+                        {tab === 'stats' && (
+                            <div className="animate-in grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                {/* CARD HỌC VIÊN */}
+                                <div className="stats-card p-10 rounded-[3.5rem] border border-white/5 shadow-2xl space-y-8 group transition-all hover:border-blue-500/30">
+                                    <div className="flex justify-between items-start">
+                                        <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500"><Users size={32}/></div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Tổng số học viên</p>
+                                            <h4 className="text-5xl font-black text-white">{stats.totalUsers}</h4>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-slate-950/40 p-5 rounded-3xl border border-white/5">
+                                            <p className="text-[9px] font-black text-slate-600 uppercase mb-1">VIP Member</p>
+                                            <div className="flex items-center gap-2">
+                                                <Crown size={14} className="text-yellow-500"/>
+                                                <span className="text-xl font-black text-yellow-500">{stats.vipUsers}</span>
+                                            </div>
+                                        </div>
+                                        <div className="bg-slate-950/40 p-5 rounded-3xl border border-white/5">
+                                            <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Standard</p>
+                                            <div className="flex items-center gap-2 text-slate-400">
+                                                <Unlock size={14}/>
+                                                <span className="text-xl font-black">{stats.freeUsers}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* CARD ĐỀ THI */}
+                                <div className="stats-card p-10 rounded-[3.5rem] border border-white/5 shadow-2xl space-y-8 group transition-all hover:border-emerald-500/30">
+                                    <div className="flex justify-between items-start">
+                                        <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500"><BookOpen size={32}/></div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Ngân hàng đề thi</p>
+                                            <h4 className="text-5xl font-black text-white">{stats.totalExams}</h4>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-slate-950/40 p-5 rounded-3xl border border-white/5">
+                                            <p className="text-[9px] font-black text-slate-600 uppercase mb-1">VIP Exam</p>
+                                            <span className="text-xl font-black text-emerald-400">{stats.vipExams}</span>
+                                        </div>
+                                        <div className="bg-slate-950/40 p-5 rounded-3xl border border-white/5">
+                                            <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Miễn phí</p>
+                                            <span className="text-xl font-black text-slate-400">{stats.freeExams}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* CARD YÊU CẦU DUYỆT */}
+                                <div className="stats-card p-10 rounded-[3.5rem] border border-white/5 shadow-2xl space-y-8 group transition-all hover:border-red-500/30">
+                                    <div className="flex justify-between items-start">
+                                        <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500"><CreditCard size={32}/></div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Đang chờ duyệt</p>
+                                            <h4 className={`text-5xl font-black ${requests.length > 0 ? 'text-red-500' : 'text-slate-700'}`}>{requests.length}</h4>
+                                        </div>
+                                    </div>
+                                    <div className="bg-slate-950/40 p-5 rounded-3xl border border-white/5 flex items-center justify-between">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase">Trạng thái hệ thống</p>
+                                        <span className="px-4 py-1.5 bg-emerald-500/10 text-emerald-500 text-[10px] font-black rounded-full border border-emerald-500/20">ONLINE</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {tab === 'notifications' && (
                             <div className="max-w-3xl animate-in">
