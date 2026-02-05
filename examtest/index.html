@@ -37,8 +37,7 @@
                         'slide-left': 'slideLeft 0.3s ease-out',
                         'confetti': 'confetti 2s ease-out forwards',
                         'scale-up': 'scaleUp 0.3s ease-out',
-                        'bell-shake': 'bellShake 0.5s cubic-bezier(.36,.07,.19,.97) both',
-                        'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+                        'bell-ring': 'bellRing 2s ease-in-out infinite', // Animation rung chuông
                     },
                     keyframes: {
                         blob: {
@@ -67,14 +66,10 @@
                             'from': { transform: 'scale(0.95)', opacity: '0' },
                             'to': { transform: 'scale(1)', opacity: '1' },
                         },
-                        bellShake: {
+                        bellRing: {
                             '0%, 100%': { transform: 'rotate(0deg)' },
-                            '15%': { transform: 'rotate(-10deg)' },
-                            '30%': { transform: 'rotate(10deg)' },
-                            '45%': { transform: 'rotate(-10deg)' },
-                            '60%': { transform: 'rotate(10deg)' },
-                            '75%': { transform: 'rotate(-5deg)' },
-                            '90%': { transform: 'rotate(5deg)' }
+                            '10%, 30%, 50%, 70%, 90%': { transform: 'rotate(15deg)' },
+                            '20%, 40%, 60%, 80%': { transform: 'rotate(-15deg)' },
                         }
                     }
                 }
@@ -145,7 +140,7 @@
         // Đã thêm getDocs vào import
         import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc, getDocs, where, updateDoc, increment, limit, deleteDoc } from 'firebase/firestore';
         // Thêm 'Users' vào danh sách import
-        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, Users, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal, Sun, Moon, Type, X, Info, Check, Quote, Mail, Key, Flag, BarChart3, AlertCircle, RefreshCw, Bell, Trash2, MessageSquare } from 'lucide-react';
+        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, Users, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal, Sun, Moon, Type, X, Info, Check, Quote, Mail, Key, Flag, BarChart3, AlertCircle, RefreshCw, Bell } from 'lucide-react';
 
         const firebaseConfig = {
             apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
@@ -181,19 +176,6 @@
                 month: '2-digit', 
                 year: 'numeric' 
             });
-        };
-
-        const formatTimeAgo = (ts) => {
-            if (!ts) return '';
-            const date = ts.toDate ? ts.toDate() : new Date(ts);
-            const now = new Date();
-            const diff = Math.floor((now - date) / 1000); // seconds
-
-            if (diff < 60) return 'Vừa xong';
-            if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
-            if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
-            if (diff < 604800) return `${Math.floor(diff / 86400)} ngày trước`;
-            return date.toLocaleDateString('vi-VN');
         };
 
         const syncUserProfile = async (user, displayName) => {
@@ -1276,14 +1258,13 @@
             );
         };
 
-        const Dashboard = ({ user, profile, onStartExam, onViewHistory, onUpgrade, onOpenNoti, hasUnread, notifications, lastCleared, onClearAll }) => {
+        const Dashboard = ({ user, profile, onStartExam, onViewHistory, onUpgrade, onOpenNoti, hasUnread }) => {
             const [exams, setExams] = useState([]);
             const [stats, setStats] = useState({ totalTaken: 0, avgScore: 0, rank: 'Tập sự' });
             const [historyData, setHistoryData] = useState([]); // Store raw history for chart
             const [filter, setFilter] = useState('all'); 
             const [search, setSearch] = useState('');
             const [loading, setLoading] = useState(true);
-            const [showNotiDropdown, setShowNotiDropdown] = useState(false);
 
             useEffect(() => {
                 if (!user) return;
@@ -1500,18 +1481,12 @@
             const [showPay, setShowPay] = useState(false);
             const [globalConfig, setGlobalConfig] = useState({});
             
-            // --- SYSTEM NOTIFICATION STATE (UPDATED FOR LIST) ---
-            const [notifications, setNotifications] = useState([]);
-            const [isNotiPanelOpen, setIsNotiPanelOpen] = useState(false);
-            const [unreadCount, setUnreadCount] = useState(0);
-            const [lastCleared, setLastCleared] = useState(0);
-            const [sysNoti, setSysNoti] = useState(null); // For Popup
-            const [isNotiOpen, setIsNotiOpen] = useState(false); // For Popup visibility
+            // --- SYSTEM NOTIFICATION STATE ---
+            const [sysNoti, setSysNoti] = useState(null);
+            const [isNotiOpen, setIsNotiOpen] = useState(false);
+            const [hasUnread, setHasUnread] = useState(false);
 
             useEffect(() => {
-                const storedLastCleared = localStorage.getItem('noti_last_cleared_seconds');
-                if (storedLastCleared) setLastCleared(Number(storedLastCleared));
-
                 const configPath = doc(db, 'artifacts', appId, 'public', 'data', 'system_settings', 'config');
                 const unsubscribe = onSnapshot(configPath, (s) => {
                     if (s.exists()) {
@@ -1550,71 +1525,52 @@
                 }
             }, [profile, user]);
 
-            // --- SYSTEM NOTIFICATION LISTENER (LIST VIEW) ---
+            // --- SYSTEM NOTIFICATION LISTENER ---
             useEffect(() => {
                 if (!user) return;
-                // Fetch list of notifications instead of single
+                // Listen to the latest notification
                 const q = query(
                     collection(db, 'artifacts', appId, 'public', 'data', 'notifications'), 
                     orderBy('createdAt', 'desc'), 
-                    limit(20)
+                    limit(1)
                 );
                 
                 const unsubscribe = onSnapshot(q, (snapshot) => {
-                    const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    setNotifications(items);
-                    
-                    if (items.length > 0) {
-                        // Check for NEW popup notification
-                        const newest = items[0];
-                        const seenPopupId = localStorage.getItem('seen_noti_popup_id');
+                    if (!snapshot.empty) {
+                        const docData = snapshot.docs[0].data();
+                        const docId = snapshot.docs[0].id;
+                        setSysNoti({ id: docId, ...docData });
                         
-                        if (seenPopupId !== newest.id && (newest.createdAt?.seconds || 0) > lastCleared) {
-                            setSysNoti(newest);
-                            setIsNotiOpen(true);
+                        // Check if user has already seen this notification
+                        const seenId = localStorage.getItem('seen_noti_id');
+                        
+                        if (seenId !== docId) {
+                            setHasUnread(true);
+                            setIsNotiOpen(true); // Auto show for new
+                        } else {
+                            setHasUnread(false);
                         }
                     }
-
-                    // Calculate unread count
-                    const lastSeenSeconds = Number(localStorage.getItem('noti_last_seen_seconds') || 0);
-                    // Count only visible (uncleared) notifications that are newer than lastSeen
-                    const count = items.filter(n => 
-                        (n.createdAt?.seconds || 0) > lastSeenSeconds && 
-                        (n.createdAt?.seconds || 0) > lastCleared
-                    ).length;
-                    
-                    setUnreadCount(count);
                 });
                 
                 return () => unsubscribe();
-            }, [user, lastCleared]);
+            }, [user]);
 
-            const handleToggleNotiPanel = () => {
-                if (!isNotiPanelOpen) {
-                    // Opening: Mark all current visible as read
-                    if (notifications.length > 0) {
-                        const newestTimestamp = notifications[0].createdAt?.seconds || 0;
-                        localStorage.setItem('noti_last_seen_seconds', newestTimestamp);
-                        setUnreadCount(0);
-                    }
-                }
-                setIsNotiPanelOpen(!isNotiPanelOpen);
-            };
-
-            const handleClearAllNoti = () => {
-                // Set cleared time to NOW to hide everything currently existing
-                const nowSeconds = Math.floor(Date.now() / 1000);
-                localStorage.setItem('noti_last_cleared_seconds', nowSeconds);
-                setLastCleared(nowSeconds);
-                setUnreadCount(0);
-                // Also close popup if open
-                setIsNotiOpen(false); 
-            };
-
-            const handleClosePopup = () => {
+            const handleCloseNoti = () => {
                 setIsNotiOpen(false);
-                if (sysNoti) {
-                    localStorage.setItem('seen_noti_popup_id', sysNoti.id);
+                // Mark as seen when closed
+                if(sysNoti) {
+                    localStorage.setItem('seen_noti_id', sysNoti.id);
+                    setHasUnread(false);
+                }
+            };
+
+            const handleOpenNoti = () => {
+                setIsNotiOpen(true);
+                // Mark as seen when opened via bell
+                if(sysNoti) {
+                    localStorage.setItem('seen_noti_id', sysNoti.id);
+                    setHasUnread(false);
                 }
             };
 
@@ -1645,9 +1601,6 @@
                 } 
             };
 
-            // Calculate visible notifications for the panel
-            const visibleNotifications = notifications.filter(n => (n.createdAt?.seconds || 0) > lastCleared);
-
             // Main View Rendering Logic
             const renderContent = () => {
                 if (view === 'loading') return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-cyan-500"><Loader2 className="animate-spin" size={40}/></div>;
@@ -1675,80 +1628,12 @@
                                     <div className="bg-gradient-to-br from-cyan-500 to-blue-600 p-2 rounded-xl shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40 transition-all group-hover:rotate-6"><Activity size={20} className="text-white"/></div>
                                     <span className="font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-400">MedExam Pro</span>
                                 </button>
-                                <div className="flex items-center gap-2 md:gap-4 relative">
+                                <div className="flex items-center gap-2 md:gap-4">
                                     {/* --- BELL ICON FOR NOTIFICATIONS --- */}
-                                    <div className="relative">
-                                        <button onClick={handleToggleNotiPanel} className={`relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all mr-1 ${isNotiPanelOpen ? 'bg-white/10 text-white ring-1 ring-white/20' : ''}`}>
-                                            <Bell size={20} className={unreadCount > 0 ? "text-yellow-400 animate-bell-shake drop-shadow-md" : ""} />
-                                            {unreadCount > 0 && (
-                                                <>
-                                                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-900 z-10"></span>
-                                                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping-slow opacity-75"></span>
-                                                </>
-                                            )}
-                                        </button>
-
-                                        {/* --- NOTIFICATION DROPDOWN PANEL (IMPROVED UI) --- */}
-                                        {isNotiPanelOpen && (
-                                            <div className="absolute right-0 top-full mt-3 w-80 sm:w-96 bg-[#0f172a] border border-slate-700/50 rounded-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden z-50 animate-scale-up origin-top-right ring-1 ring-white/10">
-                                                {/* Header */}
-                                                <div className="p-4 border-b border-slate-800 bg-gradient-to-r from-slate-900 to-slate-800 flex justify-between items-center relative overflow-hidden">
-                                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                                                    <h3 className="font-bold text-white flex items-center gap-2 relative z-10 text-sm tracking-wide uppercase">
-                                                        <Bell size={14} className="text-cyan-400 fill-cyan-400/20"/> Thông báo
-                                                    </h3>
-                                                    {visibleNotifications.length > 0 && (
-                                                        <button 
-                                                            onClick={handleClearAllNoti}
-                                                            className="text-[10px] font-bold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-2 py-1 rounded-md flex items-center gap-1 transition-all hover:scale-105 active:scale-95"
-                                                        >
-                                                            <Trash2 size={10}/> Xóa tất cả
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                
-                                                {/* List Content */}
-                                                <div className="max-h-[60vh] overflow-y-auto custom-scrollbar bg-slate-900/50 backdrop-blur-xl">
-                                                    {visibleNotifications.length === 0 ? (
-                                                        <div className="py-12 px-6 text-center flex flex-col items-center gap-4">
-                                                            <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center border border-slate-700/50">
-                                                                <Bell size={24} className="text-slate-600"/>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-slate-400 font-medium text-sm">Hiện chưa có thông báo mới</p>
-                                                                <p className="text-slate-600 text-xs mt-1">Chúng tôi sẽ báo cho bạn khi có cập nhật.</p>
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="divide-y divide-slate-800/50">
-                                                            {visibleNotifications.map((noti) => (
-                                                                <div key={noti.id} className="p-4 hover:bg-slate-800/80 transition-colors flex gap-4 group cursor-default relative overflow-hidden">
-                                                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                                                    <div className="mt-1 w-10 h-10 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                                                                        <MessageSquare size={18} className="text-cyan-400"/>
-                                                                    </div>
-                                                                    <div className="flex-1">
-                                                                        <div className="flex justify-between items-start gap-2 mb-1">
-                                                                            <h4 className="font-bold text-sm text-slate-200 group-hover:text-white transition-colors line-clamp-1">{noti.title}</h4>
-                                                                            <span className="text-[10px] font-mono text-slate-500 whitespace-nowrap bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">{formatTimeAgo(noti.createdAt)}</span>
-                                                                        </div>
-                                                                        <p className="text-xs text-slate-400 leading-relaxed group-hover:text-slate-300 transition-colors line-clamp-3">{noti.message}</p>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                
-                                                {/* Footer */}
-                                                {visibleNotifications.length > 0 && (
-                                                    <div className="p-3 bg-slate-900 border-t border-slate-800 text-center">
-                                                        <span className="text-[10px] text-slate-500">Hiển thị 20 thông báo gần nhất</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
+                                    <button onClick={handleOpenNoti} className="relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all mr-1">
+                                        <Bell size={20} className={hasUnread ? "text-yellow-400 animate-bell-ring" : ""} />
+                                        {hasUnread && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-slate-900"></span>}
+                                    </button>
 
                                     <button onClick={()=>setView('leaderboard')} className="hidden md:flex bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs font-bold px-4 py-2 rounded-full border border-slate-700 items-center gap-2 transition-all">
                                         <Trophy size={14} className="text-yellow-500"/> BXH
@@ -1768,10 +1653,6 @@
                                 </div>
                             </div>
                         </nav>
-                        
-                        {/* Overlay to close dropdown when clicking outside */}
-                        {isNotiPanelOpen && <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setIsNotiPanelOpen(false)}></div>}
-
                         <div className="max-w-7xl mx-auto px-4 py-8">
                             {view === 'history' ? <HistoryPage user={user} onBack={()=>setView('dashboard')}/> : 
                              view === 'profile' ? <ProfilePage user={user} profile={profile} onBack={()=>setView('dashboard')} /> :
@@ -1782,11 +1663,8 @@
                                 onStartExam={startExam} 
                                 onUpgrade={()=>setShowPay(true)} 
                                 onViewHistory={()=>setView('history')} 
-                                onOpenNoti={handleToggleNotiPanel} 
-                                hasUnread={unreadCount > 0} 
-                                notifications={visibleNotifications}
-                                lastCleared={lastCleared}
-                                onClearAll={handleClearAllNoti}
+                                onOpenNoti={handleOpenNoti} 
+                                hasUnread={hasUnread} 
                              />}
                         </div>
                         {showPay && <PaymentModal onClose={()=>setShowPay(false)} user={user}/>}
@@ -1799,20 +1677,19 @@
                     {/* --- SYSTEM NOTIFICATION POPUP --- */}
                     {isNotiOpen && sysNoti && (
                         <div className="fixed top-0 left-0 w-full z-[100] animate-slide-down">
-                            <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-4 shadow-xl border-b border-indigo-400/30 backdrop-blur-md">
+                            <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-4 shadow-xl border-b border-indigo-400/30">
                                 <div className="max-w-7xl mx-auto flex items-start gap-4">
-                                    <div className="bg-white/20 p-2 rounded-full mt-1 animate-bell-shake">
-                                        <Bell size={24} className="text-white" />
+                                    <div className="bg-white/20 p-2 rounded-full mt-1">
+                                        <Bell size={24} className="text-white animate-bell-ring" />
                                     </div>
                                     <div className="flex-1">
                                         <h4 className="font-bold text-lg">{sysNoti.title}</h4>
                                         <p className="text-indigo-100 text-sm mt-1">{sysNoti.message}</p>
-                                        <p className="text-xs text-indigo-300 mt-2 font-mono flex items-center gap-1">
-                                            <Clock size={10}/>
+                                        <p className="text-xs text-indigo-300 mt-2 font-mono">
                                             {sysNoti.createdAt?.seconds ? new Date(sysNoti.createdAt.seconds * 1000).toLocaleString('vi-VN') : 'Vừa xong'}
                                         </p>
                                     </div>
-                                    <button onClick={handleClosePopup} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                                    <button onClick={handleCloseNoti} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
                                         <X size={20} />
                                     </button>
                                 </div>
