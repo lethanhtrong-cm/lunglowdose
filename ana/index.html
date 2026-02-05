@@ -211,6 +211,7 @@
                 // --- EXAMS COLLECTION ---
                 const qExams = query(collection(db, 'artifacts', currentAppId, 'public', 'data', 'exams'));
                 unsubs.push(onSnapshot(qExams, (snap) => {
+                    // Logic mới: Luôn tin tưởng số lượng từ DB nếu kết nối thành công (kể cả = 0)
                     setStats(prev => ({ ...prev, dbExams: snap.size }));
                 }, (e) => {
                     console.log("Exams path issue:", e);
@@ -221,26 +222,34 @@
                 unsubs.push(onSnapshot(qUsers, (snap) => {
                     const users = snap.docs.map(d => d.data());
                     
-                    // IMPROVED VIP DETECTION LOGIC
-                    // Kiểm tra nhiều trường khác nhau để đảm bảo bắt được VIP
+                    // IMPROVED VIP DETECTION LOGIC V2
+                    // Quét toàn diện hơn để bắt được "VIP ACCESS"
                     const vipCount = users.filter(u => {
-                        // Gom tất cả các trường có thể chứa thông tin VIP
-                        const checks = [
+                        // 1. Kiểm tra các trường định danh VIP phổ biến
+                        const fieldsToCheck = [
                             u.isVIP, u.vip, u.isVip, 
                             u.plan, u.role, u.tier, 
-                            u.type, u.accountType, u.subscription
+                            u.type, u.accountType, u.subscription, u.goi // Thêm 'goi' nếu có
                         ];
                         
-                        return checks.some(val => {
-                            if (val === true) return true; // Boolean true
+                        // Kiểm tra xem có trường nào chứa từ 'vip' hoặc 'premium' không (không phân biệt hoa thường)
+                        const hasVipField = fieldsToCheck.some(val => {
+                            if (val === true) return true;
                             if (typeof val === 'string') {
-                                const s = val.toLowerCase().trim();
-                                // Các từ khóa thường dùng cho VIP
-                                return ['true', 'vip', 'premium', 'pro', 'gold', 'diamond', '1', 'paid'].includes(s);
+                                const s = val.toLowerCase();
+                                return s.includes('vip') || s.includes('premium') || s.includes('pro') || s.includes('access');
                             }
-                            if (val === 1) return true; // Number 1
+                            if (val === 1) return true;
                             return false;
                         });
+
+                        // 2. Fallback: Nếu không tìm thấy ở trên, quét toàn bộ object xem có chuỗi nào chứa 'vip access' không
+                        if (!hasVipField) {
+                            const allValues = Object.values(u);
+                            return allValues.some(val => typeof val === 'string' && val.toLowerCase().includes('vip'));
+                        }
+
+                        return hasVipField;
                     }).length;
                     
                     setStats(prev => ({ ...prev, dbStudents: snap.size, dbVip: vipCount }));
@@ -254,13 +263,13 @@
             }, [currentAppId]);
 
             const displayStats = useMemo(() => {
-                // LOGIC ƯU TIÊN: Nếu DB đã kết nối (khác null), dùng số liệu DB.
-                // Nếu chưa kết nối hoặc lỗi, mới dùng fallback từ History.
+                // LOGIC ƯU TIÊN V2: 
+                // 1. Nếu dbExams đã load (khác null), dùng dbExams. (Khắc phục lỗi hiện 4 đề do lịch sử còn lưu vết)
+                // 2. Nếu dbExams lỗi (null), mới dùng historyExams.
                 
-                // Đề thi: Ưu tiên DB Exams (chính xác thực tế) thay vì History (chứa cả đề đã xóa)
                 const realExams = stats.dbExams !== null ? stats.dbExams : stats.historyExams;
                 
-                // Học viên: Ưu tiên DB Users (chứa cả người chưa thi)
+                // Tương tự với học viên
                 const realStudents = stats.dbStudents !== null ? stats.dbStudents : stats.historyStudents;
 
                 return {
