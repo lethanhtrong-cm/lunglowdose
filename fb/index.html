@@ -40,7 +40,7 @@
         import { getFirestore, collection, doc, updateDoc, deleteDoc, onSnapshot, query, collectionGroup, orderBy, limit } from 'firebase/firestore';
         import { 
             ShieldCheck, LogOut, Search, Trash2, CheckCircle2, AlertCircle, 
-            Trophy, MessageSquare, Flag, Star, Check, ExternalLink, Loader2, BarChart2, UserX
+            Trophy, MessageSquare, Flag, Star, Check, ExternalLink, Loader2, BarChart2, UserX, Sigma
         } from 'lucide-react';
 
         // --- CẤU HÌNH FIREBASE ---
@@ -85,30 +85,64 @@
             const notify = (message, type = 'info') => setToast({ message, type });
 
             useEffect(() => {
-                // --- XỬ LÝ BẢNG XẾP HẠNG ---
-                // Chiến lược: Lấy dữ liệu về Client rồi sắp xếp số học
+                // --- XỬ LÝ BẢNG XẾP HẠNG (AGGREGATED) ---
+                // Chiến lược: Lấy hết dữ liệu về, gom nhóm theo User, cộng dồn điểm
                 const qHistory = query(collectionGroup(db, 'history'));
                 
                 const unsubHistory = onSnapshot(qHistory, (snapshot) => {
-                    let data = snapshot.docs.map(d => ({...d.data(), id: d.id}));
+                    const rawData = snapshot.docs.map(d => ({...d.data(), id: d.id}));
                     
-                    // --- BỘ LỌC TÀI KHOẢN ---
-                    // Chỉ giữ lại những user có Email (đã đăng ký) hoặc có Tên hiển thị rõ ràng
-                    data = data.filter(item => {
+                    // 1. Tạo Map để gom nhóm user
+                    const userMap = {};
+
+                    rawData.forEach(item => {
+                        // Bỏ qua nếu là ẩn danh hoàn toàn (không tên, không email)
                         const hasEmail = item.email && item.email.trim() !== "";
                         const hasName = item.displayName && item.displayName.trim() !== "";
-                        // Logic: Phải có Email mới được coi là tài khoản chính thức
-                        return hasEmail || hasName; 
+                        if (!hasEmail && !hasName) return;
+
+                        // Key định danh duy nhất: Ưu tiên userId, sau đó đến email
+                        const key = item.userId || item.email;
+                        if (!key) return;
+
+                        if (!userMap[key]) {
+                            userMap[key] = {
+                                userId: item.userId,
+                                email: item.email,
+                                displayName: item.displayName,
+                                totalScore: 0,
+                                examCount: 0,
+                                latestDate: item.date // Khởi tạo ngày mới nhất
+                            };
+                        }
+
+                        // Cộng dồn điểm
+                        const currentScore = parseFloat(String(item.score || 0));
+                        userMap[key].totalScore += currentScore;
+                        userMap[key].examCount += 1;
+
+                        // Cập nhật thông tin mới nhất (tên, ngày thi)
+                        // Nếu bản ghi này mới hơn bản ghi đã lưu, cập nhật ngày
+                        const itemDate = item.date?.seconds || 0;
+                        const savedDate = userMap[key].latestDate?.seconds || 0;
+                        
+                        if (itemDate > savedDate) {
+                            userMap[key].latestDate = item.date;
+                            // Cập nhật tên hiển thị nếu bản ghi mới nhất có tên (tránh trường hợp lúc đầu có tên, lúc sau null)
+                            if (item.displayName) userMap[key].displayName = item.displayName;
+                        } else {
+                             // Fallback: nếu chưa có tên, thử lấy tên từ bản ghi cũ hơn
+                             if (!userMap[key].displayName && item.displayName) userMap[key].displayName = item.displayName;
+                        }
                     });
 
-                    // --- LOGIC SẮP XẾP ---
-                    data.sort((a, b) => {
-                        const scoreA = parseFloat(String(a.score || 0));
-                        const scoreB = parseFloat(String(b.score || 0));
-                        return scoreB - scoreA;
-                    });
+                    // 2. Chuyển Map thành Array
+                    let aggregatedData = Object.values(userMap);
+
+                    // 3. Sắp xếp theo Tổng điểm giảm dần
+                    aggregatedData.sort((a, b) => b.totalScore - a.totalScore);
                     
-                    setScores(data);
+                    setScores(aggregatedData);
                     setIndexError(false);
                 }, (error) => {
                     console.error("Leaderboard Error:", error);
@@ -195,7 +229,7 @@
                         <div className="flex justify-between items-end mb-12">
                             <div>
                                 <h1 className="text-4xl font-black text-white tracking-tighter capitalize">{tab === 'score_rank' ? 'Bảng Xếp Hạng Global' : tab === 'reviews' ? 'Phản Hồi Từ Học Viên' : 'Báo Cáo Lỗi Đề Thi'}</h1>
-                                {tab === 'score_rank' && <p className="text-slate-400 text-sm mt-2 flex items-center gap-2"><UserX size={14}/> Đã ẩn các kết quả thi ẩn danh/chưa đăng ký</p>}
+                                {tab === 'score_rank' && <p className="text-slate-400 text-sm mt-2 flex items-center gap-2"><Sigma size={14}/> Xếp hạng theo tổng điểm tích lũy (Đã ẩn danh/spam)</p>}
                             </div>
                             <div className="relative group">
                                 <Search className="absolute left-4 top-3.5 text-slate-500" size={20}/>
@@ -220,19 +254,27 @@
 
                                     <div className="glass-panel rounded-[2rem] overflow-hidden">
                                         <table className="w-full text-left text-sm border-collapse text-slate-300">
-                                            <thead className="bg-slate-800/50 text-slate-400 uppercase text-[10px] font-black tracking-widest"><tr><th className="p-6">Hạng</th><th className="p-6">Học viên</th><th className="p-6">Đề thi</th><th className="p-6 text-center">Điểm số</th><th className="p-6 text-right">Ngày thi</th></tr></thead>
+                                            <thead className="bg-slate-800/50 text-slate-400 uppercase text-[10px] font-black tracking-widest">
+                                                <tr>
+                                                    <th className="p-6">Hạng</th>
+                                                    <th className="p-6">Học viên</th>
+                                                    <th className="p-6 text-center">Số bài thi</th>
+                                                    <th className="p-6 text-center">Tổng điểm tích lũy</th>
+                                                    <th className="p-6 text-right">Hoạt động gần nhất</th>
+                                                </tr>
+                                            </thead>
                                             <tbody className="divide-y divide-slate-700/50">
-                                                {scores.filter(s => (s.displayName||'').toLowerCase().includes(search.toLowerCase()) || (s.examTitle||'').toLowerCase().includes(search.toLowerCase())).slice(0, 50).map((s, i) => {
+                                                {scores.filter(s => (s.displayName||'').toLowerCase().includes(search.toLowerCase())).slice(0, 50).map((s, i) => {
                                                     // Tính toán hiển thị màu điểm số
-                                                    const rawScore = parseFloat(String(s.score || 0));
-                                                    let scoreColor = 'text-red-400';
-                                                    if (rawScore >= 9) scoreColor = 'text-emerald-400';
-                                                    else if (rawScore >= 5) scoreColor = 'text-blue-400';
+                                                    let scoreColor = 'text-white';
+                                                    if (s.totalScore >= 100) scoreColor = 'text-purple-400';
+                                                    else if (s.totalScore >= 50) scoreColor = 'text-emerald-400';
+                                                    else if (s.totalScore >= 20) scoreColor = 'text-blue-400';
 
                                                     const displayInfo = getUserDisplayName(s);
 
                                                     return (
-                                                        <tr key={s.id} className="hover:bg-white/5 transition-colors">
+                                                        <tr key={s.userId || s.email} className="hover:bg-white/5 transition-colors">
                                                             <td className="p-6">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : <span className="font-mono text-slate-500">#{i+1}</span>}</td>
                                                             <td className="p-6">
                                                                 <span className={`font-bold block ${!s.displayName ? 'text-slate-300' : 'text-white'}`}>
@@ -240,9 +282,11 @@
                                                                 </span>
                                                                 {s.email && <span className="text-[10px] font-mono text-slate-500 block">{s.email}</span>}
                                                             </td>
-                                                            <td className="p-6 text-slate-400">{s.examTitle || 'Đề không tên'}</td>
-                                                            <td className="p-6 text-center"><span className={`font-black text-lg ${scoreColor}`}>{rawScore}</span></td>
-                                                            <td className="p-6 text-right font-mono text-xs">{formatDateTime(s.date)}</td>
+                                                            <td className="p-6 text-center">
+                                                                <span className="bg-slate-700 px-3 py-1 rounded-full text-xs font-bold text-slate-300">{s.examCount} đề</span>
+                                                            </td>
+                                                            <td className="p-6 text-center"><span className={`font-black text-2xl ${scoreColor}`}>{s.totalScore.toFixed(1).replace(/\.0$/, '')}</span></td>
+                                                            <td className="p-6 text-right font-mono text-xs">{formatDateTime(s.latestDate)}</td>
                                                         </tr>
                                                     );
                                                 })}
