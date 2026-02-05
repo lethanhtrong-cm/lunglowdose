@@ -132,7 +132,7 @@
             signInAnonymously
         } from 'firebase/auth';
         import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc, getDocs, where, updateDoc, increment, limit, deleteDoc } from 'firebase/firestore';
-        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, Users, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal, Sun, Moon, Type, X, Info, Check, Quote, Mail, Key, Flag, BarChart3, AlertCircle, RefreshCw, Bell, Trash2, Camera, Upload } from 'lucide-react';
+        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, Users, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal, Sun, Moon, Type, X, Info, Check, Quote, Mail, Key, Flag, BarChart3, AlertCircle, RefreshCw, Bell, Trash2, Camera, Upload, Twitter, SendHorizontal } from 'lucide-react';
 
         const firebaseConfig = {
             apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
@@ -1352,12 +1352,25 @@
             };
 
             const handleShareExam = (exam, platform) => {
-                const shareUrl = window.location.href;
+                const shareUrl = window.location.origin + window.location.pathname; 
                 const shareText = `Thử thách bản thân với đề thi "${exam.title}" trên MedExam Pro!`;
 
                 if (platform === 'facebook') {
                     const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
                     window.open(fbUrl, '_blank');
+                } else if (platform === 'twitter') {
+                    const twUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+                    window.open(twUrl, '_blank');
+                } else if (platform === 'zalo') {
+                    // Zalo thường chia sẻ qua việc copy link hoặc API riêng, ở đây ta ưu tiên copy text kèm link
+                    const fullText = `${shareText}\nXem tại: ${shareUrl}`;
+                    const tempTextArea = document.createElement("textarea");
+                    tempTextArea.value = fullText;
+                    document.body.appendChild(tempTextArea);
+                    tempTextArea.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(tempTextArea);
+                    addToast("Đã sao chép nội dung chia sẻ cho Zalo!", "success");
                 } else {
                     const tempInput = document.createElement("input");
                     tempInput.value = shareUrl;
@@ -1471,9 +1484,15 @@
                                                             >
                                                                 <Share2 size={18} />
                                                             </button>
-                                                            <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-2 hidden group-hover/share:flex flex-col gap-1 z-20 min-w-[140px] animate-scale-up">
+                                                            <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-2 hidden group-hover/share:flex flex-col gap-1 z-20 min-w-[160px] animate-scale-up">
                                                                 <button onClick={() => handleShareExam(exam, 'facebook')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
                                                                     <div className="bg-blue-600 p-1 rounded-full"><Facebook size={12} /></div> Facebook
+                                                                </button>
+                                                                <button onClick={() => handleShareExam(exam, 'zalo')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
+                                                                    <div className="bg-blue-500 p-1 rounded-full"><SendHorizontal size={12} /></div> Zalo (Copy)
+                                                                </button>
+                                                                <button onClick={() => handleShareExam(exam, 'twitter')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
+                                                                    <div className="bg-slate-900 p-1 rounded-full"><Twitter size={12} /></div> Twitter (X)
                                                                 </button>
                                                                 <button onClick={() => handleShareExam(exam, 'link')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
                                                                     <div className="bg-slate-600 p-1 rounded-full"><Copy size={12} /></div> Sao chép link
@@ -1482,7 +1501,6 @@
                                                         </div>
                                                     </div>
 
-                                                    {/* NỔI BẬT: THỜI GIAN VÀ SỐ CÂU HỎI */}
                                                     <div className="flex flex-wrap gap-2 mb-4">
                                                         <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-400 text-xs font-bold border border-cyan-500/20 shadow-sm shadow-cyan-500/5">
                                                             <Clock size={14} className="shrink-0 text-cyan-500"/> {exam.duration} phút
@@ -1677,19 +1695,20 @@
 
             const handleShareFacebook = () => {
                const text = `Tôi vừa hoàn thành bài thi "${result.examTitle}" với số điểm ${result.score}/10 trên MedExam Pro!`;
-               const url = "https://medexam-pro.web.app"; 
+               const url = window.location.origin + window.location.pathname; 
                window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`, '_blank');
             };
 
             const handleShareZalo = () => {
-                const text = `Kết quả thi MedExam Pro:\nĐề: ${result.examTitle}\nĐiểm: ${result.score}/10\nĐúng: ${result.correctCount}/${result.total}`;
-                const tempInput = document.createElement("input");
+                const url = window.location.origin + window.location.pathname;
+                const text = `Kết quả thi MedExam Pro:\nĐề: ${result.examTitle}\nĐiểm: ${result.score}/10\nĐúng: ${result.correctCount}/${result.total}\nXem tại: ${url}`;
+                const tempInput = document.createElement("textarea");
                 tempInput.value = text;
                 document.body.appendChild(tempInput);
                 tempInput.select();
                 document.execCommand("copy");
                 document.body.removeChild(tempInput);
-                addToast("Đã sao chép kết quả!", "info");
+                addToast("Đã sao chép kết quả chia sẻ Zalo!", "info");
             };
 
             return (
