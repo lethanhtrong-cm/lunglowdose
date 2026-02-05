@@ -50,7 +50,7 @@
         import { 
             ShieldCheck, LogOut, Search, Trash2, CheckCircle2, AlertCircle, 
             Trophy, MessageSquare, Flag, Star, Check, ExternalLink, Loader2, BarChart2, UserX, Sigma,
-            LayoutDashboard, Users, Zap, FileText, Crown, Activity, Clock, Pencil, X, Database, Settings, RefreshCw
+            LayoutDashboard, Users, Zap, FileText, Crown, Activity, Clock, Pencil, X, Database, Settings, RefreshCw, History, GraduationCap
         } from 'lucide-react';
 
         // --- CẤU HÌNH FIREBASE ---
@@ -83,7 +83,6 @@
             );
         };
 
-        // StatCard CẢI TIẾN: Thêm hiệu ứng flash khi giá trị thay đổi
         const StatCard = ({ title, value, icon: Icon, color, subText }) => {
             const [changed, setChanged] = useState(false);
             const prevValue = useRef(value);
@@ -127,25 +126,31 @@
             
             // App ID Management
             const [currentAppId, setCurrentAppId] = useState(defaultAppId);
-            const [manualAppId, setManualAppId] = useState(defaultAppId); // For settings input
+            const [manualAppId, setManualAppId] = useState(defaultAppId);
             const [isAutoDetected, setIsAutoDetected] = useState(false);
             
-            const [stats, setStats] = useState({ 
-                online: 0, live: 0, 
-                historyStudents: 0, historyExams: 0,
-                dbStudents: null, dbExams: null, dbVip: 0
+            // Time trigger để làm mới trạng thái Online/Live mỗi 5 giây
+            const [now, setNow] = useState(Date.now() / 1000);
+
+            useEffect(() => {
+                const timer = setInterval(() => setNow(Date.now() / 1000), 5000); // Cập nhật mỗi 5 giây
+                return () => clearInterval(timer);
+            }, []);
+
+            const [dbStats, setDbStats] = useState({ 
+                students: null, exams: null, vip: 0
             });
             const [editingReview, setEditingReview] = useState(null);
             
             const notify = (message, type = 'info') => setToast({ message, type });
 
-            // 1. Listen to GLOBAL history to detect App ID and monitor live activity
+            // 1. Listen to GLOBAL history
             useEffect(() => {
                 const qHistory = query(collectionGroup(db, 'history'));
                 const unsubHistory = onSnapshot(qHistory, (snapshot) => {
                     const rawData = snapshot.docs.map(d => ({...d.data(), id: d.id, path: d.ref.path}));
                     
-                    // --- AUTO DETECT APP ID ---
+                    // Auto detect App ID logic (giữ nguyên)
                     if (!isAutoDetected && rawData.length > 0 && currentAppId === defaultAppId) {
                         try {
                             const firstPath = rawData[0].path;
@@ -153,63 +158,24 @@
                             if (segments.length >= 2 && segments[0] === 'artifacts') {
                                 const detectedId = segments[1];
                                 if (detectedId && detectedId !== currentAppId) {
-                                    console.log("Detected App ID from history:", detectedId);
                                     setCurrentAppId(detectedId);
-                                    setManualAppId(detectedId); // Sync input
+                                    setManualAppId(detectedId);
                                     setIsAutoDetected(true);
                                     notify(`Đã tự động kết nối App ID: ${detectedId}`, "success");
                                 }
                             }
-                        } catch (e) { console.warn("Cannot detect app ID", e); }
+                        } catch (e) {}
                     }
 
-                    // --- PROCESS HISTORY DATA ---
+                    // Sort history for processing
                     rawData.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
                     setRawHistory(rawData);
 
+                    // Ranking logic
                     const userMap = {};
-                    const uniqueExams = new Set();
-                    const now = Date.now() / 1000;
-                    
-                    // CẬP NHẬT THỜI GIAN THỰC
-                    // 1. Online: Hoạt động trong 30 giây gần nhất (Real-time Presence)
-                    const ONLINE_THRESHOLD = 30; 
-                    // 2. Đang thi: Hoạt động trong 5 phút và CHƯA NỘP BÀI (Logic bên dưới)
-                    const LIVE_THRESHOLD = 5 * 60; 
-
-                    let onlineCount = 0;
-                    let liveCount = 0;
-
                     rawData.forEach(item => {
-                        if (item.examTitle) uniqueExams.add(item.examTitle);
-                        const hasEmail = item.email && item.email.trim() !== "";
-                        const hasName = item.displayName && item.displayName.trim() !== "";
-                        if (!hasEmail && !hasName) return;
-
                         const key = item.userId || item.email;
                         if (!key) return;
-
-                        const timeDiff = now - (item.date?.seconds || 0);
-                        
-                        // LOGIC ONLINE: Chỉ tính nếu hoạt động < 5 phút
-                        if (timeDiff < ONLINE_THRESHOLD) {
-                            onlineCount++;
-                        }
-
-                        // LOGIC ĐANG THI (Strict):
-                        // 1. Phải hoạt động gần đây (< 5 phút)
-                        // 2. KHÔNG CÓ ĐIỂM (item.score). Vì nếu có điểm = đã nộp bài = đã xong.
-                        // (Nếu DB chỉ lưu lịch sử khi nộp bài, số này sẽ luôn = 0, đúng với yêu cầu "nộp bài thì không tính")
-                        if (timeDiff < LIVE_THRESHOLD) {
-                            // Kiểm tra xem đã nộp bài chưa (có score hay không)
-                            const isSubmitted = item.score !== undefined && item.score !== null && item.score !== '';
-                            const isDoing = !isSubmitted || item.status === 'doing' || item.status === 'in-progress';
-                            
-                            if (isDoing && !isSubmitted) {
-                                liveCount++;
-                            }
-                        }
-
                         if (!userMap[key]) {
                             userMap[key] = { userId: item.userId, email: item.email, displayName: item.displayName, totalScore: 0, examCount: 0, latestDate: item.date };
                         }
@@ -220,56 +186,27 @@
                             if (item.displayName) userMap[key].displayName = item.displayName;
                         }
                     });
-
-                    let aggregatedData = Object.values(userMap);
-                    aggregatedData.sort((a, b) => b.totalScore - a.totalScore);
-                    setScores(aggregatedData);
-
-                    setStats(prev => ({
-                        ...prev,
-                        online: Math.max(onlineCount, 1), // Tối thiểu 1 là admin
-                        live: liveCount,
-                        historyStudents: aggregatedData.length,
-                        historyExams: uniqueExams.size
-                    }));
+                    setScores(Object.values(userMap).sort((a, b) => b.totalScore - a.totalScore));
 
                 }, (error) => console.error("History Error:", error));
 
                 return () => unsubHistory();
             }, [currentAppId]); 
 
-            // 2. Listen to SPECIFIC collections based on currentAppId (REAL-TIME LISTENER)
+            // 2. Listen to SPECIFIC collections
             useEffect(() => {
                 if (!currentAppId) return;
-
                 const unsubs = [];
-                console.log(`Connecting to Public Data for App ID: ${currentAppId}`);
-                
-                // Reset DB stats khi đổi App ID
-                setStats(prev => ({ ...prev, dbExams: null, dbStudents: null, dbVip: 0 }));
+                setDbStats(prev => ({ ...prev, exams: null, students: null, vip: 0 }));
 
-                // --- EXAMS COLLECTION ---
                 const qExams = query(collection(db, 'artifacts', currentAppId, 'public', 'data', 'exams'));
-                unsubs.push(onSnapshot(qExams, (snap) => {
-                    // Cập nhật số liệu thực tế từ DB
-                    setStats(prev => ({ ...prev, dbExams: snap.size }));
-                }, (e) => console.log("Exams path issue:", e)));
+                unsubs.push(onSnapshot(qExams, (snap) => setDbStats(prev => ({ ...prev, exams: snap.size })), e => {}));
 
-                // --- USERS COLLECTION ---
                 const qUsers = query(collection(db, 'artifacts', currentAppId, 'public', 'data', 'users'));
                 unsubs.push(onSnapshot(qUsers, (snap) => {
                     const users = snap.docs.map(d => d.data());
-                    
-                    // --- IMPROVED VIP DETECTION LOGIC ---
                     const vipCount = users.filter(u => {
-                        // 1. Kiểm tra chính xác các trường
-                        const fieldsToCheck = [
-                            u.isPremium,
-                            u.isVIP, u.vip, u.isVip, 
-                            u.plan, u.role, u.tier, 
-                            u.type, u.accountType, u.subscription, u.goi
-                        ];
-                        
+                        const fieldsToCheck = [u.isPremium, u.isVIP, u.vip, u.isVip, u.plan, u.role, u.tier, u.type, u.accountType, u.subscription, u.goi];
                         const hasVipField = fieldsToCheck.some(val => {
                             if (val === true) return true;
                             if (typeof val === 'string') {
@@ -279,38 +216,69 @@
                             if (val === 1) return true;
                             return false;
                         });
-
-                        // 2. Deep Scan: Quét toàn bộ object nếu check trường không ra
                         if (!hasVipField) {
                             const jsonString = JSON.stringify(u).toLowerCase();
                             return jsonString.includes('"vip') || jsonString.includes('vip"') || jsonString.includes('vip ') || jsonString.includes('premium') || jsonString.includes('access');
                         }
-
                         return hasVipField;
                     }).length;
-                    
-                    setStats(prev => ({ ...prev, dbStudents: snap.size, dbVip: vipCount }));
-                }, (e) => console.log("Users path issue")));
+                    setDbStats(prev => ({ ...prev, students: snap.size, vip: vipCount }));
+                }, e => {}));
 
-                // --- REVIEWS & REPORTS ---
                 unsubs.push(onSnapshot(query(collection(db, 'artifacts', currentAppId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc')), s => setReviews(s.docs.map(d => ({...d.data(), id: d.id})))));
                 unsubs.push(onSnapshot(query(collection(db, 'artifacts', currentAppId, 'public', 'data', 'reports'), orderBy('createdAt', 'desc')), s => setReports(s.docs.map(d => ({...d.data(), id: d.id})))));
 
                 return () => unsubs.forEach(fn => fn());
             }, [currentAppId]);
 
-            const displayStats = useMemo(() => {
-                const realExams = stats.dbExams !== null ? stats.dbExams : stats.historyExams;
-                const realStudents = stats.dbStudents !== null ? stats.dbStudents : stats.historyStudents;
+            // --- COMPUTED LIVE STATS (Recalculated every 5 seconds via 'now') ---
+            const liveStats = useMemo(() => {
+                const ONLINE_THRESHOLD = 30; // 30 giây
+                // Đang thi: Hoạt động trong 5 phút và CHƯA CÓ ĐIỂM
+                const EXAM_ACTIVE_THRESHOLD = 5 * 60; 
+
+                const activeUsers = new Set();
+                const examUsers = new Map(); // Dùng Map để lưu user duy nhất đang thi
+
+                rawHistory.forEach(item => {
+                    const timeDiff = now - (item.date?.seconds || 0);
+                    const userKey = item.userId || item.email;
+                    if (!userKey) return;
+
+                    // Logic Online: Chỉ cần có bất kỳ hoạt động nào trong 30s
+                    if (timeDiff < ONLINE_THRESHOLD) {
+                        activeUsers.add(userKey);
+                    }
+
+                    // Logic Đang Thi:
+                    // 1. Hoạt động gần đây (< 5 phút)
+                    // 2. Quan trọng: Chưa có điểm (score == null/undefined) HOẶC status là đang làm
+                    // Nếu đã có điểm nghĩa là đã nộp bài -> Không tính là đang thi
+                    if (timeDiff < EXAM_ACTIVE_THRESHOLD) {
+                        const hasScore = item.score !== undefined && item.score !== null && item.score !== '';
+                        // Nếu chưa có điểm, coi như đang thi
+                        if (!hasScore) {
+                            // Lưu thông tin để hiển thị card
+                            if (!examUsers.has(userKey)) {
+                                examUsers.set(userKey, {
+                                    name: getUserDisplayName(item),
+                                    exam: item.examTitle || 'Đang làm bài...',
+                                    time: item.date
+                                });
+                            }
+                        }
+                    }
+                });
 
                 return {
-                    online: stats.online,
-                    live: stats.live,
-                    students: realStudents || 0,
-                    vip: stats.dbVip || 0,
-                    exams: realExams || 0
+                    online: Math.max(activeUsers.size, 1), // Ít nhất là 1 (admin)
+                    liveCount: examUsers.size,
+                    liveList: Array.from(examUsers.values()),
+                    students: dbStats.students !== null ? dbStats.students : scores.length,
+                    vip: dbStats.vip,
+                    exams: dbStats.exams !== null ? dbStats.exams : 0
                 };
-            }, [stats]);
+            }, [rawHistory, dbStats, scores, now]);
 
             const handleSaveAppId = () => {
                 if (manualAppId && manualAppId.trim() !== "") {
@@ -387,6 +355,7 @@
                         <nav className="flex-1 p-6 space-y-4 mt-4">
                             {[
                                 { id: 'dashboard', label: 'Live Monitor', icon: LayoutDashboard },
+                                { id: 'submissions', label: 'Lịch sử nộp bài', icon: History }, // Tab mới
                                 { id: 'score_rank', label: 'Bảng xếp hạng', icon: Trophy },
                                 { id: 'reviews', label: 'Đánh giá & Góp ý', icon: MessageSquare, count: reviews.length },
                                 { id: 'reports', label: 'Báo cáo lỗi', icon: Flag, count: reports.filter(r => r.status === 'pending').length },
@@ -408,7 +377,7 @@
                         <div className="flex justify-between items-end mb-12">
                             <div>
                                 <h1 className="text-4xl font-black text-white tracking-tighter capitalize">
-                                    {tab === 'dashboard' ? 'Dashboard' : tab === 'score_rank' ? 'Bảng Xếp Hạng' : tab === 'reviews' ? 'Phản Hồi' : tab === 'reports' ? 'Báo Cáo Lỗi' : 'Cấu Hình Hệ Thống'}
+                                    {tab === 'dashboard' ? 'Dashboard' : tab === 'submissions' ? 'Lịch Sử Nộp Bài' : tab === 'score_rank' ? 'Bảng Xếp Hạng' : tab === 'reviews' ? 'Phản Hồi' : tab === 'reports' ? 'Báo Cáo Lỗi' : 'Cấu Hình Hệ Thống'}
                                 </h1>
                                 {tab === 'score_rank' && <p className="text-slate-400 text-sm mt-2 flex items-center gap-2"><Sigma size={14}/> Xếp hạng theo tổng điểm tích lũy</p>}
                                 {tab === 'dashboard' && (
@@ -430,47 +399,91 @@
                         <div className="animate-in">
                             {tab === 'dashboard' && (
                                 <div className="space-y-8">
-                                    <div className="grid grid-cols-5 gap-6">
-                                        <StatCard title="Đang Online" value={displayStats.online} icon={Activity} color="text-emerald-400" subText="Hoạt động gần đây" />
-                                        <StatCard title="Đang Thi (Live)" value={displayStats.live} icon={Zap} color="text-blue-400" subText="Nộp bài < 15p trước" />
-                                        <StatCard title="Học Viên" value={displayStats.students} icon={Users} color="text-purple-400" subText="Đã đăng ký" />
-                                        <StatCard title="VIP Access" value={displayStats.vip} icon={Crown} color="text-yellow-400" subText="Thành viên VIP" />
-                                        <StatCard title="Đề Thi" value={displayStats.exams} icon={FileText} color="text-cyan-400" subText="Tổng số đề" />
+                                    {/* 4 CARDS - Đã xóa VIP Card */}
+                                    <div className="grid grid-cols-4 gap-6">
+                                        <StatCard title="Đang Online" value={liveStats.online} icon={Activity} color="text-emerald-400" subText="Hoạt động < 30s" />
+                                        <StatCard title="Đang Thi" value={liveStats.liveCount} icon={Zap} color="text-blue-400" subText="Đang làm bài..." />
+                                        <StatCard title="Học Viên" value={liveStats.students} icon={Users} color="text-purple-400" subText="Đã đăng ký" />
+                                        <StatCard title="Đề Thi" value={liveStats.exams} icon={FileText} color="text-cyan-400" subText="Tổng số đề" />
                                     </div>
 
-                                    <div className="glass-panel rounded-[2rem] p-8 min-h-[400px]">
+                                    {/* CARD DANH SÁCH ĐANG THI (ACTIVE EXAM SESSIONS) */}
+                                    <div className="glass-panel rounded-[2rem] p-8 min-h-[300px]">
                                         <div className="flex items-center gap-3 mb-6">
-                                            <Activity className="text-emerald-400 pulse-dot" size={24}/>
-                                            <h2 className="text-xl font-bold text-white uppercase tracking-widest">Học viên đang làm bài ({displayStats.live})</h2>
+                                            <div className="bg-blue-500/20 p-2 rounded-full text-blue-400 animate-pulse"><GraduationCap size={24}/></div>
+                                            <h2 className="text-xl font-bold text-white uppercase tracking-widest">
+                                                Học viên đang làm bài ({liveStats.liveCount})
+                                            </h2>
                                         </div>
-                                        <div className="space-y-4">
-                                            {rawHistory.slice(0, 10).map((item, idx) => (
-                                                <div key={item.id} className="flex items-center justify-between p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50 hover:bg-slate-700/50 transition-colors animate-in" style={{animationDelay: `${idx * 0.1}s`}}>
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-400">{idx + 1}</div>
-                                                        <div>
-                                                            <div className="font-bold text-white">{getUserDisplayName(item)}</div>
-                                                            <div className="text-xs text-slate-400 flex items-center gap-2"><Clock size={12}/> {formatDateTime(item.date)}<span className="text-slate-600">|</span><span className="text-cyan-400">{item.examTitle || 'Đề không tên'}</span></div>
-                                                        </div>
+                                        
+                                        <div className="grid grid-cols-3 gap-4">
+                                            {liveStats.liveList.map((user, idx) => (
+                                                <div key={idx} className="bg-slate-800/50 border border-slate-700/50 p-4 rounded-2xl flex items-center gap-4 hover:bg-slate-700/50 transition-all animate-in">
+                                                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white text-xs">
+                                                        {idx + 1}
                                                     </div>
-                                                    <div className="text-right">
-                                                        <div className={`font-black text-xl ${parseFloat(item.score)>=9?'text-emerald-400':parseFloat(item.score)>=5?'text-blue-400':'text-red-400'}`}>{item.score}</div>
-                                                        <div className="text-[10px] font-bold text-slate-500 uppercase">Điểm số</div>
+                                                    <div className="overflow-hidden">
+                                                        <div className="font-bold text-white truncate">{user.name}</div>
+                                                        <div className="text-xs text-blue-400 truncate flex items-center gap-1">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></div>
+                                                            {user.exam}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))}
-                                            {rawHistory.length === 0 && (
-                                                <div className="flex flex-col items-center justify-center py-20 text-slate-500 border-2 border-dashed border-slate-700 rounded-3xl">
-                                                    <div className="bg-slate-800 p-4 rounded-full mb-4 opacity-50"><Activity size={40}/></div>
-                                                    <p className="font-bold">HỆ THỐNG ĐANG CHỜ LƯỢT THI MỚI</p>
-                                                    <p className="text-xs mt-2">Chưa ghi nhận hoạt động nào trong thời gian thực</p>
+                                            
+                                            {liveStats.liveList.length === 0 && (
+                                                <div className="col-span-3 py-10 text-center text-slate-500 border border-dashed border-slate-700 rounded-2xl">
+                                                    <Zap size={32} className="mx-auto mb-2 opacity-50"/>
+                                                    <p className="font-bold text-sm">Chưa có ai đang làm bài thi</p>
+                                                    <p className="text-[10px] mt-1">Dữ liệu sẽ xuất hiện khi có người bắt đầu thi</p>
                                                 </div>
                                             )}
                                         </div>
                                     </div>
                                 </div>
                             )}
+
+                            {/* TAB MỚI: LỊCH SỬ NỘP BÀI (Chuyển từ dashboard cũ sang) */}
+                            {tab === 'submissions' && (
+                                <div className="glass-panel rounded-[2rem] overflow-hidden">
+                                    <div className="p-6 border-b border-slate-700/50 bg-slate-800/20 flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <History className="text-orange-400" size={24}/>
+                                            <h2 className="text-lg font-bold text-white">Lịch sử nộp bài gần đây</h2>
+                                        </div>
+                                        <span className="text-xs font-mono text-slate-500 bg-slate-800 px-2 py-1 rounded">Real-time Feed</span>
+                                    </div>
+                                    
+                                    <div className="p-6 space-y-4">
+                                        {rawHistory.filter(item => {
+                                            // Chỉ hiện những bài đã có điểm (đã nộp)
+                                            const hasScore = item.score !== undefined && item.score !== null && item.score !== '';
+                                            return hasScore && (getUserDisplayName(item).toLowerCase().includes(search.toLowerCase()) || (item.examTitle||'').toLowerCase().includes(search.toLowerCase()));
+                                        }).slice(0, 20).map((item, idx) => (
+                                            <div key={item.id} className="flex items-center justify-between p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50 hover:bg-slate-700/50 transition-colors animate-in" style={{animationDelay: `${idx * 0.05}s`}}>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-400">{idx + 1}</div>
+                                                    <div>
+                                                        <div className="font-bold text-white">{getUserDisplayName(item)}</div>
+                                                        <div className="text-xs text-slate-400 flex items-center gap-2"><Clock size={12}/> {formatDateTime(item.date)}<span className="text-slate-600">|</span><span className="text-cyan-400">{item.examTitle || 'Đề không tên'}</span></div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className={`font-black text-xl ${parseFloat(item.score)>=9?'text-emerald-400':parseFloat(item.score)>=5?'text-blue-400':'text-red-400'}`}>{item.score}</div>
+                                                    <div className="text-[10px] font-bold text-slate-500 uppercase">Điểm số</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        
+                                        {rawHistory.length === 0 && (
+                                            <div className="py-20 text-center text-slate-500 italic">Chưa có dữ liệu nộp bài nào</div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                             
+                            {/* CÁC TAB CŨ GIỮ NGUYÊN (Chỉ ẩn khi không active) */}
                             {tab === 'settings' && (
                                 <div className="glass-panel rounded-[2rem] p-10 max-w-2xl mx-auto">
                                     <div className="text-center mb-10">
@@ -478,36 +491,9 @@
                                         <h2 className="text-2xl font-black text-white">Kết Nối Nguồn Dữ Liệu</h2>
                                         <p className="text-slate-400 mt-2">Cấu hình App ID để Dashboard trỏ đúng vào kho dữ liệu của bạn</p>
                                     </div>
-                                    
                                     <div className="space-y-6">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">App ID Hiện Tại</label>
-                                            <div className="w-full glass-input p-4 rounded-xl text-emerald-400 font-mono flex items-center gap-2">
-                                                <CheckCircle2 size={16}/> {currentAppId}
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Thay Đổi App ID</label>
-                                            <div className="flex gap-2">
-                                                <input 
-                                                    value={manualAppId} 
-                                                    onChange={(e)=>setManualAppId(e.target.value)}
-                                                    className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-cyan-500 text-white font-mono"
-                                                    placeholder="Nhập App ID mới..."
-                                                />
-                                                <button 
-                                                    onClick={handleSaveAppId}
-                                                    className="px-6 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-cyan-500/20"
-                                                >
-                                                    <RefreshCw size={18}/> Cập nhật
-                                                </button>
-                                            </div>
-                                            <p className="text-[10px] text-slate-500 mt-2 italic">
-                                                * App ID thường nằm trong URL của trang quản trị hoặc trong mã nhúng (ví dụ: med-exam-pro-html).
-                                                Nếu số liệu hiển thị 0 hoặc sai lệch, hãy thử nhập đúng App ID của ứng dụng bạn đang dùng.
-                                            </p>
-                                        </div>
+                                        <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">App ID Hiện Tại</label><div className="w-full glass-input p-4 rounded-xl text-emerald-400 font-mono flex items-center gap-2"><CheckCircle2 size={16}/> {currentAppId}</div></div>
+                                        <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Thay Đổi App ID</label><div className="flex gap-2"><input value={manualAppId} onChange={(e)=>setManualAppId(e.target.value)} className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-cyan-500 text-white font-mono" placeholder="Nhập App ID mới..."/><button onClick={handleSaveAppId} className="px-6 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-cyan-500/20"><RefreshCw size={18}/> Cập nhật</button></div></div>
                                     </div>
                                 </div>
                             )}
@@ -531,7 +517,6 @@
                                                     </tr>
                                                 );
                                             })}
-                                            {scores.length === 0 && <tr><td colSpan="5" className="p-20 text-center italic text-slate-600">Chưa có dữ liệu</td></tr>}
                                         </tbody>
                                     </table>
                                 </div>
