@@ -45,7 +45,7 @@
             ShieldCheck, Users, BookOpen, LogOut, Search, Trash2, Plus, 
             Upload, Download, X, CheckCircle2, AlertCircle, Edit3, 
             LayoutDashboard, FileText, Loader2, Info, Database,
-            TrendingUp, Tag, ChevronRight, Bell, Crown, Unlock, CreditCard, Check, FileUp, ListChecks, Lock, Activity, Settings, Image as ImageIcon, Save, Star, Calendar, RefreshCw, PlayCircle, Clock, Zap
+            TrendingUp, Tag, ChevronRight, Bell, Crown, Unlock, CreditCard, Check, FileUp, ListChecks, Lock, Activity, Trophy, Settings, Image as ImageIcon, Save, Star, Calendar, RefreshCw, PlayCircle, Clock
         } from 'lucide-react';
 
         // --- CẤU HÌNH AN TOÀN ---
@@ -120,11 +120,11 @@
         };
 
         const Dashboard = ({ user }) => {
-            const [tab, setTab] = useState('overview');
+            const [tab, setTab] = useState('exams'); // Changed default to 'exams'
             const [users, setUsers] = useState([]);
             const [exams, setExams] = useState([]);
             const [requests, setRequests] = useState([]);
-            const [activeSessions, setActiveSessions] = useState([]); 
+            const [allReviews, setAllReviews] = useState([]);
             const [search, setSearch] = useState('');
             const [filterType, setFilterType] = useState('all');
             const [examAccessFilter, setExamAccessFilter] = useState('all');
@@ -149,6 +149,11 @@
                     s => setRequests(s.docs.map(d=>({id: d.id, ...d.data()}))),
                     e => console.error("Requests error", e)
                 );
+                
+                const unsubReviews = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc')), 
+                    s => setAllReviews(s.docs.map(d=>({id: d.id, ...d.data()}))),
+                    e => console.error("Reviews error", e)
+                );
 
                 const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'system_settings', 'config'), d => {
                     if (d.exists()) {
@@ -157,29 +162,7 @@
                     }
                 });
 
-                const unsubActive = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams')), s => {
-                    const now = Date.now();
-                    const live = [];
-                    s.docs.forEach(doc => {
-                        const data = doc.data();
-                        let isActive = false;
-                        if (data.lastPing?.toMillis) {
-                            if (now - data.lastPing.toMillis() < 2 * 60 * 1000) isActive = true;
-                        } else if (data.startedAt?.toMillis) {
-                             if (now - data.startedAt.toMillis() < 2 * 60 * 1000) isActive = true;
-                        }
-
-                        if (isActive) {
-                            live.push({id: doc.id, ...data});
-                        } else {
-                            const lastTime = data.lastPing?.toMillis ? data.lastPing.toMillis() : (data.startedAt?.toMillis ? data.startedAt.toMillis() : 0);
-                            if (now - lastTime > 5 * 60 * 1000) { deleteDoc(doc.ref).catch(e => {}); }
-                        }
-                    });
-                    setActiveSessions(live);
-                });
-
-                return () => { unsubU(); unsubE(); unsubR(); unsubActive(); unsubSettings(); };
+                return () => { unsubU(); unsubE(); unsubR(); unsubSettings(); unsubReviews(); };
             }, []);
 
             const saveSystemConfig = async () => {
@@ -191,24 +174,6 @@
                     });
                     notify("Đã lưu cấu hình hệ thống thành công!", "success");
                 } catch (e) { notify("Lỗi lưu cấu hình: " + e.message, "error"); }
-            };
-
-            const removeSession = async (id) => {
-                if(confirm("Bạn có chắc muốn xóa phiên thi này?")) {
-                    try {
-                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', id));
-                        notify("Đã xóa phiên thi treo", "success");
-                    } catch (e) { notify("Lỗi: " + e.message, "error"); }
-                }
-            };
-
-            const clearAllSessions = async () => {
-                if(confirm("XÓA TẤT CẢ PHIÊN ĐANG THI? Chỉ dùng khi hệ thống bị treo.")) {
-                    activeSessions.forEach(async (s) => {
-                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', s.id));
-                    });
-                    notify("Đã làm sạch danh sách Monitor", "success");
-                }
             };
 
             const filteredUsers = useMemo(() => {
@@ -228,7 +193,6 @@
             }, [exams, search, examAccessFilter]);
 
             const formatDate = (ts) => ts?.toDate ? ts.toDate().toLocaleDateString('vi-VN') : 'Vừa xong';
-            const onlineUsersCount = useMemo(() => { const now = Date.now(); return users.filter(u => u.lastLogin?.toMillis && (now - u.lastLogin.toMillis() < 30 * 60 * 1000)).length; }, [users]);
 
             return (
                 <div className="flex min-h-screen">
@@ -236,10 +200,8 @@
                         <div className="p-8 border-b border-white/5 flex items-center gap-4 text-red-500 font-black text-2xl tracking-tighter"><ShieldCheck size={32}/><div className="leading-none text-white font-black uppercase tracking-tight">Admin<br/><small className="text-slate-500 text-[10px] tracking-[0.4em]">MedExam</small></div></div>
                         <nav className="flex-1 p-6 space-y-4 mt-4">
                             {[
-                                { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
                                 { id: 'exams', label: 'Quản lý đề', icon: BookOpen },
                                 { id: 'requests', label: 'Duyệt VIP', icon: CreditCard, count: requests.length },
-                                { id: 'live_exam', label: 'Monitor (Live)', icon: Activity },
                                 { id: 'users', label: 'Học viên', icon: Users },
                                 { id: 'settings', label: 'Cấu hình hệ thống', icon: Settings }
                             ].map(item => (
@@ -254,66 +216,25 @@
 
                     <main className="flex-1 ml-72 p-12 custom-scrollbar">
                         <div className="flex flex-col lg:flex-row justify-between lg:items-end mb-16 gap-8">
-                            <h1 className="text-5xl font-black text-white tracking-tighter capitalize">{tab === 'requests' ? 'Yêu cầu kích hoạt' : tab === 'exams' ? 'Ngân hàng đề thi' : tab === 'users' ? 'Học viên' : tab === 'live_exam' ? 'Monitor Thời Gian Thực' : tab === 'settings' ? 'Cấu Hình Hệ Thống' : 'Dashboard'}</h1>
+                            <h1 className="text-5xl font-black text-white tracking-tighter capitalize">{tab === 'requests' ? 'Yêu cầu kích hoạt' : tab === 'exams' ? 'Ngân hàng đề thi' : tab === 'users' ? 'Học viên' : tab === 'settings' ? 'Cấu Hình Hệ Thống' : 'Dashboard'}</h1>
                             {tab !== 'settings' && <div className="flex flex-wrap gap-4 items-center">
                                 <div className="relative group"><Search className="absolute left-4 top-3.5 text-slate-500 group-focus-within:text-blue-600 transition-colors" size={20}/><input className="bg-slate-900/50 border border-white/5 rounded-2xl pl-12 pr-6 py-3.5 w-72 outline-none focus:border-blue-600 font-bold backdrop-blur" placeholder="Tìm nhanh..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
                                 {tab==='exams' && <><select className="bg-slate-900 border border-white/5 rounded-2xl px-4 py-3.5 text-[10px] font-black uppercase outline-none text-slate-400 focus:border-blue-500 transition-all" value={examAccessFilter} onChange={e=>setExamAccessFilter(e.target.value)}><option value="all">Tất cả</option><option value="free">Miễn phí</option><option value="vip">VIP</option></select><button onClick={()=>setShowAdd(true)} className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 px-10 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl transition-all active:scale-95"><Plus size={20}/> TẠO ĐỀ</button></>}
                             </div>}
                         </div>
 
-                        {tab === 'overview' && (
-                            <div className="space-y-8 animate-in">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-                                    {[
-                                        { title: 'Đang Online', val: onlineUsersCount, color: 'text-green-400', icon: Zap, bg: 'bg-green-400/10 border-green-500/20' },
-                                        { title: 'Đang thi (Live)', val: activeSessions.length, color: 'text-cyan-400', icon: Activity, bg: 'bg-cyan-400/10 border-cyan-500/20' },
-                                        { title: 'Học viên', val: users.length, color: 'text-white', icon: Users, bg: 'bg-white/5 border-white/10' },
-                                        { title: 'VIP Premium', val: users.filter(u=>u.isPremium).length, color: 'text-yellow-500', icon: Crown, bg: 'bg-yellow-500/5 border-yellow-500/10' },
-                                        { title: 'Đề thi', val: exams.length, color: 'text-emerald-400', icon: BookOpen, bg: 'bg-emerald-400/5 border-emerald-500/10' }
-                                    ].map((s, i) => (
-                                        <div key={i} className={`${s.bg} p-8 rounded-[2rem] border group hover:scale-[1.02] transition-all shadow-lg overflow-hidden relative`}>
-                                            <s.icon className="absolute -right-4 -bottom-4 w-24 h-24 text-white/5 rotate-12 group-hover:text-white/10 transition-all"/>
-                                            <div className="relative z-10">
-                                                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">{s.title}</p>
-                                                <p className={`text-4xl font-black ${s.color} tracking-tighter`}>{s.val}</p>
-                                                {(s.title.includes('Live') || s.title.includes('Online')) && <span className="absolute top-0 right-0 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span></span>}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* LIVE MONITOR LIST */}
-                                <div className="bg-slate-900/40 border border-white/5 rounded-[3rem] p-8 shadow-xl backdrop-blur-sm">
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="relative"><Activity size={24} className="text-cyan-400"/><span className="absolute -top-1 -right-1 w-2 h-2 bg-cyan-500 rounded-full animate-ping"></span></div>
-                                        <h3 className="text-xl font-black text-white uppercase tracking-tighter">Học viên đang làm bài ({activeSessions.length})</h3>
-                                    </div>
-                                    {activeSessions.length > 0 ? (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                            {activeSessions.map(session => (
-                                                <div key={session.id} className="bg-slate-950/60 border border-cyan-500/20 p-5 rounded-3xl flex items-center gap-4 relative overflow-hidden group hover:bg-slate-950 transition-all shadow-lg">
-                                                    <div className="w-12 h-12 rounded-2xl bg-cyan-900/20 text-cyan-400 flex items-center justify-center shrink-0 font-bold text-lg">{session.displayName ? session.displayName.charAt(0).toUpperCase() : 'U'}</div>
-                                                    <div className="min-w-0 flex-1">
-                                                        <p className="font-bold text-slate-200 text-sm truncate leading-tight">{session.displayName || 'Học viên ẩn danh'}</p>
-                                                        <p className="text-[10px] text-cyan-500/80 font-bold uppercase tracking-wider truncate mt-1">{session.examTitle}</p>
-                                                    </div>
-                                                    <button onClick={()=>removeSession(session.id)} className="p-2 bg-red-500/10 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all"><Trash2 size={12}/></button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : <div className="py-12 text-center border-2 border-dashed border-slate-800 rounded-[2rem] bg-slate-900/20"><p className="text-slate-600 font-bold uppercase tracking-widest text-xs">Hệ thống đang chờ lượt thi mới</p></div>}
-                                </div>
-                            </div>
-                        )}
-
                         {tab === 'settings' && (<div className="max-w-4xl space-y-8 animate-in"><div className="bg-slate-900/40 border border-white/5 rounded-[3rem] p-10 shadow-2xl backdrop-blur-xl"><div className="flex items-center gap-4 mb-8"><div className="w-16 h-16 bg-blue-600/10 text-blue-500 rounded-2xl flex items-center justify-center"><ImageIcon size={32}/></div><div><h3 className="text-2xl font-black text-white">Giao diện Học viên</h3><p className="text-slate-500">Tùy chỉnh hình ảnh hiển thị trên trang của người dùng</p></div></div><div className="space-y-6"><div><label className="text-slate-400 text-xs font-bold uppercase tracking-widest block mb-3">Hình nền Đăng nhập</label><div className="flex gap-4"><input className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl p-4 text-slate-200 outline-none focus:border-blue-500" placeholder="Dán URL hình ảnh..." value={sysLoginBg} onChange={e=>setSysLoginBg(e.target.value)}/><div className="w-24 h-14 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden relative">{sysLoginBg && <img src={sysLoginBg} className="w-full h-full object-cover" alt="Preview"/>}</div></div></div><div><label className="text-slate-400 text-xs font-bold uppercase tracking-widest block mb-3">Hình nền Kết quả thi</label><div className="flex gap-4"><input className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl p-4 text-slate-200 outline-none focus:border-blue-500" placeholder="Dán URL hình ảnh..." value={sysResultBg} onChange={e=>setSysResultBg(e.target.value)}/><div className="w-24 h-14 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden relative">{sysResultBg && <img src={sysResultBg} className="w-full h-full object-cover" alt="Preview"/>}</div></div></div><div className="pt-6 border-t border-white/5"><button onClick={saveSystemConfig} className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-2 shadow-lg hover:shadow-blue-500/20 transition-all"><Save size={16}/> Lưu cấu hình</button></div></div></div></div>)}
-                        {tab === 'live_exam' && (<div className="space-y-6 animate-in"><div className="flex justify-end">{activeSessions.length > 0 && <button onClick={clearAllSessions} className="bg-red-500/10 text-red-500 hover:bg-red-600 hover:text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 transition-all"><Trash2 size={14}/> Làm sạch danh sách</button>}</div><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{activeSessions.length > 0 ? activeSessions.map(session => (<div key={session.id} className="bg-slate-900/50 border border-emerald-500/30 p-6 rounded-[2rem] relative overflow-hidden group shadow-lg shadow-emerald-900/10"><div className="absolute top-4 right-4 flex items-center gap-2"><button onClick={()=>removeSession(session.id)} className="p-2 bg-red-500/10 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all"><Trash2 size={14}/></button><span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest px-2 py-1 bg-emerald-500/10 rounded-lg">Live</span></div><div className="flex items-center gap-4 mb-4"><div className="w-12 h-12 bg-emerald-900/30 rounded-2xl flex items-center justify-center text-emerald-400"><Users size={24}/></div><div><p className="font-black text-white">{session.displayName || 'Học viên'}</p><p className="text-xs text-slate-500">Đang làm bài</p></div></div><div className="p-4 bg-slate-950/50 rounded-2xl border border-white/5"><p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Đề thi</p><p className="text-sm font-bold text-slate-200 line-clamp-1">{session.examTitle}</p></div></div>)) : <div className="col-span-full py-40 text-center border-2 border-dashed border-slate-800 rounded-[4rem] text-slate-700 space-y-6"><Activity size={64} className="mx-auto opacity-10 animate-pulse"/><p className="font-black tracking-[0.2em] uppercase text-xs">Hiện không có học viên nào đang làm bài</p></div>}</div></div>)}
+
                         {tab === 'requests' && (<div className="bg-slate-900/40 border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl animate-in backdrop-blur-xl"><table className="w-full text-left text-sm border-collapse"><thead className="bg-slate-800/30 text-slate-500 uppercase text-[10px] font-black tracking-[0.2em]"><tr><th className="p-8">Người gửi</th><th className="p-8">Thời gian</th><th className="p-8">Trạng thái</th><th className="p-8 text-right">Thao tác</th></tr></thead><tbody className="divide-y divide-white/5">{requests.length > 0 ? requests.map(req => (<tr key={req.id} className="hover:bg-white/5 transition-all group font-bold"><td className="p-8"><span className="text-slate-200 text-lg block font-black">{req.displayName || req.email}</span></td><td className="p-8 text-slate-500 text-xs">{req.createdAt?.toDate ? req.createdAt.toDate().toLocaleString('vi-VN') : '---'}</td><td className="p-8"><span className="px-4 py-2 bg-yellow-500/10 text-yellow-500 text-[10px] font-black rounded-full border border-yellow-500/20 uppercase">Chờ duyệt</span></td><td className="p-8 text-right"><button onClick={async()=>{await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', req.uid), { isPremium: true }); await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'paymentRequests', req.id)); notify("Đã kích hoạt VIP thành công", "success");}} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-2xl font-black text-[10px] uppercase shadow-lg flex items-center gap-2 float-right active:scale-95 transition-all"><Check size={14}/> Xác nhận VIP</button></td></tr>)) : <tr><td colSpan="4" className="p-32 text-center text-slate-600 italic font-black uppercase tracking-widest text-xs">Không có yêu cầu mới</td></tr>}</tbody></table></div>)}
+                        
                         {tab === 'users' && (<div className="bg-slate-900/40 border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl animate-in backdrop-blur-xl"><table className="w-full text-left text-sm border-collapse font-bold"><thead className="bg-slate-800/30 text-slate-500 uppercase text-[10px] font-black tracking-[0.2em]"><tr><th className="p-8">Học viên</th><th className="p-8 text-center">Gói</th><th className="p-8 text-right">Tác vụ</th></tr></thead><tbody className="divide-y divide-white/5">{filteredUsers.map(u => (<tr key={u.id} className="hover:bg-white/5 transition-all group"><td className="p-8"><span className="font-black text-slate-200 text-lg block tracking-tight">{u.displayName || 'Học viên ẩn danh'}</span><span className="text-[10px] text-slate-500 uppercase tracking-widest">{u.email}</span></td><td className="p-8 text-center">{u.isPremium ? <span className="px-5 py-2 bg-yellow-500/10 text-yellow-500 text-[10px] font-black rounded-full border border-yellow-500/20 shadow-[0_0_15px_rgba(234,179,8,0.1)] uppercase">Vip access</span> : <span className="text-slate-700 text-[10px] font-black uppercase">Standard</span>}</td><td className="p-8 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0"><button onClick={async() => {await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.id), {isPremium: !u.isPremium}); notify("Đã cập nhật trạng thái", "success");}} className={`px-6 py-3 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all shadow-sm ${u.isPremium ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>{u.isPremium ? 'HỦY VIP' : 'CẤP VIP'}</button><button onClick={async() => { if(window.confirm("Xóa vĩnh viễn?")) {await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.id)); notify("Đã xóa học viên", "error");}}} className="p-3 text-slate-600 hover:text-red-500 transition-all bg-slate-800 rounded-xl"><Trash2 size={18}/></button></td></tr>))}</tbody></table></div>)}
                         
                         {tab === 'exams' && (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8 animate-in">
                                 {filteredExams.length > 0 ? filteredExams.map(e => {
+                                    const relevantReviews = allReviews.filter(r => r.examId === e.id);
+                                    const reviewCount = relevantReviews.length;
+                                    const avgRating = reviewCount > 0 ? (relevantReviews.reduce((acc, r) => acc + (r.rating || 0), 0) / reviewCount).toFixed(1) : 0;
                                     const totalAttempts = e.attempts || 0;
                                     const uniqueUsers = e.participantsCount || 0;
 
@@ -332,7 +253,9 @@
                                                      <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-widest"><Calendar size={12} className="text-slate-600"/> <span>Tạo: {formatDate(e.createdAt)}</span></div>
                                                     {e.updatedAt && (<div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-widest"><RefreshCw size={12} className="text-slate-600"/> <span>Cập nhật: {formatDate(e.updatedAt)}</span></div>)}
                                                 </div>
-                                                
+                                                <div className="flex items-center gap-2 text-[10px] text-yellow-500 font-black uppercase tracking-widest bg-yellow-500/5 p-2 rounded-lg border border-yellow-500/10 w-fit">
+                                                    <Star size={12} fill={avgRating > 0 ? "currentColor" : "none"}/> {avgRating > 0 ? `${avgRating}/5 (${reviewCount} lượt)` : 'Chưa có đánh giá'}
+                                                </div>
                                                 <div className="grid grid-cols-2 gap-2 mt-2"><div className="bg-slate-950/50 p-2 rounded-xl border border-white/5 text-center"><p className="text-[9px] text-slate-500 font-bold uppercase">Lượt thi</p><p className="text-sm font-black text-emerald-400 flex items-center justify-center gap-1"><PlayCircle size={10}/> {totalAttempts}</p></div><div className="bg-slate-950/50 p-2 rounded-xl border border-white/5 text-center"><p className="text-[9px] text-slate-500 font-bold uppercase">Người thi</p><p className="text-sm font-black text-blue-400 flex items-center justify-center gap-1"><Users size={10}/> {uniqueUsers}</p></div></div>
                                             </div>
 
