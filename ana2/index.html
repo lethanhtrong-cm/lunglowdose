@@ -39,15 +39,14 @@
         .glass-card { 
             background: #111827; 
             border: 1px solid rgba(255, 255, 255, 0.05); 
-            border-radius: 1.5rem; 
+            border-radius: 1rem; 
         }
         .metric-card {
-            background: rgba(31, 41, 55, 0.4);
+            background: #1e293b;
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 1.5rem;
         }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 10px; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .animate-fade { animation: fadeIn 0.4s ease-out forwards; }
@@ -60,28 +59,19 @@
         import React, { useState, useEffect, useMemo } from 'react';
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
-        import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from 'firebase/auth';
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from 'firebase/auth';
         import { getFirestore, collection, query, onSnapshot, orderBy, limit, doc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-        // Đã bổ sung Trash2 vào danh sách import để sửa lỗi ReferenceError
         import { 
             LayoutGrid, Trophy, MessageSquare, Flag, LogOut, Search, 
             Activity, History, Users, Crown, FileText, Clock, AlertTriangle, CheckCircle, User, Zap, Tag, Trash2
         } from 'lucide-react';
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
-            authDomain: "rt-examination.firebaseapp.com",
-            projectId: "rt-examination",
-            storageBucket: "rt-examination.firebasestorage.app",
-            messagingSenderId: "920482699854",
-            appId: "1:920482699854:web:44f9b0d735bdc001c6c11f",
-            measurementId: "G-8N7RTTREQM"
-        };
+        const firebaseConfig = JSON.parse(window.__firebase_config || '{"apiKey": "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo","authDomain": "rt-examination.firebaseapp.com","projectId": "rt-examination","storageBucket": "rt-examination.firebasestorage.app","messagingSenderId": "920482699854","appId": "1:920482699854:web:44f9b0d735bdc001c6c11f","measurementId": "G-8N7RTTREQM"}');
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = 'med-exam-pro-html';
+        const appId = window.__app_id || 'med-exam-pro-html';
 
         const App = () => {
             const [user, setUser] = useState(null);
@@ -94,56 +84,86 @@
                 reviews: [],
                 reports: []
             });
+            const [loading, setLoading] = useState(true);
 
+            // XỬ LÝ AUTHENTICATION THEO QUY TẮC MÔI TRƯỜNG
             useEffect(() => {
-                signInAnonymously(auth);
-                return onAuthStateChanged(auth, setUser);
+                const initAuth = async () => {
+                    try {
+                        if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
+                            await signInWithCustomToken(auth, window.__initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (err) {
+                        console.error("Auth error:", err);
+                        // Nếu lỗi auth, vẫn tắt loading để hiện UI (Firestore có thể vẫn chạy nếu rules cho phép)
+                        setLoading(false);
+                    }
+                };
+                initAuth();
+                const unsubscribe = onAuthStateChanged(auth, (u) => {
+                    setUser(u);
+                    if (u) {
+                        setLoading(false); // Thành công thì vào dashboard
+                    }
+                });
+                return () => unsubscribe();
             }, []);
 
+            // LẮNG NGHE DỮ LIỆU REAL-TIME
             useEffect(() => {
                 if (!user) return;
+
                 const unsubscribers = [
-                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), s => updateData('exams', s)),
-                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), s => updateData('users', s)),
-                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'), s => updateData('activeExams', s)),
-                    onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'users'), orderBy('totalScore', 'desc'), limit(50)), s => updateData('leaderboard', s)),
-                    onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc'), limit(50)), s => updateData('reviews', s)),
-                    onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), orderBy('createdAt', 'desc')), s => updateData('reports', s))
+                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), s => updateData('exams', s), err => console.log("Exams error", err)),
+                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), s => updateData('users', s), err => console.log("Users error", err)),
+                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'), s => updateData('activeExams', s), err => console.log("Active error", err)),
+                    onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'users'), orderBy('totalScore', 'desc'), limit(50)), s => updateData('leaderboard', s), err => console.log("Leaderboard error", err)),
+                    onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc'), limit(50)), s => updateData('reviews', s), err => console.log("Reviews error", err)),
+                    onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), orderBy('createdAt', 'desc')), s => updateData('reports', s), err => console.log("Reports error", err))
                 ];
+
                 return () => unsubscribers.forEach(u => u());
             }, [user]);
 
             const updateData = (key, snapshot) => {
-                setData(prev => ({ ...prev, [key]: snapshot.docs.map(d => ({ id: d.id, ...d.data() })) }));
+                setData(prev => ({
+                    ...prev,
+                    [key]: snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+                }));
             };
 
             const handleDelete = async (col, id) => {
+                if(!user) return;
                 if(confirm("Xác nhận xóa bản ghi này?")) {
                     try {
                         await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id));
-                    } catch (e) {
-                        console.error("Lỗi khi xóa:", e);
-                    }
+                    } catch (e) { console.error("Xóa thất bại", e); }
                 }
             };
 
             const handleAcceptReport = async (id) => {
+                if(!user) return;
                 try {
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', id), { status: 'accepted' });
-                } catch (e) {
-                    console.error("Lỗi khi cập nhật:", e);
-                }
+                } catch (e) { console.error("Tiếp nhận thất bại", e); }
             };
 
-            if (!user) return <div className="min-h-screen bg-[#0b1120] flex items-center justify-center text-cyan-500 font-bold uppercase tracking-widest animate-pulse">Khởi tạo hệ thống phân tích...</div>;
+            if (loading) return (
+                <div className="min-h-screen bg-[#0b1120] flex flex-col items-center justify-center text-cyan-500 font-bold uppercase tracking-widest gap-4">
+                    <div className="w-10 h-10 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin shadow-[0_0_15px_rgba(6,182,212,0.3)]"></div>
+                    <p className="animate-pulse">Khởi tạo hệ thống phân tích...</p>
+                </div>
+            );
 
             return (
                 <div className="flex h-screen overflow-hidden">
-                    {/* SIDEBAR THEO PHONG CÁCH ẢNH MẪU */}
+                    {/* SIDEBAR THEO STYLE ẢNH MẪU */}
                     <aside className="w-72 border-r border-white/5 bg-[#0b1120] flex flex-col shrink-0">
                         <div className="p-8 mb-4">
                             <div className="flex items-center gap-3">
-                                <div className="text-cyan-500"><Activity size={32}/></div>
+                                <div className="text-cyan-500 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]"><Activity size={32}/></div>
                                 <div>
                                     <h1 className="text-xl font-black text-white tracking-tight uppercase">Analytics</h1>
                                     <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Portal</p>
@@ -158,14 +178,14 @@
                             <SidebarLink icon={<Flag size={20}/>} label="Báo cáo lỗi" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} badge={data.reports.filter(r => r.status !== 'accepted').length} />
                         </nav>
 
-                        <div className="p-8 border-t border-white/5">
+                        <div className="p-8 border-t border-white/5 mt-auto">
                             <button onClick={() => signOut(auth)} className="flex items-center gap-3 text-slate-500 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider group">
                                 <LogOut size={18} className="group-hover:translate-x-1 transition-transform"/> Đăng xuất
                             </button>
                         </div>
                     </aside>
 
-                    {/* MAIN CONTENT */}
+                    {/* MAIN AREA */}
                     <main className="flex-1 overflow-y-auto custom-scrollbar bg-[#0b1120]">
                         <div className="p-12 max-w-7xl mx-auto space-y-12 animate-fade">
                             {activeTab === 'analytics' && <AnalyticsView data={data} />}
@@ -185,7 +205,7 @@
             </button>
         );
 
-        // --- GIAO DIỆN CHÍNH (ANALYTICS VIEW) ---
+        // --- DASHBOARD CHI TIẾT ---
         const AnalyticsView = ({ data }) => {
             const now = Date.now();
             const onlineCount = data.users.filter(u => (now - (u.lastActive?.toDate?.().getTime() || 0)) < 300000).length;
@@ -202,13 +222,13 @@
                             </p>
                         </div>
                         <div className="relative group">
-                            <Search className="absolute left-4 top-3 text-slate-500 group-focus-within:text-cyan-400 transition-colors" size={18}/>
-                            <input className="bg-[#111827] border border-white/5 rounded-2xl pl-12 pr-6 py-3 text-sm focus:border-cyan-500 outline-none w-80 transition-all shadow-inner" placeholder="Tìm kiếm dữ liệu..." />
+                            <Search className="absolute left-4 top-3 text-slate-500" size={18}/>
+                            <input className="bg-[#111827] border border-white/10 rounded-2xl pl-12 pr-6 py-3 text-sm focus:border-cyan-500 outline-none w-80 transition-all shadow-inner" placeholder="Tìm kiếm dữ liệu..." />
                         </div>
                     </header>
 
-                    {/* HÀNG THẺ CHỈ SỐ (TOP METRICS) */}
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                    {/* METRICS - KHỚP ẢNH MẪU */}
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                         <MetricItem icon={<Activity size={20} className="text-emerald-400"/>} label="Hoạt động" value={onlineCount} sub="Tương tác gần đây" />
                         <MetricItem icon={<History size={20} className="text-cyan-400"/>} label="Vừa nộp bài" value={recentSubCount} sub="Trong 15 phút qua" />
                         <MetricItem icon={<Users size={20} className="text-purple-400"/>} label="Học viên" value={data.users.length} sub="Đã đăng ký" />
@@ -216,63 +236,63 @@
                         <MetricItem icon={<FileText size={20} className="text-blue-400"/>} label="Đề thi" value={data.exams.length} sub="Tổng số đề" />
                     </div>
 
-                    {/* GRID NGƯỜI DÙNG ĐANG THI (USER LIVE CARDS) */}
+                    {/* LIVE USERS GRID */}
                     <section className="space-y-6">
                         <h3 className="text-xl font-bold text-white flex items-center gap-3 uppercase tracking-wider">
-                            <LayoutGrid size={22} className="text-cyan-500"/> Trạng thái người dùng (Online: {onlineCount})
+                            <Zap size={22} className="text-cyan-500"/> Trạng thái người dùng (Online: {onlineCount})
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                             {data.activeExams.map(ex => (
-                                <div key={ex.id} className="glass-card p-6 flex flex-col justify-between min-h-[200px] hover:scale-[1.03] transition-all duration-300 shadow-xl">
+                                <div key={ex.id} className="metric-card p-6 flex flex-col justify-between min-h-[200px] hover:scale-[1.03] transition-all duration-300">
                                     <div className="flex justify-between items-start">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-black text-white border border-white/10 shadow-inner overflow-hidden">
-                                                {ex.displayName?.substring(0, 2).toUpperCase() || <User size={24}/>}
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-[#0f172a] flex items-center justify-center font-black text-white border border-white/10 shadow-inner">
+                                                {ex.displayName?.substring(0, 2).toUpperCase() || "..."}
                                             </div>
                                             <div className="min-w-0">
-                                                <p className="font-bold text-slate-100 text-sm truncate max-w-[110px]">{ex.displayName}</p>
-                                                <p className="text-[9px] text-slate-500 font-mono">ID: {ex.uid?.substring(0, 6)}</p>
+                                                <p className="font-bold text-slate-100 text-sm truncate">{ex.displayName}</p>
+                                                <p className="text-[9px] text-slate-500 font-mono italic">ID: {ex.uid?.substring(0, 6)}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 text-[8px] font-black uppercase">
-                                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Live
+                                        <div className="flex items-center gap-1 bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full border border-emerald-500/20 text-[8px] font-black uppercase">
+                                            <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></div> Live
                                         </div>
                                     </div>
-                                    <div className="mt-4 p-3 bg-[#0f172a] rounded-xl border border-white/5">
+                                    <div className="mt-4 p-3 bg-slate-900 rounded-xl border border-white/5">
                                         <p className="text-[9px] text-slate-600 font-black uppercase mb-1 tracking-widest">Đang làm đề</p>
                                         <p className="text-xs font-bold text-cyan-400 truncate">{ex.examTitle}</p>
                                     </div>
                                     <div className="mt-4 flex justify-between items-center text-[10px] font-bold">
-                                        <span className="text-slate-500 flex items-center gap-1.5"><Clock size={12}/> {Math.floor((now - (ex.startedAt?.toDate?.().getTime() || now)) / 60000)} phút trước</span>
-                                        <span className="text-red-500 bg-red-500/10 px-2 py-0.5 rounded-lg border border-red-500/20">Điểm: {(Math.random()*1.5).toFixed(1)}</span>
+                                        <span className="text-slate-500 flex items-center gap-1"><Clock size={12}/> {Math.floor((now - (ex.startedAt?.toDate?.().getTime() || now)) / 60000)}p trước</span>
+                                        <span className="text-red-500">Điểm: {(Math.random()*1).toFixed(1)}</span>
                                     </div>
                                 </div>
                             ))}
-                            {data.activeExams.length === 0 && <div className="col-span-full py-12 glass-card flex flex-col items-center justify-center text-slate-600 italic border-dashed"><Clock size={32} className="mb-2 opacity-20"/> Chưa có lượt thi trực tiếp nào.</div>}
+                            {data.activeExams.length === 0 && <div className="col-span-full py-12 text-center text-slate-600 italic">Chưa có lượt thi trực tiếp.</div>}
                         </div>
                     </section>
 
-                    {/* LIVE FEED LIST (LỊCH SỬ NỘP BÀI) */}
-                    <section className="glass-card p-10 space-y-8 shadow-2xl">
+                    {/* LIVE FEED - KHỚP ẢNH MẪU */}
+                    <section className="glass-card p-10 space-y-8">
                         <h3 className="text-xl font-bold text-white flex items-center gap-3 uppercase tracking-wider">
                             <History size={22} className="text-cyan-500"/> Lịch sử nộp bài (Live Feed)
                         </h3>
-                        <div className="space-y-4 max-h-[600px] overflow-y-auto pr-4 custom-scrollbar">
+                        <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
                             {data.reviews.map(r => (
                                 <div key={r.id} className="bg-slate-900/40 p-6 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-slate-800/60 transition-all">
                                     <div className="flex items-center gap-6">
                                         <div className="text-[11px] text-slate-600 font-mono font-bold">{r.createdAt?.toDate?.().toLocaleTimeString('vi-VN')}</div>
                                         <div>
-                                            <p className="font-bold text-slate-100 text-sm group-hover:text-cyan-400 transition-colors">{r.displayName}</p>
+                                            <p className="font-bold text-slate-100 text-sm">{r.displayName}</p>
                                             <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-2">
-                                                <span className="text-slate-600">🕒 {r.createdAt?.toDate?.().toLocaleDateString('vi-VN')}</span>
+                                                <span className="text-slate-600">{r.createdAt?.toDate?.().toLocaleDateString('vi-VN')}</span>
                                                 <span className="w-1 h-1 bg-slate-700 rounded-full"></span>
                                                 <span className="text-cyan-600 font-bold uppercase tracking-tighter italic">{r.examTitle}</span>
                                             </p>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-3xl font-black text-red-500 tracking-tighter">{(Math.random()*10).toFixed(1)}</p>
+                                        <p className="text-2xl font-black text-red-500 tracking-tighter">{(Math.random()*10).toFixed(1)}</p>
                                         <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest mt-0.5">Điểm số</p>
                                     </div>
                                 </div>
@@ -284,9 +304,9 @@
         };
 
         const MetricItem = ({ icon, label, value, sub }) => (
-            <div className="metric-card p-6 flex flex-col justify-between hover:bg-slate-800/50 transition-all border border-white/5">
+            <div className="metric-card p-6 flex flex-col justify-between hover:bg-slate-800/40 transition-colors border border-white/5 shadow-lg">
                 <div className="flex justify-between items-start mb-6">
-                    <div className="p-2.5 bg-[#111827] rounded-xl border border-white/5 text-slate-400">{icon}</div>
+                    <div className="p-2 bg-slate-900 rounded-lg text-slate-400">{icon}</div>
                 </div>
                 <div>
                     <p className="text-3xl font-black text-white tracking-tighter">{value}</p>
@@ -297,20 +317,18 @@
         );
 
         const LeaderboardView = ({ leaderboard }) => (
-            <div className="space-y-10 animate-fade">
+            <div className="space-y-10">
                 <h2 className="text-4xl font-bold text-white tracking-tight">Bảng xếp hạng</h2>
                 <div className="glass-card overflow-hidden shadow-2xl">
-                    <table className="w-full text-left">
+                    <table className="w-full text-left border-collapse">
                         <thead className="bg-[#0f172a] text-[10px] uppercase text-slate-500 font-black tracking-widest border-b border-white/5">
                             <tr><th className="px-10 py-6">Hạng</th><th className="px-10 py-6">Học viên</th><th className="px-10 py-6 text-center">Hoàn thành</th><th className="px-10 py-6 text-right">Tổng điểm</th></tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
                             {leaderboard.map((u, i) => (
-                                <tr key={u.id} className="hover:bg-white/5 transition-all group">
-                                    <td className="px-10 py-6 font-black text-slate-600 text-lg group-hover:text-cyan-500 transition-colors">#{i+1}</td>
-                                    <td className="px-10 py-6">
-                                        <div className="flex items-center gap-4 font-bold text-white uppercase tracking-tight">{u.displayName}</div>
-                                    </td>
+                                <tr key={u.id} className="hover:bg-white/5 transition-all">
+                                    <td className="px-10 py-6 font-black text-slate-600 text-lg">#{i+1}</td>
+                                    <td className="px-10 py-6 font-bold text-white uppercase tracking-tight">{u.displayName}</td>
                                     <td className="px-10 py-6 text-center text-slate-400 font-bold">{u.examsCompleted || 0} đề</td>
                                     <td className="px-10 py-6 text-right font-black text-cyan-400 text-2xl tracking-tighter">{u.totalScore?.toFixed(1)}</td>
                                 </tr>
@@ -322,77 +340,80 @@
         );
 
         const FeedbackView = ({ reviews, onDelete }) => (
-            <div className="space-y-10 animate-fade">
+            <div className="space-y-10">
                 <h2 className="text-4xl font-bold text-white tracking-tight">Đánh giá & Góp ý</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
                     {reviews.filter(r => r.feedback).map(f => (
-                        <div key={f.id} className="glass-card p-8 flex flex-col justify-between hover:border-cyan-500/20 shadow-xl">
+                        <div key={f.id} className="glass-card p-8 flex flex-col justify-between hover:border-cyan-500/20">
                             <div>
                                 <div className="flex justify-between items-start mb-6">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-black text-cyan-400 border border-white/10 shadow-inner">{f.displayName?.charAt(0).toUpperCase()}</div>
                                         <div><p className="text-sm font-bold text-white">{f.displayName}</p><p className="text-[10px] text-slate-500 font-mono tracking-tighter">{f.createdAt?.toDate?.().toLocaleString()}</p></div>
                                     </div>
-                                    <button onClick={() => onDelete(f.id)} className="text-slate-600 hover:text-red-400 transition-colors p-2 hover:bg-red-400/10 rounded-xl" title="Xóa góp ý"><Trash2 size={20}/></button>
+                                    <button onClick={() => onDelete(f.id)} className="text-slate-600 hover:text-red-400 transition-colors p-2 hover:bg-red-400/10 rounded-xl"><Trash2 size={20}/></button>
                                 </div>
-                                <div className="p-6 bg-[#0f172a] rounded-3xl border border-white/5 italic text-slate-300 text-sm leading-relaxed shadow-inner">"{f.feedback}"</div>
+                                <div className="p-6 bg-[#0f172a] rounded-3xl border border-white/5 italic text-slate-300 text-sm leading-relaxed">"{f.feedback}"</div>
                             </div>
                             <div className="mt-6 flex items-center justify-between text-[10px] font-black uppercase text-slate-600 tracking-widest">
-                                <span className="flex items-center gap-2"><FileText size={14} className="text-cyan-600"/> {f.examTitle}</span>
-                                <span className="text-yellow-500 bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20">{f.rating} SAO <Trophy size={12} className="inline ml-1"/></span>
+                                <span>{f.examTitle}</span>
+                                <span className="text-yellow-500">{f.rating} SAO <Trophy size={12} className="inline ml-1"/></span>
                             </div>
                         </div>
                     ))}
-                    {reviews.filter(r => r.feedback).length === 0 && <div className="col-span-full py-32 text-center text-slate-600 italic">Chưa có phản hồi văn bản nào.</div>}
                 </div>
             </div>
         );
 
         const ReportsView = ({ reports, exams, users, onAccept, onDelete }) => {
-            const getUser = id => users.find(u => u.uid === id || u.id === id) || { displayName: "Khách ẩn danh", email: "ID: "+id?.substring(0,8), id: id };
+            const getUser = id => {
+                const found = users.find(u => u.uid === id || u.id === id);
+                if (found) return { name: found.displayName, email: found.email, verified: true };
+                return { name: id === 'anonymous' ? "Khách ẩn danh" : "ID: "+id?.substring(0,8), email: "Thông tin không xác định", verified: false };
+            };
+
             return (
-                <div className="space-y-10 pb-20 animate-fade">
+                <div className="space-y-10 pb-20">
                     <h2 className="text-4xl font-bold text-white tracking-tight">Báo cáo lỗi</h2>
                     <div className="space-y-6">
                         {reports.map(r => {
                             const u = getUser(r.userId);
                             const exam = exams.find(e=>e.id===r.examId);
                             return (
-                                <div key={r.id} className={`glass-card p-10 border transition-all ${r.status === 'accepted' ? 'border-emerald-500/20 opacity-60' : 'border-red-500/20 shadow-2xl hover:border-red-500/40'}`}>
+                                <div key={r.id} className={`glass-card p-10 border transition-all ${r.status === 'accepted' ? 'border-emerald-500/20 opacity-60' : 'border-red-500/20 shadow-2xl'}`}>
                                     <div className="flex flex-col xl:flex-row gap-10">
                                         <div className="flex-1 space-y-6">
                                             <div className="flex items-center gap-4">
                                                 <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${r.status === 'accepted' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-500 animate-pulse'}`}>
                                                     {r.status === 'accepted' ? 'Đã tiếp nhận' : 'Đang xử lý'}
                                                 </span>
-                                                <span className="text-slate-600 text-[10px] font-mono font-bold tracking-widest italic">{r.createdAt?.toDate?.().toLocaleString()}</span>
+                                                <span className="text-slate-600 text-[10px] font-mono italic">{r.createdAt?.toDate?.().toLocaleString()}</span>
                                             </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div className="bg-[#0f172a] p-6 rounded-3xl border border-white/5 shadow-inner">
-                                                    <p className="text-[10px] font-black text-slate-600 uppercase mb-3 tracking-widest flex items-center gap-2"><User size={12}/> Tài khoản báo cáo</p>
-                                                    <p className="text-sm font-black text-white uppercase tracking-tight">{u.displayName}</p>
-                                                    <p className="text-[10px] text-slate-500 font-mono mt-1">{u.email}</p>
+                                            <div className="grid grid-cols-2 gap-4 text-xs font-bold uppercase tracking-tight">
+                                                <div className="bg-[#0f172a] p-6 rounded-3xl border border-white/5">
+                                                    <p className="text-slate-600 mb-2">Tài khoản báo cáo</p>
+                                                    <p className={`text-sm ${!u.verified ? 'text-red-400' : 'text-white'}`}>{u.name}</p>
+                                                    <p className="text-[10px] text-slate-500 lowercase mt-1 italic font-normal">{u.email}</p>
                                                 </div>
-                                                <div className="bg-[#0f172a] p-6 rounded-3xl border border-white/5 shadow-inner">
-                                                    <p className="text-[10px] font-black text-slate-600 uppercase mb-3 tracking-widest flex items-center gap-2"><Tag size={12}/> Đề thi liên quan</p>
-                                                    <p className="text-sm font-bold text-cyan-400 line-clamp-1">{exam?.title || "ID: "+r.examId}</p>
-                                                    <p className="text-[9px] text-slate-500 font-mono mt-1 opacity-50 uppercase">Mã đề: {r.examId}</p>
+                                                <div className="bg-[#0f172a] p-6 rounded-3xl border border-white/5">
+                                                    <p className="text-slate-600 mb-2">Đề thi liên quan</p>
+                                                    <p className="text-sm text-cyan-400 line-clamp-1">{exam?.title || "ID: "+r.examId}</p>
                                                 </div>
                                             </div>
                                             <div className="p-8 bg-slate-900/50 rounded-[2rem] border border-white/5 space-y-5">
                                                 <div className="flex items-center gap-3 text-red-500 font-black text-xs uppercase tracking-widest">
-                                                    <AlertTriangle size={18}/> {r.reason} <span className="text-slate-600">|</span> CÂU {r.questionIndex + 1}
+                                                    <AlertTriangle size={18}/> {r.reason} | CÂU {r.questionIndex + 1}
                                                 </div>
-                                                <p className="text-base text-slate-100 font-medium leading-relaxed italic border-l-4 border-red-500/20 pl-6 group-hover:text-white transition-colors">"{r.questionText}"</p>
-                                                <div className="text-xs text-slate-500 mt-6 bg-black/40 p-5 rounded-2xl border border-white/5">
-                                                    <span className="text-slate-300 font-black uppercase text-[9px] mb-2 block tracking-widest opacity-60">Chi tiết mô tả lỗi:</span>
-                                                    {r.detail || "Người dùng không cung cấp mô tả chi tiết."}
+                                                <p className="text-base text-slate-100 font-medium italic border-l-4 border-red-500/20 pl-6">"{r.questionText}"</p>
+                                                <div className="text-xs text-slate-500 mt-6 bg-black/20 p-5 rounded-2xl border border-white/5 italic">
+                                                    <span className="font-black text-slate-300 block mb-2 uppercase text-[9px] tracking-widest opacity-60">Ghi chú mô tả:</span>
+                                                    {r.detail || "Không có mô tả chi tiết."}
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="xl:w-56 flex flex-row xl:flex-col gap-4 shrink-0">
                                             {r.status !== 'accepted' && (
-                                                <button onClick={() => onAccept(r.id)} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white p-5 rounded-[1.5rem] font-black text-[11px] uppercase shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 hover:shadow-emerald-500/20"><CheckCircle size={18}/> Tiếp nhận</button>
+                                                <button onClick={() => onAccept(r.id)} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white p-5 rounded-[1.5rem] font-black text-[11px] uppercase shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"><CheckCircle size={18}/> Tiếp nhận</button>
                                             )}
                                             <button onClick={() => onDelete(r.id)} className="flex-1 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 p-5 rounded-[1.5rem] font-black text-[11px] uppercase border border-white/5 transition-all active:scale-95 flex items-center justify-center gap-2"><Trash2 size={18}/> Xóa bỏ</button>
                                         </div>
@@ -400,7 +421,6 @@
                                 </div>
                             );
                         })}
-                        {reports.length === 0 && <div className="py-32 text-center text-slate-700 italic glass-card border-dashed">Không có báo cáo lỗi nào cần xử lý.</div>}
                     </div>
                 </div>
             );
