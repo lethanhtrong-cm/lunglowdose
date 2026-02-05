@@ -1,1 +1,526 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedExam Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "lucide-react": "https://esm.sh/lucide-react@0.344.0?deps=react@18.2.0",
+            "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
+            "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+        }
+    }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: #e2e8f0; margin: 0; padding: 0; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glass-input { background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .animate-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .pulse-dot { animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+    </style>
+</head>
+<body class="antialiased custom-scrollbar">
+    <div id="root"></div>
 
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useMemo } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { initializeApp } from 'firebase/app';
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from 'firebase/auth';
+        import { getFirestore, collection, doc, updateDoc, deleteDoc, onSnapshot, query, collectionGroup, orderBy, limit } from 'firebase/firestore';
+        import { 
+            ShieldCheck, LogOut, Search, Trash2, CheckCircle2, AlertCircle, 
+            Trophy, MessageSquare, Flag, Star, Check, ExternalLink, Loader2, BarChart2, UserX, Sigma,
+            LayoutDashboard, Users, Zap, FileText, Crown, Activity, Clock, Pencil, X, Database
+        } from 'lucide-react';
+
+        // --- CẤU HÌNH FIREBASE ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
+            authDomain: "rt-examination.firebaseapp.com",
+            projectId: "rt-examination",
+            storageBucket: "rt-examination.firebasestorage.app",
+            messagingSenderId: "920482699854",
+            appId: "1:920482699854:web:44f9b0d735bdc001c6c11f"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        // Default App ID fallback
+        const defaultAppId = typeof __app_id !== 'undefined' ? __app_id : 'med-exam-pro-html';
+        
+        const ADMIN_EMAILS = ["thanhtrong.yds@gmail.com", "vnrad.tech@gmail.com", "test@gmail.com"];
+
+        // --- UI COMPONENTS ---
+        
+        const Toast = ({ message, type, onClose }) => {
+            useEffect(() => { const timer = setTimeout(onClose, 3000); return () => clearTimeout(timer); }, [onClose]);
+            const styles = { success: "bg-emerald-500/20 border-emerald-500/40 text-emerald-400", error: "bg-red-500/20 border-red-500/40 text-red-400", info: "bg-blue-500/20 border-blue-500/40 text-blue-400" };
+            return (
+                <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-2xl border ${styles[type] || styles.info} shadow-2xl flex items-center gap-3 animate-in z-[100] backdrop-blur-xl max-w-sm`}>
+                    {type === 'error' ? <AlertCircle size={20}/> : <CheckCircle2 size={20}/>}<span className="font-bold text-sm leading-tight">{message}</span>
+                </div>
+            );
+        };
+
+        const StatCard = ({ title, value, icon: Icon, color, subText }) => (
+            <div className="glass-panel p-6 rounded-[2rem] flex flex-col justify-between h-40 relative overflow-hidden group hover:bg-white/5 transition-all">
+                <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
+                    <Icon size={80} />
+                </div>
+                <div className="flex items-center gap-2 mb-2">
+                    <div className={`p-2 rounded-xl bg-slate-800 ${color} bg-opacity-20 text-white`}>
+                        <Icon size={18} className={color.replace('bg-', 'text-')} />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{title}</span>
+                </div>
+                <div>
+                    <div className={`text-4xl font-black ${color.replace('bg-', 'text-')}`}>{value}</div>
+                    {subText && <div className="text-[10px] text-slate-500 font-bold mt-1">{subText}</div>}
+                </div>
+            </div>
+        );
+
+        const Dashboard = ({ user }) => {
+            const [tab, setTab] = useState('dashboard');
+            const [scores, setScores] = useState([]);
+            const [rawHistory, setRawHistory] = useState([]);
+            const [reviews, setReviews] = useState([]);
+            const [reports, setReports] = useState([]);
+            const [search, setSearch] = useState('');
+            const [toast, setToast] = useState(null);
+            
+            // QUAN TRỌNG: Dynamic App ID để tự động tìm nguồn dữ liệu
+            const [currentAppId, setCurrentAppId] = useState(defaultAppId);
+            const [isAutoDetected, setIsAutoDetected] = useState(false);
+            
+            // Dùng null cho dbStudents/dbExams để phân biệt trạng thái "chưa load" và "bằng 0"
+            const [stats, setStats] = useState({ 
+                online: 0, live: 0, 
+                historyStudents: 0, historyExams: 0,
+                dbStudents: null, dbExams: null, dbVip: 0
+            });
+            const [editingReview, setEditingReview] = useState(null);
+            
+            const notify = (message, type = 'info') => setToast({ message, type });
+
+            // 1. Listen to GLOBAL history to detect App ID and monitor live activity
+            useEffect(() => {
+                const qHistory = query(collectionGroup(db, 'history'));
+                const unsubHistory = onSnapshot(qHistory, (snapshot) => {
+                    const rawData = snapshot.docs.map(d => ({...d.data(), id: d.id, path: d.ref.path}));
+                    
+                    // --- AUTO DETECT APP ID ---
+                    // Phân tích đường dẫn: artifacts/{APP_ID}/users/...
+                    if (!isAutoDetected && rawData.length > 0) {
+                        try {
+                            const firstPath = rawData[0].path;
+                            const segments = firstPath.split('/');
+                            if (segments.length >= 2 && segments[0] === 'artifacts') {
+                                const detectedId = segments[1];
+                                if (detectedId && detectedId !== currentAppId) {
+                                    console.log("Detected App ID from history:", detectedId);
+                                    setCurrentAppId(detectedId);
+                                    setIsAutoDetected(true);
+                                }
+                            }
+                        } catch (e) { console.warn("Cannot detect app ID", e); }
+                    }
+
+                    // --- PROCESS HISTORY DATA ---
+                    rawData.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
+                    setRawHistory(rawData);
+
+                    const userMap = {};
+                    const uniqueExams = new Set();
+                    const now = Date.now() / 1000;
+                    const ONLINE_THRESHOLD = 30 * 60; 
+                    const LIVE_THRESHOLD = 15 * 60;
+                    let onlineCount = 0;
+                    let liveCount = 0;
+
+                    rawData.forEach(item => {
+                        if (item.examTitle) uniqueExams.add(item.examTitle);
+
+                        const hasEmail = item.email && item.email.trim() !== "";
+                        const hasName = item.displayName && item.displayName.trim() !== "";
+                        if (!hasEmail && !hasName) return;
+
+                        const key = item.userId || item.email;
+                        if (!key) return;
+
+                        const timeDiff = now - (item.date?.seconds || 0);
+                        if (timeDiff < ONLINE_THRESHOLD) onlineCount++;
+                        if (timeDiff < LIVE_THRESHOLD) liveCount++;
+
+                        if (!userMap[key]) {
+                            userMap[key] = {
+                                userId: item.userId,
+                                email: item.email,
+                                displayName: item.displayName,
+                                totalScore: 0,
+                                examCount: 0,
+                                latestDate: item.date
+                            };
+                        }
+                        userMap[key].totalScore += parseFloat(String(item.score || 0));
+                        userMap[key].examCount += 1;
+                        if ((item.date?.seconds || 0) > (userMap[key].latestDate?.seconds || 0)) {
+                            userMap[key].latestDate = item.date;
+                            if (item.displayName) userMap[key].displayName = item.displayName;
+                        }
+                    });
+
+                    let aggregatedData = Object.values(userMap);
+                    aggregatedData.sort((a, b) => b.totalScore - a.totalScore);
+                    setScores(aggregatedData);
+
+                    setStats(prev => ({
+                        ...prev,
+                        online: Math.max(onlineCount, 1),
+                        live: liveCount,
+                        historyStudents: aggregatedData.length,
+                        historyExams: uniqueExams.size
+                    }));
+
+                }, (error) => console.error("History Error:", error));
+
+                return () => unsubHistory();
+            }, [currentAppId, isAutoDetected]);
+
+            // 2. Listen to SPECIFIC collections based on currentAppId
+            useEffect(() => {
+                if (!currentAppId) return;
+
+                const unsubs = [];
+                console.log(`Connecting to Public Data for App ID: ${currentAppId}`);
+
+                // --- EXAMS COLLECTION ---
+                const qExams = query(collection(db, 'artifacts', currentAppId, 'public', 'data', 'exams'));
+                unsubs.push(onSnapshot(qExams, (snap) => {
+                    setStats(prev => ({ ...prev, dbExams: snap.size }));
+                }, (e) => {
+                    console.log("Exams path issue:", e);
+                }));
+
+                // --- USERS COLLECTION ---
+                const qUsers = query(collection(db, 'artifacts', currentAppId, 'public', 'data', 'users'));
+                unsubs.push(onSnapshot(qUsers, (snap) => {
+                    const users = snap.docs.map(d => d.data());
+                    
+                    // IMPROVED VIP DETECTION LOGIC
+                    // Kiểm tra nhiều trường khác nhau để đảm bảo bắt được VIP
+                    const vipCount = users.filter(u => {
+                        // Gom tất cả các trường có thể chứa thông tin VIP
+                        const checks = [
+                            u.isVIP, u.vip, u.isVip, 
+                            u.plan, u.role, u.tier, 
+                            u.type, u.accountType, u.subscription
+                        ];
+                        
+                        return checks.some(val => {
+                            if (val === true) return true; // Boolean true
+                            if (typeof val === 'string') {
+                                const s = val.toLowerCase().trim();
+                                // Các từ khóa thường dùng cho VIP
+                                return ['true', 'vip', 'premium', 'pro', 'gold', 'diamond', '1', 'paid'].includes(s);
+                            }
+                            if (val === 1) return true; // Number 1
+                            return false;
+                        });
+                    }).length;
+                    
+                    setStats(prev => ({ ...prev, dbStudents: snap.size, dbVip: vipCount }));
+                }, (e) => console.log("Users path issue")));
+
+                // --- REVIEWS & REPORTS ---
+                unsubs.push(onSnapshot(query(collection(db, 'artifacts', currentAppId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc')), s => setReviews(s.docs.map(d => ({...d.data(), id: d.id})))));
+                unsubs.push(onSnapshot(query(collection(db, 'artifacts', currentAppId, 'public', 'data', 'reports'), orderBy('createdAt', 'desc')), s => setReports(s.docs.map(d => ({...d.data(), id: d.id})))));
+
+                return () => unsubs.forEach(fn => fn());
+            }, [currentAppId]);
+
+            const displayStats = useMemo(() => {
+                // LOGIC ƯU TIÊN: Nếu DB đã kết nối (khác null), dùng số liệu DB.
+                // Nếu chưa kết nối hoặc lỗi, mới dùng fallback từ History.
+                
+                // Đề thi: Ưu tiên DB Exams (chính xác thực tế) thay vì History (chứa cả đề đã xóa)
+                const realExams = stats.dbExams !== null ? stats.dbExams : stats.historyExams;
+                
+                // Học viên: Ưu tiên DB Users (chứa cả người chưa thi)
+                const realStudents = stats.dbStudents !== null ? stats.dbStudents : stats.historyStudents;
+
+                return {
+                    online: stats.online,
+                    live: stats.live,
+                    students: realStudents || 0,
+                    vip: stats.dbVip || 0,
+                    exams: realExams || 0
+                };
+            }, [stats]);
+
+            const deleteItem = async (collectionName, id) => {
+                if(confirm("Xóa mục này?")) {
+                    try { await deleteDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', collectionName, id)); notify("Đã xóa", "success"); } 
+                    catch (e) { notify("Lỗi: " + e.message, "error"); }
+                }
+            };
+
+            const resolveReport = async (id) => {
+                try { await updateDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', 'reports', id), { status: 'resolved' }); notify("Đã xử lý", "success"); } 
+                catch (e) { notify("Lỗi: " + e.message, "error"); }
+            };
+
+            const handleUpdateReview = async () => {
+                if (!editingReview) return;
+                try {
+                    await updateDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', 'reviews', editingReview.id), {
+                        feedback: editingReview.feedback,
+                        rating: editingReview.rating
+                    });
+                    notify("Đã cập nhật đánh giá", "success");
+                    setEditingReview(null);
+                } catch (e) { notify("Lỗi cập nhật: " + e.message, "error"); }
+            };
+
+            const formatDateTime = (ts) => ts?.toDate ? ts.toDate().toLocaleString('vi-VN') : '---';
+            const getReasonText = (reason) => { const map = { 'wrong_answer': 'Đáp án sai', 'typo': 'Lỗi chính tả', 'confusing': 'Khó hiểu', 'other': 'Khác' }; return map[reason] || reason; };
+            const getUserDisplayName = (user) => (user.displayName && user.displayName.trim() !== "") ? user.displayName : (user.email || `User #${user.userId?.slice(0, 5)}`);
+
+            return (
+                <div className="flex min-h-screen">
+                    {/* EDIT REVIEW MODAL */}
+                    {editingReview && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in">
+                            <div className="glass-panel w-full max-w-lg p-8 rounded-[2rem] shadow-2xl relative border border-slate-600">
+                                <button onClick={() => setEditingReview(null)} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-all"><X size={20}/></button>
+                                <h3 className="text-xl font-black text-white mb-6 flex items-center gap-2"><Pencil size={20} className="text-cyan-400"/>Chỉnh sửa đánh giá</h3>
+                                <div className="space-y-6">
+                                    <div>
+                                        <div className="flex justify-between mb-2"><label className="text-xs font-bold text-slate-400 uppercase tracking-widest block">Người đánh giá</label><span className="text-xs text-slate-500 font-mono">{formatDateTime(editingReview.createdAt)}</span></div>
+                                        <div className="glass-input p-3 rounded-xl text-slate-300 font-bold text-sm bg-black/20">{getUserDisplayName(editingReview)}</div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Xếp hạng</label>
+                                        <div className="flex gap-2">{[1, 2, 3, 4, 5].map(star => (<button key={star} onClick={() => setEditingReview({...editingReview, rating: star})} type="button" className={`p-3 rounded-xl transition-all ${editingReview.rating >= star ? 'text-yellow-400 bg-yellow-400/10 ring-1 ring-yellow-400/30' : 'text-slate-600 bg-slate-800 hover:bg-slate-700'}`}><Star size={24} fill={editingReview.rating >= star ? "currentColor" : "none"} /></button>))}</div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Nội dung phản hồi</label>
+                                        <textarea className="w-full glass-input rounded-xl p-4 outline-none focus:border-cyan-500 font-medium text-white transition-all min-h-[120px] resize-none" value={editingReview.feedback} onChange={e => setEditingReview({...editingReview, feedback: e.target.value})} placeholder="Nhập nội dung đánh giá..."/>
+                                    </div>
+                                </div>
+                                <div className="flex justify-end gap-3 mt-8">
+                                    <button onClick={() => setEditingReview(null)} className="px-6 py-3 rounded-xl font-bold text-slate-400 hover:bg-slate-800 transition-all text-sm">Hủy bỏ</button>
+                                    <button onClick={handleUpdateReview} className="px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold shadow-lg shadow-cyan-500/20 transition-all text-sm flex items-center gap-2"><Check size={16}/> Lưu thay đổi</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SIDEBAR */}
+                    <aside className="w-72 bg-slate-900/50 border-r border-slate-700/50 flex flex-col fixed h-full z-40 backdrop-blur-xl">
+                        <div className="p-8 border-b border-slate-700/50 flex items-center gap-4 text-cyan-400 font-black text-2xl tracking-tighter">
+                            <BarChart2 size={32}/>
+                            <div className="leading-none text-white">ANALYTICS<br/><small className="text-slate-500 text-[10px] tracking-[0.3em] uppercase">Portal</small></div>
+                        </div>
+                        <nav className="flex-1 p-6 space-y-4 mt-4">
+                            {[
+                                { id: 'dashboard', label: 'Live Monitor', icon: LayoutDashboard },
+                                { id: 'score_rank', label: 'Bảng xếp hạng', icon: Trophy },
+                                { id: 'reviews', label: 'Đánh giá & Góp ý', icon: MessageSquare, count: reviews.length },
+                                { id: 'reports', label: 'Báo cáo lỗi', icon: Flag, count: reports.filter(r => r.status === 'pending').length }
+                            ].map(item => (
+                                <button key={item.id} onClick={()=>setTab(item.id)} className={`w-full flex items-center justify-between px-6 py-5 rounded-2xl transition-all ${tab === item.id ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:bg-white/5'}`}>
+                                    <div className="flex items-center gap-4"><item.icon size={20}/><span className="font-bold text-sm">{item.label}</span></div>
+                                    {item.count > 0 && <span className="bg-red-500 text-[10px] font-black px-2 py-1 rounded-full">{item.count}</span>}
+                                </button>
+                            ))}
+                        </nav>
+                        <div className="p-8 border-t border-slate-700/50">
+                            <button onClick={()=>signOut(auth)} className="w-full flex items-center justify-center gap-3 px-6 py-4 text-slate-500 hover:text-red-400 transition-all font-bold text-xs uppercase tracking-widest"><LogOut size={18}/> Đăng xuất</button>
+                        </div>
+                    </aside>
+
+                    {/* MAIN CONTENT */}
+                    <main className="flex-1 ml-72 p-12">
+                        <div className="flex justify-between items-end mb-12">
+                            <div>
+                                <h1 className="text-4xl font-black text-white tracking-tighter capitalize">
+                                    {tab === 'dashboard' ? 'Dashboard' : tab === 'score_rank' ? 'Bảng Xếp Hạng Global' : tab === 'reviews' ? 'Phản Hồi Từ Học Viên' : 'Báo Cáo Lỗi Đề Thi'}
+                                </h1>
+                                {tab === 'score_rank' && <p className="text-slate-400 text-sm mt-2 flex items-center gap-2"><Sigma size={14}/> Xếp hạng theo tổng điểm tích lũy</p>}
+                                {tab === 'dashboard' && (
+                                    <div className="text-emerald-400 text-sm mt-2 flex items-center gap-3">
+                                        <span className="flex items-center gap-2 animate-pulse"><div className="w-2 h-2 rounded-full bg-emerald-400"></div> Hệ thống đang giám sát thời gian thực</span>
+                                        <span className="text-slate-600">|</span>
+                                        <span className="flex items-center gap-1 text-slate-400 text-xs font-mono bg-slate-800 px-2 py-1 rounded border border-slate-700"><Database size={10}/> APP ID: {currentAppId}</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="relative group">
+                                <Search className="absolute left-4 top-3.5 text-slate-500" size={20}/>
+                                <input className="bg-slate-800 border border-slate-700 rounded-2xl pl-12 pr-6 py-3 w-80 outline-none focus:border-cyan-500 font-bold text-white transition-all" placeholder="Tìm kiếm dữ liệu..." value={search} onChange={e=>setSearch(e.target.value)}/>
+                            </div>
+                        </div>
+
+                        <div className="animate-in">
+                            {tab === 'dashboard' && (
+                                <div className="space-y-8">
+                                    <div className="grid grid-cols-5 gap-6">
+                                        <StatCard title="Đang Online" value={displayStats.online} icon={Activity} color="text-emerald-400" subText="Hoạt động gần đây" />
+                                        <StatCard title="Đang Thi (Live)" value={displayStats.live} icon={Zap} color="text-blue-400" subText="Nộp bài < 15p trước" />
+                                        <StatCard title="Học Viên" value={displayStats.students} icon={Users} color="text-purple-400" subText="Đã đăng ký" />
+                                        <StatCard title="VIP Premium" value={displayStats.vip} icon={Crown} color="text-yellow-400" subText="Thành viên VIP" />
+                                        <StatCard title="Đề Thi" value={displayStats.exams} icon={FileText} color="text-cyan-400" subText="Tổng số đề" />
+                                    </div>
+
+                                    <div className="glass-panel rounded-[2rem] p-8 min-h-[400px]">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <Activity className="text-emerald-400 pulse-dot" size={24}/>
+                                            <h2 className="text-xl font-bold text-white uppercase tracking-widest">Học viên đang làm bài ({displayStats.live})</h2>
+                                        </div>
+                                        <div className="space-y-4">
+                                            {rawHistory.slice(0, 10).map((item, idx) => (
+                                                <div key={item.id} className="flex items-center justify-between p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50 hover:bg-slate-700/50 transition-colors animate-in" style={{animationDelay: `${idx * 0.1}s`}}>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-400">{idx + 1}</div>
+                                                        <div>
+                                                            <div className="font-bold text-white">{getUserDisplayName(item)}</div>
+                                                            <div className="text-xs text-slate-400 flex items-center gap-2"><Clock size={12}/> {formatDateTime(item.date)}<span className="text-slate-600">|</span><span className="text-cyan-400">{item.examTitle || 'Đề không tên'}</span></div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className={`font-black text-xl ${parseFloat(item.score)>=9?'text-emerald-400':parseFloat(item.score)>=5?'text-blue-400':'text-red-400'}`}>{item.score}</div>
+                                                        <div className="text-[10px] font-bold text-slate-500 uppercase">Điểm số</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {rawHistory.length === 0 && (
+                                                <div className="flex flex-col items-center justify-center py-20 text-slate-500 border-2 border-dashed border-slate-700 rounded-3xl">
+                                                    <div className="bg-slate-800 p-4 rounded-full mb-4 opacity-50"><Activity size={40}/></div>
+                                                    <p className="font-bold">HỆ THỐNG ĐANG CHỜ LƯỢT THI MỚI</p>
+                                                    <p className="text-xs mt-2">Chưa ghi nhận hoạt động nào trong thời gian thực</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {tab === 'score_rank' && (
+                                <div className="glass-panel rounded-[2rem] overflow-hidden">
+                                    <table className="w-full text-left text-sm border-collapse text-slate-300">
+                                        <thead className="bg-slate-800/50 text-slate-400 uppercase text-[10px] font-black tracking-widest">
+                                            <tr><th className="p-6">Hạng</th><th className="p-6">Học viên</th><th className="p-6 text-center">Số bài thi</th><th className="p-6 text-center">Tổng điểm</th><th className="p-6 text-right">Gần nhất</th></tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-700/50">
+                                            {scores.filter(s => (s.displayName||'').toLowerCase().includes(search.toLowerCase())).slice(0, 50).map((s, i) => {
+                                                let scoreColor = s.totalScore >= 100 ? 'text-purple-400' : s.totalScore >= 50 ? 'text-emerald-400' : s.totalScore >= 20 ? 'text-blue-400' : 'text-white';
+                                                return (
+                                                    <tr key={s.userId || s.email} className="hover:bg-white/5 transition-colors">
+                                                        <td className="p-6">{i < 3 ? ['🥇','🥈','🥉'][i] : <span className="font-mono text-slate-500">#{i+1}</span>}</td>
+                                                        <td className="p-6"><span className="font-bold block text-white">{getUserDisplayName(s)}</span>{s.email && <span className="text-[10px] font-mono text-slate-500 block">{s.email}</span>}</td>
+                                                        <td className="p-6 text-center"><span className="bg-slate-700 px-3 py-1 rounded-full text-xs font-bold text-slate-300">{s.examCount} đề</span></td>
+                                                        <td className="p-6 text-center"><span className={`font-black text-2xl ${scoreColor}`}>{s.totalScore.toFixed(1).replace(/\.0$/, '')}</span></td>
+                                                        <td className="p-6 text-right font-mono text-xs">{formatDateTime(s.latestDate)}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                            {scores.length === 0 && <tr><td colSpan="5" className="p-20 text-center italic text-slate-600">Chưa có dữ liệu</td></tr>}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+
+                            {tab === 'reviews' && (
+                                <div className="glass-panel rounded-[2rem] overflow-hidden">
+                                    <table className="w-full text-left text-sm border-collapse text-slate-300">
+                                        <thead className="bg-slate-800/50 text-slate-400 uppercase text-[10px] font-black tracking-widest"><tr><th className="p-6">Thời gian</th><th className="p-6">Học viên</th><th className="p-6">Nội dung</th><th className="p-6 text-center">Đánh giá</th><th className="p-6 text-right">Thao tác</th></tr></thead>
+                                        <tbody className="divide-y divide-slate-700/50">
+                                            {reviews.filter(r => (r.examTitle||'').toLowerCase().includes(search.toLowerCase())).map(r => (
+                                                <tr key={r.id} className="hover:bg-white/5 transition-colors">
+                                                    <td className="p-6 text-xs text-slate-500 font-bold whitespace-nowrap">{formatDateTime(r.createdAt)}</td>
+                                                    <td className="p-6"><span className="block font-bold text-white">{getUserDisplayName(r)}</span></td>
+                                                    <td className="p-6"><div className="font-bold text-xs text-cyan-500 mb-1">{r.examTitle}</div>{r.feedback ? <div className="italic text-slate-400">"{r.feedback}"</div> : <span className="text-slate-600 text-xs">--</span>}</td>
+                                                    <td className="p-6 text-center"><div className="flex justify-center gap-0.5">{[1,2,3,4,5].map(s=><Star key={s} size={14} className={s<=r.rating?'text-yellow-400 fill-yellow-400':'text-slate-700'}/>)}</div></td>
+                                                    <td className="p-6 text-right"><div className="flex justify-end gap-2"><button onClick={()=>setEditingReview(r)} className="p-2 bg-slate-800 hover:bg-blue-500/20 text-slate-500 hover:text-blue-500 rounded-xl transition-all" title="Chỉnh sửa"><Pencil size={16}/></button><button onClick={()=>deleteItem('reviews', r.id)} className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-500 hover:text-red-500 rounded-xl transition-all" title="Xóa"><Trash2 size={16}/></button></div></td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+
+                            {tab === 'reports' && (
+                                <div className="glass-panel rounded-[2rem] overflow-hidden">
+                                    <table className="w-full text-left text-sm border-collapse text-slate-300">
+                                        <thead className="bg-slate-800/50 text-slate-400 uppercase text-[10px] font-black tracking-widest"><tr><th className="p-6">Thời gian</th><th className="p-6">Người báo</th><th className="p-6">Chi tiết lỗi</th><th className="p-6 text-center">Trạng thái</th><th className="p-6 text-right">Xử lý</th></tr></thead>
+                                        <tbody className="divide-y divide-slate-700/50">
+                                            {reports.filter(r => (r.questionText||'').toLowerCase().includes(search.toLowerCase())).map(r => (
+                                                <tr key={r.id} className={`hover:bg-white/5 transition-colors ${r.status==='resolved'?'opacity-50':''}`}>
+                                                    <td className="p-6 text-xs text-slate-500 font-bold whitespace-nowrap align-top">{formatDateTime(r.createdAt)}</td>
+                                                    <td className="p-6 align-top"><span className="block font-bold text-white">{getUserDisplayName(r)}</span></td>
+                                                    <td className="p-6 max-w-md align-top"><span className="bg-red-500/10 text-red-400 text-[10px] font-bold px-2 py-0.5 rounded border border-red-500/20 mr-2">{getReasonText(r.reason)}</span><div className="mt-2 text-slate-200 font-medium">"{r.questionText}"</div><div className="mt-2 text-[10px] text-slate-600 font-mono">ID Đề: {r.examId} | Câu: {r.questionIndex + 1}</div></td>
+                                                    <td className="p-6 text-center align-top">{r.status==='resolved' ? <span className="text-emerald-500 font-bold text-xs flex items-center justify-center gap-1"><CheckCircle2 size={14}/> Đã xong</span> : <span className="text-yellow-500 font-bold text-xs flex items-center justify-center gap-1 animate-pulse"><AlertCircle size={14}/> Chờ xử lý</span>}</td>
+                                                    <td className="p-6 text-right align-top"><div className="flex justify-end gap-2">{r.status === 'pending' && <button onClick={()=>resolveReport(r.id)} className="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg"><Check size={16}/></button>}<button onClick={()=>deleteItem('reports', r.id)} className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-500 rounded-xl"><Trash2 size={16}/></button></div></td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </main>
+
+                    {toast && <Toast {...toast} onClose={()=>setToast(null)}/>}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [err, setErr] = useState('');
+
+            useEffect(() => {
+                const initAuth = async () => { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token); };
+                initAuth();
+                return onAuthStateChanged(auth, u => {
+                    if (u) { if (ADMIN_EMAILS.includes(u.email)) { setUser(u); setErr(''); } else { setErr("Tài khoản không có quyền."); signOut(auth); setUser(null); } } 
+                    else setUser(null);
+                    setLoading(false);
+                });
+            }, []);
+
+            const handleLogin = async (e) => {
+                e.preventDefault(); setLoading(true); setErr('');
+                try { await signInWithEmailAndPassword(auth, e.target.elements.email.value, e.target.elements.password.value); } 
+                catch (e) { setErr("Sai thông tin đăng nhập"); } finally { setLoading(false); }
+            };
+
+            if (loading) return <div className="min-h-screen bg-[#0f172a] flex items-center justify-center"><Loader2 className="animate-spin text-cyan-500" size={40}/></div>;
+            if (!user) return (
+                <div className="min-h-screen flex items-center justify-center p-4 bg-[#020617] relative"><div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(14,165,233,0.1),transparent_50%)]"></div><div className="w-full max-w-md glass-panel p-10 rounded-[2.5rem] shadow-2xl animate-in relative z-10"><div className="text-center mb-8"><BarChart2 size={48} className="text-cyan-500 mx-auto mb-4"/><h1 className="text-3xl font-black text-white">Analytics Portal</h1><p className="text-slate-400 text-xs mt-2 font-bold uppercase tracking-widest">Dành riêng cho Quản trị viên</p></div>{err && <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl font-bold flex items-center gap-2"><AlertCircle size={16}/> {err}</div>}<form onSubmit={handleLogin} className="space-y-6"><input name="email" type="email" required className="w-full glass-input rounded-2xl p-4 outline-none focus:border-cyan-500 font-bold text-white transition-all" placeholder="Email"/><input name="password" type="password" required className="w-full glass-input rounded-2xl p-4 outline-none focus:border-cyan-500 font-bold text-white transition-all" placeholder="Mật khẩu"/><button className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-cyan-500/20 uppercase text-xs tracking-widest">Đăng nhập</button></form></div></div>
+            );
+
+            return <Dashboard user={user} />;
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
