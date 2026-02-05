@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -13,9 +12,9 @@
             "react": "https://esm.sh/react@18.2.0",
             "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
             "lucide-react": "https://esm.sh/lucide-react@0.344.0?deps=react@18.2.0",
-            "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
-            "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
-            "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"
+            "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
+            "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
         }
     }
     </script>
@@ -37,39 +36,38 @@
         import React, { useState, useEffect, useMemo } from 'react';
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
-        import { getFirestore, collection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, collectionGroup } from 'firebase/firestore';
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from 'firebase/auth';
+        import { getFirestore, collection, doc, updateDoc, deleteDoc, onSnapshot, query, collectionGroup, orderBy, limit } from 'firebase/firestore';
         import { 
             ShieldCheck, LogOut, Search, Trash2, CheckCircle2, AlertCircle, 
             Trophy, MessageSquare, Flag, Star, Check, ExternalLink, Loader2, BarChart2
         } from 'lucide-react';
 
-        // --- CẤU HÌNH FIREBASE (GIỐNG TRANG ADMIN/USER) ---
-        let firebaseConfig;
-        try {
-            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-                apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
-                authDomain: "rt-examination.firebaseapp.com",
-                projectId: "rt-examination",
-                storageBucket: "rt-examination.firebasestorage.app",
-                messagingSenderId: "920482699854",
-                appId: "1:920482699854:web:44f9b0d735bdc001c6c11f"
-            };
-        } catch (e) { console.error("Config Error:", e); }
+        // --- CẤU HÌNH FIREBASE ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
+            authDomain: "rt-examination.firebaseapp.com",
+            projectId: "rt-examination",
+            storageBucket: "rt-examination.firebasestorage.app",
+            messagingSenderId: "920482699854",
+            appId: "1:920482699854:web:44f9b0d735bdc001c6c11f"
+        };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'med-exam-pro-html';
+        
+        // Danh sách email admin được phép truy cập
         const ADMIN_EMAILS = ["thanhtrong.yds@gmail.com", "vnrad.tech@gmail.com", "test@gmail.com"];
 
         // --- UI COMPONENTS ---
         
         const Toast = ({ message, type, onClose }) => {
             useEffect(() => { const timer = setTimeout(onClose, 3000); return () => clearTimeout(timer); }, [onClose]);
-            const styles = { success: "bg-emerald-500/20 border-emerald-500/40 text-emerald-400", error: "bg-red-500/20 border-red-500/40 text-red-400" };
+            const styles = { success: "bg-emerald-500/20 border-emerald-500/40 text-emerald-400", error: "bg-red-500/20 border-red-500/40 text-red-400", info: "bg-blue-500/20 border-blue-500/40 text-blue-400" };
             return (
-                <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-2xl border ${styles[type]} shadow-2xl flex items-center gap-3 animate-in z-[100] backdrop-blur-xl max-w-sm`}>
+                <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-2xl border ${styles[type] || styles.info} shadow-2xl flex items-center gap-3 animate-in z-[100] backdrop-blur-xl max-w-sm`}>
                     {type === 'error' ? <AlertCircle size={20}/> : <CheckCircle2 size={20}/>}<span className="font-bold text-sm leading-tight">{message}</span>
                 </div>
             );
@@ -82,36 +80,57 @@
             const [reports, setReports] = useState([]);
             const [search, setSearch] = useState('');
             const [toast, setToast] = useState(null);
-            const [lbError, setLbError] = useState(null);
-
+            const [indexError, setIndexError] = useState(false);
+            
             const notify = (message, type = 'info') => setToast({ message, type });
 
             useEffect(() => {
-                // 1. Lắng nghe Bảng xếp hạng
-                let unsubHistory = () => {};
-                try {
-                    const qHistory = query(collectionGroup(db, 'history'), orderBy('score', 'desc'), limit(100));
-                    unsubHistory = onSnapshot(qHistory, s => {
-                        setScores(s.docs.map(d => ({...d.data(), id: d.id})));
-                        setLbError(null);
-                    }, (err) => {
-                        console.error("Leaderboard Error:", err);
-                        if (err.message.includes('index')) setLbError("MISSING_INDEX");
-                        else setLbError(err.message);
+                // --- XỬ LÝ BẢNG XẾP HẠNG ---
+                // Chiến lược: Lấy dữ liệu về Client rồi sắp xếp số học (An toàn nhất với dữ liệu hỗn hợp String/Number)
+                const qHistory = query(collectionGroup(db, 'history'));
+                
+                const unsubHistory = onSnapshot(qHistory, (snapshot) => {
+                    const data = snapshot.docs.map(d => ({...d.data(), id: d.id}));
+                    
+                    // --- LOGIC SẮP XẾP QUAN TRỌNG ---
+                    // Sửa lỗi: 10.0 < 4.0 do sắp xếp String
+                    data.sort((a, b) => {
+                        // Chuyển đổi an toàn về số thực (Float)
+                        // Xử lý cả trường hợp số lưu dạng String "10.0" hoặc Number 10
+                        const scoreA = parseFloat(String(a.score || 0));
+                        const scoreB = parseFloat(String(b.score || 0));
+                        
+                        // Sắp xếp giảm dần: Điểm cao đứng trước
+                        return scoreB - scoreA;
                     });
-                } catch(e) { setLbError(e.message); }
+                    
+                    setScores(data);
+                    setIndexError(false);
+                }, (error) => {
+                    console.error("Leaderboard Error:", error);
+                    // Nếu lỗi do thiếu index (nếu sau này bật orderBy server), hiển thị hướng dẫn
+                    if (error.code === 'failed-precondition') {
+                        setIndexError(true);
+                    } else {
+                        notify("Lỗi tải bảng xếp hạng: " + error.message, "error");
+                    }
+                });
 
-                // 2. Lắng nghe Đánh giá (Reviews)
-                const unsubReviews = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc')), 
-                    s => setReviews(s.docs.map(d => ({...d.data(), id: d.id}))),
-                    e => console.error("Reviews error", e)
-                );
+                // Lắng nghe Đánh giá (Reviews)
+                const qReviews = collection(db, 'artifacts', appId, 'public', 'data', 'reviews');
+                const unsubReviews = onSnapshot(qReviews, (snapshot) => {
+                    const data = snapshot.docs.map(d => ({...d.data(), id: d.id}));
+                    data.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                    setReviews(data);
+                });
 
-                // 3. Lắng nghe Báo cáo lỗi (Reports)
-                const unsubReports = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), orderBy('createdAt', 'desc')), 
-                    s => setReports(s.docs.map(d => ({...d.data(), id: d.id}))),
-                    e => console.error("Reports error", e)
-                );
+                // Lắng nghe Báo cáo lỗi (Reports)
+                const qReports = collection(db, 'artifacts', appId, 'public', 'data', 'reports');
+                const unsubReports = onSnapshot(qReports, (snapshot) => {
+                    const data = snapshot.docs.map(d => ({...d.data(), id: d.id}));
+                    data.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                    setReports(data);
+                });
 
                 return () => { unsubHistory(); unsubReviews(); unsubReports(); };
             }, []);
@@ -175,32 +194,44 @@
                         <div className="animate-in">
                             {/* TAB: BẢNG XẾP HẠNG */}
                             {tab === 'score_rank' && (
-                                lbError === "MISSING_INDEX" ? (
-                                    <div className="bg-amber-500/10 border border-amber-500/20 p-12 rounded-[2rem] text-center space-y-4">
-                                        <AlertCircle size={48} className="mx-auto text-amber-500"/>
-                                        <h3 className="text-xl font-bold text-white">Yêu cầu tạo Index Firestore</h3>
-                                        <p className="text-slate-400">Vui lòng mở Console (F12) và nhấp vào liên kết lỗi để tạo Index cho 'history'.</p>
-                                        <a href="https://console.firebase.google.com/" target="_blank" className="inline-flex items-center gap-2 text-amber-400 hover:text-amber-300 font-bold">Mở Firebase Console <ExternalLink size={14}/></a>
-                                    </div>
-                                ) : (
+                                <div className="space-y-6">
+                                    {indexError && (
+                                        <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-2xl flex items-center gap-4 text-amber-200">
+                                            <AlertCircle size={32} className="shrink-0"/>
+                                            <div>
+                                                <h3 className="font-bold text-lg">Yêu cầu cấu hình Index</h3>
+                                                <p className="text-sm opacity-80">Vui lòng tạo Composite Index trong Firebase Console cho collection "history" với các trường: score (Desc), date (Desc).</p>
+                                                <a href="https://console.firebase.google.com/" target="_blank" className="text-amber-400 hover:text-white underline text-sm mt-1 inline-block">Mở Firebase Console &rarr;</a>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="glass-panel rounded-[2rem] overflow-hidden">
                                         <table className="w-full text-left text-sm border-collapse text-slate-300">
                                             <thead className="bg-slate-800/50 text-slate-400 uppercase text-[10px] font-black tracking-widest"><tr><th className="p-6">Hạng</th><th className="p-6">Học viên</th><th className="p-6">Đề thi</th><th className="p-6 text-center">Điểm số</th><th className="p-6 text-right">Ngày thi</th></tr></thead>
                                             <tbody className="divide-y divide-slate-700/50">
-                                                {scores.filter(s => (s.displayName||'').toLowerCase().includes(search.toLowerCase()) || (s.examTitle||'').toLowerCase().includes(search.toLowerCase())).slice(0, 50).map((s, i) => (
-                                                    <tr key={s.id} className="hover:bg-white/5 transition-colors">
-                                                        <td className="p-6">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : <span className="font-mono text-slate-500">#{i+1}</span>}</td>
-                                                        <td className="p-6"><span className="text-white font-bold block">{s.displayName}</span><span className="text-[10px] font-mono text-slate-600">{s.userId?.slice(0,8)}</span></td>
-                                                        <td className="p-6 text-slate-400">{s.examTitle}</td>
-                                                        <td className="p-6 text-center"><span className={`font-black text-lg ${Number(s.score)>=9?'text-emerald-400':Number(s.score)>=5?'text-blue-400':'text-red-400'}`}>{s.score}</span></td>
-                                                        <td className="p-6 text-right font-mono text-xs">{formatDateTime(s.date)}</td>
-                                                    </tr>
-                                                ))}
+                                                {scores.filter(s => (s.displayName||'').toLowerCase().includes(search.toLowerCase()) || (s.examTitle||'').toLowerCase().includes(search.toLowerCase())).slice(0, 50).map((s, i) => {
+                                                    // Tính toán hiển thị màu điểm số
+                                                    const rawScore = parseFloat(String(s.score || 0));
+                                                    let scoreColor = 'text-red-400';
+                                                    if (rawScore >= 9) scoreColor = 'text-emerald-400';
+                                                    else if (rawScore >= 5) scoreColor = 'text-blue-400';
+
+                                                    return (
+                                                        <tr key={s.id} className="hover:bg-white/5 transition-colors">
+                                                            <td className="p-6">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : <span className="font-mono text-slate-500">#{i+1}</span>}</td>
+                                                            <td className="p-6"><span className="text-white font-bold block">{s.displayName || 'Ẩn danh'}</span><span className="text-[10px] font-mono text-slate-600">{s.userId?.slice(0,8)}</span></td>
+                                                            <td className="p-6 text-slate-400">{s.examTitle || 'Đề không tên'}</td>
+                                                            <td className="p-6 text-center"><span className={`font-black text-lg ${scoreColor}`}>{rawScore}</span></td>
+                                                            <td className="p-6 text-right font-mono text-xs">{formatDateTime(s.date)}</td>
+                                                        </tr>
+                                                    );
+                                                })}
                                                 {scores.length === 0 && <tr><td colSpan="5" className="p-20 text-center italic text-slate-600">Chưa có dữ liệu thi</td></tr>}
                                             </tbody>
                                         </table>
                                     </div>
-                                )
+                                </div>
                             )}
 
                             {/* TAB: PHẢN HỒI (REVIEWS) */}
@@ -268,10 +299,34 @@
             const [err, setErr] = useState('');
 
             useEffect(() => {
+                // Initialize Auth Logic
+                const initAuth = async () => {
+                   if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        try {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } catch (e) {
+                            console.error("Token login failed", e);
+                        }
+                   }
+                };
+                initAuth();
+
+                // Listen to Auth State
                 return onAuthStateChanged(auth, u => {
-                    if (u && ADMIN_EMAILS.includes(u.email)) { setUser(u); setErr(''); }
-                    else if (u) { setErr("Tài khoản không có quyền truy cập."); signOut(auth); setUser(null); }
-                    else { setUser(null); }
+                    if (u) {
+                        if (ADMIN_EMAILS.includes(u.email)) {
+                            setUser(u);
+                            setErr('');
+                        } else {
+                            // Tùy chọn: Nếu muốn cho phép mọi người xem nhưng giới hạn quyền, có thể bỏ check ở đây
+                            // Ở đây giữ logic cũ: chỉ admin mới được vào
+                            setErr("Tài khoản không có quyền truy cập Dashboard.");
+                            signOut(auth);
+                            setUser(null);
+                        }
+                    } else {
+                        setUser(null);
+                    }
                     setLoading(false);
                 });
             }, []);
@@ -280,9 +335,13 @@
                 e.preventDefault();
                 const { email, password } = e.target.elements;
                 setLoading(true); setErr('');
-                try { await signInWithEmailAndPassword(auth, email.value, password.value); } 
-                catch (e) { setErr("Thông tin đăng nhập không chính xác"); signOut(auth); }
-                finally { setLoading(false); }
+                try { 
+                    await signInWithEmailAndPassword(auth, email.value, password.value); 
+                } catch (e) { 
+                    setErr("Thông tin đăng nhập không chính xác"); 
+                } finally { 
+                    setLoading(false); 
+                }
             };
 
             if (loading) return <div className="min-h-screen bg-[#0f172a] flex items-center justify-center"><Loader2 className="animate-spin text-cyan-500" size={40}/></div>;
