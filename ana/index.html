@@ -36,6 +36,36 @@
         .data-changed { animation: flash-highlight 1.5s ease-out; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        
+        /* Card User Live Effect */
+        .live-card-border {
+            position: relative;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .live-card-border::before {
+            content: '';
+            position: absolute;
+            z-index: -2;
+            left: -50%;
+            top: -50%;
+            width: 200%;
+            height: 200%;
+            background-color: transparent;
+            background-repeat: no-repeat;
+            background-size: 50% 50%, 50% 50%;
+            background-position: 0 0, 100% 0, 100% 100%, 0 100%;
+            background-image: linear-gradient(#0ea5e9, #0ea5e9);
+            animation: rotate 4s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .live-card-border:hover::before {
+            opacity: 0.3;
+        }
+        @keyframes rotate {
+            100% { transform: rotate(1turn); }
+        }
     </style>
 </head>
 <body class="antialiased custom-scrollbar">
@@ -50,7 +80,7 @@
         import { 
             ShieldCheck, LogOut, Search, Trash2, CheckCircle2, AlertCircle, 
             Trophy, MessageSquare, Flag, Star, Check, ExternalLink, Loader2, BarChart2, UserX, Sigma,
-            LayoutDashboard, Users, Zap, FileText, Crown, Activity, Clock, Pencil, X, Database, Settings, RefreshCw, History, GraduationCap
+            LayoutDashboard, Users, Zap, FileText, Crown, Activity, Clock, Pencil, X, Database, Settings, RefreshCw, History, GraduationCap, MonitorPlay
         } from 'lucide-react';
 
         // --- CẤU HÌNH FIREBASE ---
@@ -66,9 +96,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        // Fallback App ID
         const defaultAppId = typeof __app_id !== 'undefined' ? __app_id : 'med-exam-pro-html';
-        
         const ADMIN_EMAILS = ["thanhtrong.yds@gmail.com", "vnrad.tech@gmail.com", "test@gmail.com"];
 
         // --- UI COMPONENTS ---
@@ -83,7 +111,7 @@
             );
         };
 
-        const StatCard = ({ title, value, icon: Icon, color, subText }) => {
+        const StatCard = ({ title, value, icon: Icon, color, subText, fullWidth }) => {
             const [changed, setChanged] = useState(false);
             const prevValue = useRef(value);
 
@@ -97,7 +125,7 @@
             }, [value]);
 
             return (
-                <div className={`glass-panel p-6 rounded-[2rem] flex flex-col justify-between h-40 relative overflow-hidden group hover:bg-white/5 transition-all ${changed ? 'data-changed' : ''}`}>
+                <div className={`glass-panel p-6 rounded-[2rem] flex flex-col justify-between h-40 relative overflow-hidden group hover:bg-white/5 transition-all ${changed ? 'data-changed' : ''} ${fullWidth ? 'col-span-2' : ''}`}>
                     <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
                         <Icon size={80} />
                     </div>
@@ -108,7 +136,7 @@
                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{title}</span>
                     </div>
                     <div>
-                        <div className={`text-4xl font-black transition-all ${changed ? 'scale-110 text-white' : color.replace('bg-', 'text-')}`}>{value}</div>
+                        <div className={`text-5xl font-black transition-all ${changed ? 'scale-110 text-white' : color.replace('bg-', 'text-')}`}>{value}</div>
                         {subText && <div className="text-[10px] text-slate-500 font-bold mt-1">{subText}</div>}
                     </div>
                 </div>
@@ -129,11 +157,10 @@
             const [manualAppId, setManualAppId] = useState(defaultAppId);
             const [isAutoDetected, setIsAutoDetected] = useState(false);
             
-            // Time trigger để làm mới trạng thái Online/Live mỗi 5 giây
             const [now, setNow] = useState(Date.now() / 1000);
 
             useEffect(() => {
-                const timer = setInterval(() => setNow(Date.now() / 1000), 5000); // Cập nhật mỗi 5 giây
+                const timer = setInterval(() => setNow(Date.now() / 1000), 5000); 
                 return () => clearInterval(timer);
             }, []);
 
@@ -150,7 +177,6 @@
                 const unsubHistory = onSnapshot(qHistory, (snapshot) => {
                     const rawData = snapshot.docs.map(d => ({...d.data(), id: d.id, path: d.ref.path}));
                     
-                    // Auto detect App ID logic (giữ nguyên)
                     if (!isAutoDetected && rawData.length > 0 && currentAppId === defaultAppId) {
                         try {
                             const firstPath = rawData[0].path;
@@ -167,7 +193,6 @@
                         } catch (e) {}
                     }
 
-                    // Sort history for processing
                     rawData.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
                     setRawHistory(rawData);
 
@@ -197,11 +222,8 @@
             useEffect(() => {
                 if (!currentAppId) return;
                 const unsubs = [];
-                setDbStats(prev => ({ ...prev, exams: null, students: null, vip: 0 }));
-
-                const qExams = query(collection(db, 'artifacts', currentAppId, 'public', 'data', 'exams'));
-                unsubs.push(onSnapshot(qExams, (snap) => setDbStats(prev => ({ ...prev, exams: snap.size })), e => {}));
-
+                
+                // Keep these for VIP checking, even if not displaying total count cards
                 const qUsers = query(collection(db, 'artifacts', currentAppId, 'public', 'data', 'users'));
                 unsubs.push(onSnapshot(qUsers, (snap) => {
                     const users = snap.docs.map(d => d.data());
@@ -231,11 +253,10 @@
                 return () => unsubs.forEach(fn => fn());
             }, [currentAppId]);
 
-            // --- COMPUTED LIVE STATS (Recalculated every 5 seconds via 'now') ---
+            // --- LIVE STATS LOGIC ---
             const liveStats = useMemo(() => {
-                // THRESHOLDS TỐI ƯU HÓA
-                const ONLINE_THRESHOLD = 30; // 30 giây: Chính xác là "Real-time"
-                const EXAM_ACTIVE_THRESHOLD = 90 * 60; // 90 phút: Đủ dài để cover cả ca thi
+                const ONLINE_THRESHOLD = 30; // 30s = Online
+                const EXAM_ACTIVE_THRESHOLD = 90 * 60; // 90 mins
 
                 const activeUsers = new Set();
                 const examUsers = new Map();
@@ -245,26 +266,24 @@
                     const userKey = item.userId || item.email;
                     if (!userKey) return;
 
-                    // Logic Online: Hoạt động trong 30s
                     if (timeDiff < ONLINE_THRESHOLD) {
                         activeUsers.add(userKey);
                     }
 
-                    // Logic Đang Thi:
-                    // 1. Có hoạt động bắt đầu trong vòng 90 phút
-                    // 2. QUAN TRỌNG: Chưa có điểm (score). Có điểm = Đã nộp bài = Không còn "Đang thi".
+                    // Đang thi: Bắt đầu < 90p và CHƯA có điểm (chưa nộp)
                     if (timeDiff < EXAM_ACTIVE_THRESHOLD) {
-                        // Kiểm tra kỹ lưỡng các trường hợp null/undefined/empty string
                         const hasScore = item.score !== undefined && item.score !== null && item.score !== '';
                         
                         if (!hasScore) {
-                            // Chỉ lấy record mới nhất của user đó
                             if (!examUsers.has(userKey)) {
                                 examUsers.set(userKey, {
+                                    id: userKey,
                                     name: getUserDisplayName(item),
+                                    email: item.email || '',
                                     exam: item.examTitle || 'Đang làm bài...',
                                     time: item.date,
-                                    timeDiff: timeDiff // Để hiển thị "Bắt đầu X phút trước"
+                                    timeDiff: timeDiff,
+                                    avatarChar: (getUserDisplayName(item) || 'U')[0].toUpperCase()
                                 });
                             }
                         }
@@ -272,14 +291,12 @@
                 });
 
                 return {
-                    online: Math.max(activeUsers.size, 1), // Ít nhất là 1 (admin)
+                    online: Math.max(activeUsers.size, 1), 
                     liveCount: examUsers.size,
                     liveList: Array.from(examUsers.values()),
-                    students: dbStats.students !== null ? dbStats.students : scores.length,
-                    vip: dbStats.vip,
-                    exams: dbStats.exams !== null ? dbStats.exams : 0
+                    vip: dbStats.vip
                 };
-            }, [rawHistory, dbStats, scores, now]);
+            }, [rawHistory, dbStats, now]);
 
             const handleSaveAppId = () => {
                 if (manualAppId && manualAppId.trim() !== "") {
@@ -315,7 +332,7 @@
 
             const formatDateTime = (ts) => ts?.toDate ? ts.toDate().toLocaleString('vi-VN') : '---';
             const getReasonText = (reason) => { const map = { 'wrong_answer': 'Đáp án sai', 'typo': 'Lỗi chính tả', 'confusing': 'Khó hiểu', 'other': 'Khác' }; return map[reason] || reason; };
-            const getUserDisplayName = (user) => (user.displayName && user.displayName.trim() !== "") ? user.displayName : (user.email || `User #${user.userId?.slice(0, 5)}`);
+            const getUserDisplayName = (user) => (user.displayName && user.displayName.trim() !== "") ? user.displayName : (user.email || `User`);
 
             return (
                 <div className="flex min-h-screen">
@@ -355,8 +372,8 @@
                         </div>
                         <nav className="flex-1 p-6 space-y-4 mt-4">
                             {[
-                                { id: 'dashboard', label: 'Live Monitor', icon: LayoutDashboard },
-                                { id: 'submissions', label: 'Lịch sử nộp bài', icon: History }, // Tab mới
+                                { id: 'dashboard', label: 'Live Monitor', icon: MonitorPlay },
+                                { id: 'submissions', label: 'Lịch sử nộp bài', icon: History },
                                 { id: 'score_rank', label: 'Bảng xếp hạng', icon: Trophy },
                                 { id: 'reviews', label: 'Đánh giá & Góp ý', icon: MessageSquare, count: reviews.length },
                                 { id: 'reports', label: 'Báo cáo lỗi', icon: Flag, count: reports.filter(r => r.status === 'pending').length },
@@ -378,12 +395,12 @@
                         <div className="flex justify-between items-end mb-12">
                             <div>
                                 <h1 className="text-4xl font-black text-white tracking-tighter capitalize">
-                                    {tab === 'dashboard' ? 'Dashboard' : tab === 'submissions' ? 'Lịch Sử Nộp Bài' : tab === 'score_rank' ? 'Bảng Xếp Hạng' : tab === 'reviews' ? 'Phản Hồi' : tab === 'reports' ? 'Báo Cáo Lỗi' : 'Cấu Hình Hệ Thống'}
+                                    {tab === 'dashboard' ? 'Live Monitor' : tab === 'submissions' ? 'Lịch Sử Nộp Bài' : tab === 'score_rank' ? 'Bảng Xếp Hạng' : tab === 'reviews' ? 'Phản Hồi' : tab === 'reports' ? 'Báo Cáo Lỗi' : 'Cấu Hình Hệ Thống'}
                                 </h1>
                                 {tab === 'score_rank' && <p className="text-slate-400 text-sm mt-2 flex items-center gap-2"><Sigma size={14}/> Xếp hạng theo tổng điểm tích lũy</p>}
                                 {tab === 'dashboard' && (
                                     <div className="text-emerald-400 text-sm mt-2 flex items-center gap-3">
-                                        <span className="flex items-center gap-2 animate-pulse"><div className="w-2 h-2 rounded-full bg-emerald-400"></div> Live Sync</span>
+                                        <span className="flex items-center gap-2 animate-pulse"><div className="w-2 h-2 rounded-full bg-emerald-400"></div> Real-time Sync</span>
                                         <span className="text-slate-600">|</span>
                                         <span className="flex items-center gap-1 text-slate-400 text-xs font-mono bg-slate-800 px-2 py-1 rounded border border-slate-700"><Database size={10}/> {currentAppId}</span>
                                     </div>
@@ -400,50 +417,68 @@
                         <div className="animate-in">
                             {tab === 'dashboard' && (
                                 <div className="space-y-8">
-                                    {/* 4 CARDS - Đã xóa VIP Card */}
-                                    <div className="grid grid-cols-4 gap-6">
-                                        <StatCard title="Đang Online" value={liveStats.online} icon={Activity} color="text-emerald-400" subText="Hoạt động < 30s" />
-                                        <StatCard title="Đang Thi" value={liveStats.liveCount} icon={Zap} color="text-blue-400" subText="Đang làm bài..." />
-                                        <StatCard title="Học Viên" value={liveStats.students} icon={Users} color="text-purple-400" subText="Đã đăng ký" />
+                                    {/* STAT CARDS - Optimized & Removed redundant tabs */}
+                                    <div className="grid grid-cols-3 gap-6">
+                                        <StatCard title="Truy cập < 30s" value={liveStats.online} icon={Activity} color="text-emerald-400" subText="Đang Online" />
+                                        <StatCard title="Đang Thi" value={liveStats.liveCount} icon={Zap} color="text-blue-400" subText="Active Sessions" />
                                         <StatCard title="VIP Access" value={liveStats.vip} icon={Crown} color="text-yellow-400" subText="Thành viên VIP" />
-                                        <StatCard title="Đề Thi" value={liveStats.exams} icon={FileText} color="text-cyan-400" subText="Tổng số đề" />
                                     </div>
 
-                                    {/* CARD DANH SÁCH ĐANG THI (ACTIVE EXAM SESSIONS) */}
-                                    <div className="glass-panel rounded-[2rem] p-8 min-h-[300px]">
+                                    {/* CARD HỌC VIÊN ĐANG THI (Grid Layout) */}
+                                    <div>
                                         <div className="flex items-center gap-3 mb-6">
-                                            <div className="bg-blue-500/20 p-2 rounded-full text-blue-400 animate-pulse"><GraduationCap size={24}/></div>
+                                            <div className="bg-blue-500/20 p-2 rounded-full text-blue-400 animate-pulse"><MonitorPlay size={24}/></div>
                                             <h2 className="text-xl font-bold text-white uppercase tracking-widest">
-                                                Học viên đang làm bài ({liveStats.liveCount})
+                                                Phòng thi trực tuyến ({liveStats.liveCount})
                                             </h2>
                                         </div>
                                         
-                                        <div className="grid grid-cols-3 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                             {liveStats.liveList.map((user, idx) => (
-                                                <div key={idx} className="bg-slate-800/50 border border-slate-700/50 p-4 rounded-2xl flex items-center gap-4 hover:bg-slate-700/50 transition-all animate-in">
-                                                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white text-xs">
-                                                        {idx + 1}
+                                                <div key={user.id} className="live-card-border bg-slate-800/80 backdrop-blur-xl border border-slate-700 rounded-[2rem] p-6 flex flex-col gap-4 hover:transform hover:-translate-y-1 transition-all duration-300 shadow-2xl animate-in" style={{animationDelay: `${idx * 0.1}s`}}>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="relative">
+                                                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-black text-white text-xl shadow-lg shadow-blue-500/30">
+                                                                {user.avatarChar}
+                                                            </div>
+                                                            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-800 animate-pulse"></div>
+                                                        </div>
+                                                        <div className="overflow-hidden">
+                                                            <div className="font-bold text-white text-lg truncate">{user.name}</div>
+                                                            <div className="text-xs text-slate-400 font-mono truncate">{user.email}</div>
+                                                        </div>
                                                     </div>
-                                                    <div className="overflow-hidden w-full">
-                                                        <div className="font-bold text-white truncate">{user.name}</div>
-                                                        <div className="flex justify-between items-center mt-1">
-                                                            <div className="text-xs text-blue-400 truncate flex items-center gap-1 max-w-[70%]">
-                                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></div>
-                                                                <span className="truncate">{user.exam}</span>
-                                                            </div>
-                                                            <div className="text-[10px] text-slate-500 font-mono">
-                                                                {Math.floor(user.timeDiff / 60)}p trước
-                                                            </div>
+                                                    
+                                                    <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+                                                        <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Đang làm bài</div>
+                                                        <div className="font-medium text-blue-400 text-sm line-clamp-2 leading-relaxed">
+                                                            {user.exam}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between text-xs font-bold">
+                                                        <div className="flex items-center gap-1.5 text-emerald-400">
+                                                            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                                                            Live
+                                                        </div>
+                                                        <div className="text-slate-500 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-2">
+                                                            <Clock size={12}/>
+                                                            {Math.floor(user.timeDiff / 60)} phút trước
                                                         </div>
                                                     </div>
                                                 </div>
                                             ))}
                                             
                                             {liveStats.liveList.length === 0 && (
-                                                <div className="col-span-3 py-10 text-center text-slate-500 border border-dashed border-slate-700 rounded-2xl">
-                                                    <Zap size={32} className="mx-auto mb-2 opacity-50"/>
-                                                    <p className="font-bold text-sm">Chưa có ai đang làm bài thi</p>
-                                                    <p className="text-[10px] mt-1">Hệ thống sẽ hiển thị ngay khi có học viên bắt đầu</p>
+                                                <div className="col-span-3 py-16 text-center text-slate-500 border border-dashed border-slate-700 rounded-[2rem] bg-slate-800/20">
+                                                    <div className="relative w-16 h-16 mx-auto mb-4">
+                                                        <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping"></div>
+                                                        <div className="relative bg-slate-800 p-4 rounded-full border border-slate-700 text-slate-500">
+                                                            <Zap size={32}/>
+                                                        </div>
+                                                    </div>
+                                                    <p className="font-bold text-lg text-slate-400">Phòng thi trống</p>
+                                                    <p className="text-sm mt-1 opacity-70">Chưa có học viên nào bắt đầu làm bài</p>
                                                 </div>
                                             )}
                                         </div>
@@ -451,7 +486,6 @@
                                 </div>
                             )}
 
-                            {/* TAB MỚI: LỊCH SỬ NỘP BÀI (Chuyển từ dashboard cũ sang) */}
                             {tab === 'submissions' && (
                                 <div className="glass-panel rounded-[2rem] overflow-hidden">
                                     <div className="p-6 border-b border-slate-700/50 bg-slate-800/20 flex justify-between items-center">
@@ -464,7 +498,6 @@
                                     
                                     <div className="p-6 space-y-4">
                                         {rawHistory.filter(item => {
-                                            // Chỉ hiện những bài đã có điểm (đã nộp)
                                             const hasScore = item.score !== undefined && item.score !== null && item.score !== '';
                                             return hasScore && (getUserDisplayName(item).toLowerCase().includes(search.toLowerCase()) || (item.examTitle||'').toLowerCase().includes(search.toLowerCase()));
                                         }).slice(0, 20).map((item, idx) => (
@@ -490,7 +523,6 @@
                                 </div>
                             )}
                             
-                            {/* CÁC TAB CŨ GIỮ NGUYÊN (Chỉ ẩn khi không active) */}
                             {tab === 'settings' && (
                                 <div className="glass-panel rounded-[2rem] p-10 max-w-2xl mx-auto">
                                     <div className="text-center mb-10">
