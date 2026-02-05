@@ -102,7 +102,17 @@
             const [reports, setReports] = useState([]);
             const [search, setSearch] = useState('');
             const [toast, setToast] = useState(null);
-            const [stats, setStats] = useState({ online: 0, live: 0, students: 0, vip: 0, exams: 0 });
+            
+            // Stats state mở rộng để chứa dữ liệu từ nhiều nguồn
+            const [stats, setStats] = useState({ 
+                online: 0, 
+                live: 0, 
+                historyStudents: 0, 
+                historyExams: 0,
+                dbStudents: 0,
+                dbExams: 0,
+                dbVip: 0
+            });
             
             // State cho chức năng Edit Review
             const [editingReview, setEditingReview] = useState(null);
@@ -110,43 +120,42 @@
             const notify = (message, type = 'info') => setToast({ message, type });
 
             useEffect(() => {
-                // Lấy dữ liệu History
+                const unsubs = [];
+
+                // 1. HISTORY LISTENER (Cho Live Monitor & Ranking)
+                // Nguồn: Lịch sử làm bài thực tế
                 const qHistory = query(collectionGroup(db, 'history'));
-                const unsubHistory = onSnapshot(qHistory, (snapshot) => {
+                unsubs.push(onSnapshot(qHistory, (snapshot) => {
                     const rawData = snapshot.docs.map(d => ({...d.data(), id: d.id}));
                     
-                    // Sắp xếp dữ liệu thô theo thời gian mới nhất để làm Live Feed
+                    // Sắp xếp dữ liệu thô
                     rawData.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
                     setRawHistory(rawData);
 
-                    // --- XỬ LÝ THỐNG KÊ (STATS) ---
+                    // Xử lý thống kê từ History
                     const userMap = {};
                     const uniqueExams = new Set();
-                    const now = Date.now() / 1000; // Current timestamp in seconds
-                    
-                    // Ngưỡng thời gian cho "Online" (30 phút) và "Live" (15 phút)
+                    const now = Date.now() / 1000;
                     const ONLINE_THRESHOLD = 30 * 60; 
                     const LIVE_THRESHOLD = 15 * 60;
-
                     let onlineCount = 0;
                     let liveCount = 0;
 
                     rawData.forEach(item => {
-                        // Tính toán số lượng đề thi
                         if (item.examTitle) uniqueExams.add(item.examTitle);
 
-                        // Gom nhóm User để tính bảng xếp hạng
+                        // Gom nhóm User
                         const hasEmail = item.email && item.email.trim() !== "";
                         const hasName = item.displayName && item.displayName.trim() !== "";
-                        if (!hasEmail && !hasName) return; // Bỏ qua ẩn danh hoàn toàn khi tính user
+                        if (!hasEmail && !hasName) return;
 
                         const key = item.userId || item.email;
                         if (!key) return;
 
-                        // Kiểm tra hoạt động gần đây để tính Online/Live
+                        // Check Online/Live
                         const timeDiff = now - (item.date?.seconds || 0);
-                        if (timeDiff < ONLINE_THRESHOLD) onlineCount++; // Ước lượng: có nộp bài gần đây -> Online
-                        if (timeDiff < LIVE_THRESHOLD) liveCount++;     // Ước lượng: nộp rất gần đây -> Đang thi (Live)
+                        if (timeDiff < ONLINE_THRESHOLD) onlineCount++;
+                        if (timeDiff < LIVE_THRESHOLD) liveCount++;
 
                         if (!userMap[key]) {
                             userMap[key] = {
@@ -173,28 +182,65 @@
                         }
                     });
 
-                    // Chuyển Map thành Array cho Bảng xếp hạng
+                    // Update Scores Ranking
                     let aggregatedData = Object.values(userMap);
                     aggregatedData.sort((a, b) => b.totalScore - a.totalScore);
                     setScores(aggregatedData);
 
-                    // Cập nhật Stats State
-                    setStats({
-                        online: Math.max(onlineCount, 1), // Luôn hiển thị ít nhất 1 (là admin)
+                    // Update Stats (Partial)
+                    setStats(prev => ({
+                        ...prev,
+                        online: Math.max(onlineCount, 1),
                         live: liveCount,
-                        students: aggregatedData.length,
-                        vip: 0, // Chưa có logic VIP
-                        exams: uniqueExams.size
-                    });
+                        historyStudents: aggregatedData.length,
+                        historyExams: uniqueExams.size
+                    }));
 
-                }, (error) => console.error("History Error:", error));
+                }, (error) => console.error("History Error:", error)));
+
+                // 2. EXAMS COLLECTION LISTENER (Cho tổng số đề thi)
+                // Nguồn: Danh sách đề thi gốc (bao gồm cả đề chưa ai làm)
+                const qExams = query(collection(db, 'artifacts', appId, 'public', 'data', 'exams'));
+                unsubs.push(onSnapshot(qExams, (snap) => {
+                    setStats(prev => ({
+                        ...prev,
+                        dbExams: snap.size
+                    }));
+                }, (e) => console.log("Exams collection empty or protected")));
+
+                // 3. USERS COLLECTION LISTENER (Cho tổng học viên & VIP)
+                // Nguồn: Danh sách người dùng đăng ký
+                const qUsers = query(collection(db, 'artifacts', appId, 'public', 'data', 'users'));
+                unsubs.push(onSnapshot(qUsers, (snap) => {
+                    const users = snap.docs.map(d => d.data());
+                    const vipCount = users.filter(u => u.isVIP === true || u.vip === true || u.plan === 'premium' || u.role === 'vip').length;
+                    setStats(prev => ({
+                        ...prev,
+                        dbStudents: snap.size,
+                        dbVip: vipCount
+                    }));
+                }, (e) => console.log("Users collection empty or protected")));
 
                 // Lắng nghe Reviews & Reports (giữ nguyên)
                 const unsubReviews = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc')), s => setReviews(s.docs.map(d => ({...d.data(), id: d.id}))));
                 const unsubReports = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), orderBy('createdAt', 'desc')), s => setReports(s.docs.map(d => ({...d.data(), id: d.id}))));
+                
+                unsubs.push(unsubReviews);
+                unsubs.push(unsubReports);
 
-                return () => { unsubHistory(); unsubReviews(); unsubReports(); };
+                return () => unsubs.forEach(fn => fn());
             }, []);
+
+            // --- COMPUTED STATS ---
+            // Sử dụng số lớn nhất giữa DB (dữ liệu gốc) và History (dữ liệu thực tế phát sinh)
+            // Để đảm bảo số liệu không bao giờ bị hụt so với thực tế đã ghi nhận
+            const displayStats = useMemo(() => ({
+                online: stats.online,
+                live: stats.live,
+                students: Math.max(stats.dbStudents || 0, stats.historyStudents || 0),
+                vip: stats.dbVip || 0,
+                exams: Math.max(stats.dbExams || 0, stats.historyExams || 0)
+            }), [stats]);
 
             // --- ACTIONS ---
             const deleteItem = async (collectionName, id) => {
@@ -347,18 +393,18 @@
                                 <div className="space-y-8">
                                     {/* 5 CARDS */}
                                     <div className="grid grid-cols-5 gap-6">
-                                        <StatCard title="Đang Online" value={stats.online} icon={Activity} color="text-emerald-400" subText="Hoạt động gần đây" />
-                                        <StatCard title="Đang Thi (Live)" value={stats.live} icon={Zap} color="text-blue-400" subText="Nộp bài < 15p trước" />
-                                        <StatCard title="Học Viên" value={stats.students} icon={Users} color="text-purple-400" subText="Đã đăng ký" />
-                                        <StatCard title="VIP Premium" value={stats.vip} icon={Crown} color="text-yellow-400" subText="Thành viên VIP" />
-                                        <StatCard title="Đề Thi" value={stats.exams} icon={FileText} color="text-cyan-400" subText="Tổng số đề" />
+                                        <StatCard title="Đang Online" value={displayStats.online} icon={Activity} color="text-emerald-400" subText="Hoạt động gần đây" />
+                                        <StatCard title="Đang Thi (Live)" value={displayStats.live} icon={Zap} color="text-blue-400" subText="Nộp bài < 15p trước" />
+                                        <StatCard title="Học Viên" value={displayStats.students} icon={Users} color="text-purple-400" subText="Đã đăng ký" />
+                                        <StatCard title="VIP Premium" value={displayStats.vip} icon={Crown} color="text-yellow-400" subText="Thành viên VIP" />
+                                        <StatCard title="Đề Thi" value={displayStats.exams} icon={FileText} color="text-cyan-400" subText="Tổng số đề" />
                                     </div>
 
                                     {/* LIVE FEED SECTION */}
                                     <div className="glass-panel rounded-[2rem] p-8 min-h-[400px]">
                                         <div className="flex items-center gap-3 mb-6">
                                             <Activity className="text-emerald-400 pulse-dot" size={24}/>
-                                            <h2 className="text-xl font-bold text-white uppercase tracking-widest">Học viên đang làm bài ({stats.live})</h2>
+                                            <h2 className="text-xl font-bold text-white uppercase tracking-widest">Học viên đang làm bài ({displayStats.live})</h2>
                                         </div>
                                         
                                         <div className="space-y-4">
