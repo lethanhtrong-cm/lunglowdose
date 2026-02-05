@@ -37,6 +37,7 @@
                         'slide-left': 'slideLeft 0.3s ease-out',
                         'confetti': 'confetti 2s ease-out forwards',
                         'scale-up': 'scaleUp 0.3s ease-out',
+                        'spin-slow': 'spin 3s linear infinite',
                     },
                     keyframes: {
                         blob: {
@@ -79,8 +80,8 @@
         
         .glass { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
         .glass-panel { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .glass-card { background: linear-gradient(145deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8)); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .glass-card:hover { transform: translateY(-4px); border-color: rgba(6, 182, 212, 0.3); box-shadow: 0 10px 30px -10px rgba(6, 182, 212, 0.2); }
+        .glass-card { background: linear-gradient(145deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9)); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .glass-card:hover { transform: translateY(-4px); border-color: rgba(6, 182, 212, 0.4); box-shadow: 0 10px 30px -10px rgba(6, 182, 212, 0.3); }
         .glass-result { background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9)); backdrop-filter: blur(20px); }
         
         .custom-checkbox:checked { background-color: #0891b2; border-color: #0891b2; }
@@ -746,13 +747,13 @@
             );
         };
 
-        const PaymentModal = ({ onClose, user }) => {
+        const PaymentModal = ({ onClose, user, isPending }) => {
             const [isSubmitting, setIsSubmitting] = useState(false);
             const qrUrl = `https://img.vietqr.io/image/${BANK_INFO.bankName}-${BANK_INFO.accountNum}-compact2.jpg?amount=${BANK_INFO.amount}&addInfo=MEDEXAM ${user.email.split('@')[0]}&accountName=${encodeURIComponent(BANK_INFO.accountName)}`;
             const { addToast } = useToast();
 
             const handleRequestVip = async () => {
-                if (isSubmitting) return;
+                if (isSubmitting || isPending) return;
                 setIsSubmitting(true);
                 try {
                     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'paymentRequests'), {
@@ -781,19 +782,34 @@
                             <div className="text-center mb-6">
                                 <div className="inline-flex p-4 rounded-full bg-gradient-to-br from-yellow-400/20 to-amber-600/20 text-yellow-400 mb-4 border border-yellow-500/20 shadow-lg shadow-yellow-500/10"><Crown size={40} /></div>
                                 <h2 className="text-2xl font-bold text-white">Nâng cấp VIP Member</h2>
-                                <p className="text-slate-400 text-sm mt-2">Mở khóa không giới hạn toàn bộ kho đề thi</p>
+                                <p className="text-slate-400 text-sm mt-2">
+                                    {isPending ? "Yêu cầu kích hoạt đang được hệ thống xử lý" : "Mở khóa không giới hạn toàn bộ kho đề thi"}
+                                </p>
                             </div>
-                            <div className="bg-white p-6 rounded-2xl mb-6 flex flex-col items-center shadow-inner relative group">
-                                <img src={qrUrl} className="w-56 h-56 object-contain mb-3 mix-blend-multiply transition-transform group-hover:scale-105"/>
-                                <div className="text-center"><p className="text-slate-500 text-xs font-medium uppercase tracking-wider">Số tiền thanh toán</p><p className="text-slate-900 font-black text-2xl tracking-tight">{BANK_INFO.amount} VNĐ</p></div>
-                            </div>
-                            <div className="space-y-3 mb-6">
-                                <div className="flex items-start gap-3 bg-slate-800/50 p-3 rounded-xl border border-slate-700/50"><div className="bg-cyan-500/20 text-cyan-400 p-1.5 rounded-full shrink-0"><Activity size={16}/></div><p className="text-sm text-slate-300">Nội dung chuyển khoản tự động. Vui lòng giữ nguyên.</p></div>
-                                <div className="flex items-start gap-3 bg-slate-800/50 p-3 rounded-xl border border-slate-700/50"><div className="bg-emerald-500/20 text-emerald-400 p-1.5 rounded-full shrink-0"><CheckCircle2 size={16}/></div><p className="text-sm text-slate-300">Sau khi chuyển khoản, nhấn nút dưới đây để thông báo.</p></div>
-                            </div>
-                            <button onClick={handleRequestVip} disabled={isSubmitting} className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 py-3.5 rounded-xl font-bold text-slate-900 shadow-lg shadow-amber-500/20 transition-all transform hover:scale-[1.02] flex justify-center items-center gap-2 active:scale-95 disabled:opacity-50">
-                                {isSubmitting ? <Loader2 className="animate-spin"/> : <Send size={18}/>} Tôi đã chuyển khoản
-                            </button>
+
+                            {isPending ? (
+                                <div className="bg-slate-800/50 p-8 rounded-2xl mb-6 text-center border border-yellow-500/20">
+                                    <div className="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-yellow-500 animate-pulse">
+                                        <Hourglass size={32} />
+                                    </div>
+                                    <h4 className="text-white font-bold mb-2">Đang chờ kích hoạt</h4>
+                                    <p className="text-slate-400 text-sm">Hệ thống đã nhận được thông báo chuyển khoản của bạn. Vui lòng đợi trong giây lát để Admin xác nhận.</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="bg-white p-6 rounded-2xl mb-6 flex flex-col items-center shadow-inner relative group">
+                                        <img src={qrUrl} className="w-56 h-56 object-contain mb-3 mix-blend-multiply transition-transform group-hover:scale-105"/>
+                                        <div className="text-center"><p className="text-slate-500 text-xs font-medium uppercase tracking-wider">Số tiền thanh toán</p><p className="text-slate-900 font-black text-2xl tracking-tight">{BANK_INFO.amount} VNĐ</p></div>
+                                    </div>
+                                    <div className="space-y-3 mb-6">
+                                        <div className="flex items-start gap-3 bg-slate-800/50 p-3 rounded-xl border border-slate-700/50"><div className="bg-cyan-500/20 text-cyan-400 p-1.5 rounded-full shrink-0"><Activity size={16}/></div><p className="text-sm text-slate-300">Nội dung chuyển khoản tự động. Vui lòng giữ nguyên.</p></div>
+                                        <div className="flex items-start gap-3 bg-slate-800/50 p-3 rounded-xl border border-slate-700/50"><div className="bg-emerald-500/20 text-emerald-400 p-1.5 rounded-full shrink-0"><CheckCircle2 size={16}/></div><p className="text-sm text-slate-300">Sau khi chuyển khoản, nhấn nút dưới đây để thông báo.</p></div>
+                                    </div>
+                                    <button onClick={handleRequestVip} disabled={isSubmitting} className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 py-3.5 rounded-xl font-bold text-slate-900 shadow-lg shadow-amber-500/20 transition-all transform hover:scale-[1.02] flex justify-center items-center gap-2 active:scale-95 disabled:opacity-50">
+                                        {isSubmitting ? <Loader2 className="animate-spin"/> : <Send size={18}/>} Tôi đã chuyển khoản
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1299,7 +1315,7 @@
             );
         };
 
-        const Dashboard = ({ user, profile, onStartExam, onViewHistory, onUpgrade }) => {
+        const Dashboard = ({ user, profile, onStartExam, onViewHistory, onUpgrade, isPendingVip }) => {
             const [exams, setExams] = useState([]);
             const [stats, setStats] = useState({ totalTaken: 0, avgScore: 0, rank: 'Tập sự' });
             const [historyData, setHistoryData] = useState([]); 
@@ -1454,53 +1470,57 @@
                                         const isLocked = exam.isPremium && !profile?.isPremium;
                                         
                                         return (
-                                            <div key={exam.id} className="glass-card rounded-2xl p-6 relative group flex flex-col h-full hover:-translate-y-1 transition-all border border-white/5">
-                                                <div className="absolute top-0 right-0 p-3 bg-slate-800/90 rounded-bl-2xl border-b border-l border-slate-700/50 z-10 backdrop-blur-md">
+                                            <div key={exam.id} className="glass-card rounded-2xl p-6 relative group flex flex-col h-full hover:-translate-y-1 transition-all border border-white/10">
+                                                <div className="absolute top-0 right-0 p-3 bg-slate-800/95 rounded-bl-2xl border-b border-l border-white/10 z-10 backdrop-blur-md">
                                                     {isLocked ? (
-                                                        <div className="flex items-center gap-1 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
+                                                        <div className="flex items-center gap-1 text-slate-200 font-black text-[11px] uppercase tracking-wider">
                                                             <Lock size={14}/> VIP ONLY
                                                         </div>
                                                     ) : (
                                                         exam.isPremium ? (
-                                                            <div className="flex items-center gap-1 text-yellow-400 font-bold text-[10px] uppercase tracking-wider">
-                                                                <Crown size={14}/> VIP OPEN
+                                                            <div className="flex items-center gap-1 text-yellow-400 font-black text-[11px] uppercase tracking-wider">
+                                                                <Crown size={14} fill="currentColor"/> VIP OPEN
                                                             </div>
                                                         ) : (
-                                                            <span className="text-emerald-400 text-[10px] font-bold tracking-widest uppercase">Miễn phí</span>
+                                                            <span className="text-emerald-400 font-black text-[11px] tracking-widest uppercase">Miễn phí</span>
                                                         )
                                                     )}
                                                 </div>
 
                                                 <div className="mb-4 flex-1">
                                                     <div className="flex justify-between items-start mb-3">
-                                                        <h3 className="text-lg font-bold text-white line-clamp-2 group-hover:text-cyan-400 transition-colors pr-6">{exam.title}</h3>
+                                                        <h3 className="text-xl font-black text-white line-clamp-2 group-hover:text-cyan-400 transition-colors pr-6 tracking-tight drop-shadow-md">{exam.title}</h3>
                                                     </div>
 
-                                                    <div className="flex flex-wrap gap-2 mb-4">
-                                                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-400 text-xs font-bold border border-cyan-500/20 shadow-sm shadow-cyan-500/5">
-                                                            <Clock size={14} className="shrink-0 text-cyan-500"/> {exam.duration} phút
+                                                    <div className="flex flex-wrap gap-2 mb-5">
+                                                        <span className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-500/20 text-cyan-300 text-xs font-black border border-cyan-500/40 shadow-sm shadow-cyan-500/10">
+                                                            <Clock size={16} className="shrink-0 text-cyan-400"/> {exam.duration} phút
                                                         </span>
-                                                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-400 text-xs font-bold border border-indigo-500/20 shadow-sm shadow-indigo-500/5">
-                                                            <Grid size={14} className="shrink-0 text-indigo-500"/> {exam.questions?.length} câu hỏi
+                                                        <span className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-500/25 text-indigo-300 text-xs font-black border border-indigo-500/40 shadow-sm shadow-indigo-500/10">
+                                                            <Grid size={16} className="shrink-0 text-indigo-400"/> {exam.questions?.length} câu hỏi
                                                         </span>
                                                     </div>
 
-                                                    <div className="flex flex-col gap-1.5 border-t border-slate-700/30 pt-3">
-                                                        <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                                                            <Calendar size={12} className="text-slate-600"/> 
-                                                            Ra đề: {formatDate(exam.createdAt)}
+                                                    <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
+                                                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-800/60 border border-white/10 transition-colors hover:bg-slate-800">
+                                                            <Calendar size={14} className="text-emerald-400 shrink-0"/> 
+                                                            <div className="text-[11px] text-slate-300 font-bold uppercase tracking-tight">
+                                                                Ra đề: <span className="text-white ml-1">{formatDate(exam.createdAt)}</span>
+                                                            </div>
                                                         </div>
                                                         
                                                         {exam.updatedAt && (
-                                                            <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                                                                <RefreshCw size={12} className="text-slate-600"/> 
-                                                                Cập nhật: {formatDate(exam.updatedAt)}
+                                                            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-500/30 transition-colors hover:bg-cyan-500/20">
+                                                                <RefreshCw size={14} className="text-cyan-400 shrink-0 animate-spin-slow"/> 
+                                                                <div className="text-[11px] text-cyan-300 font-bold uppercase tracking-tight">
+                                                                    Cập nhật: <span className="text-white ml-1">{formatDate(exam.updatedAt)}</span>
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </div>
                                                 </div>
 
-                                                <div className="flex gap-4 text-xs font-medium text-slate-400 mb-6 mt-auto border-t border-white/5 pt-4">
+                                                <div className="flex gap-4 text-xs font-bold text-slate-400 mb-6 mt-4 border-t border-white/5 pt-4 opacity-80">
                                                     <span className="flex items-center gap-1.5" title="Lượt thi / Số người tham gia">
                                                         <Users size={14} className="text-cyan-500"/> 
                                                         <span>{exam.attempts || 0} lượt</span>
@@ -1513,41 +1533,42 @@
                                                     {renderStars(exam.ratingSum, exam.ratingCount)}
                                                     
                                                     <div className="flex items-center gap-2">
-                                                        {/* NÚT CHIA SẺ NỔI BẬT */}
                                                         <div className="relative group/share">
                                                             <button 
                                                                 onClick={(e) => { e.stopPropagation(); }}
-                                                                className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-cyan-400 rounded-xl border border-slate-700 transition-all shadow-lg flex items-center justify-center"
+                                                                className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-cyan-400 rounded-xl border border-white/10 transition-all shadow-lg flex items-center justify-center relative z-10"
                                                                 title="Chia sẻ đề thi"
                                                             >
                                                                 <Share2 size={18} />
                                                             </button>
-                                                            {/* MENU CHIA SẺ TRỒI LÊN */}
-                                                            <div className="absolute right-0 bottom-full mb-2 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-2 hidden group-hover/share:flex flex-col gap-1 z-30 min-w-[150px] animate-scale-up">
-                                                                <button onClick={() => handleShareExam(exam, 'facebook')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
-                                                                    <div className="bg-blue-600 p-1 rounded-full"><Facebook size={12} /></div> Facebook
-                                                                </button>
-                                                                <button onClick={() => handleShareExam(exam, 'zalo')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
-                                                                    <div className="bg-blue-500 p-1 rounded-full"><SendHorizontal size={12} /></div> Zalo (Copy)
-                                                                </button>
-                                                                <button onClick={() => handleShareExam(exam, 'twitter')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
-                                                                    <div className="bg-slate-900 p-1 rounded-full"><Twitter size={12} /></div> Twitter (X)
-                                                                </button>
-                                                                <button onClick={() => handleShareExam(exam, 'link')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
-                                                                    <div className="bg-slate-600 p-1 rounded-full"><Copy size={12} /></div> Sao chép link
-                                                                </button>
+                                                            
+                                                            <div className="absolute right-0 bottom-full pb-2 hidden group-hover/share:block z-30 min-w-[150px] animate-scale-up">
+                                                                <div className="bg-slate-900 border border-white/10 rounded-xl shadow-2xl p-2 flex flex-col gap-1 overflow-hidden">
+                                                                    <button onClick={() => handleShareExam(exam, 'facebook')} className="flex items-center gap-2 p-2 hover:bg-slate-800 rounded-lg text-xs text-white transition-colors">
+                                                                        <div className="bg-blue-600 p-1 rounded-full"><Facebook size={12} /></div> Facebook
+                                                                    </button>
+                                                                    <button onClick={() => handleShareExam(exam, 'zalo')} className="flex items-center gap-2 p-2 hover:bg-slate-800 rounded-lg text-xs text-white transition-colors">
+                                                                        <div className="bg-blue-500 p-1 rounded-full"><SendHorizontal size={12} /></div> Zalo (Copy)
+                                                                    </button>
+                                                                    <button onClick={() => handleShareExam(exam, 'twitter')} className="flex items-center gap-2 p-2 hover:bg-slate-800 rounded-lg text-xs text-white transition-colors">
+                                                                        <div className="bg-slate-900 p-1 rounded-full"><Twitter size={12} /></div> Twitter (X)
+                                                                    </button>
+                                                                    <button onClick={() => handleShareExam(exam, 'link')} className="flex items-center gap-2 p-2 hover:bg-slate-800 rounded-lg text-xs text-white transition-colors">
+                                                                        <div className="bg-slate-600 p-1 rounded-full"><Copy size={12} /></div> Sao chép link
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </div>
 
                                                         <button 
                                                             onClick={()=> isLocked ? onUpgrade() : onStartExam(exam)} 
-                                                            className={`px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all transform group-hover:scale-105 active:scale-95 flex items-center gap-2 ${
+                                                            className={`px-6 py-2.5 rounded-xl font-black text-sm shadow-xl transition-all transform group-hover:scale-105 active:scale-95 flex items-center gap-2 ${
                                                                 isLocked 
-                                                                ? 'bg-slate-800 text-slate-500 hover:bg-slate-700 border border-white/5 cursor-not-allowed' 
-                                                                : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-500/20'
+                                                                ? 'bg-gradient-to-r from-yellow-600 via-amber-500 to-yellow-500 text-slate-900 shadow-yellow-500/30 ring-2 ring-yellow-400/50 hover:from-yellow-500 hover:to-yellow-400' 
+                                                                : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-500/30'
                                                             }`}
                                                         >
-                                                            {isLocked ? <><Lock size={14}/> Nâng cấp</> : 'Bắt đầu'}
+                                                            {isLocked ? (isPendingVip ? <><Hourglass size={16} className="animate-pulse"/> Chờ duyệt</> : <><Crown size={16} fill="currentColor"/> Nâng cấp ngay</>) : 'Bắt đầu'}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -1802,6 +1823,7 @@
             const [lastResult, setLastResult] = useState(null);
             const [showPay, setShowPay] = useState(false);
             const [globalConfig, setGlobalConfig] = useState({});
+            const [isPendingVip, setIsPendingVip] = useState(false);
             
             const [sysNoti, setSysNoti] = useState(null);
             const [notifications, setNotifications] = useState([]);
@@ -1826,7 +1848,14 @@
                     if (u) {
                         setView('dashboard');
                         const unsub = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.uid), d => d.exists() && setProfile(d.data()), (error) => console.error("Profile sync error", error));
-                        return () => unsub();
+                        
+                        // Lắng nghe yêu cầu VIP đang chờ duyệt
+                        const qPending = query(collection(db, 'artifacts', appId, 'public', 'data', 'paymentRequests'), where('uid', '==', u.uid), where('status', '==', 'pending'), limit(1));
+                        const unsubPending = onSnapshot(qPending, (snap) => {
+                            setIsPendingVip(!snap.empty);
+                        });
+
+                        return () => { unsub(); unsubPending(); };
                     } else setView('auth');
                 });
             }, []);
@@ -1968,7 +1997,17 @@
                                             <span className="hidden md:flex bg-gradient-to-r from-yellow-500/10 to-amber-500/10 text-amber-400 text-[10px] font-bold border border-amber-500/20 px-3 py-1 rounded-full items-center gap-1.5"><Crown size={12}/> VIP</span>
                                             {daysLeft !== null && <span className="text-[9px] text-slate-500 font-mono mt-0.5">Còn {daysLeft} ngày</span>}
                                         </div>
-                                    ) : <button onClick={()=>setShowPay(true)} className="hidden md:flex bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg shadow-amber-900/20 items-center gap-2 transition-all transform hover:scale-105"><Crown size={16}/> Nâng cấp VIP</button>}
+                                    ) : (
+                                        isPendingVip ? (
+                                            <div className="hidden md:flex items-center gap-2 bg-yellow-500/10 text-yellow-500 text-xs font-bold px-4 py-2 rounded-full border border-yellow-500/20">
+                                                <Hourglass size={14} className="animate-pulse"/> Đang chờ duyệt
+                                            </div>
+                                        ) : (
+                                            <button onClick={()=>setShowPay(true)} className="hidden md:flex bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg shadow-amber-900/20 items-center gap-2 transition-all transform hover:scale-105">
+                                                <Crown size={16}/> Nâng cấp VIP
+                                            </button>
+                                        )
+                                    )}
                                     <div className="h-8 w-px bg-slate-800 mx-1 hidden md:block"></div>
                                     
                                     <button onClick={()=>setView('profile')} className="transition-all hover:scale-105 active:scale-95">
@@ -1984,9 +2023,9 @@
                             {view === 'history' ? <HistoryPage user={user} onBack={()=>setView('dashboard')}/> : 
                              view === 'profile' ? <ProfilePage user={user} profile={profile} onBack={()=>setView('dashboard')} /> :
                              view === 'leaderboard' ? <LeaderboardPage user={user} onBack={()=>setView('dashboard')} /> :
-                             <Dashboard user={user} profile={profile} onStartExam={startExam} onUpgrade={()=>setShowPay(true)} onViewHistory={()=>setView('history')} />}
+                             <Dashboard user={user} profile={profile} onStartExam={startExam} onUpgrade={()=>setShowPay(true)} onViewHistory={()=>setView('history')} isPendingVip={isPendingVip} />}
                         </div>
-                        {showPay && <PaymentModal onClose={()=>setShowPay(false)} user={user}/>}
+                        {showPay && <PaymentModal onClose={()=>setShowPay(false)} user={user} isPending={isPendingVip}/>}
                     </div>
                 );
             };
