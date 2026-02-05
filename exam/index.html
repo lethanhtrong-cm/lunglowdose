@@ -37,6 +37,7 @@
                         'slide-left': 'slideLeft 0.3s ease-out',
                         'confetti': 'confetti 2s ease-out forwards',
                         'scale-up': 'scaleUp 0.3s ease-out',
+                        'spin-slow': 'spin 3s linear infinite',
                     },
                     keyframes: {
                         blob: {
@@ -79,8 +80,8 @@
         
         .glass { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
         .glass-panel { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .glass-card { background: linear-gradient(145deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8)); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .glass-card:hover { transform: translateY(-4px); border-color: rgba(6, 182, 212, 0.3); box-shadow: 0 10px 30px -10px rgba(6, 182, 212, 0.2); }
+        .glass-card { background: linear-gradient(145deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9)); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .glass-card:hover { transform: translateY(-4px); border-color: rgba(6, 182, 212, 0.4); box-shadow: 0 10px 30px -10px rgba(6, 182, 212, 0.3); }
         .glass-result { background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9)); backdrop-filter: blur(20px); }
         
         .custom-checkbox:checked { background-color: #0891b2; border-color: #0891b2; }
@@ -132,7 +133,7 @@
             signInAnonymously
         } from 'firebase/auth';
         import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc, getDocs, where, updateDoc, increment, limit, deleteDoc } from 'firebase/firestore';
-        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, Users, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal, Sun, Moon, Type, X, Info, Check, Quote, Mail, Key, Flag, BarChart3, AlertCircle, RefreshCw, Bell, Trash2, Camera, Upload } from 'lucide-react';
+        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, Users, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal, Sun, Moon, Type, X, Info, Check, Quote, Mail, Key, Flag, BarChart3, AlertCircle, RefreshCw, Bell, Trash2, Camera, Upload, Twitter, SendHorizontal } from 'lucide-react';
 
         const firebaseConfig = {
             apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
@@ -633,7 +634,7 @@
                 <div className="animate-fade-in pb-20 max-w-6xl mx-auto">
                     <button onClick={onBack} className="mb-6 flex items-center gap-2 text-slate-400 hover:text-white transition-colors group">
                         <div className="bg-slate-800 p-2 rounded-lg group-hover:bg-slate-700"><ChevronRight className="rotate-180" size={20}/></div>
-                        <span>Quay lại Dashboard</span>
+                        <span className="font-medium">Quay lại Dashboard</span>
                     </button>
                     
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -1343,7 +1344,7 @@
             const renderStars = (ratingSum, ratingCount) => {
                 const avg = ratingCount > 0 ? ratingSum / ratingCount : 0;
                 return (
-                    <div className="flex items-center gap-1 text-yellow-400 text-xs bg-slate-900/40 px-2 py-1 rounded-full">
+                    <div className="flex items-center gap-1 text-yellow-400 text-xs bg-slate-900/40 px-2 py-1 rounded-full border border-yellow-500/10">
                         <span className="font-bold text-white mr-1">{avg.toFixed(1)}</span>
                         <Star size={10} fill="currentColor"/>
                         <span className="text-slate-500 ml-1">({ratingCount || 0})</span>
@@ -1352,12 +1353,24 @@
             };
 
             const handleShareExam = (exam, platform) => {
-                const shareUrl = window.location.href;
+                const shareUrl = window.location.origin + window.location.pathname; 
                 const shareText = `Thử thách bản thân với đề thi "${exam.title}" trên MedExam Pro!`;
 
                 if (platform === 'facebook') {
                     const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
                     window.open(fbUrl, '_blank');
+                } else if (platform === 'twitter') {
+                    const twUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+                    window.open(twUrl, '_blank');
+                } else if (platform === 'zalo') {
+                    const fullText = `${shareText}\nXem tại: ${shareUrl}`;
+                    const tempTextArea = document.createElement("textarea");
+                    tempTextArea.value = fullText;
+                    document.body.appendChild(tempTextArea);
+                    tempTextArea.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(tempTextArea);
+                    addToast("Đã sao chép nội dung chia sẻ cho Zalo!", "success");
                 } else {
                     const tempInput = document.createElement("input");
                     tempInput.value = shareUrl;
@@ -1442,67 +1455,58 @@
                                         const isLocked = exam.isPremium && !profile?.isPremium;
                                         
                                         return (
-                                            <div key={exam.id} className="glass-card rounded-2xl p-6 relative group flex flex-col h-full hover:-translate-y-1 transition-all">
-                                                <div className="absolute top-0 right-0 p-3 bg-slate-800/90 rounded-bl-2xl border-b border-l border-slate-700/50 z-10 backdrop-blur-md">
+                                            <div key={exam.id} className="glass-card rounded-2xl p-6 relative group flex flex-col h-full hover:-translate-y-1 transition-all border border-white/10">
+                                                <div className="absolute top-0 right-0 p-3 bg-slate-800/95 rounded-bl-2xl border-b border-l border-white/10 z-10 backdrop-blur-md">
                                                     {isLocked ? (
-                                                        <div className="flex items-center gap-1 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
+                                                        <div className="flex items-center gap-1 text-slate-200 font-black text-[11px] uppercase tracking-wider">
                                                             <Lock size={14}/> VIP ONLY
                                                         </div>
                                                     ) : (
                                                         exam.isPremium ? (
-                                                            <div className="flex items-center gap-1 text-yellow-400 font-bold text-[10px] uppercase tracking-wider">
-                                                                <Crown size={14}/> VIP OPEN
+                                                            <div className="flex items-center gap-1 text-yellow-400 font-black text-[11px] uppercase tracking-wider">
+                                                                <Crown size={14} fill="currentColor"/> VIP OPEN
                                                             </div>
                                                         ) : (
-                                                            <span className="text-emerald-400 text-[10px] font-bold tracking-widest uppercase">Miễn phí</span>
+                                                            <span className="text-emerald-400 font-black text-[11px] tracking-widest uppercase">Miễn phí</span>
                                                         )
                                                     )}
                                                 </div>
 
                                                 <div className="mb-4 flex-1">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <h3 className="text-lg font-bold text-white line-clamp-2 group-hover:text-cyan-400 transition-colors">{exam.title}</h3>
-                                                        
-                                                        {/* SOCIAL SHARE POPUP */}
-                                                        <div className="relative group/share">
-                                                            <button 
-                                                                className="p-1.5 text-slate-500 hover:text-cyan-400 transition-colors"
-                                                                title="Chia sẻ đề thi"
-                                                            >
-                                                                <Share2 size={18} />
-                                                            </button>
-                                                            <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-2 hidden group-hover/share:flex flex-col gap-1 z-20 min-w-[140px] animate-scale-up">
-                                                                <button onClick={() => handleShareExam(exam, 'facebook')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
-                                                                    <div className="bg-blue-600 p-1 rounded-full"><Facebook size={12} /></div> Facebook
-                                                                </button>
-                                                                <button onClick={() => handleShareExam(exam, 'link')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
-                                                                    <div className="bg-slate-600 p-1 rounded-full"><Copy size={12} /></div> Sao chép link
-                                                                </button>
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <h3 className="text-xl font-black text-white line-clamp-2 group-hover:text-cyan-400 transition-colors pr-6 tracking-tight drop-shadow-md">{exam.title}</h3>
+                                                    </div>
+
+                                                    <div className="flex flex-wrap gap-2 mb-5">
+                                                        <span className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-500/20 text-cyan-300 text-xs font-black border border-cyan-500/40 shadow-sm shadow-cyan-500/10">
+                                                            <Clock size={16} className="shrink-0 text-cyan-400"/> {exam.duration} phút
+                                                        </span>
+                                                        <span className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-500/25 text-indigo-300 text-xs font-black border border-indigo-500/40 shadow-sm shadow-indigo-500/10">
+                                                            <Grid size={16} className="shrink-0 text-indigo-400"/> {exam.questions?.length} câu hỏi
+                                                        </span>
+                                                    </div>
+
+                                                    {/* NỔI BẬT NGÀY RA ĐỀ VÀ CẬP NHẬT TRONG BADGES */}
+                                                    <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
+                                                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-800/60 border border-white/10 transition-colors hover:bg-slate-800">
+                                                            <Calendar size={14} className="text-emerald-400 shrink-0"/> 
+                                                            <div className="text-[11px] text-slate-300 font-bold uppercase tracking-tight">
+                                                                Ra đề: <span className="text-white ml-1">{formatDate(exam.createdAt)}</span>
                                                             </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="text-slate-400 text-xs flex gap-3 font-medium mb-3">
-                                                        <span className="flex items-center gap-1"><Clock size={14}/> {exam.duration}p</span>
-                                                        <span className="flex items-center gap-1"><Grid size={14}/> {exam.questions?.length} câu</span>
-                                                    </div>
-
-                                                    <div className="flex flex-col gap-1.5 border-t border-slate-700/50 pt-3">
-                                                        <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                                                            <Calendar size={12} className="text-slate-600"/> 
-                                                            Ra đề: {formatDate(exam.createdAt)}
                                                         </div>
                                                         
                                                         {exam.updatedAt && (
-                                                            <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                                                                <RefreshCw size={12} className="text-slate-600"/> 
-                                                                Cập nhật: {formatDate(exam.updatedAt)}
+                                                            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-500/30 transition-colors hover:bg-cyan-500/20">
+                                                                <RefreshCw size={14} className="text-cyan-400 shrink-0 animate-spin-slow"/> 
+                                                                <div className="text-[11px] text-cyan-300 font-bold uppercase tracking-tight">
+                                                                    Cập nhật: <span className="text-white ml-1">{formatDate(exam.updatedAt)}</span>
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </div>
                                                 </div>
 
-                                                <div className="flex gap-4 text-xs font-medium text-slate-400 mb-6 mt-auto border-t border-white/5 pt-4">
+                                                <div className="flex gap-4 text-xs font-bold text-slate-400 mb-6 mt-4 border-t border-white/5 pt-4 opacity-80">
                                                     <span className="flex items-center gap-1.5" title="Lượt thi / Số người tham gia">
                                                         <Users size={14} className="text-cyan-500"/> 
                                                         <span>{exam.attempts || 0} lượt</span>
@@ -1513,16 +1517,47 @@
                                                 
                                                 <div className="flex justify-between items-end mt-4">
                                                     {renderStars(exam.ratingSum, exam.ratingCount)}
-                                                    <button 
-                                                        onClick={()=> isLocked ? onUpgrade() : onStartExam(exam)} 
-                                                        className={`px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all transform group-hover:scale-105 active:scale-95 flex items-center gap-2 ${
-                                                            isLocked 
-                                                            ? 'bg-slate-800 text-slate-500 hover:bg-slate-700 border border-white/5 cursor-not-allowed' 
-                                                            : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-500/20'
-                                                        }`}
-                                                    >
-                                                        {isLocked ? <><Lock size={14}/> Nâng cấp</> : 'Bắt đầu'}
-                                                    </button>
+                                                    
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="relative group/share">
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); }}
+                                                                className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-cyan-400 rounded-xl border border-white/10 transition-all shadow-lg flex items-center justify-center relative z-10"
+                                                                title="Chia sẻ đề thi"
+                                                            >
+                                                                <Share2 size={18} />
+                                                            </button>
+                                                            
+                                                            <div className="absolute right-0 bottom-full pb-2 hidden group-hover/share:block z-30 min-w-[150px] animate-scale-up">
+                                                                <div className="bg-slate-900 border border-white/10 rounded-xl shadow-2xl p-2 flex flex-col gap-1 overflow-hidden">
+                                                                    <button onClick={() => handleShareExam(exam, 'facebook')} className="flex items-center gap-2 p-2 hover:bg-slate-800 rounded-lg text-xs text-white transition-colors">
+                                                                        <div className="bg-blue-600 p-1 rounded-full"><Facebook size={12} /></div> Facebook
+                                                                    </button>
+                                                                    <button onClick={() => handleShareExam(exam, 'zalo')} className="flex items-center gap-2 p-2 hover:bg-slate-800 rounded-lg text-xs text-white transition-colors">
+                                                                        <div className="bg-blue-500 p-1 rounded-full"><SendHorizontal size={12} /></div> Zalo (Copy)
+                                                                    </button>
+                                                                    <button onClick={() => handleShareExam(exam, 'twitter')} className="flex items-center gap-2 p-2 hover:bg-slate-800 rounded-lg text-xs text-white transition-colors">
+                                                                        <div className="bg-slate-900 p-1 rounded-full"><Twitter size={12} /></div> Twitter (X)
+                                                                    </button>
+                                                                    <button onClick={() => handleShareExam(exam, 'link')} className="flex items-center gap-2 p-2 hover:bg-slate-800 rounded-lg text-xs text-white transition-colors">
+                                                                        <div className="bg-slate-600 p-1 rounded-full"><Copy size={12} /></div> Sao chép link
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* LÀM NỔI BẬT NÚT NÂNG CẤP KHI BỊ KHÓA */}
+                                                        <button 
+                                                            onClick={()=> isLocked ? onUpgrade() : onStartExam(exam)} 
+                                                            className={`px-6 py-2.5 rounded-xl font-black text-sm shadow-xl transition-all transform group-hover:scale-105 active:scale-95 flex items-center gap-2 ${
+                                                                isLocked 
+                                                                ? 'bg-gradient-to-r from-yellow-600 via-amber-500 to-yellow-500 text-slate-900 shadow-yellow-500/30 ring-2 ring-yellow-400/50 hover:from-yellow-500 hover:to-yellow-400' 
+                                                                : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-500/30'
+                                                            }`}
+                                                        >
+                                                            {isLocked ? <><Crown size={16} fill="currentColor"/> Nâng cấp ngay</> : 'Bắt đầu'}
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )
@@ -1672,19 +1707,20 @@
 
             const handleShareFacebook = () => {
                const text = `Tôi vừa hoàn thành bài thi "${result.examTitle}" với số điểm ${result.score}/10 trên MedExam Pro!`;
-               const url = "https://medexam-pro.web.app"; 
+               const url = window.location.origin + window.location.pathname; 
                window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`, '_blank');
             };
 
             const handleShareZalo = () => {
-                const text = `Kết quả thi MedExam Pro:\nĐề: ${result.examTitle}\nĐiểm: ${result.score}/10\nĐúng: ${result.correctCount}/${result.total}`;
-                const tempInput = document.createElement("input");
+                const url = window.location.origin + window.location.pathname;
+                const text = `Kết quả thi MedExam Pro:\nĐề: ${result.examTitle}\nĐiểm: ${result.score}/10\nĐúng: ${result.correctCount}/${result.total}\nXem tại: ${url}`;
+                const tempInput = document.createElement("textarea");
                 tempInput.value = text;
                 document.body.appendChild(tempInput);
                 tempInput.select();
                 document.execCommand("copy");
                 document.body.removeChild(tempInput);
-                addToast("Đã sao chép kết quả!", "info");
+                addToast("Đã sao chép kết quả chia sẻ Zalo!", "info");
             };
 
             return (
