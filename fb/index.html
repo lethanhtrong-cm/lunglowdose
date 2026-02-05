@@ -43,7 +43,7 @@
         import { 
             ShieldCheck, LogOut, Search, Trash2, CheckCircle2, AlertCircle, 
             Trophy, MessageSquare, Flag, Star, Check, ExternalLink, Loader2, BarChart2, UserX, Sigma,
-            LayoutDashboard, Users, Zap, FileText, Crown, Activity, Clock
+            LayoutDashboard, Users, Zap, FileText, Crown, Activity, Clock, Pencil, X
         } from 'lucide-react';
 
         // --- CẤU HÌNH FIREBASE ---
@@ -103,6 +103,9 @@
             const [search, setSearch] = useState('');
             const [toast, setToast] = useState(null);
             const [stats, setStats] = useState({ online: 0, live: 0, students: 0, vip: 0, exams: 0 });
+            
+            // State cho chức năng Edit Review
+            const [editingReview, setEditingReview] = useState(null);
             
             const notify = (message, type = 'info') => setToast({ message, type });
 
@@ -176,9 +179,6 @@
                     setScores(aggregatedData);
 
                     // Cập nhật Stats State
-                    // Lưu ý: Online/Live ở đây là ước lượng dựa trên hành động nộp bài. 
-                    // Trong thực tế cần Realtime Database Presence để chính xác hơn.
-                    // VIP để tạm = 0 hoặc random cho demo
                     setStats({
                         online: Math.max(onlineCount, 1), // Luôn hiển thị ít nhất 1 (là admin)
                         live: liveCount,
@@ -209,6 +209,20 @@
                 catch (e) { notify("Lỗi: " + e.message, "error"); }
             };
 
+            const handleUpdateReview = async () => {
+                if (!editingReview) return;
+                try {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reviews', editingReview.id), {
+                        feedback: editingReview.feedback,
+                        rating: editingReview.rating
+                    });
+                    notify("Đã cập nhật đánh giá", "success");
+                    setEditingReview(null);
+                } catch (e) {
+                    notify("Lỗi cập nhật: " + e.message, "error");
+                }
+            };
+
             // --- HELPERS ---
             const formatDateTime = (ts) => ts?.toDate ? ts.toDate().toLocaleString('vi-VN') : '---';
             const getReasonText = (reason) => { const map = { 'wrong_answer': 'Đáp án sai', 'typo': 'Lỗi chính tả', 'confusing': 'Khó hiểu', 'other': 'Khác' }; return map[reason] || reason; };
@@ -216,6 +230,75 @@
 
             return (
                 <div className="flex min-h-screen">
+                    {/* EDIT REVIEW MODAL */}
+                    {editingReview && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in">
+                            <div className="glass-panel w-full max-w-lg p-8 rounded-[2rem] shadow-2xl relative border border-slate-600">
+                                <button onClick={() => setEditingReview(null)} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-all">
+                                    <X size={20}/>
+                                </button>
+                                
+                                <h3 className="text-xl font-black text-white mb-6 flex items-center gap-2">
+                                    <Pencil size={20} className="text-cyan-400"/>
+                                    Chỉnh sửa đánh giá
+                                </h3>
+                                
+                                <div className="space-y-6">
+                                    <div>
+                                        <div className="flex justify-between mb-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block">Người đánh giá</label>
+                                            <span className="text-xs text-slate-500 font-mono">{formatDateTime(editingReview.createdAt)}</span>
+                                        </div>
+                                        <div className="glass-input p-3 rounded-xl text-slate-300 font-bold text-sm bg-black/20">
+                                            {getUserDisplayName(editingReview)}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Xếp hạng</label>
+                                        <div className="flex gap-2">
+                                            {[1, 2, 3, 4, 5].map(star => (
+                                                <button 
+                                                    key={star}
+                                                    onClick={() => setEditingReview({...editingReview, rating: star})}
+                                                    type="button"
+                                                    className={`p-3 rounded-xl transition-all ${editingReview.rating >= star ? 'text-yellow-400 bg-yellow-400/10 ring-1 ring-yellow-400/30' : 'text-slate-600 bg-slate-800 hover:bg-slate-700'}`}
+                                                >
+                                                    <Star size={24} fill={editingReview.rating >= star ? "currentColor" : "none"} />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Nội dung phản hồi</label>
+                                        <textarea 
+                                            className="w-full glass-input rounded-xl p-4 outline-none focus:border-cyan-500 font-medium text-white transition-all min-h-[120px] resize-none"
+                                            value={editingReview.feedback}
+                                            onChange={e => setEditingReview({...editingReview, feedback: e.target.value})}
+                                            placeholder="Nhập nội dung đánh giá..."
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-3 mt-8">
+                                    <button 
+                                        onClick={() => setEditingReview(null)}
+                                        className="px-6 py-3 rounded-xl font-bold text-slate-400 hover:bg-slate-800 transition-all text-sm"
+                                    >
+                                        Hủy bỏ
+                                    </button>
+                                    <button 
+                                        onClick={handleUpdateReview}
+                                        className="px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold shadow-lg shadow-cyan-500/20 transition-all text-sm flex items-center gap-2"
+                                    >
+                                        <Check size={16}/> Lưu thay đổi
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* SIDEBAR */}
                     <aside className="w-72 bg-slate-900/50 border-r border-slate-700/50 flex flex-col fixed h-full z-40 backdrop-blur-xl">
                         <div className="p-8 border-b border-slate-700/50 flex items-center gap-4 text-cyan-400 font-black text-2xl tracking-tighter">
@@ -342,11 +425,11 @@
                                 </div>
                             )}
 
-                            {/* TAB: REVIEWS (GIỮ NGUYÊN) */}
+                            {/* TAB: REVIEWS (CÓ CHỨC NĂNG EDIT) */}
                             {tab === 'reviews' && (
                                 <div className="glass-panel rounded-[2rem] overflow-hidden">
                                     <table className="w-full text-left text-sm border-collapse text-slate-300">
-                                        <thead className="bg-slate-800/50 text-slate-400 uppercase text-[10px] font-black tracking-widest"><tr><th className="p-6">Thời gian</th><th className="p-6">Học viên</th><th className="p-6">Nội dung</th><th className="p-6 text-center">Đánh giá</th><th className="p-6 text-right">Xóa</th></tr></thead>
+                                        <thead className="bg-slate-800/50 text-slate-400 uppercase text-[10px] font-black tracking-widest"><tr><th className="p-6">Thời gian</th><th className="p-6">Học viên</th><th className="p-6">Nội dung</th><th className="p-6 text-center">Đánh giá</th><th className="p-6 text-right">Thao tác</th></tr></thead>
                                         <tbody className="divide-y divide-slate-700/50">
                                             {reviews.filter(r => (r.examTitle||'').toLowerCase().includes(search.toLowerCase())).map(r => (
                                                 <tr key={r.id} className="hover:bg-white/5 transition-colors">
@@ -354,7 +437,16 @@
                                                     <td className="p-6"><span className="block font-bold text-white">{getUserDisplayName(r)}</span></td>
                                                     <td className="p-6"><div className="font-bold text-xs text-cyan-500 mb-1">{r.examTitle}</div>{r.feedback ? <div className="italic text-slate-400">"{r.feedback}"</div> : <span className="text-slate-600 text-xs">--</span>}</td>
                                                     <td className="p-6 text-center"><div className="flex justify-center gap-0.5">{[1,2,3,4,5].map(s=><Star key={s} size={14} className={s<=r.rating?'text-yellow-400 fill-yellow-400':'text-slate-700'}/>)}</div></td>
-                                                    <td className="p-6 text-right"><button onClick={()=>deleteItem('reviews', r.id)} className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-500 hover:text-red-500 rounded-xl transition-all"><Trash2 size={16}/></button></td>
+                                                    <td className="p-6 text-right">
+                                                        <div className="flex justify-end gap-2">
+                                                            <button onClick={()=>setEditingReview(r)} className="p-2 bg-slate-800 hover:bg-blue-500/20 text-slate-500 hover:text-blue-500 rounded-xl transition-all" title="Chỉnh sửa">
+                                                                <Pencil size={16}/>
+                                                            </button>
+                                                            <button onClick={()=>deleteItem('reviews', r.id)} className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-500 hover:text-red-500 rounded-xl transition-all" title="Xóa">
+                                                                <Trash2 size={16}/>
+                                                            </button>
+                                                        </div>
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
