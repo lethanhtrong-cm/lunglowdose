@@ -146,7 +146,6 @@
                     const rawData = snapshot.docs.map(d => ({...d.data(), id: d.id, path: d.ref.path}));
                     
                     // --- AUTO DETECT APP ID ---
-                    // Chỉ auto detect nếu người dùng chưa tự set thủ công (manualAppId vẫn match default)
                     if (!isAutoDetected && rawData.length > 0 && currentAppId === defaultAppId) {
                         try {
                             const firstPath = rawData[0].path;
@@ -215,9 +214,9 @@
                 }, (error) => console.error("History Error:", error));
 
                 return () => unsubHistory();
-            }, [currentAppId]); // Bỏ isAutoDetected khỏi dependency để tránh loop
+            }, [currentAppId]); 
 
-            // 2. Listen to SPECIFIC collections based on currentAppId
+            // 2. Listen to SPECIFIC collections based on currentAppId (REAL-TIME LISTENER)
             useEffect(() => {
                 if (!currentAppId) return;
 
@@ -239,15 +238,33 @@
                 unsubs.push(onSnapshot(qUsers, (snap) => {
                     const users = snap.docs.map(d => d.data());
                     
-                    // --- DEEP SCAN VIP LOGIC ---
-                    // Chuyển toàn bộ object user thành string và tìm chữ "vip"
-                    // Đây là cách mạnh nhất để bắt mọi biến thể như "VIP ACCESS", "role: vip", "isVip: true"
+                    // --- IMPROVED VIP DETECTION LOGIC ---
                     const vipCount = users.filter(u => {
-                        const jsonString = JSON.stringify(u).toLowerCase();
-                        // Loại trừ trường hợp email chứa chữ vip (ví dụ vip@gmail.com) nếu muốn kỹ hơn, 
-                        // nhưng ở đây ta cứ đếm rộng trước.
-                        // Thêm các từ khóa mở rộng
-                        return jsonString.includes('"vip') || jsonString.includes('vip"') || jsonString.includes('vip ') || jsonString.includes('premium') || jsonString.includes('access');
+                        // 1. Kiểm tra chính xác các trường (bao gồm isPremium từ hướng dẫn)
+                        const fieldsToCheck = [
+                            u.isPremium, // <--- Quan trọng: Đồng bộ với Admin Portal
+                            u.isVIP, u.vip, u.isVip, 
+                            u.plan, u.role, u.tier, 
+                            u.type, u.accountType, u.subscription, u.goi
+                        ];
+                        
+                        const hasVipField = fieldsToCheck.some(val => {
+                            if (val === true) return true;
+                            if (typeof val === 'string') {
+                                const s = val.toLowerCase();
+                                return s.includes('vip') || s.includes('premium') || s.includes('pro') || s.includes('access');
+                            }
+                            if (val === 1) return true;
+                            return false;
+                        });
+
+                        // 2. Deep Scan: Quét toàn bộ object nếu check trường không ra
+                        if (!hasVipField) {
+                            const jsonString = JSON.stringify(u).toLowerCase();
+                            return jsonString.includes('"vip') || jsonString.includes('vip"') || jsonString.includes('vip ') || jsonString.includes('premium') || jsonString.includes('access');
+                        }
+
+                        return hasVipField;
                     }).length;
                     
                     setStats(prev => ({ ...prev, dbStudents: snap.size, dbVip: vipCount }));
@@ -261,8 +278,6 @@
             }, [currentAppId]);
 
             const displayStats = useMemo(() => {
-                // Logic ƯU TIÊN DB:
-                // Nếu dbExams !== null (đã kết nối thành công), dùng nó. Nếu không mới dùng History.
                 const realExams = stats.dbExams !== null ? stats.dbExams : stats.historyExams;
                 const realStudents = stats.dbStudents !== null ? stats.dbStudents : stats.historyStudents;
 
