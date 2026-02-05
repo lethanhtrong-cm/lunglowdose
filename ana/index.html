@@ -31,6 +31,9 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 10px; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade { animation: fadeIn 0.4s ease-out forwards; }
+        
+        input, textarea { border: 1px solid rgba(255, 255, 255, 0.05) !important; background-color: #0b1120 !important; }
+        input:focus, textarea:focus { border-color: #06b6d4 !important; outline: none !important; ring: 1px #06b6d4 !important; }
     </style>
 </head>
 <body>
@@ -40,7 +43,7 @@
         import React, { useState, useEffect, useMemo } from 'react';
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from 'firebase/auth';
+        import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from 'firebase/auth';
         import { getFirestore, collection, query, onSnapshot, orderBy, limit, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
         import { 
             LayoutGrid, Trophy, MessageSquare, Flag, LogOut, Search, 
@@ -76,18 +79,13 @@
             const [loading, setLoading] = useState(true);
 
             useEffect(() => {
-                const initAuth = async () => {
-                    try {
-                        await signInAnonymously(auth);
-                    } catch (err) {
-                        console.error("Auth error:", err);
-                        setLoading(false);
-                    }
-                };
-                initAuth();
                 const unsubscribe = onAuthStateChanged(auth, (u) => {
-                    setUser(u);
-                    if (u) setLoading(false);
+                    if (u) {
+                        setUser(u);
+                        setLoading(false);
+                    } else {
+                        signInAnonymously(auth);
+                    }
                 });
                 return () => unsubscribe();
             }, []);
@@ -95,16 +93,16 @@
             useEffect(() => {
                 if (!user) return;
 
-                const unsubExams = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), s => updateData('exams', s));
-                const unsubUsers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), s => updateData('users', s));
-                const unsubActive = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'), s => updateData('activeExams', s));
-                const unsubLB = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'users'), orderBy('totalScore', 'desc'), limit(50)), s => updateData('leaderboard', s));
-                const unsubRV = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc')), s => updateData('reviews', s));
-                const unsubRep = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), orderBy('createdAt', 'desc')), s => updateData('reports', s));
+                const unsubscribers = [
+                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), s => updateData('exams', s)),
+                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), s => updateData('users', s)),
+                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'), s => updateData('activeExams', s)),
+                    onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'users'), orderBy('totalScore', 'desc'), limit(50)), s => updateData('leaderboard', s)),
+                    onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc')), s => updateData('reviews', s)),
+                    onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), orderBy('createdAt', 'desc')), s => updateData('reports', s))
+                ];
 
-                return () => {
-                    unsubExams(); unsubUsers(); unsubActive(); unsubLB(); unsubRV(); unsubRep();
-                };
+                return () => unsubscribers.forEach(u => u());
             }, [user]);
 
             const updateData = (key, snapshot) => {
@@ -118,31 +116,38 @@
                 if(confirm("Xác nhận xóa bản ghi này?")) {
                     try {
                         await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id));
-                    } catch (e) { console.error(e); }
+                    } catch (e) { console.error("Xóa thất bại", e); }
                 }
             };
 
-            const handleAcceptReportWithReply = async (report, replyMessage) => {
+            const handleAcceptReport = async (reportId, targetUserId, replyMessage) => {
                 try {
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', report.id), { 
+                    // 1. Cập nhật trạng thái báo cáo
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', reportId), { 
                         status: 'accepted',
-                        adminReply: replyMessage,
+                        adminReply: replyMessage || "Admin đã tiếp nhận và xử lý báo cáo của bạn. Trân trọng!",
                         respondedAt: serverTimestamp()
                     });
+                    
+                    // 2. Gửi thông báo cho người dùng
                     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'notifications'), {
-                        title: "Báo cáo lỗi đã được xử lý",
-                        message: `Admin phản hồi: "${replyMessage || 'Cảm ơn bạn đã báo cáo, chúng tôi đã tiếp nhận!'}"`,
-                        targetUserId: report.userId,
+                        title: "Báo cáo đã được xử lý",
+                        message: `Admin phản hồi: "${replyMessage || 'Chúng tôi đã tiếp nhận báo cáo của bạn.'}"`,
+                        targetUserId: targetUserId,
                         createdAt: serverTimestamp()
                     });
+                    
                     return true;
-                } catch (e) { return false; }
+                } catch (e) { 
+                    console.error("Lỗi gửi phản hồi:", e);
+                    return false; 
+                }
             };
 
             if (loading) return (
                 <div className="min-h-screen bg-[#0b1120] flex flex-col items-center justify-center text-cyan-500 gap-4">
                     <div className="w-10 h-10 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="font-bold tracking-widest uppercase text-xs">Khởi tạo hệ thống phân tích...</p>
+                    <p className="font-bold tracking-widest uppercase text-xs">Khởi tạo hệ thống...</p>
                 </div>
             );
 
@@ -151,7 +156,7 @@
                     <aside className="w-72 border-r border-white/5 bg-[#0b1120] flex flex-col shrink-0">
                         <div className="p-8 mb-4 flex items-center gap-3">
                             <Activity className="text-cyan-500" size={32}/>
-                            <div>
+                            <div className="text-left">
                                 <h1 className="text-xl font-black text-white tracking-tight uppercase">Analytics</h1>
                                 <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Portal</p>
                             </div>
@@ -164,7 +169,7 @@
                             <SidebarLink icon={<Flag size={20}/>} label="Báo cáo lỗi" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} badge={data.reports.filter(r => r.status !== 'accepted').length} />
                         </nav>
 
-                        <div className="p-8 border-t border-white/5 mt-auto">
+                        <div className="p-8 border-t border-white/5 mt-auto text-left">
                             <button onClick={() => signOut(auth)} className="flex items-center gap-3 text-slate-500 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider"><LogOut size={18}/> Đăng xuất</button>
                         </div>
                     </aside>
@@ -174,7 +179,7 @@
                             {activeTab === 'analytics' && <AnalyticsView data={data} />}
                             {activeTab === 'leaderboard' && <LeaderboardView leaderboard={data.leaderboard} />}
                             {activeTab === 'feedback' && <FeedbackView reviews={data.reviews} onDelete={id => handleDelete('reviews', id)} />}
-                            {activeTab === 'reports' && <ReportsView reports={data.reports} exams={data.exams} users={data.users} onAccept={handleAcceptReportWithReply} onDelete={id => handleDelete('reports', id)} />}
+                            {activeTab === 'reports' && <ReportsView reports={data.reports} exams={data.exams} users={data.users} onAccept={handleAcceptReport} onDelete={id => handleDelete('reports', id)} />}
                         </div>
                     </main>
                 </div>
@@ -195,14 +200,18 @@
 
             return (
                 <div className="space-y-10 animate-fade">
-                    <header className="flex justify-between items-center">
-                        <h2 className="text-4xl font-bold text-white tracking-tight">Dashboard</h2>
-                        <div className="flex items-center gap-3 bg-[#111827] px-4 py-2 rounded-2xl border border-white/10">
+                    <header className="flex justify-between items-center text-left">
+                        <div className="text-left">
+                            <h2 className="text-4xl font-bold text-white tracking-tight">Dashboard</h2>
+                            <p className="text-emerald-500 text-sm font-medium mt-1 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> 
+                                Hệ thống đang giám sát thời gian thực
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-3 bg-[#111827] px-4 py-2 rounded-2xl border border-white/10 shadow-lg">
                             <Clock size={16} className="text-cyan-500"/><span className="text-xs font-mono">{new Date().toLocaleTimeString()}</span>
                         </div>
                     </header>
-                    
-                    {/* 5 METRIC CARDS LIKE IMAGE */}
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                         <MetricItem icon={<Activity size={20} className="text-emerald-400"/>} label="Hoạt động" value={onlineCount} />
                         <MetricItem icon={<History size={20} className="text-cyan-400"/>} label="Vừa nộp" value={recentSubCount} />
@@ -210,17 +219,16 @@
                         <MetricItem icon={<Crown size={20} className="text-yellow-400"/>} label="VIP" value={data.users.filter(u=>u.isPremium).length} />
                         <MetricItem icon={<FileText size={20} className="text-blue-400"/>} label="Đề thi" value={data.exams.length} />
                     </div>
-
                     <section className="space-y-6">
-                        <h3 className="text-xl font-bold text-white flex items-center gap-3 uppercase tracking-wider"><Zap size={22} className="text-cyan-500"/> Trạng thái người dùng (ONLINE: {onlineCount})</h3>
+                        <h3 className="text-xl font-bold text-white flex items-center gap-3 uppercase tracking-wider text-left"><Zap size={22} className="text-cyan-500"/> Trạng thái trực tiếp</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                             {data.activeExams.map(ex => (
-                                <div key={ex.id} className="metric-card p-6 flex flex-col justify-between min-h-[220px] hover:scale-[1.03] transition-all shadow-xl">
+                                <div key={ex.id} className="metric-card p-6 flex flex-col justify-between min-h-[220px] hover:scale-[1.03] transition-all shadow-xl text-left border border-white/5">
                                     <div className="flex justify-between items-start">
                                         <div className="flex items-center gap-3 text-left">
-                                            <div className="w-12 h-12 rounded-xl bg-[#0f172a] flex items-center justify-center font-black text-white border border-white/10 shadow-inner text-lg">{ex.displayName?.charAt(0) || "U"}</div>
+                                            <div className="w-12 h-12 rounded-xl bg-[#0f172a] flex items-center justify-center font-black text-white border border-white/10 shadow-inner">{ex.displayName?.charAt(0) || "U"}</div>
                                             <div className="min-w-0">
-                                                <p className="font-bold text-slate-100 text-sm truncate">{ex.displayName || "Người dùng"}</p>
+                                                <p className="font-bold text-slate-100 text-sm truncate">{ex.displayName}</p>
                                                 <p className="text-[9px] text-slate-500 font-mono italic">ID: {ex.uid?.substring(0, 6)}</p>
                                             </div>
                                         </div>
@@ -228,36 +236,36 @@
                                     </div>
                                     <div className="mt-4 p-3 bg-slate-900/80 rounded-xl border border-white/5 text-left">
                                         <p className="text-[9px] text-slate-600 font-black uppercase mb-1 tracking-widest text-left">Đang làm đề</p>
-                                        <p className="text-xs font-bold text-cyan-400 truncate">{ex.examTitle || "Đang tải đề..."}</p>
+                                        <p className="text-xs font-bold text-cyan-400 truncate text-left">{ex.examTitle || "Đang thi..."}</p>
                                     </div>
                                     <div className="mt-4 flex justify-between items-center text-[10px] font-bold">
                                         <span className="text-slate-500 flex items-center gap-1"><Clock size={12}/> {Math.floor((now - (ex.startedAt?.toDate?.().getTime() || now)) / 60000)}p trước</span>
-                                        <span className="text-red-500">Điểm: {(Math.random()*1).toFixed(1)}</span>
+                                        <span className="text-red-500">Đang làm...</span>
                                     </div>
                                 </div>
                             ))}
-                            {data.activeExams.length === 0 && <div className="col-span-full py-20 text-center glass-card border-dashed flex flex-col items-center gap-3 text-slate-600"><Inbox size={48} className="opacity-20"/><p className="italic text-sm font-medium">Hiện không có lượt thi trực tuyến.</p></div>}
+                            {data.activeExams.length === 0 && <div className="col-span-full py-20 text-center glass-card border-dashed flex flex-col items-center gap-3 text-slate-600"><Inbox size={48} className="opacity-20"/><p className="italic text-sm font-medium">Không có ai đang thi trực tuyến.</p></div>}
                         </div>
                     </section>
-
+                    
                     <section className="glass-card p-10 space-y-8 shadow-2xl">
-                        <h3 className="text-xl font-bold text-white flex items-center gap-3 uppercase tracking-wider"><History size={22} className="text-cyan-500"/> Lịch sử nộp bài (Live Feed)</h3>
+                        <h3 className="text-xl font-bold text-white flex items-center gap-3 uppercase tracking-wider text-left"><History size={22} className="text-cyan-500"/> Lịch sử nộp bài gần nhất</h3>
                         <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
                             {data.reviews.map(r => (
-                                <div key={r.id} className="bg-slate-900/40 p-6 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-slate-800/60 transition-all">
+                                <div key={r.id} className="bg-slate-900/40 p-6 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-slate-800/60 transition-all text-left">
                                     <div className="flex items-center gap-6 text-left">
                                         <div className="text-[11px] text-slate-600 font-mono font-bold">{r.createdAt?.toDate?.().toLocaleTimeString('vi-VN')}</div>
-                                        <div>
-                                            <p className="font-bold text-slate-100 text-sm">{r.displayName}</p>
+                                        <div className="text-left">
+                                            <p className="font-bold text-slate-100 text-sm text-left">{r.displayName}</p>
                                             <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-2">
-                                                <span className="text-slate-600 italic">{r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('vi-VN') : 'Mới đây'}</span>
+                                                <span className="text-slate-600 italic uppercase">{r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('vi-VN') : 'Mới đây'}</span>
                                                 <span className="w-1 h-1 bg-slate-700 rounded-full"></span>
                                                 <span className="text-cyan-600 font-bold uppercase tracking-tighter italic">{r.examTitle}</span>
                                             </p>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-2xl font-black text-red-500 tracking-tighter">{r.score || (Math.random()*10).toFixed(1)}</p>
+                                        <p className="text-2xl font-black text-red-500 tracking-tighter">{r.score || "---"}</p>
                                         <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest mt-0.5">Điểm số</p>
                                     </div>
                                 </div>
@@ -271,16 +279,13 @@
         const MetricItem = ({ icon, label, value }) => (
             <div className="metric-card p-6 flex flex-col justify-between border border-white/5 shadow-lg items-center text-center">
                 <div className="p-3 bg-slate-900/50 rounded-xl text-slate-400 mb-4">{icon}</div>
-                <div>
-                    <p className="text-3xl font-black text-white tracking-tighter mb-1">{value}</p>
-                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{label}</p>
-                </div>
+                <div><p className="text-3xl font-black text-white tracking-tighter mb-1">{value}</p><p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{label}</p></div>
             </div>
         );
 
         const LeaderboardView = ({ leaderboard }) => (
-            <div className="space-y-10 animate-fade">
-                <h2 className="text-4xl font-bold text-white tracking-tight">Bảng xếp hạng</h2>
+            <div className="space-y-10 animate-fade text-left">
+                <h2 className="text-4xl font-bold text-white tracking-tight text-left">Bảng xếp hạng</h2>
                 <div className="glass-card overflow-hidden shadow-2xl">
                     <table className="w-full text-left">
                         <thead className="bg-[#0f172a] text-[10px] uppercase text-slate-500 font-black tracking-widest border-b border-white/5">
@@ -305,100 +310,151 @@
             const feedbacks = reviews.filter(r => r.feedback && r.feedback.trim() !== "");
             return (
                 <div className="space-y-10 animate-fade text-left">
-                    <h2 className="text-4xl font-bold text-white tracking-tight">Đánh giá & Góp ý</h2>
-                    {feedbacks.length === 0 ? <div className="py-32 text-center text-slate-600 italic glass-card border-dashed">Danh sách góp ý đang trống.</div> : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
-                            {feedbacks.map(f => (
-                                <div key={f.id} className="glass-card p-8 flex flex-col justify-between hover:border-cyan-500/20 text-left">
-                                    <div className="text-left">
-                                        <div className="flex justify-between items-start mb-6">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-black text-cyan-400 border border-white/10 shadow-inner">{f.displayName?.charAt(0).toUpperCase()}</div>
-                                                <div className="text-left"><p className="text-sm font-bold text-white">{f.displayName}</p><p className="text-[10px] text-slate-500 font-mono tracking-tighter">{f.createdAt?.toDate ? f.createdAt.toDate().toLocaleString() : 'Mới đây'}</p></div>
-                                            </div>
-                                            <button onClick={() => onDelete(f.id)} className="text-slate-600 hover:text-red-400 transition-colors p-2 hover:bg-red-400/10 rounded-xl"><Trash2 size={20}/></button>
+                    <h2 className="text-4xl font-bold text-white tracking-tight text-left">Đánh giá & Góp ý</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+                        {feedbacks.map(f => (
+                            <div key={f.id} className="glass-card p-8 flex flex-col justify-between hover:border-cyan-500/20 text-left">
+                                <div className="text-left">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="flex items-center gap-4 text-left">
+                                            <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-black text-cyan-400 border border-white/10 shadow-inner">{f.displayName?.charAt(0).toUpperCase() || "U"}</div>
+                                            <div className="text-left"><p className="text-sm font-bold text-white text-left">{f.displayName}</p><p className="text-[10px] text-slate-500 font-mono tracking-tighter text-left">{f.createdAt?.toDate?.().toLocaleString() || 'Mới đây'}</p></div>
                                         </div>
-                                        <div className="p-6 bg-[#0f172a] rounded-3xl border border-white/5 italic text-slate-300 text-sm leading-relaxed shadow-inner text-left">"{f.feedback}"</div>
+                                        <button onClick={() => onDelete(f.id)} className="text-slate-600 hover:text-red-400 transition-colors p-2 hover:bg-red-400/10 rounded-xl" title="Xóa góp ý"><Trash2 size={20}/></button>
                                     </div>
-                                    <div className="mt-6 flex items-center justify-between text-[10px] font-black uppercase text-slate-600 tracking-widest">
-                                        <span className="truncate max-w-[200px]">{f.examTitle}</span>
-                                        <span className="text-yellow-500 bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20">{f.rating} SAO</span>
-                                    </div>
+                                    <div className="p-6 bg-[#0f172a] rounded-3xl border border-white/5 italic text-slate-300 text-sm leading-relaxed shadow-inner text-left">"{f.feedback}"</div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                                <div className="mt-6 flex items-center justify-between text-[10px] font-black uppercase text-slate-600 tracking-widest">
+                                    <span className="truncate max-w-[200px]">{f.examTitle}</span>
+                                    <span className="text-yellow-500 bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20">{f.rating} SAO</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             );
         };
 
         const ReportsView = ({ reports, exams, users, onAccept, onDelete }) => {
-            const [replyingTo, setReplyingTo] = useState(null);
-            const [replyText, setReplyText] = useState("");
-            const [isSubmitting, setIsSubmitting] = useState(false);
+            // Trạng thái cục bộ để quản lý việc nhập phản hồi trực tiếp trên thẻ
+            const [replyStates, setReplyStates] = useState({});
+            const [submittingIds, setSubmittingIds] = useState({});
 
             const getUser = id => {
                 const found = users.find(u => u.uid === id || u.id === id);
                 if (found) return { name: found.displayName, email: found.email, verified: true };
-                return { name: id === 'anonymous' ? "Khách ẩn danh" : "ID: "+id?.substring(0,8), email: "Lỗi ghi nhận UID", verified: false };
+                return { name: id === 'anonymous' ? "Khách ẩn danh" : "ID: "+id?.substring(0,8), email: "Thông tin ẩn danh", verified: false };
             };
 
-            const handleAccept = async (report) => {
-                setIsSubmitting(true);
-                const success = await onAccept(report, replyText);
-                if (success) { setReplyingTo(null); setReplyText(""); }
-                setIsSubmitting(false);
+            const toggleReply = (id) => {
+                setReplyStates(prev => ({ ...prev, [id]: prev[id] === undefined ? "" : undefined }));
+            };
+
+            const handleUpdateText = (id, text) => {
+                setReplyStates(prev => ({ ...prev, [id]: text }));
+            };
+
+            const handleSend = async (report) => {
+                const text = replyStates[report.id];
+                if (!text || !text.trim()) {
+                    alert("Vui lòng nhập nội dung phản hồi!");
+                    return;
+                }
+
+                setSubmittingIds(prev => ({ ...prev, [report.id]: true }));
+                const success = await onAccept(report.id, report.userId, text);
+                
+                if (success) {
+                    toggleReply(report.id); // Đóng khung nhập
+                } else {
+                    alert("Có lỗi xảy ra khi gửi phản hồi. Vui lòng thử lại!");
+                }
+                setSubmittingIds(prev => ({ ...prev, [report.id]: false }));
             };
 
             return (
-                <div className="space-y-10 pb-20 animate-fade">
-                    <h2 className="text-4xl font-bold text-white tracking-tight">Báo cáo lỗi câu hỏi</h2>
-                    {reports.length === 0 ? <div className="py-32 text-center text-slate-600 italic glass-card border-dashed text-left">Hiện không có báo cáo lỗi nào.</div> : (
-                        <div className="space-y-6">
+                <div className="space-y-10 pb-20 animate-fade text-left">
+                    <h2 className="text-4xl font-bold text-white tracking-tight text-left">Báo cáo lỗi câu hỏi</h2>
+                    {reports.length === 0 ? <div className="py-32 text-center text-slate-600 italic glass-card border-dashed">Không có báo cáo lỗi nào cần xử lý.</div> : (
+                        <div className="space-y-6 text-left">
                             {reports.map(r => {
                                 const u = getUser(r.userId);
                                 const exam = exams.find(e=>e.id===r.examId);
+                                const isReplying = replyStates[r.id] !== undefined;
+                                const isSubmitting = submittingIds[r.id];
+
                                 return (
-                                    <div key={r.id} className={`glass-card p-10 border transition-all ${r.status === 'accepted' ? 'border-emerald-500/20 opacity-60' : 'border-red-500/20 shadow-2xl'}`}>
-                                        <div className="flex flex-col xl:flex-row gap-10">
+                                    <div key={r.id} className={`glass-card p-10 border transition-all ${r.status === 'accepted' ? 'border-emerald-500/20 opacity-60' : 'border-red-500/20 shadow-2xl'} text-left`}>
+                                        <div className="flex flex-col xl:flex-row gap-10 text-left">
                                             <div className="flex-1 space-y-6 text-left">
-                                                <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-4 text-left">
                                                     <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${r.status === 'accepted' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400 animate-pulse'}`}>
-                                                        {r.status === 'accepted' ? 'Đã xử lý' : 'Đang chờ xử lý'}
+                                                        {r.status === 'accepted' ? 'Đã xử lý' : 'Chờ xử lý'}
                                                     </span>
                                                     <span className="text-slate-600 text-[10px] font-mono italic font-bold">{r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString() : 'Vừa xong'}</span>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-4 text-xs font-bold uppercase tracking-tight">
-                                                    <div className="bg-[#0f172a] p-6 rounded-3xl border border-white/5">
-                                                        <p className="text-slate-600 mb-2 tracking-widest text-[9px]">Tài khoản báo cáo</p>
-                                                        <p className={`text-sm ${!u.verified ? 'text-red-400' : 'text-white'}`}>{u.name}</p>
-                                                        <p className="text-[10px] text-slate-500 lowercase mt-1 italic font-normal truncate">{u.email}</p>
+                                                <div className="grid grid-cols-2 gap-4 text-xs font-bold uppercase tracking-tight text-left">
+                                                    <div className="bg-[#0f172a] p-6 rounded-3xl border border-white/5 text-left">
+                                                        <p className="text-slate-600 mb-2 tracking-widest text-[9px] text-left uppercase">Tài khoản báo cáo</p>
+                                                        <p className={`text-sm text-left ${!u.verified ? 'text-red-400' : 'text-white'}`}>{u.name}</p>
+                                                        <p className="text-[10px] text-slate-500 lowercase mt-1 italic font-normal truncate text-left">{u.email}</p>
                                                     </div>
-                                                    <div className="bg-[#0f172a] p-6 rounded-3xl border border-white/5">
-                                                        <p className="text-slate-600 mb-2 tracking-widest text-[9px]">Đề thi liên quan</p>
-                                                        <p className="text-sm text-cyan-400 line-clamp-1">{exam?.title || "Mã đề: "+r.examId}</p>
+                                                    <div className="bg-[#0f172a] p-6 rounded-3xl border border-white/5 text-left">
+                                                        <p className="text-slate-600 mb-2 tracking-widest text-[9px] text-left uppercase">Đề thi liên quan</p>
+                                                        <p className="text-sm text-cyan-400 line-clamp-1 text-left uppercase tracking-tight">{exam?.title || "Mã đề: "+r.examId}</p>
                                                     </div>
                                                 </div>
-                                                <div className="p-8 bg-slate-900/50 rounded-[2rem] border border-white/5 space-y-5">
-                                                    <div className="flex items-center gap-3 text-red-500 font-black text-xs uppercase tracking-widest">
+                                                <div className="p-8 bg-slate-900/50 rounded-[2rem] border border-white/5 space-y-5 text-left shadow-inner">
+                                                    <div className="flex items-center gap-3 text-red-500 font-black text-xs uppercase tracking-widest text-left">
                                                         <AlertTriangle size={18}/> {r.reason?.toUpperCase() || 'LỖI'} | CÂU {r.questionIndex + 1}
                                                     </div>
-                                                    <p className="text-base text-slate-100 font-medium italic border-l-4 border-red-500/20 pl-6">"{r.questionText}"</p>
-                                                    <div className="text-xs text-slate-500 mt-6 bg-black/20 p-5 rounded-2xl border border-white/5 italic">
-                                                        <span className="font-black text-slate-300 block mb-2 uppercase text-[9px] tracking-widest opacity-60">Ghi chú người dùng:</span>
+                                                    <p className="text-base text-slate-100 font-medium italic border-l-4 border-red-500/20 pl-6 text-left leading-relaxed">"{r.questionText}"</p>
+                                                    <div className="text-xs text-slate-500 mt-6 bg-black/20 p-5 rounded-2xl border border-white/5 italic text-left">
+                                                        <span className="font-black text-slate-300 block mb-2 uppercase text-[9px] tracking-widest opacity-60 text-left text-xs italic">Nội dung báo lỗi:</span>
                                                         {r.detail || "Không có mô tả chi tiết."}
                                                     </div>
                                                 </div>
-                                                {r.adminReply && (
-                                                    <div className="p-6 bg-emerald-500/5 rounded-3xl border border-emerald-500/20 flex items-start gap-4">
+
+                                                {/* KHUNG PHẢN HỒI INLINE (THAY CHO POPUP) */}
+                                                {isReplying && (
+                                                    <div className="p-6 bg-slate-900/80 rounded-3xl border border-cyan-500/30 animate-fade space-y-4 text-left">
+                                                        <div className="flex justify-between items-center text-left">
+                                                            <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest text-left">Nhập phản hồi trực tiếp:</p>
+                                                            <button onClick={() => toggleReply(r.id)} className="text-slate-500 hover:text-white transition-colors"><X size={16}/></button>
+                                                        </div>
+                                                        <textarea 
+                                                            value={replyStates[r.id]} 
+                                                            onChange={e => handleUpdateText(r.id, e.target.value)}
+                                                            className="w-full h-32 p-4 text-sm rounded-2xl border border-white/10 outline-none focus:border-cyan-500 transition-all text-slate-200"
+                                                            placeholder="Ví dụ: Cảm ơn bạn, câu hỏi đã được sửa nội dung chính xác..."
+                                                        ></textarea>
+                                                        <button 
+                                                            onClick={() => handleSend(r)}
+                                                            disabled={isSubmitting}
+                                                            className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase shadow-lg shadow-cyan-500/20 active:scale-95 flex items-center justify-center gap-2"
+                                                        >
+                                                            {isSubmitting ? <Activity className="animate-spin" size={16}/> : <Send size={16}/>}
+                                                            Gửi phản hồi & Hoàn tất
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {r.adminReply && !isReplying && (
+                                                    <div className="p-6 bg-emerald-500/5 rounded-3xl border border-emerald-500/20 flex items-start gap-4 text-left border-l-4">
                                                         <div className="bg-emerald-500 p-2 rounded-xl text-white shadow-lg"><CheckCircle size={16}/></div>
-                                                        <div><p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Phản hồi của Admin</p><p className="text-sm text-slate-300 italic">"{r.adminReply}"</p></div>
+                                                        <div className="text-left">
+                                                            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1 text-left">Bạn đã phản hồi</p>
+                                                            <p className="text-sm text-slate-300 italic text-left leading-relaxed">"{r.adminReply}"</p>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="xl:w-56 flex flex-row xl:flex-col gap-4 shrink-0">
+
+                                            <div className="xl:w-56 flex flex-row xl:flex-col gap-4 shrink-0 text-left">
                                                 {r.status !== 'accepted' ? (
-                                                    <button onClick={() => setReplyingTo(r)} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white p-5 rounded-[1.5rem] font-black text-[11px] uppercase shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"><CheckCircle size={18}/> Tiếp nhận</button>
+                                                    <button onClick={() => toggleReply(r.id)} className={`flex-1 p-5 rounded-[1.5rem] font-black text-[11px] uppercase shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${isReplying ? 'bg-slate-700 text-slate-400' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}>
+                                                        {isReplying ? <><X size={18}/> Hủy bỏ</> : <><CheckCircle size={18}/> Tiếp nhận</>}
+                                                    </button>
                                                 ) : (
                                                     <div className="flex-1 flex items-center justify-center text-emerald-400 text-xs font-black uppercase bg-emerald-400/5 rounded-3xl border border-emerald-400/20 h-full min-h-[60px]"><CheckCircle size={18} className="mr-2"/> Đã xong</div>
                                                 )}
@@ -408,24 +464,6 @@
                                     </div>
                                 );
                             })}
-                        </div>
-                    )}
-                    {replyingTo && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-fade">
-                            <div className="bg-[#111827] border border-white/10 w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl relative text-left">
-                                <button onClick={() => setReplyingTo(null)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors"><X size={24}/></button>
-                                <div className="p-10 space-y-6 text-left">
-                                    <div className="text-left">
-                                        <h3 className="text-xl font-bold text-white mb-1">Tiếp nhận báo cáo</h3>
-                                        <p className="text-xs text-slate-500 uppercase tracking-widest font-black text-left">Gửi cho: {getUser(replyingTo.userId).name}</p>
-                                    </div>
-                                    <div className="space-y-3 text-left">
-                                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest text-left">Nội dung phản hồi:</p>
-                                        <textarea value={replyText} onChange={e => setReplyText(e.target.value)} className="w-full bg-[#0b1120] border border-white/5 rounded-2xl p-4 text-sm text-white focus:border-cyan-500 outline-none h-32 resize-none shadow-inner" placeholder="Cảm ơn bạn, lỗi đã được sửa..."></textarea>
-                                    </div>
-                                    <button onClick={() => handleAccept(replyingTo)} disabled={isSubmitting} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-5 rounded-3xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 active:scale-95 disabled:opacity-50">{isSubmitting ? <Activity className="animate-spin" size={18}/> : <Send size={18}/>} Gửi & Đóng</button>
-                                </div>
-                            </div>
                         </div>
                     )}
                 </div>
