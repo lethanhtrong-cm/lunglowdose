@@ -83,7 +83,7 @@
         import { getFirestore, collection, query, onSnapshot, orderBy, limit, doc, deleteDoc, updateDoc, addDoc, serverTimestamp, getDoc } from 'firebase/firestore';
         import { 
             LayoutGrid, Trophy, MessageSquare, Flag, LogOut, Search, 
-            Activity, History, Users, Crown, FileText, Clock, AlertTriangle, CheckCircle, User, Zap, Tag, Trash2, Send, X, Inbox, ChevronRight, Star
+            Activity, History, Users, Crown, FileText, Clock, AlertTriangle, CheckCircle, User, Zap, Tag, Trash2, Send, X, Inbox, ChevronRight, ShieldAlert, Lock, Star, ExternalLink
         } from 'lucide-react';
 
         const firebaseConfig = {
@@ -103,7 +103,7 @@
 
         const App = () => {
             const [user, setUser] = useState(null);
-            // Đã xóa biến isAdmin và setIsAdmin
+            const [isAdmin, setIsAdmin] = useState(false);
             const [activeTab, setActiveTab] = useState('analytics');
             const [data, setData] = useState({
                 users: [],
@@ -116,10 +116,22 @@
             const [loading, setLoading] = useState(true);
 
             useEffect(() => {
-                const unsubscribe = onAuthStateChanged(auth, (u) => {
+                const unsubscribe = onAuthStateChanged(auth, async (u) => {
                     if (u) {
                         setUser(u);
-                        setLoading(false); // Vào thẳng Dashboard, không kiểm tra quyền Admin nữa
+                        try {
+                            const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', u.uid);
+                            const userSnap = await getDoc(userRef);
+                            if (userSnap.exists() && userSnap.data().role === 'admin') {
+                                setIsAdmin(true);
+                            } else {
+                                setIsAdmin(false);
+                            }
+                        } catch (e) {
+                            console.error("Lỗi kiểm tra quyền hạn:", e);
+                            setIsAdmin(false);
+                        }
+                        setLoading(false);
                     } else {
                         signInAnonymously(auth);
                     }
@@ -128,7 +140,7 @@
             }, []);
 
             useEffect(() => {
-                if (!user) return;
+                if (!user) return; // Removed isAdmin check here to allow viewing, but actions are restricted
 
                 const unsubscribers = [
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), s => updateData('exams', s)),
@@ -140,7 +152,7 @@
                 ];
 
                 return () => unsubscribers.forEach(u => u());
-            }, [user]);
+            }, [user]); // Removed isAdmin from dependency to load data for all logged in users (or anonymous)
 
             const updateData = (key, snapshot) => {
                 setData(prev => ({
@@ -150,7 +162,7 @@
             };
 
             const handleDelete = async (col, id) => {
-                // Đã xóa kiểm tra quyền Admin
+                // Removed admin check as requested previously
                 if(confirm("Xác nhận xóa bản ghi này?")) {
                     try {
                         await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id));
@@ -159,7 +171,7 @@
             };
 
             const handleAcceptReport = async (reportId, targetUserId, replyMessage) => {
-                // Đã xóa kiểm tra quyền Admin
+                // Removed admin check as requested previously
                 try {
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', reportId), { 
                         status: 'accepted',
@@ -188,8 +200,6 @@
                 </div>
             );
 
-            // Đã xóa màn hình "Truy cập bị từ chối"
-
             return (
                 <div className="flex h-screen overflow-hidden">
                     <aside className="w-72 border-r border-white/5 bg-[#030712] flex flex-col shrink-0">
@@ -208,13 +218,23 @@
                             <SidebarLink icon={<Trophy size={20}/>} label="Bảng xếp hạng" active={activeTab === 'leaderboard'} onClick={() => setActiveTab('leaderboard')} />
                             <SidebarLink icon={<MessageSquare size={20}/>} label="Đánh giá & Góp ý" active={activeTab === 'feedback'} onClick={() => setActiveTab('feedback')} badge={data.reviews.filter(r => r.feedback).length} />
                             <SidebarLink icon={<Flag size={20}/>} label="Báo cáo lỗi" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} badge={data.reports.filter(r => r.status !== 'accepted').length} />
+                            
+                            {/* Nút Admin Nổi Bật Mới */}
+                            <div className="pt-6 mt-4 border-t border-white/5">
+                                <button 
+                                    onClick={() => window.location.href = 'https://vnrad.tech/admin'} 
+                                    className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-sm font-black tracking-tight bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-lg shadow-pink-500/30 hover:scale-[1.02] hover:shadow-pink-500/50 transition-all group"
+                                >
+                                    <ExternalLink size={20} className="group-hover:rotate-45 transition-transform"/> Admin
+                                </button>
+                            </div>
                         </nav>
 
                         <div className="p-8 border-t border-white/5 mt-auto">
                             <div className="bg-slate-900/50 rounded-2xl p-4 mb-6 border border-white/5">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center font-bold text-xs">AD</div>
-                                    <div className="flex-1 min-w-0 text-left"><p className="text-xs font-bold text-white truncate text-left">{user?.displayName || "Admin"}</p><p className="text-[10px] text-emerald-500 text-left">Full Access</p></div>
+                                    <div className="flex-1 min-w-0 text-left"><p className="text-xs font-bold text-white truncate text-left">{user?.displayName || "Admin"}</p><p className="text-[10px] text-emerald-500 text-left">Quyền Quản Trị</p></div>
                                 </div>
                             </div>
                             <button onClick={() => signOut(auth)} className="w-full flex items-center gap-3 text-slate-500 hover:text-red-400 transition-all text-sm font-bold uppercase tracking-wider group text-left">
