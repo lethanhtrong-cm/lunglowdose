@@ -233,37 +233,38 @@
 
             // --- COMPUTED LIVE STATS (Recalculated every 5 seconds via 'now') ---
             const liveStats = useMemo(() => {
-                const ONLINE_THRESHOLD = 30; // 30 giây
-                // Đang thi: Hoạt động trong 5 phút và CHƯA CÓ ĐIỂM
-                const EXAM_ACTIVE_THRESHOLD = 5 * 60; 
+                // THRESHOLDS TỐI ƯU HÓA
+                const ONLINE_THRESHOLD = 30; // 30 giây: Chính xác là "Real-time"
+                const EXAM_ACTIVE_THRESHOLD = 90 * 60; // 90 phút: Đủ dài để cover cả ca thi
 
                 const activeUsers = new Set();
-                const examUsers = new Map(); // Dùng Map để lưu user duy nhất đang thi
+                const examUsers = new Map();
 
                 rawHistory.forEach(item => {
                     const timeDiff = now - (item.date?.seconds || 0);
                     const userKey = item.userId || item.email;
                     if (!userKey) return;
 
-                    // Logic Online: Chỉ cần có bất kỳ hoạt động nào trong 30s
+                    // Logic Online: Hoạt động trong 30s
                     if (timeDiff < ONLINE_THRESHOLD) {
                         activeUsers.add(userKey);
                     }
 
                     // Logic Đang Thi:
-                    // 1. Hoạt động gần đây (< 5 phút)
-                    // 2. Quan trọng: Chưa có điểm (score == null/undefined) HOẶC status là đang làm
-                    // Nếu đã có điểm nghĩa là đã nộp bài -> Không tính là đang thi
+                    // 1. Có hoạt động bắt đầu trong vòng 90 phút
+                    // 2. QUAN TRỌNG: Chưa có điểm (score). Có điểm = Đã nộp bài = Không còn "Đang thi".
                     if (timeDiff < EXAM_ACTIVE_THRESHOLD) {
+                        // Kiểm tra kỹ lưỡng các trường hợp null/undefined/empty string
                         const hasScore = item.score !== undefined && item.score !== null && item.score !== '';
-                        // Nếu chưa có điểm, coi như đang thi
+                        
                         if (!hasScore) {
-                            // Lưu thông tin để hiển thị card
+                            // Chỉ lấy record mới nhất của user đó
                             if (!examUsers.has(userKey)) {
                                 examUsers.set(userKey, {
                                     name: getUserDisplayName(item),
                                     exam: item.examTitle || 'Đang làm bài...',
-                                    time: item.date
+                                    time: item.date,
+                                    timeDiff: timeDiff // Để hiển thị "Bắt đầu X phút trước"
                                 });
                             }
                         }
@@ -404,6 +405,7 @@
                                         <StatCard title="Đang Online" value={liveStats.online} icon={Activity} color="text-emerald-400" subText="Hoạt động < 30s" />
                                         <StatCard title="Đang Thi" value={liveStats.liveCount} icon={Zap} color="text-blue-400" subText="Đang làm bài..." />
                                         <StatCard title="Học Viên" value={liveStats.students} icon={Users} color="text-purple-400" subText="Đã đăng ký" />
+                                        <StatCard title="VIP Access" value={liveStats.vip} icon={Crown} color="text-yellow-400" subText="Thành viên VIP" />
                                         <StatCard title="Đề Thi" value={liveStats.exams} icon={FileText} color="text-cyan-400" subText="Tổng số đề" />
                                     </div>
 
@@ -422,11 +424,16 @@
                                                     <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white text-xs">
                                                         {idx + 1}
                                                     </div>
-                                                    <div className="overflow-hidden">
+                                                    <div className="overflow-hidden w-full">
                                                         <div className="font-bold text-white truncate">{user.name}</div>
-                                                        <div className="text-xs text-blue-400 truncate flex items-center gap-1">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></div>
-                                                            {user.exam}
+                                                        <div className="flex justify-between items-center mt-1">
+                                                            <div className="text-xs text-blue-400 truncate flex items-center gap-1 max-w-[70%]">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></div>
+                                                                <span className="truncate">{user.exam}</span>
+                                                            </div>
+                                                            <div className="text-[10px] text-slate-500 font-mono">
+                                                                {Math.floor(user.timeDiff / 60)}p trước
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -436,7 +443,7 @@
                                                 <div className="col-span-3 py-10 text-center text-slate-500 border border-dashed border-slate-700 rounded-2xl">
                                                     <Zap size={32} className="mx-auto mb-2 opacity-50"/>
                                                     <p className="font-bold text-sm">Chưa có ai đang làm bài thi</p>
-                                                    <p className="text-[10px] mt-1">Dữ liệu sẽ xuất hiện khi có người bắt đầu thi</p>
+                                                    <p className="text-[10px] mt-1">Hệ thống sẽ hiển thị ngay khi có học viên bắt đầu</p>
                                                 </div>
                                             )}
                                         </div>
