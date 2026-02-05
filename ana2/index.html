@@ -1,1 +1,356 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - MedExam Pro Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "lucide-react": "https://esm.sh/lucide-react@0.344.0?deps=react@18.2.0",
+            "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+            "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"
+        }
+    }
+    </script>
 
+    <style>
+        body { background-color: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; }
+        .glass-panel { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .card-animate { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-animate:hover { transform: translateY(-4px); border-color: rgba(6, 182, 212, 0.3); }
+        .status-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useMemo } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { initializeApp } from 'firebase/app';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+        import { getFirestore, collection, query, onSnapshot, orderBy, limit, doc, getDoc, where } from 'firebase/firestore';
+        import { Activity, Users, BookOpen, Trophy, History, Clock, Search, ShieldCheck, Zap, LogIn, ChevronRight, BarChart3, AlertCircle, RefreshCw } from 'lucide-react';
+
+        // --- CẤU HÌNH FIREBASE (Khớp với ứng dụng chính) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
+            authDomain: "rt-examination.firebaseapp.com",
+            projectId: "rt-examination",
+            storageBucket: "rt-examination.firebasestorage.app",
+            messagingSenderId: "920482699854",
+            appId: "1:920482699854:web:44f9b0d735bdc001c6c11f",
+            measurementId: "G-8N7RTTREQM"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = 'med-exam-pro-html';
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [users, setUsers] = useState([]);
+            const [activeExams, setActiveExams] = useState([]);
+            const [leaderboard, setLeaderboard] = useState([]);
+            const [recentHistory, setRecentHistory] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [lastRefresh, setLastRefresh] = useState(new Date());
+
+            // 1. Authenticate FIRST
+            useEffect(() => {
+                signInAnonymously(auth).catch(err => console.error("Auth error", err));
+                return onAuthStateChanged(auth, u => setUser(u));
+            }, []);
+
+            // 2. Real-time Listeners
+            useEffect(() => {
+                if (!user) return;
+
+                // Sync Toàn bộ người dùng (để tính toán online)
+                const unsubUsers = onSnapshot(
+                    collection(db, 'artifacts', appId, 'public', 'data', 'users'),
+                    (snapshot) => {
+                        const data = snapshot.docs.map(doc => doc.data());
+                        setUsers(data);
+                        setLoading(false);
+                        setLastRefresh(new Date());
+                    }
+                );
+
+                // Sync Người đang thi
+                const unsubActive = onSnapshot(
+                    collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'),
+                    (snapshot) => {
+                        setActiveExams(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    }
+                );
+
+                // Sync Bảng xếp hạng 20 (Firestore filter đơn giản)
+                const leaderboardQuery = query(
+                    collection(db, 'artifacts', appId, 'public', 'data', 'users'),
+                    orderBy('totalScore', 'desc'),
+                    limit(20)
+                );
+                const unsubLeader = onSnapshot(leaderboardQuery, (snapshot) => {
+                    setLeaderboard(snapshot.docs.map(doc => doc.data()));
+                });
+
+                // Sync Lịch sử nộp bài gần đây (20)
+                // Theo code nguồn, bộ sưu tập 'reviews' được tạo mỗi khi nộp bài
+                const historyQuery = query(
+                    collection(db, 'artifacts', appId, 'public', 'data', 'reviews'),
+                    orderBy('createdAt', 'desc'),
+                    limit(20)
+                );
+                const unsubHistory = onSnapshot(historyQuery, (snapshot) => {
+                    setRecentHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                });
+
+                return () => {
+                    unsubUsers();
+                    unsubActive();
+                    unsubLeader();
+                    unsubHistory();
+                };
+            }, [user]);
+
+            // Tính số người Online (lastActive trong vòng 5 phút)
+            const onlineUsers = useMemo(() => {
+                const now = Date.now();
+                return users.filter(u => {
+                    const lastActive = u.lastActive?.toDate ? u.lastActive.toDate().getTime() : 0;
+                    return (now - lastActive) < 5 * 60 * 1000;
+                });
+            }, [users, lastRefresh]);
+
+            if (loading) return (
+                <div className="min-h-screen flex items-center justify-center bg-slate-950">
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-slate-400 font-medium animate-pulse">Đang kết nối trung tâm dữ liệu...</p>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen p-4 md:p-8 max-w-[1600px] mx-auto space-y-8 animate-fade-in">
+                    {/* Header */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/5 pb-6">
+                        <div>
+                            <div className="flex items-center gap-3 mb-1">
+                                <div className="bg-cyan-500 p-2 rounded-lg shadow-lg shadow-cyan-500/20">
+                                    <BarChart3 className="text-white" size={24}/>
+                                </div>
+                                <h1 className="text-2xl font-black text-white tracking-tight">MedExam Analytics</h1>
+                            </div>
+                            <p className="text-slate-400 text-sm">Hệ thống giám sát và phân tích dữ liệu thời gian thực</p>
+                        </div>
+                        <div className="flex items-center gap-4 bg-slate-900/50 p-2 rounded-2xl border border-white/5">
+                            <div className="px-4 py-2">
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Cập nhật lần cuối</p>
+                                <p className="text-xs font-mono text-cyan-400">{lastRefresh.toLocaleTimeString()}</p>
+                            </div>
+                            <div className="h-8 w-px bg-slate-800"></div>
+                            <div className="px-4 py-1 text-right">
+                                <div className="flex items-center gap-2 justify-end">
+                                    <div className="w-2 h-2 bg-emerald-500 rounded-full status-pulse"></div>
+                                    <span className="text-xs font-bold text-emerald-400">Live System</span>
+                                </div>
+                                <p className="text-[10px] text-slate-500">ID: {appId}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Stats Overview */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <StatCard icon={<Users className="text-blue-400"/>} label="Người dùng Online" value={onlineUsers.length} subValue={`Tổng: ${users.length} TK`} color="blue" />
+                        <StatCard icon={<BookOpen className="text-orange-400"/>} label="Đang làm bài" value={activeExams.length} subValue="Lượt thi trực tiếp" color="orange" pulse={activeExams.length > 0} />
+                        <StatCard icon={<Trophy className="text-yellow-400"/>} label="Top Điểm Cao" value={leaderboard[0]?.totalScore?.toFixed(1) || 0} subValue={leaderboard[0]?.displayName || 'N/A'} color="yellow" />
+                        <StatCard icon={<History className="text-emerald-400"/>} label="Hoàn thành mới" value={recentHistory.length} subValue="24h qua" color="emerald" />
+                    </div>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+                        {/* Live Takers - Left Column */}
+                        <div className="xl:col-span-8 space-y-8">
+                            <section>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-lg font-bold flex items-center gap-2 text-white">
+                                        <Zap size={20} className="text-orange-400 fill-orange-400/20"/> 
+                                        Đang thi trực tiếp ({activeExams.length})
+                                    </h2>
+                                </div>
+                                {activeExams.length === 0 ? (
+                                    <div className="glass-panel rounded-3xl p-12 text-center border-dashed border-slate-700">
+                                        <Clock className="mx-auto mb-4 text-slate-600" size={48}/>
+                                        <p className="text-slate-500 font-medium">Hiện tại không có ai đang thực hiện bài thi</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {activeExams.map(exam => (
+                                            <div key={exam.id} className="glass-panel p-5 rounded-2xl flex items-center gap-4 card-animate relative overflow-hidden group">
+                                                <div className="absolute top-0 right-0 p-2">
+                                                    <span className="flex h-2 w-2">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                                                    </span>
+                                                </div>
+                                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/20 flex items-center justify-center text-orange-400 font-bold border border-orange-500/20">
+                                                    {exam.displayName?.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="text-white font-bold truncate">{exam.displayName}</h3>
+                                                    <p className="text-slate-400 text-xs truncate">Đề: <span className="text-orange-300 font-medium">{exam.examTitle}</span></p>
+                                                    <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-500 font-mono">
+                                                        <Clock size={10}/> 
+                                                        Bắt đầu: {exam.startedAt?.toDate ? exam.startedAt.toDate().toLocaleTimeString('vi-VN') : 'Vừa xong'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
+
+                            <section>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-lg font-bold flex items-center gap-2 text-white">
+                                        <History size={20} className="text-emerald-400"/> 
+                                        Vừa nộp bài gần đây
+                                    </h2>
+                                </div>
+                                <div className="glass-panel rounded-3xl overflow-hidden shadow-2xl">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead className="bg-slate-900/50 text-[10px] uppercase text-slate-500 font-bold tracking-widest">
+                                            <tr>
+                                                <th className="px-6 py-4">Thành viên</th>
+                                                <th className="px-6 py-4">Đề thi</th>
+                                                <th className="px-6 py-4 text-center">Đánh giá</th>
+                                                <th className="px-6 py-4 text-right">Thời gian</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/5">
+                                            {recentHistory.map(item => (
+                                                <tr key={item.id} className="hover:bg-white/5 transition-colors group">
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-white border border-white/5">
+                                                                {item.displayName?.charAt(0).toUpperCase()}
+                                                            </div>
+                                                            <span className="text-sm font-medium text-slate-200">{item.displayName}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className="text-sm text-slate-400 line-clamp-1">{item.examTitle}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        <div className="flex items-center justify-center gap-1 text-yellow-500">
+                                                            {item.rating} <ShieldCheck size={14}/>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right text-xs font-mono text-slate-500">
+                                                        {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString('vi-VN', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'}) : '---'}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {recentHistory.length === 0 && (
+                                                <tr><td colSpan="4" className="p-8 text-center text-slate-600 italic">Chưa có dữ liệu nộp bài</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+                        </div>
+
+                        {/* Leaderboard - Right Column */}
+                        <div className="xl:col-span-4">
+                            <div className="glass-panel rounded-3xl p-6 sticky top-8 shadow-2xl space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-lg font-bold flex items-center gap-2 text-white">
+                                        <Trophy size={20} className="text-yellow-500"/> 
+                                        Bảng xếp hạng (Top 20)
+                                    </h2>
+                                </div>
+                                <div className="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto pr-2 custom-scrollbar">
+                                    {leaderboard.map((u, idx) => (
+                                        <div key={idx} className={`p-4 rounded-2xl flex items-center gap-4 transition-all ${idx === 0 ? 'bg-yellow-500/10 border border-yellow-500/20' : 'hover:bg-white/5 border border-transparent'}`}>
+                                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm ${
+                                                idx === 0 ? 'bg-yellow-500 text-slate-950' : 
+                                                idx === 1 ? 'bg-slate-300 text-slate-950' : 
+                                                idx === 2 ? 'bg-amber-600 text-slate-950' : 
+                                                'bg-slate-800 text-slate-400'
+                                            }`}>
+                                                {idx + 1}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="text-sm font-bold text-white truncate">{u.displayName}</h4>
+                                                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">
+                                                    {u.examsCompleted || 0} ĐỀ • {u.email?.split('@')[0]}
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-lg font-black text-white leading-none">
+                                                    {u.totalScore?.toFixed(1) || 0}
+                                                </div>
+                                                <p className="text-[10px] text-slate-500 font-bold">PTS</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const StatCard = ({ icon, label, value, subValue, color, pulse }) => {
+            const colors = {
+                blue: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+                orange: "text-orange-400 bg-orange-500/10 border-orange-500/20",
+                yellow: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20",
+                emerald: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
+            };
+            return (
+                <div className={`glass-panel p-6 rounded-[2rem] border transition-all card-animate overflow-hidden relative group`}>
+                    <div className="flex justify-between items-start mb-4">
+                        <div className={`p-3 rounded-2xl ${colors[color]} border`}>
+                            {icon}
+                        </div>
+                        {pulse && (
+                            <div className="flex items-center gap-1.5 bg-orange-500/10 px-2 py-1 rounded-full border border-orange-500/20">
+                                <span className="flex h-1.5 w-1.5 relative">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-orange-500"></span>
+                                </span>
+                                <span className="text-[8px] font-black uppercase text-orange-400">Live</span>
+                            </div>
+                        )}
+                    </div>
+                    <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{label}</p>
+                    <div className="flex items-baseline gap-2">
+                        <h3 className="text-3xl font-black text-white tracking-tight">{value}</h3>
+                        <p className="text-xs text-slate-500 font-medium truncate">{subValue}</p>
+                    </div>
+                    <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-all"></div>
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
