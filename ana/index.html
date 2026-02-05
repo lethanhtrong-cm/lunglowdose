@@ -27,52 +27,15 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .pulse-dot { animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        /* Hiệu ứng Flash khi dữ liệu thay đổi */
-        @keyframes flash-highlight {
-            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); background-color: rgba(30, 41, 59, 0.7); }
-            50% { box-shadow: 0 0 20px 0 rgba(16, 185, 129, 0.3); background-color: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.5); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); background-color: rgba(30, 41, 59, 0.7); }
-        }
-        .data-changed { animation: flash-highlight 1.5s ease-out; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
-        
-        /* Card User Live Effect */
-        .live-card-border {
-            position: relative;
-            z-index: 0;
-            overflow: hidden;
-        }
-        .live-card-border::before {
-            content: '';
-            position: absolute;
-            z-index: -2;
-            left: -50%;
-            top: -50%;
-            width: 200%;
-            height: 200%;
-            background-color: transparent;
-            background-repeat: no-repeat;
-            background-size: 50% 50%, 50% 50%;
-            background-position: 0 0, 100% 0, 100% 100%, 0 100%;
-            background-image: linear-gradient(#0ea5e9, #0ea5e9);
-            animation: rotate 4s linear infinite;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .live-card-border:hover::before {
-            opacity: 0.3;
-        }
-        @keyframes rotate {
-            100% { transform: rotate(1turn); }
-        }
     </style>
 </head>
 <body class="antialiased custom-scrollbar">
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useMemo, useRef } from 'react';
+        import React, { useState, useEffect, useMemo } from 'react';
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from 'firebase/auth';
@@ -80,7 +43,7 @@
         import { 
             ShieldCheck, LogOut, Search, Trash2, CheckCircle2, AlertCircle, 
             Trophy, MessageSquare, Flag, Star, Check, ExternalLink, Loader2, BarChart2, UserX, Sigma,
-            LayoutDashboard, Users, Zap, FileText, Crown, Activity, Clock, Pencil, X, Database, Settings, RefreshCw, History, GraduationCap, MonitorPlay
+            LayoutDashboard, Users, Zap, FileText, Crown, Activity, Clock, History, MonitorPlay
         } from 'lucide-react';
 
         // --- CẤU HÌNH FIREBASE ---
@@ -96,7 +59,8 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const defaultAppId = typeof __app_id !== 'undefined' ? __app_id : 'med-exam-pro-html';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'med-exam-pro-html';
+        
         const ADMIN_EMAILS = ["thanhtrong.yds@gmail.com", "vnrad.tech@gmail.com", "test@gmail.com"];
 
         // --- UI COMPONENTS ---
@@ -111,259 +75,161 @@
             );
         };
 
-        const StatCard = ({ title, value, icon: Icon, color, subText, fullWidth }) => {
-            const [changed, setChanged] = useState(false);
-            const prevValue = useRef(value);
-
-            useEffect(() => {
-                if (prevValue.current !== value) {
-                    setChanged(true);
-                    const timer = setTimeout(() => setChanged(false), 1500);
-                    prevValue.current = value;
-                    return () => clearTimeout(timer);
-                }
-            }, [value]);
-
-            return (
-                <div className={`glass-panel p-6 rounded-[2rem] flex flex-col justify-between h-40 relative overflow-hidden group hover:bg-white/5 transition-all ${changed ? 'data-changed' : ''} ${fullWidth ? 'col-span-2' : ''}`}>
-                    <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
-                        <Icon size={80} />
-                    </div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className={`p-2 rounded-xl bg-slate-800 ${color} bg-opacity-20 text-white`}>
-                            <Icon size={18} className={color.replace('bg-', 'text-')} />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{title}</span>
-                    </div>
-                    <div>
-                        <div className={`text-5xl font-black transition-all ${changed ? 'scale-110 text-white' : color.replace('bg-', 'text-')}`}>{value}</div>
-                        {subText && <div className="text-[10px] text-slate-500 font-bold mt-1">{subText}</div>}
-                    </div>
+        // Component Thẻ thống kê
+        const StatCard = ({ title, value, icon: Icon, color, subText }) => (
+            <div className="glass-panel p-6 rounded-[2rem] flex flex-col justify-between h-40 relative overflow-hidden group hover:bg-white/5 transition-all">
+                <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
+                    <Icon size={80} />
                 </div>
-            );
-        };
+                <div className="flex items-center gap-2 mb-2">
+                    <div className={`p-2 rounded-xl bg-slate-800 ${color} bg-opacity-20 text-white`}>
+                        <Icon size={18} className={color.replace('bg-', 'text-')} />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{title}</span>
+                </div>
+                <div>
+                    <div className={`text-4xl font-black ${color.replace('bg-', 'text-')}`}>{value}</div>
+                    {subText && <div className="text-[10px] text-slate-500 font-bold mt-1">{subText}</div>}
+                </div>
+            </div>
+        );
 
         const Dashboard = ({ user }) => {
-            const [tab, setTab] = useState('dashboard');
-            const [scores, setScores] = useState([]);
-            const [rawHistory, setRawHistory] = useState([]);
+            const [tab, setTab] = useState('dashboard'); 
+            const [scores, setScores] = useState([]); 
+            const [rawHistory, setRawHistory] = useState([]); 
+            const [activeUsersList, setActiveUsersList] = useState([]); // Danh sách người đang hoạt động (Online)
             const [reviews, setReviews] = useState([]);
             const [reports, setReports] = useState([]);
             const [search, setSearch] = useState('');
             const [toast, setToast] = useState(null);
-            
-            // App ID Management
-            const [currentAppId, setCurrentAppId] = useState(defaultAppId);
-            const [manualAppId, setManualAppId] = useState(defaultAppId);
-            const [isAutoDetected, setIsAutoDetected] = useState(false);
-            
-            const [now, setNow] = useState(Date.now() / 1000);
-
-            useEffect(() => {
-                const timer = setInterval(() => setNow(Date.now() / 1000), 5000); 
-                return () => clearInterval(timer);
-            }, []);
-
-            const [dbStats, setDbStats] = useState({ 
-                students: null, exams: null, vip: 0
-            });
-            const [editingReview, setEditingReview] = useState(null);
+            const [stats, setStats] = useState({ online: 0, live: 0, students: 0, vip: 0, exams: 0 });
             
             const notify = (message, type = 'info') => setToast({ message, type });
 
-            // 1. Listen to GLOBAL history
             useEffect(() => {
                 const qHistory = query(collectionGroup(db, 'history'));
                 const unsubHistory = onSnapshot(qHistory, (snapshot) => {
-                    const rawData = snapshot.docs.map(d => ({...d.data(), id: d.id, path: d.ref.path}));
+                    const rawData = snapshot.docs.map(d => ({...d.data(), id: d.id}));
                     
-                    if (!isAutoDetected && rawData.length > 0 && currentAppId === defaultAppId) {
-                        try {
-                            const firstPath = rawData[0].path;
-                            const segments = firstPath.split('/');
-                            if (segments.length >= 2 && segments[0] === 'artifacts') {
-                                const detectedId = segments[1];
-                                if (detectedId && detectedId !== currentAppId) {
-                                    setCurrentAppId(detectedId);
-                                    setManualAppId(detectedId);
-                                    setIsAutoDetected(true);
-                                    notify(`Đã tự động kết nối App ID: ${detectedId}`, "success");
-                                }
-                            }
-                        } catch (e) {}
-                    }
-
+                    // Sắp xếp dữ liệu thô
                     rawData.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
                     setRawHistory(rawData);
 
-                    // Ranking logic
+                    // --- XỬ LÝ THỐNG KÊ & ONLINE USER CARDS ---
                     const userMap = {};
+                    const uniqueExams = new Set();
+                    const now = Date.now() / 1000;
+                    
+                    const ONLINE_THRESHOLD = 30 * 60; // 30 phút
+                    const LIVE_THRESHOLD = 15 * 60;   // 15 phút
+
+                    let onlineCount = 0;
+                    let liveCount = 0;
+                    
+                    // Xử lý danh sách Active Cards (người dùng online)
+                    const tempActiveList = [];
+                    const seenActiveUsers = new Set();
+
                     rawData.forEach(item => {
-                        const key = item.userId || item.email;
-                        if (!key) return;
-                        if (!userMap[key]) {
-                            userMap[key] = { userId: item.userId, email: item.email, displayName: item.displayName, totalScore: 0, examCount: 0, latestDate: item.date };
-                        }
-                        userMap[key].totalScore += parseFloat(String(item.score || 0));
-                        userMap[key].examCount += 1;
-                        if ((item.date?.seconds || 0) > (userMap[key].latestDate?.seconds || 0)) {
-                            userMap[key].latestDate = item.date;
-                            if (item.displayName) userMap[key].displayName = item.displayName;
-                        }
-                    });
-                    setScores(Object.values(userMap).sort((a, b) => b.totalScore - a.totalScore));
+                        if (item.examTitle) uniqueExams.add(item.examTitle);
 
-                }, (error) => console.error("History Error:", error));
+                        // Tính toán Online/Live
+                        const timeDiff = now - (item.date?.seconds || 0);
+                        if (timeDiff < ONLINE_THRESHOLD) onlineCount++;
+                        if (timeDiff < LIVE_THRESHOLD) liveCount++;
 
-                return () => unsubHistory();
-            }, [currentAppId]); 
-
-            // 2. Listen to SPECIFIC collections
-            useEffect(() => {
-                if (!currentAppId) return;
-                const unsubs = [];
-                
-                // Keep these for VIP checking, even if not displaying total count cards
-                const qUsers = query(collection(db, 'artifacts', currentAppId, 'public', 'data', 'users'));
-                unsubs.push(onSnapshot(qUsers, (snap) => {
-                    const users = snap.docs.map(d => d.data());
-                    const vipCount = users.filter(u => {
-                        const fieldsToCheck = [u.isPremium, u.isVIP, u.vip, u.isVip, u.plan, u.role, u.tier, u.type, u.accountType, u.subscription, u.goi];
-                        const hasVipField = fieldsToCheck.some(val => {
-                            if (val === true) return true;
-                            if (typeof val === 'string') {
-                                const s = val.toLowerCase();
-                                return s.includes('vip') || s.includes('premium') || s.includes('pro') || s.includes('access');
-                            }
-                            if (val === 1) return true;
-                            return false;
-                        });
-                        if (!hasVipField) {
-                            const jsonString = JSON.stringify(u).toLowerCase();
-                            return jsonString.includes('"vip') || jsonString.includes('vip"') || jsonString.includes('vip ') || jsonString.includes('premium') || jsonString.includes('access');
-                        }
-                        return hasVipField;
-                    }).length;
-                    setDbStats(prev => ({ ...prev, students: snap.size, vip: vipCount }));
-                }, e => {}));
-
-                unsubs.push(onSnapshot(query(collection(db, 'artifacts', currentAppId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc')), s => setReviews(s.docs.map(d => ({...d.data(), id: d.id})))));
-                unsubs.push(onSnapshot(query(collection(db, 'artifacts', currentAppId, 'public', 'data', 'reports'), orderBy('createdAt', 'desc')), s => setReports(s.docs.map(d => ({...d.data(), id: d.id})))));
-
-                return () => unsubs.forEach(fn => fn());
-            }, [currentAppId]);
-
-            // --- LIVE STATS LOGIC ---
-            const liveStats = useMemo(() => {
-                const ONLINE_THRESHOLD = 30; // 30s = Online
-                const EXAM_ACTIVE_THRESHOLD = 90 * 60; // 90 mins
-
-                const activeUsers = new Set();
-                const examUsers = new Map();
-
-                rawHistory.forEach(item => {
-                    const timeDiff = now - (item.date?.seconds || 0);
-                    const userKey = item.userId || item.email;
-                    if (!userKey) return;
-
-                    if (timeDiff < ONLINE_THRESHOLD) {
-                        activeUsers.add(userKey);
-                    }
-
-                    // Đang thi: Bắt đầu < 90p và CHƯA có điểm (chưa nộp)
-                    if (timeDiff < EXAM_ACTIVE_THRESHOLD) {
-                        const hasScore = item.score !== undefined && item.score !== null && item.score !== '';
-                        
-                        if (!hasScore) {
-                            if (!examUsers.has(userKey)) {
-                                examUsers.set(userKey, {
-                                    id: userKey,
-                                    name: getUserDisplayName(item),
-                                    email: item.email || '',
-                                    exam: item.examTitle || 'Đang làm bài...',
-                                    time: item.date,
-                                    timeDiff: timeDiff,
-                                    avatarChar: (getUserDisplayName(item) || 'U')[0].toUpperCase()
+                        // Logic tạo danh sách Card Online (Không trùng lặp user)
+                        // Chỉ lấy những người hoạt động trong 30p gần nhất
+                        if (timeDiff < ONLINE_THRESHOLD) {
+                            const userKey = item.userId || item.email;
+                            if (userKey && !seenActiveUsers.has(userKey)) {
+                                seenActiveUsers.add(userKey);
+                                tempActiveList.push({
+                                    ...item,
+                                    timeAgo: Math.floor(timeDiff / 60) // Số phút trước
                                 });
                             }
                         }
-                    }
-                });
 
-                return {
-                    online: Math.max(activeUsers.size, 1), 
-                    liveCount: examUsers.size,
-                    liveList: Array.from(examUsers.values()),
-                    vip: dbStats.vip
-                };
-            }, [rawHistory, dbStats, now]);
+                        // Gom nhóm User cho Bảng xếp hạng (code cũ)
+                        const hasEmail = item.email && item.email.trim() !== "";
+                        const hasName = item.displayName && item.displayName.trim() !== "";
+                        if (!hasEmail && !hasName) return; 
 
-            const handleSaveAppId = () => {
-                if (manualAppId && manualAppId.trim() !== "") {
-                    setCurrentAppId(manualAppId.trim());
-                    notify("Đã cập nhật App ID nguồn dữ liệu", "success");
-                    setTab('dashboard');
-                }
-            };
+                        const key = item.userId || item.email;
+                        if (!key) return;
+
+                        if (!userMap[key]) {
+                            userMap[key] = {
+                                userId: item.userId,
+                                email: item.email,
+                                displayName: item.displayName,
+                                totalScore: 0,
+                                examCount: 0,
+                                latestDate: item.date
+                            };
+                        }
+
+                        const currentScore = parseFloat(String(item.score || 0));
+                        userMap[key].totalScore += currentScore;
+                        userMap[key].examCount += 1;
+
+                        const itemDate = item.date?.seconds || 0;
+                        const savedDate = userMap[key].latestDate?.seconds || 0;
+                        if (itemDate > savedDate) {
+                            userMap[key].latestDate = item.date;
+                            if (item.displayName) userMap[key].displayName = item.displayName;
+                        } else {
+                             if (!userMap[key].displayName && item.displayName) userMap[key].displayName = item.displayName;
+                        }
+                    });
+
+                    let aggregatedData = Object.values(userMap);
+                    aggregatedData.sort((a, b) => b.totalScore - a.totalScore);
+                    setScores(aggregatedData);
+                    setActiveUsersList(tempActiveList); // Cập nhật danh sách active để hiển thị thẻ
+
+                    setStats({
+                        online: Math.max(onlineCount, 1), 
+                        live: liveCount,
+                        students: aggregatedData.length,
+                        vip: 0, 
+                        exams: uniqueExams.size
+                    });
+
+                }, (error) => console.error("History Error:", error));
+
+                const unsubReviews = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc')), s => setReviews(s.docs.map(d => ({...d.data(), id: d.id}))));
+                const unsubReports = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), orderBy('createdAt', 'desc')), s => setReports(s.docs.map(d => ({...d.data(), id: d.id}))));
+
+                return () => { unsubHistory(); unsubReviews(); unsubReports(); };
+            }, []);
 
             const deleteItem = async (collectionName, id) => {
                 if(confirm("Xóa mục này?")) {
-                    try { await deleteDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', collectionName, id)); notify("Đã xóa", "success"); } 
+                    try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', collectionName, id)); notify("Đã xóa", "success"); } 
                     catch (e) { notify("Lỗi: " + e.message, "error"); }
                 }
             };
 
             const resolveReport = async (id) => {
-                try { await updateDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', 'reports', id), { status: 'resolved' }); notify("Đã xử lý", "success"); } 
+                try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', id), { status: 'resolved' }); notify("Đã xử lý", "success"); } 
                 catch (e) { notify("Lỗi: " + e.message, "error"); }
-            };
-
-            const handleUpdateReview = async () => {
-                if (!editingReview) return;
-                try {
-                    await updateDoc(doc(db, 'artifacts', currentAppId, 'public', 'data', 'reviews', editingReview.id), {
-                        feedback: editingReview.feedback,
-                        rating: editingReview.rating
-                    });
-                    notify("Đã cập nhật đánh giá", "success");
-                    setEditingReview(null);
-                } catch (e) { notify("Lỗi cập nhật: " + e.message, "error"); }
             };
 
             const formatDateTime = (ts) => ts?.toDate ? ts.toDate().toLocaleString('vi-VN') : '---';
             const getReasonText = (reason) => { const map = { 'wrong_answer': 'Đáp án sai', 'typo': 'Lỗi chính tả', 'confusing': 'Khó hiểu', 'other': 'Khác' }; return map[reason] || reason; };
-            const getUserDisplayName = (user) => (user.displayName && user.displayName.trim() !== "") ? user.displayName : (user.email || `User`);
+            const getUserDisplayName = (user) => (user.displayName && user.displayName.trim() !== "") ? user.displayName : (user.email || `User #${user.userId?.slice(0, 5)}`);
+
+            // Hàm lấy Initials cho Avatar
+            const getInitials = (name) => {
+                const n = name || "U";
+                return n.slice(0, 2).toUpperCase();
+            };
 
             return (
                 <div className="flex min-h-screen">
-                    {/* EDIT REVIEW MODAL */}
-                    {editingReview && (
-                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in">
-                            <div className="glass-panel w-full max-w-lg p-8 rounded-[2rem] shadow-2xl relative border border-slate-600">
-                                <button onClick={() => setEditingReview(null)} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-all"><X size={20}/></button>
-                                <h3 className="text-xl font-black text-white mb-6 flex items-center gap-2"><Pencil size={20} className="text-cyan-400"/>Chỉnh sửa đánh giá</h3>
-                                <div className="space-y-6">
-                                    <div>
-                                        <div className="flex justify-between mb-2"><label className="text-xs font-bold text-slate-400 uppercase tracking-widest block">Người đánh giá</label><span className="text-xs text-slate-500 font-mono">{formatDateTime(editingReview.createdAt)}</span></div>
-                                        <div className="glass-input p-3 rounded-xl text-slate-300 font-bold text-sm bg-black/20">{getUserDisplayName(editingReview)}</div>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Xếp hạng</label>
-                                        <div className="flex gap-2">{[1, 2, 3, 4, 5].map(star => (<button key={star} onClick={() => setEditingReview({...editingReview, rating: star})} type="button" className={`p-3 rounded-xl transition-all ${editingReview.rating >= star ? 'text-yellow-400 bg-yellow-400/10 ring-1 ring-yellow-400/30' : 'text-slate-600 bg-slate-800 hover:bg-slate-700'}`}><Star size={24} fill={editingReview.rating >= star ? "currentColor" : "none"} /></button>))}</div>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Nội dung phản hồi</label>
-                                        <textarea className="w-full glass-input rounded-xl p-4 outline-none focus:border-cyan-500 font-medium text-white transition-all min-h-[120px] resize-none" value={editingReview.feedback} onChange={e => setEditingReview({...editingReview, feedback: e.target.value})} placeholder="Nhập nội dung đánh giá..."/>
-                                    </div>
-                                </div>
-                                <div className="flex justify-end gap-3 mt-8">
-                                    <button onClick={() => setEditingReview(null)} className="px-6 py-3 rounded-xl font-bold text-slate-400 hover:bg-slate-800 transition-all text-sm">Hủy bỏ</button>
-                                    <button onClick={handleUpdateReview} className="px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold shadow-lg shadow-cyan-500/20 transition-all text-sm flex items-center gap-2"><Check size={16}/> Lưu thay đổi</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     {/* SIDEBAR */}
                     <aside className="w-72 bg-slate-900/50 border-r border-slate-700/50 flex flex-col fixed h-full z-40 backdrop-blur-xl">
                         <div className="p-8 border-b border-slate-700/50 flex items-center gap-4 text-cyan-400 font-black text-2xl tracking-tighter">
@@ -372,12 +238,10 @@
                         </div>
                         <nav className="flex-1 p-6 space-y-4 mt-4">
                             {[
-                                { id: 'dashboard', label: 'Live Monitor', icon: MonitorPlay },
-                                { id: 'submissions', label: 'Lịch sử nộp bài', icon: History },
+                                { id: 'dashboard', label: 'Live Monitor', icon: LayoutDashboard },
                                 { id: 'score_rank', label: 'Bảng xếp hạng', icon: Trophy },
                                 { id: 'reviews', label: 'Đánh giá & Góp ý', icon: MessageSquare, count: reviews.length },
-                                { id: 'reports', label: 'Báo cáo lỗi', icon: Flag, count: reports.filter(r => r.status === 'pending').length },
-                                { id: 'settings', label: 'Cấu hình', icon: Settings }
+                                { id: 'reports', label: 'Báo cáo lỗi', icon: Flag, count: reports.filter(r => r.status === 'pending').length }
                             ].map(item => (
                                 <button key={item.id} onClick={()=>setTab(item.id)} className={`w-full flex items-center justify-between px-6 py-5 rounded-2xl transition-all ${tab === item.id ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:bg-white/5'}`}>
                                     <div className="flex items-center gap-4"><item.icon size={20}/><span className="font-bold text-sm">{item.label}</span></div>
@@ -395,90 +259,124 @@
                         <div className="flex justify-between items-end mb-12">
                             <div>
                                 <h1 className="text-4xl font-black text-white tracking-tighter capitalize">
-                                    {tab === 'dashboard' ? 'Live Monitor' : tab === 'submissions' ? 'Lịch Sử Nộp Bài' : tab === 'score_rank' ? 'Bảng Xếp Hạng' : tab === 'reviews' ? 'Phản Hồi' : tab === 'reports' ? 'Báo Cáo Lỗi' : 'Cấu Hình Hệ Thống'}
+                                    {tab === 'dashboard' ? 'Dashboard' : 
+                                     tab === 'score_rank' ? 'Bảng Xếp Hạng Global' : 
+                                     tab === 'reviews' ? 'Phản Hồi Từ Học Viên' : 'Báo Cáo Lỗi Đề Thi'}
                                 </h1>
                                 {tab === 'score_rank' && <p className="text-slate-400 text-sm mt-2 flex items-center gap-2"><Sigma size={14}/> Xếp hạng theo tổng điểm tích lũy</p>}
-                                {tab === 'dashboard' && (
-                                    <div className="text-emerald-400 text-sm mt-2 flex items-center gap-3">
-                                        <span className="flex items-center gap-2 animate-pulse"><div className="w-2 h-2 rounded-full bg-emerald-400"></div> Real-time Sync</span>
-                                        <span className="text-slate-600">|</span>
-                                        <span className="flex items-center gap-1 text-slate-400 text-xs font-mono bg-slate-800 px-2 py-1 rounded border border-slate-700"><Database size={10}/> {currentAppId}</span>
-                                    </div>
-                                )}
+                                {tab === 'dashboard' && <p className="text-emerald-400 text-sm mt-2 flex items-center gap-2 animate-pulse"><div className="w-2 h-2 rounded-full bg-emerald-400"></div> Hệ thống đang giám sát thời gian thực</p>}
                             </div>
-                            {tab !== 'settings' && (
-                                <div className="relative group">
-                                    <Search className="absolute left-4 top-3.5 text-slate-500" size={20}/>
-                                    <input className="bg-slate-800 border border-slate-700 rounded-2xl pl-12 pr-6 py-3 w-80 outline-none focus:border-cyan-500 font-bold text-white transition-all" placeholder="Tìm kiếm dữ liệu..." value={search} onChange={e=>setSearch(e.target.value)}/>
-                                </div>
-                            )}
+                            <div className="relative group">
+                                <Search className="absolute left-4 top-3.5 text-slate-500" size={20}/>
+                                <input className="bg-slate-800 border border-slate-700 rounded-2xl pl-12 pr-6 py-3 w-80 outline-none focus:border-cyan-500 font-bold text-white transition-all" placeholder="Tìm kiếm dữ liệu..." value={search} onChange={e=>setSearch(e.target.value)}/>
+                            </div>
                         </div>
 
                         <div className="animate-in">
+                            {/* TAB: DASHBOARD (LIVE MONITOR) */}
                             {tab === 'dashboard' && (
                                 <div className="space-y-8">
-                                    {/* STAT CARDS - Optimized & Removed redundant tabs */}
-                                    <div className="grid grid-cols-3 gap-6">
-                                        <StatCard title="Truy cập < 30s" value={liveStats.online} icon={Activity} color="text-emerald-400" subText="Đang Online" />
-                                        <StatCard title="Đang Thi" value={liveStats.liveCount} icon={Zap} color="text-blue-400" subText="Active Sessions" />
-                                        <StatCard title="VIP Access" value={liveStats.vip} icon={Crown} color="text-yellow-400" subText="Thành viên VIP" />
+                                    {/* 5 STAT CARDS */}
+                                    <div className="grid grid-cols-5 gap-6">
+                                        <StatCard title="Hoạt động" value={stats.online} icon={Activity} color="text-emerald-400" subText="Tương tác gần đây" />
+                                        <StatCard title="Vừa nộp bài" value={stats.live} icon={History} color="text-blue-400" subText="Trong 15 phút qua" />
+                                        <StatCard title="Học Viên" value={stats.students} icon={Users} color="text-purple-400" subText="Đã đăng ký" />
+                                        <StatCard title="VIP Premium" value={stats.vip} icon={Crown} color="text-yellow-400" subText="Thành viên VIP" />
+                                        <StatCard title="Đề Thi" value={stats.exams} icon={FileText} color="text-cyan-400" subText="Tổng số đề" />
                                     </div>
-
-                                    {/* CARD HỌC VIÊN ĐANG THI (Grid Layout) */}
+                                    
+                                    {/* --- ACTIVE USERS CARDS SECTION (NEW) --- */}
                                     <div>
                                         <div className="flex items-center gap-3 mb-6">
-                                            <div className="bg-blue-500/20 p-2 rounded-full text-blue-400 animate-pulse"><MonitorPlay size={24}/></div>
-                                            <h2 className="text-xl font-bold text-white uppercase tracking-widest">
-                                                Phòng thi trực tuyến ({liveStats.liveCount})
-                                            </h2>
+                                            <div className="relative">
+                                                <MonitorPlay className="text-cyan-400" size={24}/>
+                                                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+                                                </span>
+                                            </div>
+                                            <h2 className="text-xl font-bold text-white uppercase tracking-widest">Trạng thái người dùng (Online: {activeUsersList.length})</h2>
+                                        </div>
+
+                                        {activeUsersList.length > 0 ? (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                                {activeUsersList.map((user) => (
+                                                    <div key={user.id} className="glass-panel p-5 rounded-3xl relative overflow-hidden animate-in hover:bg-white/5 transition-all group border-t-2 border-t-emerald-500/50">
+                                                        <div className="flex items-start justify-between mb-4">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center font-black text-white text-lg shadow-inner border border-white/10">
+                                                                    {getInitials(getUserDisplayName(user))}
+                                                                </div>
+                                                                <div>
+                                                                    <div className="font-bold text-white text-sm line-clamp-1">{getUserDisplayName(user)}</div>
+                                                                    <div className="text-[10px] text-slate-400 font-mono">ID: {user.userId?.slice(0,6)}</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex flex-col items-end">
+                                                                <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-dot"></div>
+                                                                    <span className="text-[10px] font-bold text-emerald-400 uppercase">Live</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="space-y-2">
+                                                            <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5">
+                                                                <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Đang làm đề</div>
+                                                                <div className="text-cyan-400 font-bold text-sm truncate">{user.examTitle || 'Chưa xác định'}</div>
+                                                            </div>
+                                                            <div className="flex justify-between items-center px-1">
+                                                                <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1"><Clock size={10}/> {user.timeAgo === 0 ? 'Vừa xong' : `${user.timeAgo} phút trước`}</span>
+                                                                <span className={`text-sm font-black ${parseFloat(user.score)>=5?'text-emerald-400':'text-red-400'}`}>Điểm: {user.score}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-12 border-2 border-dashed border-slate-800 rounded-3xl mb-8">
+                                                <p className="text-slate-600 font-bold">Hiện không có người dùng nào đang hoạt động trong 30 phút qua</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {/* --- END ACTIVE USERS SECTION --- */}
+
+                                    {/* LIVE FEED LIST (GIỮ NGUYÊN) */}
+                                    <div className="glass-panel rounded-[2rem] p-8 min-h-[400px]">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <History className="text-blue-400" size={24}/>
+                                            <h2 className="text-xl font-bold text-white uppercase tracking-widest">Lịch sử nộp bài (Live Feed)</h2>
                                         </div>
                                         
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {liveStats.liveList.map((user, idx) => (
-                                                <div key={user.id} className="live-card-border bg-slate-800/80 backdrop-blur-xl border border-slate-700 rounded-[2rem] p-6 flex flex-col gap-4 hover:transform hover:-translate-y-1 transition-all duration-300 shadow-2xl animate-in" style={{animationDelay: `${idx * 0.1}s`}}>
+                                        <div className="space-y-4">
+                                            {rawHistory.slice(0, 10).map((item, idx) => (
+                                                <div key={item.id} className="flex items-center justify-between p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50 hover:bg-slate-700/50 transition-colors animate-in" style={{animationDelay: `${idx * 0.1}s`}}>
                                                     <div className="flex items-center gap-4">
-                                                        <div className="relative">
-                                                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-black text-white text-xl shadow-lg shadow-blue-500/30">
-                                                                {user.avatarChar}
+                                                        <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-400 text-xs">
+                                                            {formatDateTime(item.date).split(' ')[0]}
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-bold text-white">{getUserDisplayName(item)}</div>
+                                                            <div className="text-xs text-slate-400 flex items-center gap-2">
+                                                                <Clock size={12}/> {formatDateTime(item.date)}
+                                                                <span className="text-slate-600">|</span>
+                                                                <span className="text-cyan-400">{item.examTitle || 'Đề không tên'}</span>
                                                             </div>
-                                                            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-800 animate-pulse"></div>
-                                                        </div>
-                                                        <div className="overflow-hidden">
-                                                            <div className="font-bold text-white text-lg truncate">{user.name}</div>
-                                                            <div className="text-xs text-slate-400 font-mono truncate">{user.email}</div>
                                                         </div>
                                                     </div>
-                                                    
-                                                    <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
-                                                        <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Đang làm bài</div>
-                                                        <div className="font-medium text-blue-400 text-sm line-clamp-2 leading-relaxed">
-                                                            {user.exam}
+                                                    <div className="text-right">
+                                                        <div className={`font-black text-xl ${parseFloat(item.score)>=9?'text-emerald-400':parseFloat(item.score)>=5?'text-blue-400':'text-red-400'}`}>
+                                                            {item.score}
                                                         </div>
-                                                    </div>
-
-                                                    <div className="flex items-center justify-between text-xs font-bold">
-                                                        <div className="flex items-center gap-1.5 text-emerald-400">
-                                                            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
-                                                            Live
-                                                        </div>
-                                                        <div className="text-slate-500 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-2">
-                                                            <Clock size={12}/>
-                                                            {Math.floor(user.timeDiff / 60)} phút trước
-                                                        </div>
+                                                        <div className="text-[10px] font-bold text-slate-500 uppercase">Điểm số</div>
                                                     </div>
                                                 </div>
                                             ))}
-                                            
-                                            {liveStats.liveList.length === 0 && (
-                                                <div className="col-span-3 py-16 text-center text-slate-500 border border-dashed border-slate-700 rounded-[2rem] bg-slate-800/20">
-                                                    <div className="relative w-16 h-16 mx-auto mb-4">
-                                                        <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping"></div>
-                                                        <div className="relative bg-slate-800 p-4 rounded-full border border-slate-700 text-slate-500">
-                                                            <Zap size={32}/>
-                                                        </div>
-                                                    </div>
-                                                    <p className="font-bold text-lg text-slate-400">Phòng thi trống</p>
-                                                    <p className="text-sm mt-1 opacity-70">Chưa có học viên nào bắt đầu làm bài</p>
+                                            {rawHistory.length === 0 && (
+                                                <div className="flex flex-col items-center justify-center py-20 text-slate-500 border-2 border-dashed border-slate-700 rounded-3xl">
+                                                    <div className="bg-slate-800 p-4 rounded-full mb-4 opacity-50"><Activity size={40}/></div>
+                                                    <p className="font-bold">HỆ THỐNG ĐANG CHỜ LƯỢT THI MỚI</p>
+                                                    <p className="text-xs mt-2">Chưa ghi nhận hoạt động nào trong thời gian thực</p>
                                                 </div>
                                             )}
                                         </div>
@@ -486,57 +384,7 @@
                                 </div>
                             )}
 
-                            {tab === 'submissions' && (
-                                <div className="glass-panel rounded-[2rem] overflow-hidden">
-                                    <div className="p-6 border-b border-slate-700/50 bg-slate-800/20 flex justify-between items-center">
-                                        <div className="flex items-center gap-3">
-                                            <History className="text-orange-400" size={24}/>
-                                            <h2 className="text-lg font-bold text-white">Lịch sử nộp bài gần đây</h2>
-                                        </div>
-                                        <span className="text-xs font-mono text-slate-500 bg-slate-800 px-2 py-1 rounded">Real-time Feed</span>
-                                    </div>
-                                    
-                                    <div className="p-6 space-y-4">
-                                        {rawHistory.filter(item => {
-                                            const hasScore = item.score !== undefined && item.score !== null && item.score !== '';
-                                            return hasScore && (getUserDisplayName(item).toLowerCase().includes(search.toLowerCase()) || (item.examTitle||'').toLowerCase().includes(search.toLowerCase()));
-                                        }).slice(0, 20).map((item, idx) => (
-                                            <div key={item.id} className="flex items-center justify-between p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50 hover:bg-slate-700/50 transition-colors animate-in" style={{animationDelay: `${idx * 0.05}s`}}>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-400">{idx + 1}</div>
-                                                    <div>
-                                                        <div className="font-bold text-white">{getUserDisplayName(item)}</div>
-                                                        <div className="text-xs text-slate-400 flex items-center gap-2"><Clock size={12}/> {formatDateTime(item.date)}<span className="text-slate-600">|</span><span className="text-cyan-400">{item.examTitle || 'Đề không tên'}</span></div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className={`font-black text-xl ${parseFloat(item.score)>=9?'text-emerald-400':parseFloat(item.score)>=5?'text-blue-400':'text-red-400'}`}>{item.score}</div>
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase">Điểm số</div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        
-                                        {rawHistory.length === 0 && (
-                                            <div className="py-20 text-center text-slate-500 italic">Chưa có dữ liệu nộp bài nào</div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                            
-                            {tab === 'settings' && (
-                                <div className="glass-panel rounded-[2rem] p-10 max-w-2xl mx-auto">
-                                    <div className="text-center mb-10">
-                                        <Database size={64} className="text-cyan-500 mx-auto mb-4"/>
-                                        <h2 className="text-2xl font-black text-white">Kết Nối Nguồn Dữ Liệu</h2>
-                                        <p className="text-slate-400 mt-2">Cấu hình App ID để Dashboard trỏ đúng vào kho dữ liệu của bạn</p>
-                                    </div>
-                                    <div className="space-y-6">
-                                        <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">App ID Hiện Tại</label><div className="w-full glass-input p-4 rounded-xl text-emerald-400 font-mono flex items-center gap-2"><CheckCircle2 size={16}/> {currentAppId}</div></div>
-                                        <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Thay Đổi App ID</label><div className="flex gap-2"><input value={manualAppId} onChange={(e)=>setManualAppId(e.target.value)} className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-cyan-500 text-white font-mono" placeholder="Nhập App ID mới..."/><button onClick={handleSaveAppId} className="px-6 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-cyan-500/20"><RefreshCw size={18}/> Cập nhật</button></div></div>
-                                    </div>
-                                </div>
-                            )}
-
+                            {/* TAB: BẢNG XẾP HẠNG (GIỮ NGUYÊN) */}
                             {tab === 'score_rank' && (
                                 <div className="glass-panel rounded-[2rem] overflow-hidden">
                                     <table className="w-full text-left text-sm border-collapse text-slate-300">
@@ -556,15 +404,17 @@
                                                     </tr>
                                                 );
                                             })}
+                                            {scores.length === 0 && <tr><td colSpan="5" className="p-20 text-center italic text-slate-600">Chưa có dữ liệu</td></tr>}
                                         </tbody>
                                     </table>
                                 </div>
                             )}
 
+                            {/* TAB: REVIEWS (GIỮ NGUYÊN) */}
                             {tab === 'reviews' && (
                                 <div className="glass-panel rounded-[2rem] overflow-hidden">
                                     <table className="w-full text-left text-sm border-collapse text-slate-300">
-                                        <thead className="bg-slate-800/50 text-slate-400 uppercase text-[10px] font-black tracking-widest"><tr><th className="p-6">Thời gian</th><th className="p-6">Học viên</th><th className="p-6">Nội dung</th><th className="p-6 text-center">Đánh giá</th><th className="p-6 text-right">Thao tác</th></tr></thead>
+                                        <thead className="bg-slate-800/50 text-slate-400 uppercase text-[10px] font-black tracking-widest"><tr><th className="p-6">Thời gian</th><th className="p-6">Học viên</th><th className="p-6">Nội dung</th><th className="p-6 text-center">Đánh giá</th><th className="p-6 text-right">Xóa</th></tr></thead>
                                         <tbody className="divide-y divide-slate-700/50">
                                             {reviews.filter(r => (r.examTitle||'').toLowerCase().includes(search.toLowerCase())).map(r => (
                                                 <tr key={r.id} className="hover:bg-white/5 transition-colors">
@@ -572,7 +422,7 @@
                                                     <td className="p-6"><span className="block font-bold text-white">{getUserDisplayName(r)}</span></td>
                                                     <td className="p-6"><div className="font-bold text-xs text-cyan-500 mb-1">{r.examTitle}</div>{r.feedback ? <div className="italic text-slate-400">"{r.feedback}"</div> : <span className="text-slate-600 text-xs">--</span>}</td>
                                                     <td className="p-6 text-center"><div className="flex justify-center gap-0.5">{[1,2,3,4,5].map(s=><Star key={s} size={14} className={s<=r.rating?'text-yellow-400 fill-yellow-400':'text-slate-700'}/>)}</div></td>
-                                                    <td className="p-6 text-right"><div className="flex justify-end gap-2"><button onClick={()=>setEditingReview(r)} className="p-2 bg-slate-800 hover:bg-blue-500/20 text-slate-500 hover:text-blue-500 rounded-xl transition-all" title="Chỉnh sửa"><Pencil size={16}/></button><button onClick={()=>deleteItem('reviews', r.id)} className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-500 hover:text-red-500 rounded-xl transition-all" title="Xóa"><Trash2 size={16}/></button></div></td>
+                                                    <td className="p-6 text-right"><button onClick={()=>deleteItem('reviews', r.id)} className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-500 hover:text-red-500 rounded-xl transition-all"><Trash2 size={16}/></button></td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -580,6 +430,7 @@
                                 </div>
                             )}
 
+                            {/* TAB: REPORTS (GIỮ NGUYÊN) */}
                             {tab === 'reports' && (
                                 <div className="glass-panel rounded-[2rem] overflow-hidden">
                                     <table className="w-full text-left text-sm border-collapse text-slate-300">
