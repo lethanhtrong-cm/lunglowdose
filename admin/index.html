@@ -165,7 +165,7 @@
         };
 
         const Dashboard = ({ user }) => {
-            const [tab, setTab] = useState('stats'); // Changed default to 'stats'
+            const [tab, setTab] = useState('stats');
             const [users, setUsers] = useState([]);
             const [exams, setExams] = useState([]);
             const [requests, setRequests] = useState([]);
@@ -201,7 +201,6 @@
                 return () => { unsubU(); unsubE(); unsubR(); unsubActive(); unsubSettings(); };
             }, []);
 
-            // --- THỐNG KÊ LOGIC ---
             const stats = useMemo(() => {
                 const totalUsers = users.length;
                 const vipUsers = users.filter(u => u.isPremium).length;
@@ -209,7 +208,6 @@
                 const totalExams = exams.length;
                 const vipExams = exams.filter(e => e.isPremium).length;
                 const freeExams = totalExams - vipExams;
-                
                 return { totalUsers, vipUsers, freeUsers, totalExams, vipExams, freeExams };
             }, [users, exams]);
 
@@ -253,7 +251,6 @@
 
                         {tab === 'stats' && (
                             <div className="animate-in grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                {/* CARD HỌC VIÊN */}
                                 <div className="stats-card p-10 rounded-[3.5rem] border border-white/5 shadow-2xl space-y-8 group transition-all hover:border-blue-500/30">
                                     <div className="flex justify-between items-start">
                                         <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500"><Users size={32}/></div>
@@ -265,22 +262,14 @@
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="bg-slate-950/40 p-5 rounded-3xl border border-white/5">
                                             <p className="text-[9px] font-black text-slate-600 uppercase mb-1">VIP Member</p>
-                                            <div className="flex items-center gap-2">
-                                                <Crown size={14} className="text-yellow-500"/>
-                                                <span className="text-xl font-black text-yellow-500">{stats.vipUsers}</span>
-                                            </div>
+                                            <div className="flex items-center gap-2"><Crown size={14} className="text-yellow-500"/><span className="text-xl font-black text-yellow-500">{stats.vipUsers}</span></div>
                                         </div>
                                         <div className="bg-slate-950/40 p-5 rounded-3xl border border-white/5">
                                             <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Standard</p>
-                                            <div className="flex items-center gap-2 text-slate-400">
-                                                <Unlock size={14}/>
-                                                <span className="text-xl font-black">{stats.freeUsers}</span>
-                                            </div>
+                                            <div className="flex items-center gap-2 text-slate-400"><Unlock size={14}/><span className="text-xl font-black">{stats.freeUsers}</span></div>
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* CARD ĐỀ THI */}
                                 <div className="stats-card p-10 rounded-[3.5rem] border border-white/5 shadow-2xl space-y-8 group transition-all hover:border-emerald-500/30">
                                     <div className="flex justify-between items-start">
                                         <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500"><BookOpen size={32}/></div>
@@ -300,8 +289,6 @@
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* CARD YÊU CẦU DUYỆT */}
                                 <div className="stats-card p-10 rounded-[3.5rem] border border-white/5 shadow-2xl space-y-8 group transition-all hover:border-red-500/30">
                                     <div className="flex justify-between items-start">
                                         <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500"><CreditCard size={32}/></div>
@@ -337,10 +324,25 @@
                                     {filteredExams.length > 0 ? filteredExams.map(e => {
                                         const totalAttempts = e.attempts || 0;
                                         const uniqueUsers = e.participantsCount || 0;
+                                        
+                                        // ĐỒNG BỘ RATING THEO CÔNG THỨC: ratingSum / ratingCount
+                                        const totalReviews = e.ratingCount || 0;
+                                        const ratingValue = totalReviews > 0 ? (e.ratingSum / totalReviews).toFixed(1) : "0.0";
+
                                         return (
                                             <div key={e.id} className="bg-slate-900/50 border border-white/5 p-8 rounded-[3rem] hover:border-blue-600/50 transition-all group relative shadow-2xl overflow-hidden flex flex-col backdrop-blur-sm">
                                                 <div className="absolute -right-10 -top-10 w-32 h-32 bg-blue-600/5 rounded-full group-hover:scale-[2.5] transition-all duration-700"></div>
-                                                <button onClick={async() => { try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', e.id), { isPremium: !e.isPremium }); notify(`Đã đổi trạng thái đề "${e.title}"`, "success"); } catch (err) { notify("Lỗi: " + err.message, "error"); } }} className={`p-5 rounded-3xl mb-6 inline-flex w-fit relative z-10 shadow-inner transition-transform hover:scale-105 active:scale-95 cursor-pointer ${e.isPremium ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'}`} title="Nhấn để đổi trạng thái VIP/Free">{e.isPremium ? <Crown size={24}/> : <Unlock size={24}/>}</button>
+                                                <div className="flex justify-between items-start mb-6 relative z-10">
+                                                    <button onClick={async() => { try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', e.id), { isPremium: !e.isPremium }); notify(`Đã đổi trạng thái đề "${e.title}"`, "success"); } catch (err) { notify("Lỗi: " + err.message, "error"); } }} className={`p-5 rounded-3xl inline-flex w-fit shadow-inner transition-transform hover:scale-105 active:scale-95 cursor-pointer ${e.isPremium ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'}`} title="Nhấn để đổi trạng thái VIP/Free">{e.isPremium ? <Crown size={24}/> : <Unlock size={24}/>}</button>
+                                                    
+                                                    {/* HIỂN THỊ RATING ĐỒNG BỘ: TÍNH TOÁN TRỰC TIẾP TỪ SUM VÀ COUNT */}
+                                                    <div className="bg-slate-950/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 flex items-center gap-2 shadow-lg">
+                                                        <span className="text-sm font-black text-white">{ratingValue}</span>
+                                                        <Star size={14} className={`${Number(ratingValue) > 0 ? 'text-yellow-500 fill-yellow-500' : 'text-slate-700'} transition-colors`}/>
+                                                        <span className="text-[10px] text-slate-500 font-bold">({totalReviews})</span>
+                                                    </div>
+                                                </div>
+
                                                 <h3 className="text-xl font-black text-slate-100 line-clamp-2 min-h-[4rem] leading-none mb-4 relative z-10 group-hover:text-blue-400 transition-colors uppercase tracking-tight">{e.title}</h3>
                                                 <div className="space-y-3 mb-6 relative z-10">
                                                     <div className="flex flex-col gap-1"><div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-widest"><Calendar size={12} className="text-slate-600"/> <span>Tạo: {formatDate(e.createdAt)}</span></div>{e.updatedAt && (<div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-widest"><RefreshCw size={12} className="text-slate-600"/> <span>Cập nhật: {formatDate(e.updatedAt)}</span></div>)}</div>
