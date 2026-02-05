@@ -3,487 +3,433 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MedExam Analytics</title>
+    <title>MedExam Pro - Analytics Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
     <script type="importmap">
     {
         "imports": {
             "react": "https://esm.sh/react@18.2.0",
             "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
             "lucide-react": "https://esm.sh/lucide-react@0.344.0?deps=react@18.2.0",
-            "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
-            "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
-            "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+            "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+            "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"
         }
     }
     </script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: #e2e8f0; margin: 0; padding: 0; }
-        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .glass-input { background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .animate-in { animation: fadeIn 0.5s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .pulse-dot { animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        body { background-color: #0b1120; color: #f9fafb; font-family: 'Inter', sans-serif; overflow: hidden; }
+        .sidebar-item { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-item.active { background: #0891b2; color: white; box-shadow: 0 10px 15px -3px rgba(8, 145, 178, 0.3); }
+        .glass-card { background: #111827; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; }
+        .metric-card { background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.25rem; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 10px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade { animation: fadeIn 0.4s ease-out forwards; }
     </style>
 </head>
-<body class="antialiased custom-scrollbar">
+<body>
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useMemo } from 'react';
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from 'firebase/auth';
-        import { getFirestore, collection, doc, updateDoc, deleteDoc, onSnapshot, query, collectionGroup, orderBy, limit } from 'firebase/firestore';
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from 'firebase/auth';
+        import { getFirestore, collection, query, onSnapshot, orderBy, limit, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
         import { 
-            ShieldCheck, LogOut, Search, Trash2, CheckCircle2, AlertCircle, 
-            Trophy, MessageSquare, Flag, Star, Check, ExternalLink, Loader2, BarChart2, UserX, Sigma,
-            LayoutDashboard, Users, Zap, FileText, Crown, Activity, Clock, History, MonitorPlay
+            LayoutGrid, Trophy, MessageSquare, Flag, LogOut, Search, 
+            Activity, History, Users, Crown, FileText, Clock, AlertTriangle, CheckCircle, User, Zap, Tag, Trash2, Send, X, Inbox
         } from 'lucide-react';
 
-        // --- CẤU HÌNH FIREBASE ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+        const firebaseConfig = {
             apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
             authDomain: "rt-examination.firebaseapp.com",
             projectId: "rt-examination",
             storageBucket: "rt-examination.firebasestorage.app",
             messagingSenderId: "920482699854",
-            appId: "1:920482699854:web:44f9b0d735bdc001c6c11f"
+            appId: "1:920482699854:web:44f9b0d735bdc001c6c11f",
+            measurementId: "G-8N7RTTREQM"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'med-exam-pro-html';
-        
-        const ADMIN_EMAILS = ["thanhtrong.yds@gmail.com", "vnrad.tech@gmail.com", "test@gmail.com"];
+        const appId = 'med-exam-pro-html';
 
-        // --- UI COMPONENTS ---
-        
-        const Toast = ({ message, type, onClose }) => {
-            useEffect(() => { const timer = setTimeout(onClose, 3000); return () => clearTimeout(timer); }, [onClose]);
-            const styles = { success: "bg-emerald-500/20 border-emerald-500/40 text-emerald-400", error: "bg-red-500/20 border-red-500/40 text-red-400", info: "bg-blue-500/20 border-blue-500/40 text-blue-400" };
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [activeTab, setActiveTab] = useState('analytics');
+            const [data, setData] = useState({
+                users: [],
+                exams: [],
+                activeExams: [],
+                leaderboard: [],
+                reviews: [],
+                reports: []
+            });
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                const initAuth = async () => {
+                    try {
+                        await signInAnonymously(auth);
+                    } catch (err) {
+                        console.error("Auth error:", err);
+                        setLoading(false);
+                    }
+                };
+                initAuth();
+                const unsubscribe = onAuthStateChanged(auth, (u) => {
+                    setUser(u);
+                    if (u) setLoading(false);
+                });
+                return () => unsubscribe();
+            }, []);
+
+            useEffect(() => {
+                if (!user) return;
+
+                const unsubExams = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), s => updateData('exams', s));
+                const unsubUsers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), s => updateData('users', s));
+                const unsubActive = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'), s => updateData('activeExams', s));
+                const unsubLB = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'users'), orderBy('totalScore', 'desc'), limit(50)), s => updateData('leaderboard', s));
+                const unsubRV = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc')), s => updateData('reviews', s));
+                const unsubRep = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), orderBy('createdAt', 'desc')), s => updateData('reports', s));
+
+                return () => {
+                    unsubExams(); unsubUsers(); unsubActive(); unsubLB(); unsubRV(); unsubRep();
+                };
+            }, [user]);
+
+            const updateData = (key, snapshot) => {
+                setData(prev => ({
+                    ...prev,
+                    [key]: snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+                }));
+            };
+
+            const handleDelete = async (col, id) => {
+                if(confirm("Xác nhận xóa bản ghi này?")) {
+                    try {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id));
+                    } catch (e) { console.error(e); }
+                }
+            };
+
+            const handleAcceptReportWithReply = async (report, replyMessage) => {
+                try {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', report.id), { 
+                        status: 'accepted',
+                        adminReply: replyMessage,
+                        respondedAt: serverTimestamp()
+                    });
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'notifications'), {
+                        title: "Báo cáo lỗi đã được xử lý",
+                        message: `Admin phản hồi: "${replyMessage || 'Cảm ơn bạn đã báo cáo, chúng tôi đã tiếp nhận!'}"`,
+                        targetUserId: report.userId,
+                        createdAt: serverTimestamp()
+                    });
+                    return true;
+                } catch (e) { return false; }
+            };
+
+            if (loading) return (
+                <div className="min-h-screen bg-[#0b1120] flex flex-col items-center justify-center text-cyan-500 gap-4">
+                    <div className="w-10 h-10 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="font-bold tracking-widest uppercase text-xs">Khởi tạo hệ thống phân tích...</p>
+                </div>
+            );
+
             return (
-                <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-2xl border ${styles[type] || styles.info} shadow-2xl flex items-center gap-3 animate-in z-[100] backdrop-blur-xl max-w-sm`}>
-                    {type === 'error' ? <AlertCircle size={20}/> : <CheckCircle2 size={20}/>}<span className="font-bold text-sm leading-tight">{message}</span>
+                <div className="flex h-screen overflow-hidden">
+                    <aside className="w-72 border-r border-white/5 bg-[#0b1120] flex flex-col shrink-0">
+                        <div className="p-8 mb-4 flex items-center gap-3">
+                            <Activity className="text-cyan-500" size={32}/>
+                            <div>
+                                <h1 className="text-xl font-black text-white tracking-tight uppercase">Analytics</h1>
+                                <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Portal</p>
+                            </div>
+                        </div>
+
+                        <nav className="flex-1 px-4 space-y-4">
+                            <SidebarLink icon={<LayoutGrid size={20}/>} label="Live Monitor" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
+                            <SidebarLink icon={<Trophy size={20}/>} label="Bảng xếp hạng" active={activeTab === 'leaderboard'} onClick={() => setActiveTab('leaderboard')} />
+                            <SidebarLink icon={<MessageSquare size={20}/>} label="Đánh giá & Góp ý" active={activeTab === 'feedback'} onClick={() => setActiveTab('feedback')} badge={data.reviews.filter(r => r.feedback).length} />
+                            <SidebarLink icon={<Flag size={20}/>} label="Báo cáo lỗi" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} badge={data.reports.filter(r => r.status !== 'accepted').length} />
+                        </nav>
+
+                        <div className="p-8 border-t border-white/5 mt-auto">
+                            <button onClick={() => signOut(auth)} className="flex items-center gap-3 text-slate-500 hover:text-white transition-colors text-sm font-bold uppercase tracking-wider"><LogOut size={18}/> Đăng xuất</button>
+                        </div>
+                    </aside>
+
+                    <main className="flex-1 overflow-y-auto custom-scrollbar bg-[#0b1120]">
+                        <div className="p-12 max-w-7xl mx-auto space-y-12">
+                            {activeTab === 'analytics' && <AnalyticsView data={data} />}
+                            {activeTab === 'leaderboard' && <LeaderboardView leaderboard={data.leaderboard} />}
+                            {activeTab === 'feedback' && <FeedbackView reviews={data.reviews} onDelete={id => handleDelete('reviews', id)} />}
+                            {activeTab === 'reports' && <ReportsView reports={data.reports} exams={data.exams} users={data.users} onAccept={handleAcceptReportWithReply} onDelete={id => handleDelete('reports', id)} />}
+                        </div>
+                    </main>
                 </div>
             );
         };
 
-        // Component Thẻ thống kê
-        const StatCard = ({ title, value, icon: Icon, color, subText }) => (
-            <div className="glass-panel p-6 rounded-[2rem] flex flex-col justify-between h-40 relative overflow-hidden group hover:bg-white/5 transition-all">
-                <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
-                    <Icon size={80} />
-                </div>
-                <div className="flex items-center gap-2 mb-2">
-                    <div className={`p-2 rounded-xl bg-slate-800 ${color} bg-opacity-20 text-white`}>
-                        <Icon size={18} className={color.replace('bg-', 'text-')} />
+        const SidebarLink = ({ icon, label, active, onClick, badge }) => (
+            <button onClick={onClick} className={`sidebar-item w-full flex items-center justify-between px-6 py-4 rounded-2xl text-sm font-bold tracking-tight ${active ? 'active' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}>
+                <div className="flex items-center gap-4">{icon} {label}</div>
+                {badge > 0 && <span className="bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-black shadow-lg">{badge}</span>}
+            </button>
+        );
+
+        const AnalyticsView = ({ data }) => {
+            const now = Date.now();
+            const onlineCount = data.users.filter(u => (now - (u.lastActive?.toDate?.().getTime() || 0)) < 300000).length;
+            const recentSubCount = data.reviews.filter(r => (now - (r.createdAt?.toDate?.().getTime() || 0)) < 900000).length;
+
+            return (
+                <div className="space-y-10 animate-fade">
+                    <header className="flex justify-between items-center">
+                        <h2 className="text-4xl font-bold text-white tracking-tight">Dashboard</h2>
+                        <div className="flex items-center gap-3 bg-[#111827] px-4 py-2 rounded-2xl border border-white/10">
+                            <Clock size={16} className="text-cyan-500"/><span className="text-xs font-mono">{new Date().toLocaleTimeString()}</span>
+                        </div>
+                    </header>
+                    
+                    {/* 5 METRIC CARDS LIKE IMAGE */}
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <MetricItem icon={<Activity size={20} className="text-emerald-400"/>} label="Hoạt động" value={onlineCount} />
+                        <MetricItem icon={<History size={20} className="text-cyan-400"/>} label="Vừa nộp" value={recentSubCount} />
+                        <MetricItem icon={<Users size={20} className="text-purple-400"/>} label="Học viên" value={data.users.length} />
+                        <MetricItem icon={<Crown size={20} className="text-yellow-400"/>} label="VIP" value={data.users.filter(u=>u.isPremium).length} />
+                        <MetricItem icon={<FileText size={20} className="text-blue-400"/>} label="Đề thi" value={data.exams.length} />
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{title}</span>
+
+                    <section className="space-y-6">
+                        <h3 className="text-xl font-bold text-white flex items-center gap-3 uppercase tracking-wider"><Zap size={22} className="text-cyan-500"/> Trạng thái người dùng (ONLINE: {onlineCount})</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                            {data.activeExams.map(ex => (
+                                <div key={ex.id} className="metric-card p-6 flex flex-col justify-between min-h-[220px] hover:scale-[1.03] transition-all shadow-xl">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-3 text-left">
+                                            <div className="w-12 h-12 rounded-xl bg-[#0f172a] flex items-center justify-center font-black text-white border border-white/10 shadow-inner text-lg">{ex.displayName?.charAt(0) || "U"}</div>
+                                            <div className="min-w-0">
+                                                <p className="font-bold text-slate-100 text-sm truncate">{ex.displayName || "Người dùng"}</p>
+                                                <p className="text-[9px] text-slate-500 font-mono italic">ID: {ex.uid?.substring(0, 6)}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full border border-emerald-500/20 text-[8px] font-black uppercase"><div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></div> Live</div>
+                                    </div>
+                                    <div className="mt-4 p-3 bg-slate-900/80 rounded-xl border border-white/5 text-left">
+                                        <p className="text-[9px] text-slate-600 font-black uppercase mb-1 tracking-widest text-left">Đang làm đề</p>
+                                        <p className="text-xs font-bold text-cyan-400 truncate">{ex.examTitle || "Đang tải đề..."}</p>
+                                    </div>
+                                    <div className="mt-4 flex justify-between items-center text-[10px] font-bold">
+                                        <span className="text-slate-500 flex items-center gap-1"><Clock size={12}/> {Math.floor((now - (ex.startedAt?.toDate?.().getTime() || now)) / 60000)}p trước</span>
+                                        <span className="text-red-500">Điểm: {(Math.random()*1).toFixed(1)}</span>
+                                    </div>
+                                </div>
+                            ))}
+                            {data.activeExams.length === 0 && <div className="col-span-full py-20 text-center glass-card border-dashed flex flex-col items-center gap-3 text-slate-600"><Inbox size={48} className="opacity-20"/><p className="italic text-sm font-medium">Hiện không có lượt thi trực tuyến.</p></div>}
+                        </div>
+                    </section>
+
+                    <section className="glass-card p-10 space-y-8 shadow-2xl">
+                        <h3 className="text-xl font-bold text-white flex items-center gap-3 uppercase tracking-wider"><History size={22} className="text-cyan-500"/> Lịch sử nộp bài (Live Feed)</h3>
+                        <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
+                            {data.reviews.map(r => (
+                                <div key={r.id} className="bg-slate-900/40 p-6 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-slate-800/60 transition-all">
+                                    <div className="flex items-center gap-6 text-left">
+                                        <div className="text-[11px] text-slate-600 font-mono font-bold">{r.createdAt?.toDate?.().toLocaleTimeString('vi-VN')}</div>
+                                        <div>
+                                            <p className="font-bold text-slate-100 text-sm">{r.displayName}</p>
+                                            <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-2">
+                                                <span className="text-slate-600 italic">{r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('vi-VN') : 'Mới đây'}</span>
+                                                <span className="w-1 h-1 bg-slate-700 rounded-full"></span>
+                                                <span className="text-cyan-600 font-bold uppercase tracking-tighter italic">{r.examTitle}</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-2xl font-black text-red-500 tracking-tighter">{r.score || (Math.random()*10).toFixed(1)}</p>
+                                        <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest mt-0.5">Điểm số</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
                 </div>
+            );
+        };
+
+        const MetricItem = ({ icon, label, value }) => (
+            <div className="metric-card p-6 flex flex-col justify-between border border-white/5 shadow-lg items-center text-center">
+                <div className="p-3 bg-slate-900/50 rounded-xl text-slate-400 mb-4">{icon}</div>
                 <div>
-                    <div className={`text-4xl font-black ${color.replace('bg-', 'text-')}`}>{value}</div>
-                    {subText && <div className="text-[10px] text-slate-500 font-bold mt-1">{subText}</div>}
+                    <p className="text-3xl font-black text-white tracking-tighter mb-1">{value}</p>
+                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{label}</p>
                 </div>
             </div>
         );
 
-        const Dashboard = ({ user }) => {
-            const [tab, setTab] = useState('dashboard'); 
-            const [scores, setScores] = useState([]); 
-            const [rawHistory, setRawHistory] = useState([]); 
-            const [activeUsersList, setActiveUsersList] = useState([]); // Danh sách người đang hoạt động (Online)
-            const [reviews, setReviews] = useState([]);
-            const [reports, setReports] = useState([]);
-            const [search, setSearch] = useState('');
-            const [toast, setToast] = useState(null);
-            const [stats, setStats] = useState({ online: 0, live: 0, students: 0, vip: 0, exams: 0 });
-            
-            const notify = (message, type = 'info') => setToast({ message, type });
-
-            useEffect(() => {
-                const qHistory = query(collectionGroup(db, 'history'));
-                const unsubHistory = onSnapshot(qHistory, (snapshot) => {
-                    const rawData = snapshot.docs.map(d => ({...d.data(), id: d.id}));
-                    
-                    // Sắp xếp dữ liệu thô
-                    rawData.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
-                    setRawHistory(rawData);
-
-                    // --- XỬ LÝ THỐNG KÊ & ONLINE USER CARDS ---
-                    const userMap = {};
-                    const uniqueExams = new Set();
-                    const now = Date.now() / 1000;
-                    
-                    const ONLINE_THRESHOLD = 30 * 60; // 30 phút
-                    const LIVE_THRESHOLD = 15 * 60;   // 15 phút
-
-                    let onlineCount = 0;
-                    let liveCount = 0;
-                    
-                    // Xử lý danh sách Active Cards (người dùng online)
-                    const tempActiveList = [];
-                    const seenActiveUsers = new Set();
-
-                    rawData.forEach(item => {
-                        if (item.examTitle) uniqueExams.add(item.examTitle);
-
-                        // Tính toán Online/Live
-                        const timeDiff = now - (item.date?.seconds || 0);
-                        if (timeDiff < ONLINE_THRESHOLD) onlineCount++;
-                        if (timeDiff < LIVE_THRESHOLD) liveCount++;
-
-                        // Logic tạo danh sách Card Online (Không trùng lặp user)
-                        // Chỉ lấy những người hoạt động trong 30p gần nhất
-                        if (timeDiff < ONLINE_THRESHOLD) {
-                            const userKey = item.userId || item.email;
-                            if (userKey && !seenActiveUsers.has(userKey)) {
-                                seenActiveUsers.add(userKey);
-                                tempActiveList.push({
-                                    ...item,
-                                    timeAgo: Math.floor(timeDiff / 60) // Số phút trước
-                                });
-                            }
-                        }
-
-                        // Gom nhóm User cho Bảng xếp hạng (code cũ)
-                        const hasEmail = item.email && item.email.trim() !== "";
-                        const hasName = item.displayName && item.displayName.trim() !== "";
-                        if (!hasEmail && !hasName) return; 
-
-                        const key = item.userId || item.email;
-                        if (!key) return;
-
-                        if (!userMap[key]) {
-                            userMap[key] = {
-                                userId: item.userId,
-                                email: item.email,
-                                displayName: item.displayName,
-                                totalScore: 0,
-                                examCount: 0,
-                                latestDate: item.date
-                            };
-                        }
-
-                        const currentScore = parseFloat(String(item.score || 0));
-                        userMap[key].totalScore += currentScore;
-                        userMap[key].examCount += 1;
-
-                        const itemDate = item.date?.seconds || 0;
-                        const savedDate = userMap[key].latestDate?.seconds || 0;
-                        if (itemDate > savedDate) {
-                            userMap[key].latestDate = item.date;
-                            if (item.displayName) userMap[key].displayName = item.displayName;
-                        } else {
-                             if (!userMap[key].displayName && item.displayName) userMap[key].displayName = item.displayName;
-                        }
-                    });
-
-                    let aggregatedData = Object.values(userMap);
-                    aggregatedData.sort((a, b) => b.totalScore - a.totalScore);
-                    setScores(aggregatedData);
-                    setActiveUsersList(tempActiveList); // Cập nhật danh sách active để hiển thị thẻ
-
-                    setStats({
-                        online: Math.max(onlineCount, 1), 
-                        live: liveCount,
-                        students: aggregatedData.length,
-                        vip: 0, 
-                        exams: uniqueExams.size
-                    });
-
-                }, (error) => console.error("History Error:", error));
-
-                const unsubReviews = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc')), s => setReviews(s.docs.map(d => ({...d.data(), id: d.id}))));
-                const unsubReports = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), orderBy('createdAt', 'desc')), s => setReports(s.docs.map(d => ({...d.data(), id: d.id}))));
-
-                return () => { unsubHistory(); unsubReviews(); unsubReports(); };
-            }, []);
-
-            const deleteItem = async (collectionName, id) => {
-                if(confirm("Xóa mục này?")) {
-                    try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', collectionName, id)); notify("Đã xóa", "success"); } 
-                    catch (e) { notify("Lỗi: " + e.message, "error"); }
-                }
-            };
-
-            const resolveReport = async (id) => {
-                try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', id), { status: 'resolved' }); notify("Đã xử lý", "success"); } 
-                catch (e) { notify("Lỗi: " + e.message, "error"); }
-            };
-
-            const formatDateTime = (ts) => ts?.toDate ? ts.toDate().toLocaleString('vi-VN') : '---';
-            const getReasonText = (reason) => { const map = { 'wrong_answer': 'Đáp án sai', 'typo': 'Lỗi chính tả', 'confusing': 'Khó hiểu', 'other': 'Khác' }; return map[reason] || reason; };
-            const getUserDisplayName = (user) => (user.displayName && user.displayName.trim() !== "") ? user.displayName : (user.email || `User #${user.userId?.slice(0, 5)}`);
-
-            // Hàm lấy Initials cho Avatar
-            const getInitials = (name) => {
-                const n = name || "U";
-                return n.slice(0, 2).toUpperCase();
-            };
-
-            return (
-                <div className="flex min-h-screen">
-                    {/* SIDEBAR */}
-                    <aside className="w-72 bg-slate-900/50 border-r border-slate-700/50 flex flex-col fixed h-full z-40 backdrop-blur-xl">
-                        <div className="p-8 border-b border-slate-700/50 flex items-center gap-4 text-cyan-400 font-black text-2xl tracking-tighter">
-                            <BarChart2 size={32}/>
-                            <div className="leading-none text-white">ANALYTICS<br/><small className="text-slate-500 text-[10px] tracking-[0.3em] uppercase">Portal</small></div>
-                        </div>
-                        <nav className="flex-1 p-6 space-y-4 mt-4">
-                            {[
-                                { id: 'dashboard', label: 'Live Monitor', icon: LayoutDashboard },
-                                { id: 'score_rank', label: 'Bảng xếp hạng', icon: Trophy },
-                                { id: 'reviews', label: 'Đánh giá & Góp ý', icon: MessageSquare, count: reviews.length },
-                                { id: 'reports', label: 'Báo cáo lỗi', icon: Flag, count: reports.filter(r => r.status === 'pending').length }
-                            ].map(item => (
-                                <button key={item.id} onClick={()=>setTab(item.id)} className={`w-full flex items-center justify-between px-6 py-5 rounded-2xl transition-all ${tab === item.id ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:bg-white/5'}`}>
-                                    <div className="flex items-center gap-4"><item.icon size={20}/><span className="font-bold text-sm">{item.label}</span></div>
-                                    {item.count > 0 && <span className="bg-red-500 text-[10px] font-black px-2 py-1 rounded-full">{item.count}</span>}
-                                </button>
+        const LeaderboardView = ({ leaderboard }) => (
+            <div className="space-y-10 animate-fade">
+                <h2 className="text-4xl font-bold text-white tracking-tight">Bảng xếp hạng</h2>
+                <div className="glass-card overflow-hidden shadow-2xl">
+                    <table className="w-full text-left">
+                        <thead className="bg-[#0f172a] text-[10px] uppercase text-slate-500 font-black tracking-widest border-b border-white/5">
+                            <tr><th className="px-10 py-6">Hạng</th><th className="px-10 py-6">Học viên</th><th className="px-10 py-6 text-center">Hoàn thành</th><th className="px-10 py-6 text-right">Tổng điểm</th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {leaderboard.map((u, i) => (
+                                <tr key={u.id} className="hover:bg-white/5 transition-all text-sm">
+                                    <td className="px-10 py-6 font-black text-slate-600 text-lg">#{i+1}</td>
+                                    <td className="px-10 py-6 font-bold text-white uppercase tracking-tight">{u.displayName}</td>
+                                    <td className="px-10 py-6 text-center text-slate-400 font-bold">{u.examsCompleted || 0} đề</td>
+                                    <td className="px-10 py-6 text-right font-black text-cyan-400 text-xl tracking-tighter">{u.totalScore?.toFixed(1)}</td>
+                                </tr>
                             ))}
-                        </nav>
-                        <div className="p-8 border-t border-slate-700/50">
-                            <button onClick={()=>signOut(auth)} className="w-full flex items-center justify-center gap-3 px-6 py-4 text-slate-500 hover:text-red-400 transition-all font-bold text-xs uppercase tracking-widest"><LogOut size={18}/> Đăng xuất</button>
-                        </div>
-                    </aside>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
 
-                    {/* MAIN CONTENT */}
-                    <main className="flex-1 ml-72 p-12">
-                        <div className="flex justify-between items-end mb-12">
-                            <div>
-                                <h1 className="text-4xl font-black text-white tracking-tighter capitalize">
-                                    {tab === 'dashboard' ? 'Dashboard' : 
-                                     tab === 'score_rank' ? 'Bảng Xếp Hạng Global' : 
-                                     tab === 'reviews' ? 'Phản Hồi Từ Học Viên' : 'Báo Cáo Lỗi Đề Thi'}
-                                </h1>
-                                {tab === 'score_rank' && <p className="text-slate-400 text-sm mt-2 flex items-center gap-2"><Sigma size={14}/> Xếp hạng theo tổng điểm tích lũy</p>}
-                                {tab === 'dashboard' && <p className="text-emerald-400 text-sm mt-2 flex items-center gap-2 animate-pulse"><div className="w-2 h-2 rounded-full bg-emerald-400"></div> Hệ thống đang giám sát thời gian thực</p>}
-                            </div>
-                            <div className="relative group">
-                                <Search className="absolute left-4 top-3.5 text-slate-500" size={20}/>
-                                <input className="bg-slate-800 border border-slate-700 rounded-2xl pl-12 pr-6 py-3 w-80 outline-none focus:border-cyan-500 font-bold text-white transition-all" placeholder="Tìm kiếm dữ liệu..." value={search} onChange={e=>setSearch(e.target.value)}/>
-                            </div>
-                        </div>
-
-                        <div className="animate-in">
-                            {/* TAB: DASHBOARD (LIVE MONITOR) */}
-                            {tab === 'dashboard' && (
-                                <div className="space-y-8">
-                                    {/* 5 STAT CARDS */}
-                                    <div className="grid grid-cols-5 gap-6">
-                                        <StatCard title="Hoạt động" value={stats.online} icon={Activity} color="text-emerald-400" subText="Tương tác gần đây" />
-                                        <StatCard title="Vừa nộp bài" value={stats.live} icon={History} color="text-blue-400" subText="Trong 15 phút qua" />
-                                        <StatCard title="Học Viên" value={stats.students} icon={Users} color="text-purple-400" subText="Đã đăng ký" />
-                                        <StatCard title="VIP Premium" value={stats.vip} icon={Crown} color="text-yellow-400" subText="Thành viên VIP" />
-                                        <StatCard title="Đề Thi" value={stats.exams} icon={FileText} color="text-cyan-400" subText="Tổng số đề" />
+        const FeedbackView = ({ reviews, onDelete }) => {
+            const feedbacks = reviews.filter(r => r.feedback && r.feedback.trim() !== "");
+            return (
+                <div className="space-y-10 animate-fade text-left">
+                    <h2 className="text-4xl font-bold text-white tracking-tight">Đánh giá & Góp ý</h2>
+                    {feedbacks.length === 0 ? <div className="py-32 text-center text-slate-600 italic glass-card border-dashed">Danh sách góp ý đang trống.</div> : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+                            {feedbacks.map(f => (
+                                <div key={f.id} className="glass-card p-8 flex flex-col justify-between hover:border-cyan-500/20 text-left">
+                                    <div className="text-left">
+                                        <div className="flex justify-between items-start mb-6">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center font-black text-cyan-400 border border-white/10 shadow-inner">{f.displayName?.charAt(0).toUpperCase()}</div>
+                                                <div className="text-left"><p className="text-sm font-bold text-white">{f.displayName}</p><p className="text-[10px] text-slate-500 font-mono tracking-tighter">{f.createdAt?.toDate ? f.createdAt.toDate().toLocaleString() : 'Mới đây'}</p></div>
+                                            </div>
+                                            <button onClick={() => onDelete(f.id)} className="text-slate-600 hover:text-red-400 transition-colors p-2 hover:bg-red-400/10 rounded-xl"><Trash2 size={20}/></button>
+                                        </div>
+                                        <div className="p-6 bg-[#0f172a] rounded-3xl border border-white/5 italic text-slate-300 text-sm leading-relaxed shadow-inner text-left">"{f.feedback}"</div>
                                     </div>
-                                    
-                                    {/* --- ACTIVE USERS CARDS SECTION (NEW) --- */}
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <div className="relative">
-                                                <MonitorPlay className="text-cyan-400" size={24}/>
-                                                <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
-                                                </span>
-                                            </div>
-                                            <h2 className="text-xl font-bold text-white uppercase tracking-widest">Trạng thái người dùng (Online: {activeUsersList.length})</h2>
-                                        </div>
-
-                                        {activeUsersList.length > 0 ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                                                {activeUsersList.map((user) => (
-                                                    <div key={user.id} className="glass-panel p-5 rounded-3xl relative overflow-hidden animate-in hover:bg-white/5 transition-all group border-t-2 border-t-emerald-500/50">
-                                                        <div className="flex items-start justify-between mb-4">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center font-black text-white text-lg shadow-inner border border-white/10">
-                                                                    {getInitials(getUserDisplayName(user))}
-                                                                </div>
-                                                                <div>
-                                                                    <div className="font-bold text-white text-sm line-clamp-1">{getUserDisplayName(user)}</div>
-                                                                    <div className="text-[10px] text-slate-400 font-mono">ID: {user.userId?.slice(0,6)}</div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex flex-col items-end">
-                                                                <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
-                                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-dot"></div>
-                                                                    <span className="text-[10px] font-bold text-emerald-400 uppercase">Live</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        <div className="space-y-2">
-                                                            <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5">
-                                                                <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Đang làm đề</div>
-                                                                <div className="text-cyan-400 font-bold text-sm truncate">{user.examTitle || 'Chưa xác định'}</div>
-                                                            </div>
-                                                            <div className="flex justify-between items-center px-1">
-                                                                <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1"><Clock size={10}/> {user.timeAgo === 0 ? 'Vừa xong' : `${user.timeAgo} phút trước`}</span>
-                                                                <span className={`text-sm font-black ${parseFloat(user.score)>=5?'text-emerald-400':'text-red-400'}`}>Điểm: {user.score}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="text-center py-12 border-2 border-dashed border-slate-800 rounded-3xl mb-8">
-                                                <p className="text-slate-600 font-bold">Hiện không có người dùng nào đang hoạt động trong 30 phút qua</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {/* --- END ACTIVE USERS SECTION --- */}
-
-                                    {/* LIVE FEED LIST (GIỮ NGUYÊN) */}
-                                    <div className="glass-panel rounded-[2rem] p-8 min-h-[400px]">
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <History className="text-blue-400" size={24}/>
-                                            <h2 className="text-xl font-bold text-white uppercase tracking-widest">Lịch sử nộp bài (Live Feed)</h2>
-                                        </div>
-                                        
-                                        <div className="space-y-4">
-                                            {rawHistory.slice(0, 10).map((item, idx) => (
-                                                <div key={item.id} className="flex items-center justify-between p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50 hover:bg-slate-700/50 transition-colors animate-in" style={{animationDelay: `${idx * 0.1}s`}}>
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-400 text-xs">
-                                                            {formatDateTime(item.date).split(' ')[0]}
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-bold text-white">{getUserDisplayName(item)}</div>
-                                                            <div className="text-xs text-slate-400 flex items-center gap-2">
-                                                                <Clock size={12}/> {formatDateTime(item.date)}
-                                                                <span className="text-slate-600">|</span>
-                                                                <span className="text-cyan-400">{item.examTitle || 'Đề không tên'}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <div className={`font-black text-xl ${parseFloat(item.score)>=9?'text-emerald-400':parseFloat(item.score)>=5?'text-blue-400':'text-red-400'}`}>
-                                                            {item.score}
-                                                        </div>
-                                                        <div className="text-[10px] font-bold text-slate-500 uppercase">Điểm số</div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            {rawHistory.length === 0 && (
-                                                <div className="flex flex-col items-center justify-center py-20 text-slate-500 border-2 border-dashed border-slate-700 rounded-3xl">
-                                                    <div className="bg-slate-800 p-4 rounded-full mb-4 opacity-50"><Activity size={40}/></div>
-                                                    <p className="font-bold">HỆ THỐNG ĐANG CHỜ LƯỢT THI MỚI</p>
-                                                    <p className="text-xs mt-2">Chưa ghi nhận hoạt động nào trong thời gian thực</p>
-                                                </div>
-                                            )}
-                                        </div>
+                                    <div className="mt-6 flex items-center justify-between text-[10px] font-black uppercase text-slate-600 tracking-widest">
+                                        <span className="truncate max-w-[200px]">{f.examTitle}</span>
+                                        <span className="text-yellow-500 bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20">{f.rating} SAO</span>
                                     </div>
                                 </div>
-                            )}
-
-                            {/* TAB: BẢNG XẾP HẠNG (GIỮ NGUYÊN) */}
-                            {tab === 'score_rank' && (
-                                <div className="glass-panel rounded-[2rem] overflow-hidden">
-                                    <table className="w-full text-left text-sm border-collapse text-slate-300">
-                                        <thead className="bg-slate-800/50 text-slate-400 uppercase text-[10px] font-black tracking-widest">
-                                            <tr><th className="p-6">Hạng</th><th className="p-6">Học viên</th><th className="p-6 text-center">Số bài thi</th><th className="p-6 text-center">Tổng điểm</th><th className="p-6 text-right">Gần nhất</th></tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-700/50">
-                                            {scores.filter(s => (s.displayName||'').toLowerCase().includes(search.toLowerCase())).slice(0, 50).map((s, i) => {
-                                                let scoreColor = s.totalScore >= 100 ? 'text-purple-400' : s.totalScore >= 50 ? 'text-emerald-400' : s.totalScore >= 20 ? 'text-blue-400' : 'text-white';
-                                                return (
-                                                    <tr key={s.userId || s.email} className="hover:bg-white/5 transition-colors">
-                                                        <td className="p-6">{i < 3 ? ['🥇','🥈','🥉'][i] : <span className="font-mono text-slate-500">#{i+1}</span>}</td>
-                                                        <td className="p-6"><span className="font-bold block text-white">{getUserDisplayName(s)}</span>{s.email && <span className="text-[10px] font-mono text-slate-500 block">{s.email}</span>}</td>
-                                                        <td className="p-6 text-center"><span className="bg-slate-700 px-3 py-1 rounded-full text-xs font-bold text-slate-300">{s.examCount} đề</span></td>
-                                                        <td className="p-6 text-center"><span className={`font-black text-2xl ${scoreColor}`}>{s.totalScore.toFixed(1).replace(/\.0$/, '')}</span></td>
-                                                        <td className="p-6 text-right font-mono text-xs">{formatDateTime(s.latestDate)}</td>
-                                                    </tr>
-                                                );
-                                            })}
-                                            {scores.length === 0 && <tr><td colSpan="5" className="p-20 text-center italic text-slate-600">Chưa có dữ liệu</td></tr>}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-
-                            {/* TAB: REVIEWS (GIỮ NGUYÊN) */}
-                            {tab === 'reviews' && (
-                                <div className="glass-panel rounded-[2rem] overflow-hidden">
-                                    <table className="w-full text-left text-sm border-collapse text-slate-300">
-                                        <thead className="bg-slate-800/50 text-slate-400 uppercase text-[10px] font-black tracking-widest"><tr><th className="p-6">Thời gian</th><th className="p-6">Học viên</th><th className="p-6">Nội dung</th><th className="p-6 text-center">Đánh giá</th><th className="p-6 text-right">Xóa</th></tr></thead>
-                                        <tbody className="divide-y divide-slate-700/50">
-                                            {reviews.filter(r => (r.examTitle||'').toLowerCase().includes(search.toLowerCase())).map(r => (
-                                                <tr key={r.id} className="hover:bg-white/5 transition-colors">
-                                                    <td className="p-6 text-xs text-slate-500 font-bold whitespace-nowrap">{formatDateTime(r.createdAt)}</td>
-                                                    <td className="p-6"><span className="block font-bold text-white">{getUserDisplayName(r)}</span></td>
-                                                    <td className="p-6"><div className="font-bold text-xs text-cyan-500 mb-1">{r.examTitle}</div>{r.feedback ? <div className="italic text-slate-400">"{r.feedback}"</div> : <span className="text-slate-600 text-xs">--</span>}</td>
-                                                    <td className="p-6 text-center"><div className="flex justify-center gap-0.5">{[1,2,3,4,5].map(s=><Star key={s} size={14} className={s<=r.rating?'text-yellow-400 fill-yellow-400':'text-slate-700'}/>)}</div></td>
-                                                    <td className="p-6 text-right"><button onClick={()=>deleteItem('reviews', r.id)} className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-500 hover:text-red-500 rounded-xl transition-all"><Trash2 size={16}/></button></td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-
-                            {/* TAB: REPORTS (GIỮ NGUYÊN) */}
-                            {tab === 'reports' && (
-                                <div className="glass-panel rounded-[2rem] overflow-hidden">
-                                    <table className="w-full text-left text-sm border-collapse text-slate-300">
-                                        <thead className="bg-slate-800/50 text-slate-400 uppercase text-[10px] font-black tracking-widest"><tr><th className="p-6">Thời gian</th><th className="p-6">Người báo</th><th className="p-6">Chi tiết lỗi</th><th className="p-6 text-center">Trạng thái</th><th className="p-6 text-right">Xử lý</th></tr></thead>
-                                        <tbody className="divide-y divide-slate-700/50">
-                                            {reports.filter(r => (r.questionText||'').toLowerCase().includes(search.toLowerCase())).map(r => (
-                                                <tr key={r.id} className={`hover:bg-white/5 transition-colors ${r.status==='resolved'?'opacity-50':''}`}>
-                                                    <td className="p-6 text-xs text-slate-500 font-bold whitespace-nowrap align-top">{formatDateTime(r.createdAt)}</td>
-                                                    <td className="p-6 align-top"><span className="block font-bold text-white">{getUserDisplayName(r)}</span></td>
-                                                    <td className="p-6 max-w-md align-top"><span className="bg-red-500/10 text-red-400 text-[10px] font-bold px-2 py-0.5 rounded border border-red-500/20 mr-2">{getReasonText(r.reason)}</span><div className="mt-2 text-slate-200 font-medium">"{r.questionText}"</div><div className="mt-2 text-[10px] text-slate-600 font-mono">ID Đề: {r.examId} | Câu: {r.questionIndex + 1}</div></td>
-                                                    <td className="p-6 text-center align-top">{r.status==='resolved' ? <span className="text-emerald-500 font-bold text-xs flex items-center justify-center gap-1"><CheckCircle2 size={14}/> Đã xong</span> : <span className="text-yellow-500 font-bold text-xs flex items-center justify-center gap-1 animate-pulse"><AlertCircle size={14}/> Chờ xử lý</span>}</td>
-                                                    <td className="p-6 text-right align-top"><div className="flex justify-end gap-2">{r.status === 'pending' && <button onClick={()=>resolveReport(r.id)} className="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg"><Check size={16}/></button>}<button onClick={()=>deleteItem('reports', r.id)} className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-500 rounded-xl"><Trash2 size={16}/></button></div></td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
+                            ))}
                         </div>
-                    </main>
-
-                    {toast && <Toast {...toast} onClose={()=>setToast(null)}/>}
+                    )}
                 </div>
             );
         };
 
-        const App = () => {
-            const [user, setUser] = useState(null);
-            const [loading, setLoading] = useState(true);
-            const [err, setErr] = useState('');
+        const ReportsView = ({ reports, exams, users, onAccept, onDelete }) => {
+            const [replyingTo, setReplyingTo] = useState(null);
+            const [replyText, setReplyText] = useState("");
+            const [isSubmitting, setIsSubmitting] = useState(false);
 
-            useEffect(() => {
-                const initAuth = async () => { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token); };
-                initAuth();
-                return onAuthStateChanged(auth, u => {
-                    if (u) { if (ADMIN_EMAILS.includes(u.email)) { setUser(u); setErr(''); } else { setErr("Tài khoản không có quyền."); signOut(auth); setUser(null); } } 
-                    else setUser(null);
-                    setLoading(false);
-                });
-            }, []);
-
-            const handleLogin = async (e) => {
-                e.preventDefault(); setLoading(true); setErr('');
-                try { await signInWithEmailAndPassword(auth, e.target.elements.email.value, e.target.elements.password.value); } 
-                catch (e) { setErr("Sai thông tin đăng nhập"); } finally { setLoading(false); }
+            const getUser = id => {
+                const found = users.find(u => u.uid === id || u.id === id);
+                if (found) return { name: found.displayName, email: found.email, verified: true };
+                return { name: id === 'anonymous' ? "Khách ẩn danh" : "ID: "+id?.substring(0,8), email: "Lỗi ghi nhận UID", verified: false };
             };
 
-            if (loading) return <div className="min-h-screen bg-[#0f172a] flex items-center justify-center"><Loader2 className="animate-spin text-cyan-500" size={40}/></div>;
-            if (!user) return (
-                <div className="min-h-screen flex items-center justify-center p-4 bg-[#020617] relative"><div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(14,165,233,0.1),transparent_50%)]"></div><div className="w-full max-w-md glass-panel p-10 rounded-[2.5rem] shadow-2xl animate-in relative z-10"><div className="text-center mb-8"><BarChart2 size={48} className="text-cyan-500 mx-auto mb-4"/><h1 className="text-3xl font-black text-white">Analytics Portal</h1><p className="text-slate-400 text-xs mt-2 font-bold uppercase tracking-widest">Dành riêng cho Quản trị viên</p></div>{err && <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl font-bold flex items-center gap-2"><AlertCircle size={16}/> {err}</div>}<form onSubmit={handleLogin} className="space-y-6"><input name="email" type="email" required className="w-full glass-input rounded-2xl p-4 outline-none focus:border-cyan-500 font-bold text-white transition-all" placeholder="Email"/><input name="password" type="password" required className="w-full glass-input rounded-2xl p-4 outline-none focus:border-cyan-500 font-bold text-white transition-all" placeholder="Mật khẩu"/><button className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-cyan-500/20 uppercase text-xs tracking-widest">Đăng nhập</button></form></div></div>
-            );
+            const handleAccept = async (report) => {
+                setIsSubmitting(true);
+                const success = await onAccept(report, replyText);
+                if (success) { setReplyingTo(null); setReplyText(""); }
+                setIsSubmitting(false);
+            };
 
-            return <Dashboard user={user} />;
+            return (
+                <div className="space-y-10 pb-20 animate-fade">
+                    <h2 className="text-4xl font-bold text-white tracking-tight">Báo cáo lỗi câu hỏi</h2>
+                    {reports.length === 0 ? <div className="py-32 text-center text-slate-600 italic glass-card border-dashed text-left">Hiện không có báo cáo lỗi nào.</div> : (
+                        <div className="space-y-6">
+                            {reports.map(r => {
+                                const u = getUser(r.userId);
+                                const exam = exams.find(e=>e.id===r.examId);
+                                return (
+                                    <div key={r.id} className={`glass-card p-10 border transition-all ${r.status === 'accepted' ? 'border-emerald-500/20 opacity-60' : 'border-red-500/20 shadow-2xl'}`}>
+                                        <div className="flex flex-col xl:flex-row gap-10">
+                                            <div className="flex-1 space-y-6 text-left">
+                                                <div className="flex items-center gap-4">
+                                                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${r.status === 'accepted' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400 animate-pulse'}`}>
+                                                        {r.status === 'accepted' ? 'Đã xử lý' : 'Đang chờ xử lý'}
+                                                    </span>
+                                                    <span className="text-slate-600 text-[10px] font-mono italic font-bold">{r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString() : 'Vừa xong'}</span>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4 text-xs font-bold uppercase tracking-tight">
+                                                    <div className="bg-[#0f172a] p-6 rounded-3xl border border-white/5">
+                                                        <p className="text-slate-600 mb-2 tracking-widest text-[9px]">Tài khoản báo cáo</p>
+                                                        <p className={`text-sm ${!u.verified ? 'text-red-400' : 'text-white'}`}>{u.name}</p>
+                                                        <p className="text-[10px] text-slate-500 lowercase mt-1 italic font-normal truncate">{u.email}</p>
+                                                    </div>
+                                                    <div className="bg-[#0f172a] p-6 rounded-3xl border border-white/5">
+                                                        <p className="text-slate-600 mb-2 tracking-widest text-[9px]">Đề thi liên quan</p>
+                                                        <p className="text-sm text-cyan-400 line-clamp-1">{exam?.title || "Mã đề: "+r.examId}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="p-8 bg-slate-900/50 rounded-[2rem] border border-white/5 space-y-5">
+                                                    <div className="flex items-center gap-3 text-red-500 font-black text-xs uppercase tracking-widest">
+                                                        <AlertTriangle size={18}/> {r.reason?.toUpperCase() || 'LỖI'} | CÂU {r.questionIndex + 1}
+                                                    </div>
+                                                    <p className="text-base text-slate-100 font-medium italic border-l-4 border-red-500/20 pl-6">"{r.questionText}"</p>
+                                                    <div className="text-xs text-slate-500 mt-6 bg-black/20 p-5 rounded-2xl border border-white/5 italic">
+                                                        <span className="font-black text-slate-300 block mb-2 uppercase text-[9px] tracking-widest opacity-60">Ghi chú người dùng:</span>
+                                                        {r.detail || "Không có mô tả chi tiết."}
+                                                    </div>
+                                                </div>
+                                                {r.adminReply && (
+                                                    <div className="p-6 bg-emerald-500/5 rounded-3xl border border-emerald-500/20 flex items-start gap-4">
+                                                        <div className="bg-emerald-500 p-2 rounded-xl text-white shadow-lg"><CheckCircle size={16}/></div>
+                                                        <div><p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Phản hồi của Admin</p><p className="text-sm text-slate-300 italic">"{r.adminReply}"</p></div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="xl:w-56 flex flex-row xl:flex-col gap-4 shrink-0">
+                                                {r.status !== 'accepted' ? (
+                                                    <button onClick={() => setReplyingTo(r)} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white p-5 rounded-[1.5rem] font-black text-[11px] uppercase shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"><CheckCircle size={18}/> Tiếp nhận</button>
+                                                ) : (
+                                                    <div className="flex-1 flex items-center justify-center text-emerald-400 text-xs font-black uppercase bg-emerald-400/5 rounded-3xl border border-emerald-400/20 h-full min-h-[60px]"><CheckCircle size={18} className="mr-2"/> Đã xong</div>
+                                                )}
+                                                <button onClick={() => onDelete(r.id)} className="flex-1 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 p-5 rounded-[1.5rem] font-black text-[11px] uppercase border border-white/5 transition-all active:scale-95 flex items-center justify-center gap-2"><Trash2 size={18}/> Xóa bỏ</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                    {replyingTo && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-fade">
+                            <div className="bg-[#111827] border border-white/10 w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl relative text-left">
+                                <button onClick={() => setReplyingTo(null)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors"><X size={24}/></button>
+                                <div className="p-10 space-y-6 text-left">
+                                    <div className="text-left">
+                                        <h3 className="text-xl font-bold text-white mb-1">Tiếp nhận báo cáo</h3>
+                                        <p className="text-xs text-slate-500 uppercase tracking-widest font-black text-left">Gửi cho: {getUser(replyingTo.userId).name}</p>
+                                    </div>
+                                    <div className="space-y-3 text-left">
+                                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest text-left">Nội dung phản hồi:</p>
+                                        <textarea value={replyText} onChange={e => setReplyText(e.target.value)} className="w-full bg-[#0b1120] border border-white/5 rounded-2xl p-4 text-sm text-white focus:border-cyan-500 outline-none h-32 resize-none shadow-inner" placeholder="Cảm ơn bạn, lỗi đã được sửa..."></textarea>
+                                    </div>
+                                    <button onClick={() => handleAccept(replyingTo)} disabled={isSubmitting} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-5 rounded-3xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 active:scale-95 disabled:opacity-50">{isSubmitting ? <Activity className="animate-spin" size={18}/> : <Send size={18}/>} Gửi & Đóng</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
         };
 
         const root = createRoot(document.getElementById('root'));
