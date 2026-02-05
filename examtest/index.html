@@ -37,7 +37,8 @@
                         'slide-left': 'slideLeft 0.3s ease-out',
                         'confetti': 'confetti 2s ease-out forwards',
                         'scale-up': 'scaleUp 0.3s ease-out',
-                        'bell-ring': 'bellRing 2s ease-in-out infinite', // Animation rung chuông
+                        'bell-shake': 'bellShake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+                        'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
                     },
                     keyframes: {
                         blob: {
@@ -66,10 +67,14 @@
                             'from': { transform: 'scale(0.95)', opacity: '0' },
                             'to': { transform: 'scale(1)', opacity: '1' },
                         },
-                        bellRing: {
+                        bellShake: {
                             '0%, 100%': { transform: 'rotate(0deg)' },
-                            '10%, 30%, 50%, 70%, 90%': { transform: 'rotate(15deg)' },
-                            '20%, 40%, 60%, 80%': { transform: 'rotate(-15deg)' },
+                            '15%': { transform: 'rotate(-10deg)' },
+                            '30%': { transform: 'rotate(10deg)' },
+                            '45%': { transform: 'rotate(-10deg)' },
+                            '60%': { transform: 'rotate(10deg)' },
+                            '75%': { transform: 'rotate(-5deg)' },
+                            '90%': { transform: 'rotate(5deg)' }
                         }
                     }
                 }
@@ -140,7 +145,7 @@
         // Đã thêm getDocs vào import
         import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, orderBy, setDoc, doc, getDoc, getDocs, where, updateDoc, increment, limit, deleteDoc } from 'firebase/firestore';
         // Thêm 'Users' vào danh sách import
-        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, Users, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal, Sun, Moon, Type, X, Info, Check, Quote, Mail, Key, Flag, BarChart3, AlertCircle, RefreshCw, Bell, Trash2 } from 'lucide-react';
+        import { Activity, AlertTriangle, Award, Clock, FileText, History, LogOut, ShieldCheck, User, Users, XCircle, Loader2, Lock, Crown, Search, Filter, BookOpen, Star, Grid, CheckCircle2, ChevronRight, Menu, ArrowUp, Edit3, Save, Phone, MapPin, Calendar, CreditCard, Send, Hourglass, Eye, CheckCircle, Share2, Download, Facebook, Copy, Trophy, Medal, Sun, Moon, Type, X, Info, Check, Quote, Mail, Key, Flag, BarChart3, AlertCircle, RefreshCw, Bell, Trash2, MessageSquare } from 'lucide-react';
 
         const firebaseConfig = {
             apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
@@ -187,6 +192,7 @@
             if (diff < 60) return 'Vừa xong';
             if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
             if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
+            if (diff < 604800) return `${Math.floor(diff / 86400)} ngày trước`;
             return date.toLocaleDateString('vi-VN');
         };
 
@@ -1323,13 +1329,6 @@
                 );
             };
 
-            const toggleNotiDropdown = () => {
-                if (!showNotiDropdown) {
-                    onOpenNoti();
-                }
-                setShowNotiDropdown(!showNotiDropdown);
-            };
-
             const QuoteCard = () => (
                 <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-violet-600/20 to-indigo-600/20 border border-indigo-500/20 flex items-center gap-4 relative overflow-hidden">
                     <Quote size={48} className="text-indigo-500 opacity-20 absolute top-2 left-2" />
@@ -1338,11 +1337,6 @@
                         <p className="text-indigo-400 text-xs font-bold mt-2 uppercase tracking-wider">- Colin Powell</p>
                     </div>
                 </div>
-            );
-
-            // Filter notifications based on cleared timestamp
-            const visibleNotifications = notifications.filter(n => 
-                (n.createdAt?.seconds || 0) > lastCleared
             );
 
             return (
@@ -1365,17 +1359,6 @@
                             </div>
                         </div>
                     </div>
-
-                    {/* Notification Dropdown (Positioned relative to button in navbar, but handling here for now or absolute) */}
-                    {/* Since Dashboard is rendered inside App's layout, we need to lift this up or handle positioning. 
-                        For simplicity, let's inject it into the DOM near the bell using fixed positioning or handle it in App.
-                        Wait, Dashboard is the child. Let's assume the bell is in App.js. 
-                        Actually, the Bell is in App.js. So the dropdown should be there. 
-                        Wait, the prompt says "I want ... when clicking the bell". 
-                        The Bell is in App -> renderContent -> return -> nav.
-                        So we need to move the Dropdown logic to App.js or pass a "renderDropdown" prop.
-                        Let's handle it in App.js for cleaner code.
-                    */}
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                         <div className="lg:col-span-2">
@@ -1522,6 +1505,8 @@
             const [isNotiPanelOpen, setIsNotiPanelOpen] = useState(false);
             const [unreadCount, setUnreadCount] = useState(0);
             const [lastCleared, setLastCleared] = useState(0);
+            const [sysNoti, setSysNoti] = useState(null); // For Popup
+            const [isNotiOpen, setIsNotiOpen] = useState(false); // For Popup visibility
 
             useEffect(() => {
                 const storedLastCleared = localStorage.getItem('noti_last_cleared_seconds');
@@ -1579,6 +1564,17 @@
                     const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     setNotifications(items);
                     
+                    if (items.length > 0) {
+                        // Check for NEW popup notification
+                        const newest = items[0];
+                        const seenPopupId = localStorage.getItem('seen_noti_popup_id');
+                        
+                        if (seenPopupId !== newest.id && (newest.createdAt?.seconds || 0) > lastCleared) {
+                            setSysNoti(newest);
+                            setIsNotiOpen(true);
+                        }
+                    }
+
                     // Calculate unread count
                     const lastSeenSeconds = Number(localStorage.getItem('noti_last_seen_seconds') || 0);
                     // Count only visible (uncleared) notifications that are newer than lastSeen
@@ -1597,7 +1593,6 @@
                 if (!isNotiPanelOpen) {
                     // Opening: Mark all current visible as read
                     if (notifications.length > 0) {
-                        // Store the timestamp of the newest notification as "last seen"
                         const newestTimestamp = notifications[0].createdAt?.seconds || 0;
                         localStorage.setItem('noti_last_seen_seconds', newestTimestamp);
                         setUnreadCount(0);
@@ -1607,12 +1602,19 @@
             };
 
             const handleClearAllNoti = () => {
-                if (notifications.length > 0) {
-                    const newestTimestamp = notifications[0].createdAt?.seconds || 0;
-                    // Store locally to hide older ones
-                    localStorage.setItem('noti_last_cleared_seconds', newestTimestamp);
-                    setLastCleared(newestTimestamp);
-                    setUnreadCount(0); // Clearing means reading
+                // Set cleared time to NOW to hide everything currently existing
+                const nowSeconds = Math.floor(Date.now() / 1000);
+                localStorage.setItem('noti_last_cleared_seconds', nowSeconds);
+                setLastCleared(nowSeconds);
+                setUnreadCount(0);
+                // Also close popup if open
+                setIsNotiOpen(false); 
+            };
+
+            const handleClosePopup = () => {
+                setIsNotiOpen(false);
+                if (sysNoti) {
+                    localStorage.setItem('seen_noti_popup_id', sysNoti.id);
                 }
             };
 
@@ -1676,55 +1678,74 @@
                                 <div className="flex items-center gap-2 md:gap-4 relative">
                                     {/* --- BELL ICON FOR NOTIFICATIONS --- */}
                                     <div className="relative">
-                                        <button onClick={handleToggleNotiPanel} className={`relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all mr-1 ${isNotiPanelOpen ? 'bg-white/10 text-white' : ''}`}>
-                                            <Bell size={20} className={unreadCount > 0 ? "text-yellow-400 animate-bell-ring" : ""} />
+                                        <button onClick={handleToggleNotiPanel} className={`relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all mr-1 ${isNotiPanelOpen ? 'bg-white/10 text-white ring-1 ring-white/20' : ''}`}>
+                                            <Bell size={20} className={unreadCount > 0 ? "text-yellow-400 animate-bell-shake drop-shadow-md" : ""} />
                                             {unreadCount > 0 && (
-                                                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-slate-900 animate-ping"></span>
-                                            )}
-                                            {unreadCount > 0 && (
-                                                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-slate-900"></span>
+                                                <>
+                                                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-900 z-10"></span>
+                                                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping-slow opacity-75"></span>
+                                                </>
                                             )}
                                         </button>
 
-                                        {/* --- NOTIFICATION DROPDOWN PANEL --- */}
+                                        {/* --- NOTIFICATION DROPDOWN PANEL (IMPROVED UI) --- */}
                                         {isNotiPanelOpen && (
-                                            <div className="absolute right-0 top-full mt-3 w-80 sm:w-96 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50 animate-scale-up origin-top-right">
-                                                <div className="p-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center backdrop-blur-sm">
-                                                    <h3 className="font-bold text-white flex items-center gap-2">
-                                                        <Bell size={16} className="text-cyan-400"/> Thông báo
+                                            <div className="absolute right-0 top-full mt-3 w-80 sm:w-96 bg-[#0f172a] border border-slate-700/50 rounded-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden z-50 animate-scale-up origin-top-right ring-1 ring-white/10">
+                                                {/* Header */}
+                                                <div className="p-4 border-b border-slate-800 bg-gradient-to-r from-slate-900 to-slate-800 flex justify-between items-center relative overflow-hidden">
+                                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500"></div>
+                                                    <h3 className="font-bold text-white flex items-center gap-2 relative z-10 text-sm tracking-wide uppercase">
+                                                        <Bell size={14} className="text-cyan-400 fill-cyan-400/20"/> Thông báo
                                                     </h3>
                                                     {visibleNotifications.length > 0 && (
                                                         <button 
                                                             onClick={handleClearAllNoti}
-                                                            className="text-xs text-slate-400 hover:text-red-400 flex items-center gap-1 transition-colors"
+                                                            className="text-[10px] font-bold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-2 py-1 rounded-md flex items-center gap-1 transition-all hover:scale-105 active:scale-95"
                                                         >
-                                                            <Trash2 size={12}/> Xóa tất cả
+                                                            <Trash2 size={10}/> Xóa tất cả
                                                         </button>
                                                     )}
                                                 </div>
-                                                <div className="max-h-[60vh] overflow-y-auto custom-scrollbar">
+                                                
+                                                {/* List Content */}
+                                                <div className="max-h-[60vh] overflow-y-auto custom-scrollbar bg-slate-900/50 backdrop-blur-xl">
                                                     {visibleNotifications.length === 0 ? (
-                                                        <div className="p-8 text-center text-slate-500 italic flex flex-col items-center gap-3">
-                                                            <div className="bg-slate-800 p-3 rounded-full"><Bell size={24} className="opacity-50"/></div>
-                                                            <p>Không có thông báo mới</p>
+                                                        <div className="py-12 px-6 text-center flex flex-col items-center gap-4">
+                                                            <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center border border-slate-700/50">
+                                                                <Bell size={24} className="text-slate-600"/>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-slate-400 font-medium text-sm">Hiện chưa có thông báo mới</p>
+                                                                <p className="text-slate-600 text-xs mt-1">Chúng tôi sẽ báo cho bạn khi có cập nhật.</p>
+                                                            </div>
                                                         </div>
                                                     ) : (
-                                                        <div className="divide-y divide-slate-800">
+                                                        <div className="divide-y divide-slate-800/50">
                                                             {visibleNotifications.map((noti) => (
-                                                                <div key={noti.id} className="p-4 hover:bg-slate-800/50 transition-colors flex gap-3 group">
-                                                                    <div className="mt-1 bg-cyan-500/10 p-2 rounded-full h-fit shrink-0">
-                                                                        <Info size={16} className="text-cyan-400"/>
+                                                                <div key={noti.id} className="p-4 hover:bg-slate-800/80 transition-colors flex gap-4 group cursor-default relative overflow-hidden">
+                                                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                                                    <div className="mt-1 w-10 h-10 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                                                                        <MessageSquare size={18} className="text-cyan-400"/>
                                                                     </div>
-                                                                    <div>
-                                                                        <h4 className="font-bold text-sm text-slate-200 group-hover:text-white transition-colors">{noti.title}</h4>
-                                                                        <p className="text-xs text-slate-400 mt-1 leading-relaxed">{noti.message}</p>
-                                                                        <p className="text-[10px] text-slate-500 mt-2 font-mono">{formatTimeAgo(noti.createdAt)}</p>
+                                                                    <div className="flex-1">
+                                                                        <div className="flex justify-between items-start gap-2 mb-1">
+                                                                            <h4 className="font-bold text-sm text-slate-200 group-hover:text-white transition-colors line-clamp-1">{noti.title}</h4>
+                                                                            <span className="text-[10px] font-mono text-slate-500 whitespace-nowrap bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">{formatTimeAgo(noti.createdAt)}</span>
+                                                                        </div>
+                                                                        <p className="text-xs text-slate-400 leading-relaxed group-hover:text-slate-300 transition-colors line-clamp-3">{noti.message}</p>
                                                                     </div>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     )}
                                                 </div>
+                                                
+                                                {/* Footer */}
+                                                {visibleNotifications.length > 0 && (
+                                                    <div className="p-3 bg-slate-900 border-t border-slate-800 text-center">
+                                                        <span className="text-[10px] text-slate-500">Hiển thị 20 thông báo gần nhất</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -1775,6 +1796,29 @@
 
             return (
                 <ToastProvider>
+                    {/* --- SYSTEM NOTIFICATION POPUP --- */}
+                    {isNotiOpen && sysNoti && (
+                        <div className="fixed top-0 left-0 w-full z-[100] animate-slide-down">
+                            <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-4 shadow-xl border-b border-indigo-400/30 backdrop-blur-md">
+                                <div className="max-w-7xl mx-auto flex items-start gap-4">
+                                    <div className="bg-white/20 p-2 rounded-full mt-1 animate-bell-shake">
+                                        <Bell size={24} className="text-white" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-bold text-lg">{sysNoti.title}</h4>
+                                        <p className="text-indigo-100 text-sm mt-1">{sysNoti.message}</p>
+                                        <p className="text-xs text-indigo-300 mt-2 font-mono flex items-center gap-1">
+                                            <Clock size={10}/>
+                                            {sysNoti.createdAt?.seconds ? new Date(sysNoti.createdAt.seconds * 1000).toLocaleString('vi-VN') : 'Vừa xong'}
+                                        </p>
+                                    </div>
+                                    <button onClick={handleClosePopup} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     {renderContent()}
                 </ToastProvider>
             );
