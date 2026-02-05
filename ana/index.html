@@ -170,8 +170,13 @@
                     const userMap = {};
                     const uniqueExams = new Set();
                     const now = Date.now() / 1000;
-                    const ONLINE_THRESHOLD = 30 * 60; 
-                    const LIVE_THRESHOLD = 15 * 60;
+                    
+                    // CẬP NHẬT THỜI GIAN THỰC
+                    // 1. Online: Hoạt động trong 30 giây gần nhất (Real-time Presence)
+                    const ONLINE_THRESHOLD = 30; 
+                    // 2. Đang thi: Hoạt động trong 5 phút và CHƯA NỘP BÀI (Logic bên dưới)
+                    const LIVE_THRESHOLD = 5 * 60; 
+
                     let onlineCount = 0;
                     let liveCount = 0;
 
@@ -185,8 +190,25 @@
                         if (!key) return;
 
                         const timeDiff = now - (item.date?.seconds || 0);
-                        if (timeDiff < ONLINE_THRESHOLD) onlineCount++;
-                        if (timeDiff < LIVE_THRESHOLD) liveCount++;
+                        
+                        // LOGIC ONLINE: Chỉ tính nếu hoạt động < 5 phút
+                        if (timeDiff < ONLINE_THRESHOLD) {
+                            onlineCount++;
+                        }
+
+                        // LOGIC ĐANG THI (Strict):
+                        // 1. Phải hoạt động gần đây (< 5 phút)
+                        // 2. KHÔNG CÓ ĐIỂM (item.score). Vì nếu có điểm = đã nộp bài = đã xong.
+                        // (Nếu DB chỉ lưu lịch sử khi nộp bài, số này sẽ luôn = 0, đúng với yêu cầu "nộp bài thì không tính")
+                        if (timeDiff < LIVE_THRESHOLD) {
+                            // Kiểm tra xem đã nộp bài chưa (có score hay không)
+                            const isSubmitted = item.score !== undefined && item.score !== null && item.score !== '';
+                            const isDoing = !isSubmitted || item.status === 'doing' || item.status === 'in-progress';
+                            
+                            if (isDoing && !isSubmitted) {
+                                liveCount++;
+                            }
+                        }
 
                         if (!userMap[key]) {
                             userMap[key] = { userId: item.userId, email: item.email, displayName: item.displayName, totalScore: 0, examCount: 0, latestDate: item.date };
@@ -205,7 +227,7 @@
 
                     setStats(prev => ({
                         ...prev,
-                        online: Math.max(onlineCount, 1),
+                        online: Math.max(onlineCount, 1), // Tối thiểu 1 là admin
                         live: liveCount,
                         historyStudents: aggregatedData.length,
                         historyExams: uniqueExams.size
@@ -240,9 +262,9 @@
                     
                     // --- IMPROVED VIP DETECTION LOGIC ---
                     const vipCount = users.filter(u => {
-                        // 1. Kiểm tra chính xác các trường (bao gồm isPremium từ hướng dẫn)
+                        // 1. Kiểm tra chính xác các trường
                         const fieldsToCheck = [
-                            u.isPremium, // <--- Quan trọng: Đồng bộ với Admin Portal
+                            u.isPremium,
                             u.isVIP, u.vip, u.isVip, 
                             u.plan, u.role, u.tier, 
                             u.type, u.accountType, u.subscription, u.goi
