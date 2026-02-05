@@ -39,6 +39,7 @@
                         'scale-up': 'scaleUp 0.3s ease-out',
                         'spin-slow': 'spin 4s linear infinite',
                         'pulse-gold': 'pulseGold 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'flash': 'flash 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     },
                     keyframes: {
                         blob: {
@@ -50,6 +51,10 @@
                         fadeIn: {
                             'from': { opacity: '0', transform: 'translateY(10px)' },
                             'to': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        flash: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0.2' },
                         },
                         slideUp: {
                             'from': { transform: 'translateY(100%)' },
@@ -63,6 +68,10 @@
                             'from': { transform: 'translateX(100%)' },
                             'to': { transform: 'translateX(0)' },
                         },
+                        pulseGold: {
+                            '0%, 100%': { boxShadow: '0 0 0 0 rgba(245, 158, 11, 0.4)' },
+                            '50%': { boxShadow: '0 0 20px 5px rgba(245, 158, 11, 0.2)' },
+                        },
                         scaleUp: {
                             'from': { transform: 'scale(0.95)', opacity: '0' },
                             'to': { transform: 'scale(1)', opacity: '1' },
@@ -73,7 +82,22 @@
         }
     </script>
     <style>
-        body { background-color: #0b1120; color: #e2e8f0; -webkit-font-smoothing: antialiased; }
+        /* CHỐNG COPY CƠ BẢN */
+        body { 
+            background-color: #0b1120; 
+            color: #e2e8f0; 
+            -webkit-font-smoothing: antialiased;
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE10+/Edge */
+            user-select: none; /* Standard */
+        }
+        
+        /* Ẩn nội dung khi in */
+        @media print {
+            body { display: none !important; }
+        }
+
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
@@ -96,6 +120,50 @@
         
         .text-glow { text-shadow: 0 2px 4px rgba(0,0,0,0.5), 0 0 10px rgba(255,255,255,0.1); }
     </style>
+    
+    <!-- SCRIPT BẢO VỆ BẢN QUYỀN TOÀN CỤC -->
+    <script>
+        // Chặn chuột phải
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        // Chặn phím tắt
+        document.addEventListener('keydown', function(event) {
+            // Chặn F12
+            if (event.key === 'F12') {
+                event.preventDefault();
+                return false;
+            }
+            // Chặn các tổ hợp phím Ctrl
+            if (event.ctrlKey) {
+                switch (event.key.toLowerCase()) {
+                    case 'c': // Copy
+                    case 'u': // View Source
+                    case 's': // Save
+                    case 'p': // Print
+                    case 'a': // Select All
+                    case 'shift': // Ctrl+Shift+I (DevTools)
+                        event.preventDefault();
+                        return false;
+                }
+            }
+            // Chặn Ctrl+Shift+I (Riêng cho Chrome/Edge)
+            if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'i') {
+                event.preventDefault();
+                return false;
+            }
+        });
+
+        // Phát hiện và làm mờ khi mất focus (Anti-Record/Anti-Spy đơn giản)
+        window.addEventListener('blur', function() {
+            document.body.style.filter = 'blur(10px)';
+            document.title = '⚠️ Cảnh báo bảo mật!';
+        });
+
+        window.addEventListener('focus', function() {
+            document.body.style.filter = 'none';
+            document.title = 'MedExam Pro - Ôn Thi Chứng Chỉ Hành Nghề';
+        });
+    </script>
 </head>
 <body>
     <div id="root"></div>
@@ -202,6 +270,20 @@
 
         const Skeleton = ({ className }) => {
             return <div className={`bg-slate-700/50 animate-pulse rounded-lg ${className}`}></div>;
+        };
+        
+        // COMPONENT WATERMARK BẢO VỆ BẢN QUYỀN
+        const Watermark = ({ text }) => {
+            if (!text) return null;
+            return (
+                <div className="fixed inset-0 z-[9999] pointer-events-none overflow-hidden flex flex-wrap gap-24 justify-center items-center opacity-[0.03] select-none" style={{ mixBlendMode: 'overlay' }}>
+                    {Array.from({ length: 30 }).map((_, i) => (
+                        <div key={i} className="transform -rotate-45 text-white font-black text-xl whitespace-nowrap">
+                            {text} <br/> {new Date().toLocaleDateString('vi-VN')}
+                        </div>
+                    ))}
+                </div>
+            );
         };
 
         const ToastContext = createContext();
@@ -541,7 +623,7 @@
                                 <UserAvatar user={user} profile={profile} className="w-20 h-20 text-3xl ring-4 ring-cyan-500/10" />
                                 <div>
                                     <p className="text-slate-500 font-bold text-xs uppercase tracking-[0.2em] mb-1">CHÀO MỪNG TRỞ LẠI</p>
-                                    <h2 className="text-4xl font-black text-white tracking-tight">{profile?.displayName || user.displayName || "Khách"}</h2>
+                                    <h2 className="text-4xl font-black text-white tracking-tight">{user.displayName || "Thành viên"}</h2>
                                 </div>
                             </div>
                             <div className="flex gap-4 flex-wrap justify-center">
@@ -650,7 +732,7 @@
                                         <tr key={r.id} className="hover:bg-white/5 transition-colors">
                                             <td className="p-5 font-bold text-white">{r.examTitle}</td>
                                             <td className="p-5 text-slate-400 text-xs">{r.date?.toLocaleString('vi-VN')}</td>
-                                            <td className="p-5 text-center"><span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${Number(r.score)>=5 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>{Number(r.score)>=5 ? 'ĐẠT' : 'CHƯA ĐẠT'}</span></td>
+                                            <td className="p-5 text-center"><span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${Number(r.score)>=5 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>{Number(r.score)>=5 ? 'Đạt' : 'CHƯA ĐẠT'}</span></td>
                                             <td className="p-5 text-right pr-10 font-black text-2xl text-white">{r.score}</td>
                                         </tr>
                                     ))}
@@ -772,26 +854,29 @@
                          <div className="h-full bg-cyan-500 transition-all duration-300" style={{width: `${progressPercent}%`}}></div>
                     </div>
                     <div className="flex-1 flex flex-col h-full relative">
-                        <div className={`p-4 flex justify-between items-center z-10 shrink-0 shadow-lg ${isDarkMode ? 'bg-slate-900 border-b border-white/5' : 'bg-white border-b'}`}>
-                            <div className="flex items-center gap-4 w-1/4 relative z-20">
-                                <button onClick={() => confirm("Thoát và không lưu kết quả?") && onExit()} className="nav-btn w-10"><LogOut size={20} className="rotate-180"/></button>
+                        <div className={`${headerClass} p-4 grid grid-cols-2 md:grid-cols-3 items-center z-10 shrink-0 shadow-lg`}>
+                            
+                            {/* LEFT SIDE */}
+                            <div className="flex items-center gap-4 justify-start">
+                                <button onClick={() => confirm("Thoát và không lưu kết quả?") && onExit()} className="nav-btn w-10 shrink-0"><LogOut size={20} className="rotate-180"/></button>
                                 <div className="hidden md:block">
                                     <div className={`text-xs flex items-center gap-2 mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-gray-500'}`}>
-                                        <span className="hidden md:inline">Đã làm: {Object.keys(answers).length}/{exam.questions.length}</span>
+                                        <span className="hidden lg:inline">Đã làm: {Object.keys(answers).length}/{exam.questions.length}</span>
                                         <span className={`px-2 py-0.5 rounded font-bold ${isDarkMode ? 'bg-slate-800 text-cyan-400' : 'bg-gray-200 text-cyan-700'}`}>{progressPercent}%</span>
                                     </div>
                                 </div>
+                                <h2 className="md:hidden font-bold text-lg line-clamp-1 truncate">{exam.title}</h2>
                             </div>
                             
-                            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-10 pointer-events-none hidden md:block">
-                                <h2 className="text-2xl font-black uppercase tracking-wider text-cyan-400 drop-shadow-md whitespace-nowrap">{exam.title}</h2>
-                            </div>
-                            
-                             <div className="md:hidden absolute left-16 right-32 truncate pointer-events-none">
-                                <h2 className="font-bold text-base truncate">{exam.title}</h2>
+                            {/* CENTER TITLE */}
+                            <div className="hidden md:flex justify-center">
+                                <h2 className="text-2xl font-black uppercase tracking-wider text-cyan-400 drop-shadow-md whitespace-nowrap text-glow transform hover:scale-105 transition-transform cursor-default">
+                                    {exam.title}
+                                </h2>
                             </div>
 
-                            <div className="flex items-center gap-3 w-1/4 justify-end relative z-20">
+                            {/* RIGHT SIDE */}
+                            <div className="flex items-center gap-3 justify-end">
                                 <button onClick={()=>setIsTwoColumns(!isTwoColumns)} className={`hidden md:block p-2 rounded-lg border transition-all ${isTwoColumns ? 'bg-cyan-600 text-white border-cyan-600' : (isDarkMode ? 'bg-slate-800 border-slate-700 hover:text-cyan-400' : 'bg-gray-100 border-gray-200 text-gray-600 hover:text-cyan-600')}`} title={isTwoColumns ? "Chế độ 1 cột" : "Chế độ 2 cột"}>
                                     {isTwoColumns ? <Rows size={20} /> : <Columns size={20} />}
                                 </button>
@@ -809,7 +894,7 @@
 
                                 <div className={`font-mono text-xl font-black px-4 py-1.5 rounded-xl border shadow-inner transition-all duration-300 ${
                                     timeLeft <= 300 
-                                    ? 'text-red-500 border-red-500 bg-red-500/10 animate-flash' 
+                                    ? 'text-red-500 border-red-500 bg-red-500/10 animate-flash shadow-[0_0_10px_rgba(239,68,68,0.4)]' 
                                     : (isDarkMode ? 'text-cyan-400 bg-slate-800 border-white/5' : 'text-cyan-600 bg-white border-gray-200')
                                 }`}>
                                     {Math.floor(timeLeft/60)}:{timeLeft%60 < 10 ? '0'+timeLeft%60 : timeLeft%60}
@@ -901,7 +986,7 @@
 
             useEffect(() => {
                 return onAuthStateChanged(auth, u => {
-                    // Chặn tính năng khách: Nếu là tài khoản ẩn danh, tự động đăng xuất
+                    // CHẶN KHÁCH: Nếu phát hiện là tài khoản ẩn danh thì đăng xuất ngay
                     if (u && u.isAnonymous) {
                         signOut(auth);
                         return;
@@ -910,93 +995,40 @@
                     setUser(u);
                     if (u) {
                         setView('dashboard');
-                        const unsub = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.uid), d => d.exists() && setProfile(d.data()), (error) => console.error("Profile sync error", error));
                         
-                        // Lắng nghe yêu cầu VIP đang chờ duyệt
+                        const unsubConfig = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'system_settings', 'config'), 
+                            s => s.exists() && setGlobalConfig(s.data()),
+                            e => console.log("Config permission pending")
+                        );
+                        
+                        const unsubProfile = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.uid), d => d.exists() && setProfile(d.data()));
+                        
                         const qPending = query(collection(db, 'artifacts', appId, 'public', 'data', 'paymentRequests'), where('uid', '==', u.uid), where('status', '==', 'pending'), limit(1));
-                        const unsubPending = onSnapshot(qPending, (snap) => {
-                            setIsPendingVip(!snap.empty);
-                        });
+                        const unsubPending = onSnapshot(qPending, s => setIsPendingVip(!s.empty));
                         
-                        const qNoti = query(collection(db, 'artifacts', appId, 'public', 'data', 'notifications'), orderBy('createdAt', 'desc'), limit(5));
-                        const unsubNoti = onSnapshot(qNoti, (s) => {
+                        const unsubNoti = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'notifications'), orderBy('createdAt', 'desc'), limit(5)), s => {
                             const data = s.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                             setNotifications(data);
-                            if (data.length > 0) {
-                                const latest = data[0];
-                                const seenId = localStorage.getItem('seen_noti_id');
-                                if (seenId !== latest.id) {
-                                    setHasNewNoti(true);
-                                } else setHasNewNoti(false);
-                            }
+                            if (data.length > 0) setHasNewNoti(localStorage.getItem('seen_id') !== data[0].id);
                         });
 
-                        return () => { unsub(); unsubPending(); unsubNoti(); };
-                    } else setView('auth');
+                        return () => {
+                            unsubConfig();
+                            unsubProfile();
+                            unsubPending();
+                            unsubNoti();
+                        };
+                    } else {
+                        setView('auth');
+                        setGlobalConfig({});
+                    }
                 });
             }, []);
 
-            useEffect(() => {
-                if (user && profile?.isPremium && profile?.vipActivatedAt) {
-                    const activationDate = profile.vipActivatedAt.toDate();
-                    const expiryTime = activationDate.getTime() + VIP_DURATION_DAYS * 24 * 60 * 60 * 1000;
-                    if (Date.now() > expiryTime) {
-                        updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid), { isPremium: false });
-                    }
-                }
-            }, [profile, user]);
-
-            const closeNoti = () => {
-                // ... (Logic for closing notifications if needed)
-            };
-
-            const toggleNotiDropdown = () => {
-                setShowNotiDropdown(!showNotiDropdown);
-                if (notifications.length > 0) {
-                    localStorage.setItem('seen_noti_id', notifications[0].id);
-                    setHasNewNoti(false);
-                }
-            };
-
-            const hideNotification = (e, id) => {
-                e.stopPropagation();
-                const updated = [...hiddenNotiIds, id];
-                setHiddenNotiIds(updated);
-                localStorage.setItem('hidden_noti_ids', JSON.stringify(updated));
-            };
-            
-            const [showNotiDropdown, setShowNotiDropdown] = useState(false);
-            const [hiddenNotiIds, setHiddenNotiIds] = useState(() => {
-                const saved = localStorage.getItem('hidden_noti_ids');
-                return saved ? JSON.parse(saved) : [];
-            });
-            const filteredNotifications = notifications.filter(n => !hiddenNotiIds.includes(n.id)).slice(0, 5);
-
-            const [sysNoti, setSysNoti] = useState(null); // Keep if used elsewhere
-
-            let daysLeft = null;
-            if (profile?.isPremium && profile?.vipActivatedAt) {
-                try {
-                    const activationDate = profile.vipActivatedAt.toDate();
-                    const expiryTime = activationDate.getTime() + VIP_DURATION_DAYS * 24 * 60 * 60 * 1000;
-                    const diffTime = expiryTime - Date.now();
-                    if (diffTime > 0) daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                } catch(e) {}
-            }
-
             const startExam = async (exam) => { 
-                if (confirm(`Sẵn sàng thi bài "${exam.title}"?`)) { 
-                    try {
-                        const sessionRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'), {
-                            uid: user.uid,
-                            displayName: user.displayName || user.email,
-                            examId: exam.id,
-                            examTitle: exam.title,
-                            startedAt: serverTimestamp()
-                        });
-                        setActiveExam({ ...exam, sessionId: sessionRef.id });
-                    } catch (e) { setActiveExam(exam); }
-                    setView('exam'); 
+                if (confirm(`Bắt đầu thi: ${exam.title}?`)) { 
+                    const sessionRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'), { uid: user.uid, examId: exam.id, startedAt: serverTimestamp() });
+                    setActiveExam({ ...exam, sessionId: sessionRef.id }); setView('exam'); 
                 } 
             };
 
@@ -1009,6 +1041,9 @@
 
                 return (
                     <div className="min-h-screen bg-[#0b1120] font-sans text-slate-200" onClick={() => setShowNotiDropdown(false)}>
+                        {/* Chỉ hiện Watermark khi đã đăng nhập */}
+                        {user && <Watermark text={user.email || user.uid} />}
+                        
                         <nav className="glass sticky top-0 z-[50]">
                             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                                 <button onClick={()=>setView('dashboard')} className="flex items-center gap-3 group transition-transform active:scale-95">
@@ -1017,39 +1052,7 @@
                                 </button>
                                 
                                 <div className="flex items-center gap-3">
-                                    <div className="relative">
-                                        <button onClick={(e) => { e.stopPropagation(); toggleNotiDropdown(); }} className="nav-btn w-10 relative">
-                                            <Bell size={20} />
-                                            {hasNewNoti && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-900 animate-pulse"></span>}
-                                        </button>
-                                        
-                                        {showNotiDropdown && (
-                                            <div className="absolute right-0 mt-3 w-80 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-scale-up z-50" onClick={e => e.stopPropagation()}>
-                                                <div className="p-4 border-b border-slate-800 bg-slate-800/50 flex justify-between items-center">
-                                                    <h4 className="font-bold text-sm text-white">Thông báo</h4>
-                                                    <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Mới nhất</span>
-                                                </div>
-                                                <div className="max-h-96 overflow-y-auto">
-                                                    {filteredNotifications.length > 0 ? (
-                                                        filteredNotifications.map(n => (
-                                                            <div key={n.id} className="p-4 border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors relative group">
-                                                                <button onClick={(e) => hideNotification(e, n.id)} className="absolute top-2 right-2 p-1 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={12} /></button>
-                                                                <div className="flex gap-3">
-                                                                    <div className="mt-1 shrink-0 bg-cyan-500/10 p-1.5 rounded-lg text-cyan-500"><Info size={14} /></div>
-                                                                    <div>
-                                                                        <p className="text-sm font-bold text-slate-200 line-clamp-1">{n.title}</p>
-                                                                        <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">{n.message}</p>
-                                                                        <p className="text-[10px] text-slate-600 mt-2 font-mono">{n.createdAt?.seconds ? new Date(n.createdAt.seconds * 1000).toLocaleDateString('vi-VN') : 'Gần đây'}</p>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ))
-                                                    ) : <div className="p-10 text-center text-slate-600 italic text-sm">Không có thông báo nào</div>}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
+                                    <button className="nav-btn w-10 relative"><Bell size={20} />{hasNewNoti && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-900 animate-pulse"></span>}</button>
                                     <button onClick={()=>setView('leaderboard')} className="nav-btn w-auto px-4 gap-2 font-black text-[10px] tracking-widest"><Trophy size={16} className="text-yellow-500"/> BXH</button>
                                     <div className="h-6 w-px bg-white/10 mx-1"></div>
                                     {profile?.isPremium ? (
