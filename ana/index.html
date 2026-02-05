@@ -27,6 +27,13 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .pulse-dot { animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        /* Hiệu ứng Flash khi dữ liệu thay đổi */
+        @keyframes flash-highlight {
+            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); background-color: rgba(30, 41, 59, 0.7); }
+            50% { box-shadow: 0 0 20px 0 rgba(16, 185, 129, 0.3); background-color: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.5); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); background-color: rgba(30, 41, 59, 0.7); }
+        }
+        .data-changed { animation: flash-highlight 1.5s ease-out; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
     </style>
@@ -35,7 +42,7 @@
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useMemo } from 'react';
+        import React, { useState, useEffect, useMemo, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from 'firebase/auth';
@@ -76,23 +83,38 @@
             );
         };
 
-        const StatCard = ({ title, value, icon: Icon, color, subText }) => (
-            <div className="glass-panel p-6 rounded-[2rem] flex flex-col justify-between h-40 relative overflow-hidden group hover:bg-white/5 transition-all">
-                <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
-                    <Icon size={80} />
-                </div>
-                <div className="flex items-center gap-2 mb-2">
-                    <div className={`p-2 rounded-xl bg-slate-800 ${color} bg-opacity-20 text-white`}>
-                        <Icon size={18} className={color.replace('bg-', 'text-')} />
+        // StatCard CẢI TIẾN: Thêm hiệu ứng flash khi giá trị thay đổi
+        const StatCard = ({ title, value, icon: Icon, color, subText }) => {
+            const [changed, setChanged] = useState(false);
+            const prevValue = useRef(value);
+
+            useEffect(() => {
+                if (prevValue.current !== value) {
+                    setChanged(true);
+                    const timer = setTimeout(() => setChanged(false), 1500);
+                    prevValue.current = value;
+                    return () => clearTimeout(timer);
+                }
+            }, [value]);
+
+            return (
+                <div className={`glass-panel p-6 rounded-[2rem] flex flex-col justify-between h-40 relative overflow-hidden group hover:bg-white/5 transition-all ${changed ? 'data-changed' : ''}`}>
+                    <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
+                        <Icon size={80} />
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{title}</span>
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className={`p-2 rounded-xl bg-slate-800 ${color} bg-opacity-20 text-white`}>
+                            <Icon size={18} className={color.replace('bg-', 'text-')} />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{title}</span>
+                    </div>
+                    <div>
+                        <div className={`text-4xl font-black transition-all ${changed ? 'scale-110 text-white' : color.replace('bg-', 'text-')}`}>{value}</div>
+                        {subText && <div className="text-[10px] text-slate-500 font-bold mt-1">{subText}</div>}
+                    </div>
                 </div>
-                <div>
-                    <div className={`text-4xl font-black ${color.replace('bg-', 'text-')}`}>{value}</div>
-                    {subText && <div className="text-[10px] text-slate-500 font-bold mt-1">{subText}</div>}
-                </div>
-            </div>
-        );
+            );
+        };
 
         const Dashboard = ({ user }) => {
             const [tab, setTab] = useState('dashboard');
