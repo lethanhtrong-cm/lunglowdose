@@ -23,8 +23,8 @@
 
     <style>
         body { 
-            background-color: #020617; 
-            color: #f8fafc; 
+            background-color: #0b1120; 
+            color: #f9fafb; 
             font-family: 'Inter', sans-serif; 
             overflow: hidden; 
             -webkit-font-smoothing: antialiased;
@@ -80,11 +80,10 @@
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from 'firebase/auth';
-        import { getFirestore, collection, query, onSnapshot, orderBy, limit, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
-        // Fixed: Added ChevronRight to imports
+        import { getFirestore, collection, query, onSnapshot, orderBy, limit, doc, deleteDoc, updateDoc, addDoc, serverTimestamp, getDoc } from 'firebase/firestore';
         import { 
             LayoutGrid, Trophy, MessageSquare, Flag, LogOut, Search, 
-            Activity, History, Users, Crown, FileText, Clock, AlertTriangle, CheckCircle, User, Zap, Tag, Trash2, Send, X, Inbox, ChevronRight
+            Activity, History, Users, Crown, FileText, Clock, AlertTriangle, CheckCircle, User, Zap, Tag, Trash2, Send, X, Inbox, ChevronRight, Star
         } from 'lucide-react';
 
         const firebaseConfig = {
@@ -104,6 +103,7 @@
 
         const App = () => {
             const [user, setUser] = useState(null);
+            // Đã xóa biến isAdmin và setIsAdmin
             const [activeTab, setActiveTab] = useState('analytics');
             const [data, setData] = useState({
                 users: [],
@@ -119,7 +119,7 @@
                 const unsubscribe = onAuthStateChanged(auth, (u) => {
                     if (u) {
                         setUser(u);
-                        setLoading(false);
+                        setLoading(false); // Vào thẳng Dashboard, không kiểm tra quyền Admin nữa
                     } else {
                         signInAnonymously(auth);
                     }
@@ -135,7 +135,7 @@
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), s => updateData('users', s)),
                     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'), s => updateData('activeExams', s)),
                     onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'users'), orderBy('totalScore', 'desc'), limit(50)), s => updateData('leaderboard', s)),
-                    onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc'), limit(50)), s => updateData('reviews', s)),
+                    onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc'), limit(100)), s => updateData('reviews', s)),
                     onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), orderBy('createdAt', 'desc')), s => updateData('reports', s))
                 ];
 
@@ -150,6 +150,7 @@
             };
 
             const handleDelete = async (col, id) => {
+                // Đã xóa kiểm tra quyền Admin
                 if(confirm("Xác nhận xóa bản ghi này?")) {
                     try {
                         await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id));
@@ -158,6 +159,7 @@
             };
 
             const handleAcceptReport = async (reportId, targetUserId, replyMessage) => {
+                // Đã xóa kiểm tra quyền Admin
                 try {
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', reportId), { 
                         status: 'accepted',
@@ -182,20 +184,22 @@
             if (loading) return (
                 <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center text-cyan-500 gap-6">
                     <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="font-bold tracking-widest uppercase text-xs animate-pulse text-slate-400">Khởi tạo hệ thống quản trị...</p>
+                    <p className="font-bold tracking-widest uppercase text-xs animate-pulse text-slate-400">Đang tải dữ liệu...</p>
                 </div>
             );
+
+            // Đã xóa màn hình "Truy cập bị từ chối"
 
             return (
                 <div className="flex h-screen overflow-hidden">
                     <aside className="w-72 border-r border-white/5 bg-[#030712] flex flex-col shrink-0">
-                        <div className="p-10 mb-2 flex items-center gap-3">
+                        <div className="p-10 mb-2 flex items-center gap-3 text-left">
                             <div className="bg-cyan-500 p-2 rounded-xl shadow-lg shadow-cyan-500/20">
                                 <Activity className="text-white" size={24}/>
                             </div>
                             <div className="text-left">
-                                <h1 className="text-lg font-black text-white tracking-tight uppercase leading-none">Analytics</h1>
-                                <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mt-1">Portal v2.0</p>
+                                <h1 className="text-lg font-black text-white tracking-tight uppercase leading-none text-left">Analytics</h1>
+                                <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mt-1 text-left">Admin Panel</p>
                             </div>
                         </div>
 
@@ -210,10 +214,10 @@
                             <div className="bg-slate-900/50 rounded-2xl p-4 mb-6 border border-white/5">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center font-bold text-xs">AD</div>
-                                    <div className="flex-1 min-w-0 text-left"><p className="text-xs font-bold text-white truncate">Administrator</p><p className="text-[10px] text-emerald-500">Hệ thống Live</p></div>
+                                    <div className="flex-1 min-w-0 text-left"><p className="text-xs font-bold text-white truncate text-left">{user?.displayName || "Admin"}</p><p className="text-[10px] text-emerald-500 text-left">Full Access</p></div>
                                 </div>
                             </div>
-                            <button onClick={() => signOut(auth)} className="w-full flex items-center gap-3 text-slate-500 hover:text-red-400 transition-all text-sm font-bold uppercase tracking-wider group">
+                            <button onClick={() => signOut(auth)} className="w-full flex items-center gap-3 text-slate-500 hover:text-red-400 transition-all text-sm font-bold uppercase tracking-wider group text-left">
                                 <LogOut size={18} className="group-hover:-translate-x-1 transition-transform"/> Đăng xuất
                             </button>
                         </div>
@@ -223,7 +227,7 @@
                         <div className="p-12 max-w-7xl mx-auto">
                             {activeTab === 'analytics' && <AnalyticsView data={data} />}
                             {activeTab === 'leaderboard' && <LeaderboardView leaderboard={data.leaderboard} />}
-                            {activeTab === 'feedback' && <FeedbackView reviews={data.reviews} onDelete={id => handleDelete('reviews', id)} />}
+                            {activeTab === 'feedback' && <FeedbackView reviews={data.reviews} users={data.users} onDelete={id => handleDelete('reviews', id)} />}
                             {activeTab === 'reports' && <ReportsView reports={data.reports} exams={data.exams} users={data.users} onAccept={handleAcceptReport} onDelete={id => handleDelete('reports', id)} />}
                         </div>
                     </main>
@@ -232,7 +236,7 @@
         };
 
         const SidebarLink = ({ icon, label, active, onClick, badge }) => (
-            <button onClick={onClick} className={`sidebar-item w-full flex items-center justify-between px-6 py-4 rounded-2xl text-sm font-bold tracking-tight ${active ? 'active' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}>
+            <button onClick={onClick} className={`sidebar-item w-full flex items-center justify-between px-6 py-4 rounded-2xl text-sm font-bold tracking-tight ${active ? 'active' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}>
                 <div className="flex items-center gap-4">{icon} {label}</div>
                 {badge > 0 && <span className="bg-red-500/90 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-black shadow-lg shadow-red-500/20">{badge}</span>}
             </button>
@@ -245,16 +249,16 @@
 
             return (
                 <div className="space-y-12 animate-fade">
-                    <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 text-left">
                         <div className="text-left">
-                            <h2 className="text-5xl font-black text-white tracking-tighter">Dashboard</h2>
+                            <h2 className="text-5xl font-black text-white tracking-tighter text-left">Dashboard</h2>
                             <p className="text-emerald-500 text-sm font-semibold mt-2 flex items-center gap-2">
                                 <span className="w-2 h-2 bg-emerald-500 rounded-full live-pulse"></span> 
-                                Giám sát hạ tầng thời gian thực
+                                Hệ thống quản trị viên đang hoạt động
                             </p>
                         </div>
                         <div className="flex items-center gap-3 bg-slate-900/80 px-6 py-3 rounded-2xl border border-white/5 shadow-xl">
-                            <Clock size={18} className="text-cyan-500"/><span className="text-sm font-mono font-bold text-slate-300">{new Date().toLocaleTimeString()}</span>
+                            <Clock size={18} className="text-cyan-500"/><span className="text-sm font-mono font-bold text-slate-300 text-left">{new Date().toLocaleTimeString()}</span>
                         </div>
                     </header>
 
@@ -266,37 +270,37 @@
                         <MetricItem icon={<FileText size={20} className="text-blue-400"/>} label="Đề thi" value={data.exams.length} color="blue" />
                     </div>
 
-                    <section className="space-y-8">
+                    <section className="space-y-8 text-left">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-2xl font-black text-white flex items-center gap-4 tracking-tight"><Zap size={24} className="text-cyan-500"/> TRẠNG THÁI NGƯỜI DÙNG</h3>
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Hiển thị trực tiếp: {onlineCount}</span>
+                            <h3 className="text-2xl font-black text-white flex items-center gap-4 tracking-tight text-left"><Zap size={24} className="text-cyan-500"/> TRẠNG THÁI NGƯỜI DÙNG</h3>
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Online hiện tại: {onlineCount}</span>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
                             {data.activeExams.map(ex => (
-                                <div key={ex.id} className="glass-card p-6 flex flex-col justify-between min-h-[240px] hover:border-cyan-500/40 transition-all shadow-xl group">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex items-center gap-3">
+                                <div key={ex.id} className="glass-card p-6 flex flex-col justify-between min-h-[240px] hover:border-cyan-500/40 transition-all shadow-xl group text-left">
+                                    <div className="flex justify-between items-start text-left">
+                                        <div className="flex items-center gap-3 text-left">
                                             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center font-black text-white border border-white/10 shadow-inner text-xl group-hover:scale-110 transition-transform">{ex.displayName?.charAt(0) || "U"}</div>
                                             <div className="min-w-0 text-left">
-                                                <p className="font-bold text-slate-100 text-sm truncate">{ex.displayName || "Thành viên"}</p>
-                                                <p className="text-[10px] text-slate-500 font-mono tracking-tighter">ID: {ex.uid?.substring(0, 6)}</p>
+                                                <p className="font-bold text-slate-100 text-sm truncate text-left">{ex.displayName || "Thành viên"}</p>
+                                                <p className="text-[10px] text-slate-500 font-mono tracking-tighter text-left uppercase">UID: {ex.uid?.substring(0, 6)}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div> Live</div>
+                                        <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse text-left"></div> Live</div>
                                     </div>
                                     <div className="mt-6 p-4 bg-slate-900/60 rounded-2xl border border-white/5 group-hover:bg-cyan-500/5 transition-colors text-left">
-                                        <p className="text-[9px] text-slate-500 font-black uppercase mb-1.5 tracking-widest">Module hiện tại</p>
-                                        <p className="text-xs font-bold text-cyan-400 line-clamp-2 leading-relaxed">{ex.examTitle || "Tải đề..."}</p>
+                                        <p className="text-[9px] text-slate-500 font-black uppercase mb-1.5 tracking-widest text-left">Module hiện tại</p>
+                                        <p className="text-xs font-bold text-cyan-400 line-clamp-2 leading-relaxed text-left">{ex.examTitle || "Tải đề..."}</p>
                                     </div>
-                                    <div className="mt-4 flex justify-between items-center text-[10px] font-bold text-slate-500">
-                                        <span className="flex items-center gap-1.5 bg-slate-900/50 px-2 py-1 rounded-lg"><Clock size={12}/> {Math.floor((now - (ex.startedAt?.toDate?.().getTime() || now)) / 60000)}p trước</span>
-                                        <span className="text-cyan-500 italic">Đang làm...</span>
+                                    <div className="mt-4 flex justify-between items-center text-[10px] font-bold text-slate-500 text-left">
+                                        <span className="flex items-center gap-1.5 bg-slate-900/50 px-2 py-1 rounded-lg text-left"><Clock size={12}/> {Math.floor((now - (ex.startedAt?.toDate?.().getTime() || now)) / 60000)}p trước</span>
+                                        <span className="text-cyan-500 italic text-left">Đang làm...</span>
                                     </div>
                                 </div>
                             ))}
-                            {data.activeExams.length === 0 && <div className="col-span-full py-24 text-center glass-card border-dashed flex flex-col items-center gap-4 text-slate-500">
-                                <Inbox size={56} className="opacity-10"/>
-                                <p className="italic text-sm font-medium">Phòng thi hiện đang trống.</p>
+                            {data.activeExams.length === 0 && <div className="col-span-full py-24 text-center glass-card border-dashed flex flex-col items-center gap-4 text-slate-500 text-left">
+                                <Inbox size={56} className="opacity-10 text-left"/>
+                                <p className="italic text-sm font-medium text-left">Phòng thi hiện đang trống.</p>
                             </div>}
                         </div>
                     </section>
@@ -336,37 +340,37 @@
         };
 
         const MetricItem = ({ icon, label, value, color }) => (
-            <div className="metric-card p-6 flex flex-col justify-between border border-white/5 shadow-xl items-start relative overflow-hidden group">
-                <div className={`p-3 bg-slate-900/80 rounded-2xl text-slate-400 mb-6 border border-white/5 group-hover:scale-110 transition-transform`}>{icon}</div>
+            <div className="metric-card p-6 flex flex-col justify-between border border-white/5 shadow-xl items-start relative overflow-hidden group text-left">
+                <div className={`p-3 bg-slate-900/80 rounded-2xl text-slate-400 mb-6 border border-white/5 group-hover:scale-110 transition-transform text-left`}>{icon}</div>
                 <div className="text-left">
-                    <p className="text-4xl font-black text-white tracking-tighter mb-1.5">{value}</p>
-                    <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest">{label}</p>
+                    <p className="text-4xl font-black text-white tracking-tighter mb-1.5 text-left">{value}</p>
+                    <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest text-left">{label}</p>
                 </div>
-                <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/5 rounded-full blur-2xl group-hover:scale-150 transition-all duration-700"></div>
+                <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/5 rounded-full blur-2xl group-hover:scale-150 transition-all duration-700 text-left"></div>
             </div>
         );
 
         const LeaderboardView = ({ leaderboard }) => (
             <div className="space-y-12 animate-fade text-left">
-                <h2 className="text-4xl font-black text-white tracking-tight text-left uppercase">Bảng danh vọng</h2>
-                <div className="glass-card overflow-hidden shadow-2xl border border-white/5">
+                <h2 className="text-4xl font-black text-white tracking-tight text-left uppercase text-left">Bảng danh vọng</h2>
+                <div className="glass-card overflow-hidden shadow-2xl border border-white/5 text-left">
                     <table className="w-full text-left">
-                        <thead className="bg-[#0f172a]/80 text-[10px] uppercase text-slate-500 font-black tracking-widest border-b border-white/10">
+                        <thead className="bg-[#0f172a]/80 text-[10px] uppercase text-slate-500 font-black tracking-widest border-b border-white/10 text-left">
                             <tr><th className="px-10 py-6">Vị trí</th><th className="px-10 py-6">Học viên</th><th className="px-10 py-6 text-center">Tiến độ</th><th className="px-10 py-6 text-right">Tổng tích lũy</th></tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5">
+                        <tbody className="divide-y divide-white/5 text-left">
                             {leaderboard.map((u, i) => (
                                 <tr key={u.id} className="hover:bg-cyan-500/5 transition-all group text-left">
-                                    <td className="px-10 py-7">
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm shadow-lg ${i === 0 ? 'bg-yellow-500 text-slate-950' : i === 1 ? 'bg-slate-300 text-slate-950' : i === 2 ? 'bg-amber-600 text-slate-950' : 'bg-slate-800 text-slate-600'}`}>
+                                    <td className="px-10 py-7 text-left">
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm shadow-lg text-left ${i === 0 ? 'bg-yellow-500 text-slate-950' : i === 1 ? 'bg-slate-300 text-slate-950' : i === 2 ? 'bg-amber-600 text-slate-950' : 'bg-slate-800 text-slate-600'}`}>
                                             {i+1}
                                         </div>
                                     </td>
                                     <td className="px-10 py-7 font-bold text-slate-100 text-base uppercase tracking-tight group-hover:text-white transition-colors text-left">{u.displayName}</td>
-                                    <td className="px-10 py-7 text-center">
-                                        <span className="text-xs font-black text-slate-500 bg-slate-900 px-3 py-1.5 rounded-xl border border-white/5">{u.examsCompleted || 0} ĐỀ</span>
+                                    <td className="px-10 py-7 text-center text-left">
+                                        <span className="text-xs font-black text-slate-500 bg-slate-900 px-3 py-1.5 rounded-xl border border-white/5 text-left">{u.examsCompleted || 0} ĐỀ</span>
                                     </td>
-                                    <td className="px-10 py-7 text-right font-black text-cyan-400 text-2xl tracking-tighter group-hover:scale-105 transition-transform">{u.totalScore?.toFixed(1)}</td>
+                                    <td className="px-10 py-7 text-right font-black text-cyan-400 text-2xl tracking-tighter group-hover:scale-105 transition-transform text-right">{u.totalScore?.toFixed(1)}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -375,39 +379,100 @@
             </div>
         );
 
-        const FeedbackView = ({ reviews, onDelete }) => {
-            const feedbacks = reviews.filter(r => r.feedback && r.feedback.trim() !== "");
+        const FeedbackView = ({ reviews, users, onDelete }) => {
+            const fiveStarReviews = reviews.filter(r => r.rating == 5);
+            const criticalFeedbacks = reviews.filter(r => r.rating <= 3 && r.feedback && r.feedback.trim() !== "");
+
+            // Helper để lấy thông tin user live từ danh sách users
+            const getUserInfo = (review) => {
+                const user = users.find(u => u.uid === review.userId || u.id === review.userId);
+                if (user) {
+                    return {
+                        name: user.displayName || "Chưa đặt tên",
+                        email: user.email,
+                        avatar: user.displayName?.charAt(0).toUpperCase() || "U"
+                    };
+                }
+                return {
+                    name: review.displayName || "Khách ẩn danh",
+                    email: review.userId && review.userId !== 'anonymous' ? `ID: ${review.userId.substring(0,8)}` : "Không có thông tin",
+                    avatar: review.displayName?.charAt(0).toUpperCase() || "?"
+                };
+            };
+
             return (
                 <div className="space-y-12 animate-fade text-left">
-                    <h2 className="text-4xl font-black text-white tracking-tight text-left uppercase">Đánh giá cộng đồng</h2>
-                    {feedbacks.length === 0 ? <div className="py-40 text-center glass-card border-dashed flex flex-col items-center gap-5 text-slate-600">
-                        <MessageSquare size={64} className="opacity-10"/><p className="italic font-medium">Trung tâm phản hồi hiện đang trống.</p>
-                    </div> : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-20">
-                            {feedbacks.map(f => (
-                                <div key={f.id} className="glass-card p-10 flex flex-col justify-between hover:border-cyan-500/30 transition-all shadow-2xl relative overflow-hidden group">
-                                    <div className="relative z-10 text-left">
-                                        <div className="flex justify-between items-start mb-8 text-left">
-                                            <div className="flex items-center gap-4 text-left">
-                                                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center font-black text-cyan-400 border border-white/10 shadow-inner text-xl">{f.displayName?.charAt(0).toUpperCase() || "U"}</div>
-                                                <div className="text-left"><p className="text-base font-bold text-white tracking-tight leading-none text-left">{f.displayName}</p><p className="text-[10px] text-slate-500 font-mono tracking-tighter mt-1.5 uppercase font-bold text-left">{f.createdAt?.toDate?.().toLocaleString() || 'New'}</p></div>
+                    <h2 className="text-4xl font-black text-white tracking-tight text-left uppercase">Trung tâm phản hồi</h2>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 pb-20">
+                        {/* Cột trái: Vinh danh 5 Sao */}
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-yellow-500/10 rounded-xl text-yellow-500 border border-yellow-500/20"><Star size={20} fill="currentColor"/></div>
+                                <h3 className="text-lg font-black text-white uppercase tracking-widest">Lịch sử 5 Sao</h3>
+                            </div>
+                            <div className="space-y-4 max-h-[800px] overflow-y-auto pr-3 custom-scrollbar">
+                                {fiveStarReviews.map(r => {
+                                    const u = getUserInfo(r);
+                                    return (
+                                        <div key={r.id} className="glass-card p-5 flex items-center justify-between group hover:bg-slate-800/60 transition-all border border-white/5 hover:border-yellow-500/30">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-500 font-black text-xs border border-yellow-500/20 shadow-lg shadow-yellow-500/5">5★</div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-white group-hover:text-yellow-400 transition-colors">{u.name}</p>
+                                                    <p className="text-[9px] text-slate-500 truncate mb-1">{u.email}</p>
+                                                    <p className="text-[10px] text-slate-500 font-mono flex items-center gap-1"><FileText size={10}/> {r.examTitle}</p>
+                                                </div>
                                             </div>
-                                            <button onClick={() => onDelete(f.id)} className="text-slate-600 hover:text-red-500 transition-all p-3 hover:bg-red-500/10 rounded-2xl" title="Xóa góp ý"><Trash2 size={22}/></button>
+                                            <span className="text-[10px] text-slate-600 font-mono font-bold tracking-widest">{r.createdAt?.toDate?.().toLocaleDateString('vi-VN')}</span>
                                         </div>
-                                        <div className="p-8 bg-slate-900/60 rounded-[2rem] border border-white/5 italic text-slate-200 text-sm leading-relaxed shadow-inner border-l-4 border-cyan-500/20 text-left">
-                                            <MessageSquare size={14} className="mb-2 opacity-30"/>
-                                            "{f.feedback}"
-                                        </div>
-                                    </div>
-                                    <div className="mt-8 flex items-center justify-between text-[11px] font-black uppercase text-slate-600 tracking-widest relative z-10">
-                                        <span className="truncate max-w-[220px] bg-slate-900 px-3 py-1.5 rounded-lg border border-white/5 flex items-center gap-2 font-bold italic"><FileText size={12} className="text-cyan-600"/> {f.examTitle}</span>
-                                        <span className="text-yellow-500 bg-yellow-500/10 px-4 py-2 rounded-full border border-yellow-500/20 shadow-lg shadow-yellow-500/5">{f.rating} SAO</span>
-                                    </div>
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                </div>
-                            ))}
+                                    );
+                                })}
+                                {fiveStarReviews.length === 0 && <p className="text-slate-500 italic text-sm p-4 text-center border border-dashed border-white/5 rounded-xl">Chưa có đánh giá 5 sao nào.</p>}
+                            </div>
                         </div>
-                    )}
+
+                        {/* Cột phải: Góp ý cần cải thiện */}
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-red-500/10 rounded-xl text-red-500 border border-red-500/20"><AlertTriangle size={20}/></div>
+                                <h3 className="text-lg font-black text-white uppercase tracking-widest">Góp ý (≤ 3 Sao)</h3>
+                            </div>
+                            <div className="space-y-6 max-h-[800px] overflow-y-auto pr-3 custom-scrollbar">
+                                {criticalFeedbacks.map(f => {
+                                    const u = getUserInfo(f);
+                                    return (
+                                        <div key={f.id} className="glass-card p-6 relative group hover:border-red-500/30 transition-all border border-white/5 hover:shadow-xl hover:shadow-red-500/5">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center font-bold text-slate-400 text-xs border border-white/5">{u.avatar}</div>
+                                                    <div>
+                                                        <p className="text-xs font-bold text-white">{u.name}</p>
+                                                        <p className="text-[9px] text-slate-500 truncate max-w-[150px]">{u.email}</p>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <div className="flex text-yellow-500 text-[9px] gap-0.5">
+                                                                {[...Array(f.rating)].map((_,i)=><Star key={i} size={8} fill="currentColor"/>)}
+                                                            </div>
+                                                            <span className="text-[9px] text-slate-600 font-mono">{f.createdAt?.toDate?.().toLocaleString()}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button onClick={() => onDelete(f.id)} className="text-slate-600 hover:text-red-500 p-2 rounded-lg hover:bg-red-500/10 transition-colors"><Trash2 size={16}/></button>
+                                            </div>
+                                            <div className="p-4 bg-red-500/5 rounded-xl border border-red-500/10 text-slate-300 text-sm italic leading-relaxed relative">
+                                                <span className="absolute -top-2 -left-1 text-4xl text-red-500/20 font-serif leading-none">“</span>
+                                                {f.feedback}
+                                                <span className="absolute -bottom-4 -right-1 text-4xl text-red-500/20 font-serif leading-none">”</span>
+                                            </div>
+                                            <p className="mt-4 text-[9px] text-slate-500 font-black uppercase tracking-widest text-right flex justify-end items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                <FileText size={10}/> {f.examTitle}
+                                            </p>
+                                        </div>
+                                    );
+                                })}
+                                {criticalFeedbacks.length === 0 && <p className="text-slate-500 italic text-sm p-8 text-center border border-dashed border-white/5 rounded-xl">Không có góp ý tiêu cực nào.</p>}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             );
         };
@@ -440,12 +505,12 @@
             };
 
             return (
-                <div className="space-y-12 pb-20 animate-fade text-left">
-                    <h2 className="text-4xl font-black text-white tracking-tight text-left uppercase">Báo cáo nội dung</h2>
-                    {reports.length === 0 ? <div className="py-40 text-center glass-card border-dashed flex flex-col items-center gap-5 text-slate-700 text-left">
-                        <Flag size={64} className="opacity-10"/><p className="italic font-medium">Hiện không có báo cáo lỗi cần xử lý.</p>
+                <div className="space-y-12 pb-20 animate-fade text-left text-left">
+                    <h2 className="text-4xl font-black text-white tracking-tight text-left uppercase text-left">Báo cáo nội dung</h2>
+                    {reports.length === 0 ? <div className="py-40 text-center glass-card border-dashed flex flex-col items-center gap-5 text-slate-700 text-left text-left">
+                        <Flag size={64} className="opacity-10 text-left"/><p className="italic font-medium text-left">Hiện không có báo cáo lỗi cần xử lý.</p>
                     </div> : (
-                        <div className="space-y-8 text-left">
+                        <div className="space-y-8 text-left text-left">
                             {reports.map(r => {
                                 const u = getUser(r.userId);
                                 const exam = exams.find(e=>e.id===r.examId);
@@ -453,86 +518,86 @@
                                 const isSubmitting = submittingIds[r.id];
 
                                 return (
-                                    <div key={r.id} className={`glass-card p-12 border transition-all ${r.status === 'accepted' ? 'border-emerald-500/20 opacity-60' : 'border-red-500/20 shadow-2xl hover:border-red-500/40'} text-left`}>
-                                        <div className="flex flex-col xl:flex-row gap-12 text-left">
-                                            <div className="flex-1 space-y-8 text-left">
-                                                <div className="flex items-center gap-4 text-left">
-                                                    <span className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border shadow-lg ${r.status === 'accepted' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30 animate-pulse'}`}>
+                                    <div key={r.id} className={`glass-card p-12 border transition-all ${r.status === 'accepted' ? 'border-emerald-500/20 opacity-60' : 'border-red-500/20 shadow-2xl hover:border-red-500/40'} text-left text-left`}>
+                                        <div className="flex flex-col xl:flex-row gap-12 text-left text-left">
+                                            <div className="flex-1 space-y-8 text-left text-left">
+                                                <div className="flex items-center gap-4 text-left text-left">
+                                                    <span className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border shadow-lg text-left ${r.status === 'accepted' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-500 border-red-500/30 animate-pulse'}`}>
                                                         {r.status === 'accepted' ? <><CheckCircle size={14}/> ĐÃ XỬ LÝ</> : <><Clock size={14}/> ĐANG CHỜ</>}
                                                     </span>
-                                                    <span className="text-slate-600 text-[11px] font-mono italic font-black tracking-widest">{r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString() : 'Recent'}</span>
+                                                    <span className="text-slate-600 text-[11px] font-mono italic font-black tracking-widest text-left">{r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString() : 'Recent'}</span>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-6 text-left">
-                                                    <div className="bg-slate-900/60 p-6 rounded-3xl border border-white/5 text-left shadow-inner">
+                                                <div className="grid grid-cols-2 gap-6 text-left text-left text-left text-left">
+                                                    <div className="bg-slate-900/60 p-6 rounded-3xl border border-white/5 text-left shadow-inner text-left text-left">
                                                         <p className="text-slate-600 mb-3 tracking-widest text-[10px] font-black uppercase text-left">Tài khoản báo cáo</p>
                                                         <div className="flex items-center gap-3 text-left">
-                                                            <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400"><User size={20}/></div>
+                                                            <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 text-left"><User size={20}/></div>
                                                             <div className="min-w-0 text-left"><p className={`text-sm font-bold truncate text-left ${!u.verified ? 'text-red-400' : 'text-slate-100'}`}>{u.name}</p><p className="text-[10px] text-slate-500 lowercase mt-0.5 truncate font-medium text-left">{u.email}</p></div>
                                                         </div>
                                                     </div>
-                                                    <div className="bg-slate-900/60 p-6 rounded-3xl border border-white/5 text-left shadow-inner text-left">
+                                                    <div className="bg-slate-900/60 p-6 rounded-3xl border border-white/5 text-left shadow-inner text-left text-left text-left">
                                                         <p className="text-slate-600 mb-3 tracking-widest text-[10px] font-black uppercase text-left">Module liên quan</p>
                                                         <div className="flex items-center gap-3 text-left">
-                                                            <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-cyan-600"><FileText size={20}/></div>
+                                                            <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-cyan-600 text-left"><FileText size={20}/></div>
                                                             <div className="min-w-0 text-left"><p className="text-sm font-bold text-cyan-500 line-clamp-1 uppercase tracking-tight text-left">{exam?.title || "ID: "+r.examId}</p><p className="text-[10px] text-slate-600 font-mono mt-0.5 italic text-left">Mã đề: {r.examId?.substring(0,10)}...</p></div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="p-10 bg-slate-900/80 rounded-[2.5rem] border border-white/5 space-y-6 text-left shadow-2xl relative">
-                                                    <div className="flex items-center gap-4 text-red-500 font-black text-xs uppercase tracking-widest text-left">
-                                                        <AlertTriangle size={20} className="fill-red-500/10"/> {r.reason?.toUpperCase()} | CÂU {r.questionIndex + 1}
+                                                <div className="p-10 bg-slate-900/80 rounded-[2.5rem] border border-white/5 space-y-6 text-left shadow-2xl relative text-left">
+                                                    <div className="flex items-center gap-4 text-red-500 font-black text-xs uppercase tracking-widest text-left text-left">
+                                                        <AlertTriangle size={20} className="fill-red-500/10 text-left"/> {r.reason?.toUpperCase()} | CÂU {r.questionIndex + 1}
                                                     </div>
-                                                    <div className="text-lg text-slate-100 font-medium italic border-l-4 border-red-500/40 pl-8 text-left leading-relaxed py-1">"{r.questionText}"</div>
-                                                    <div className="text-[13px] text-slate-400 mt-8 bg-black/40 p-6 rounded-2xl border border-white/5 italic text-left">
-                                                        <span className="font-black text-slate-300 block mb-3 uppercase text-[10px] tracking-widest opacity-60 text-left">Mô tả chi tiết từ học viên:</span>
+                                                    <div className="text-lg text-slate-100 font-medium italic border-l-4 border-red-500/40 pl-8 text-left leading-relaxed py-1 text-left text-left">"{r.questionText}"</div>
+                                                    <div className="text-[13px] text-slate-400 mt-8 bg-black/40 p-6 rounded-2xl border border-white/5 italic text-left text-left">
+                                                        <span className="font-black text-slate-300 block mb-3 uppercase text-[10px] tracking-widest opacity-60 text-left text-left text-left">Mô tả chi tiết từ học viên:</span>
                                                         {r.detail || "Không có mô tả chi tiết."}
                                                     </div>
                                                 </div>
 
                                                 {isReplying && (
-                                                    <div className="p-10 bg-[#0891b2]/5 rounded-[2.5rem] border border-[#0891b2]/30 animate-fade space-y-5 text-left shadow-2xl">
-                                                        <div className="flex justify-between items-center text-left border-b border-white/5 pb-4">
-                                                            <p className="text-[11px] font-black text-cyan-400 uppercase tracking-widest text-left flex items-center gap-2"><Send size={14}/> Soạn phản hồi trực tiếp</p>
-                                                            <button onClick={() => toggleReply(r.id)} className="text-slate-600 hover:text-white transition-colors bg-white/5 p-2 rounded-lg"><X size={18}/></button>
+                                                    <div className="p-10 bg-[#0891b2]/5 rounded-[2.5rem] border border-[#0891b2]/30 animate-fade space-y-5 text-left shadow-2xl text-left">
+                                                        <div className="flex justify-between items-center text-left border-b border-white/5 pb-4 text-left">
+                                                            <p className="text-[11px] font-black text-cyan-400 uppercase tracking-widest text-left flex items-center gap-2 text-left text-left text-left"><Send size={14}/> Soạn phản hồi trực tiếp</p>
+                                                            <button onClick={() => toggleReply(r.id)} className="text-slate-600 hover:text-white transition-colors bg-white/5 p-2 rounded-lg text-left"><X size={18}/></button>
                                                         </div>
                                                         <textarea 
                                                             value={replyStates[r.id]} 
                                                             onChange={e => handleUpdateText(r.id, e.target.value)}
-                                                            className="w-full h-40 p-6 text-base rounded-[1.5rem] border border-white/10 outline-none focus:border-cyan-500 transition-all text-slate-200 shadow-inner"
+                                                            className="w-full h-40 p-6 text-base rounded-[1.5rem] border border-white/10 outline-none focus:border-cyan-500 transition-all text-slate-200 shadow-inner text-left"
                                                             placeholder="Nhập nội dung phản hồi. Ví dụ: Cảm ơn bạn, câu hỏi đã được cập nhật chính xác..."
                                                         ></textarea>
                                                         <button 
                                                             onClick={() => handleSend(r)}
                                                             disabled={isSubmitting}
-                                                            className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-5 rounded-[1.5rem] font-black text-[12px] uppercase shadow-xl shadow-cyan-500/20 active:scale-95 flex items-center justify-center gap-3"
+                                                            className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-5 rounded-[1.5rem] font-black text-[12px] uppercase shadow-xl shadow-cyan-500/20 active:scale-95 flex items-center justify-center gap-3 text-left"
                                                         >
-                                                            {isSubmitting ? <Activity className="animate-spin" size={18}/> : <Send size={18}/>}
+                                                            {isSubmitting ? <Activity className="animate-spin text-left" size={18}/> : <Send size={18}/>}
                                                             Gửi thông điệp & Hoàn tất
                                                         </button>
                                                     </div>
                                                 )}
 
                                                 {r.adminReply && !isReplying && (
-                                                    <div className="p-8 bg-emerald-500/5 rounded-[2rem] border border-emerald-500/10 flex items-start gap-5 text-left shadow-inner border-l-4 border-l-emerald-500">
-                                                        <div className="bg-emerald-500 p-3 rounded-2xl text-white shadow-lg shadow-emerald-500/20"><CheckCircle size={20}/></div>
-                                                        <div className="text-left text-left">
-                                                            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1.5 text-left flex items-center gap-2">Hệ thống đã phản hồi</p>
-                                                            <p className="text-base text-slate-300 italic text-left leading-relaxed text-left">"{r.adminReply}"</p>
+                                                    <div className="p-8 bg-emerald-500/5 rounded-[2rem] border border-emerald-500/10 flex items-start gap-5 text-left shadow-inner border-l-4 border-l-emerald-500 text-left">
+                                                        <div className="bg-emerald-500 p-3 rounded-2xl text-white shadow-lg shadow-emerald-500/20 text-left"><CheckCircle size={20}/></div>
+                                                        <div className="text-left text-left text-left text-left">
+                                                            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1.5 text-left flex items-center gap-2 text-left">Hệ thống đã phản hồi</p>
+                                                            <p className="text-base text-slate-300 italic text-left leading-relaxed text-left text-left text-left">"{r.adminReply}"</p>
                                                         </div>
                                                     </div>
                                                 )}
                                             </div>
 
-                                            <div className="xl:w-60 flex flex-row xl:flex-col gap-4 shrink-0 text-left">
+                                            <div className="xl:w-60 flex flex-row xl:flex-col gap-4 shrink-0 text-left text-left">
                                                 {r.status !== 'accepted' ? (
-                                                    <button onClick={() => toggleReply(r.id)} className={`flex-1 p-6 rounded-[1.8rem] font-black text-[11px] uppercase shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 border ${isReplying ? 'bg-slate-800 text-slate-500 border-white/5' : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500/20 shadow-emerald-500/10'}`}>
+                                                    <button onClick={() => toggleReply(r.id)} className={`flex-1 p-6 rounded-[1.8rem] font-black text-[11px] uppercase shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 border text-left ${isReplying ? 'bg-slate-800 text-slate-500 border-white/5' : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500/20 shadow-emerald-500/10'}`}>
                                                         {isReplying ? <><X size={20}/> Hủy bỏ</> : <><CheckCircle size={20}/> Tiếp nhận</>}
                                                     </button>
                                                 ) : (
-                                                    <div className="flex-1 flex flex-col items-center justify-center text-emerald-500 text-xs font-black uppercase bg-emerald-400/5 rounded-[1.8rem] border border-emerald-500/10 h-full min-h-[80px] gap-2"><CheckCircle size={28}/> Done</div>
+                                                    <div className="flex-1 flex flex-col items-center justify-center text-emerald-500 text-xs font-black uppercase bg-emerald-500/5 rounded-[1.8rem] border border-emerald-500/10 h-full min-h-[80px] gap-2 text-left"><CheckCircle size={28}/> Done</div>
                                                 )}
-                                                <button onClick={() => onDelete(r.id)} className="flex-1 bg-slate-900/80 hover:bg-red-500/10 text-slate-600 hover:text-red-500 p-6 rounded-[1.8rem] font-black text-[11px] uppercase border border-white/5 transition-all active:scale-95 flex items-center justify-center gap-3 group">
-                                                    <Trash2 size={20} className="opacity-40 group-hover:opacity-100 transition-opacity"/> Xóa bỏ
+                                                <button onClick={() => onDelete(r.id)} className="flex-1 bg-slate-900/80 hover:bg-red-500/10 text-slate-600 hover:text-red-500 p-6 rounded-[1.8rem] font-black text-[11px] uppercase border border-white/5 transition-all active:scale-95 flex items-center justify-center gap-3 group text-left">
+                                                    <Trash2 size={20} className="opacity-40 group-hover:opacity-100 transition-opacity text-left"/> Xóa bỏ
                                                 </button>
                                             </div>
                                         </div>
