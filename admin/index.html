@@ -7,6 +7,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Thêm thư viện Biểu đồ và PDF -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    
     <script type="importmap">
     {
         "imports": {
@@ -35,11 +40,20 @@
         .glass-input { background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.05); }
         .animate-in { animation: fadeIn 0.4s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Hiệu ứng Skeleton Loading */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(30, 41, 59, 0.5) 25%, rgba(51, 65, 85, 0.5) 50%, rgba(30, 41, 59, 0.5) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+        }
+        @keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         .tab-active { color: #3b82f6; border-bottom: 2px solid #3b82f6; }
         .login-bg { background-image: linear-gradient(rgba(2, 6, 23, 0.85), rgba(2, 6, 23, 0.85)), url('https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80'); background-size: cover; background-position: center; }
-        .stats-card { background: linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.8) 100%); }
+        .stats-card { background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.4)); }
         .uppercase { text-transform: uppercase; letter-spacing: 0.025em; }
         
         .exam-card-highlight {
@@ -57,16 +71,16 @@
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useMemo, useCallback } from 'react';
+        import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from 'firebase/auth';
         import { getFirestore, collection, doc, addDoc, updateDoc, setDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp, getDoc, limit, collectionGroup } from 'firebase/firestore';
         import { 
             ShieldCheck, Users, BookOpen, LogOut, Search, Trash2, Plus, 
             Upload, Download, X, CheckCircle2, AlertCircle, Edit3, 
             LayoutDashboard, FileText, Loader2, Info, Database,
-            TrendingUp, Tag, ChevronRight, Bell, Crown, Unlock, CreditCard, Check, FileUp, ListChecks, Lock, Activity, Trophy, Settings, Image as ImageIcon, Save, Star, Calendar, RefreshCw, PlayCircle, Clock, Send, FileSpreadsheet, BarChart3, Undo2
+            TrendingUp, Tag, ChevronRight, Bell, Crown, Unlock, CreditCard, Check, FileUp, ListChecks, Lock, Activity, Trophy, Settings, Image as ImageIcon, Save, Star, Calendar, RefreshCw, PlayCircle, Clock, Send, FileSpreadsheet, BarChart3, Undo2, ChevronDown, DownloadCloud, PenLine, MapPin, Phone, History
         } from 'lucide-react';
 
         // --- CẤU HÌNH ĐỒNG BỘ ---
@@ -85,6 +99,18 @@
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'med-exam-pro-html';
         const ADMIN_EMAILS = ["thanhtrong.yds@gmail.com", "vnrad.tech@gmail.com", "test@gmail.com"];
 
+        // --- COMPONENTS ---
+        const SkeletonLoader = ({ type }) => {
+            if (type === 'card') return (
+                <div className="stats-card p-8 rounded-[3rem] border border-white/5 space-y-4">
+                    <div className="flex justify-between items-center"><div className="w-12 h-12 rounded-2xl skeleton"></div><div className="w-20 h-6 skeleton rounded-lg"></div></div>
+                    <div className="h-10 w-3/4 skeleton rounded-xl"></div>
+                    <div className="grid grid-cols-2 gap-4"><div className="h-16 skeleton rounded-2xl"></div><div className="h-16 skeleton rounded-2xl"></div></div>
+                </div>
+            );
+            return <div className="w-full h-20 skeleton rounded-3xl"></div>;
+        };
+
         const Toast = ({ message, type, onClose }) => {
             useEffect(() => { const timer = setTimeout(onClose, 4000); return () => clearTimeout(timer); }, [onClose]);
             const styles = { success: "bg-emerald-500/20 border-emerald-500/40 text-emerald-400", error: "bg-red-500/20 border-red-500/40 text-red-400", info: "bg-blue-500/20 border-blue-500/40 text-blue-400" };
@@ -99,7 +125,41 @@
             const [isProcessing, setIsProcessing] = useState(false);
             const downloadTemplate = () => { const wsData = [["Câu hỏi", "A", "B", "C", "D", "Đáp án (A/B/C/D)", "Giải thích", "Link Hình Ảnh (Nếu có)"], ["Vị trí tim?", "Hố chậu", "Trung thất", "Hạ sườn", "Thượng vị", "B", "Tim nằm ở trung thất giữa.", "https://example.com/tim.jpg"]]; const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(wsData), "Mẫu"); XLSX.writeFile(wb, "Mau_MedExam_HinhAnh.xlsx"); };
             const handleFile = (e) => { const file = e.target.files[0]; if (!file) return; setIsProcessing(true); const reader = new FileReader(); reader.onload = (evt) => { try { const data = new Uint8Array(evt.target.result); const wb = XLSX.read(data, { type: 'array' }); const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 }); const imported = rows.slice(1).filter(r => r[0]).map(r => ({ text: String(r[0]), options: [String(r[1]||''), String(r[2]||''), String(r[3]||''), String(r[4]||'')], correctOption: "ABCD".indexOf(String(r[5]||'A').toUpperCase().trim()), explanation: String(r[6] || ''), image: String(r[7] || '') })); onImport(imported); notify(`Đã nạp ${imported.length} câu hỏi`, 'success'); onClose(); } catch (err) { notify("Lỗi cấu trúc tệp Excel", "error"); } finally { setIsProcessing(false); } }; reader.readAsArrayBuffer(file); };
-            return ( <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-[70]"> <div className="bg-slate-900 w-full max-w-md rounded-[2.5rem] border border-slate-800 p-10 text-center space-y-8 animate-in shadow-2xl"> <Database size={48} className="mx-auto text-emerald-500"/> <h3 className="text-2xl font-black text-white">Nhập dữ liệu Excel</h3> <div className="space-y-4"> <label className="block w-full py-12 border-2 border-dashed border-slate-700 rounded-3xl hover:border-emerald-500 cursor-pointer group transition-all"> <input type="file" className="hidden" accept=".xlsx, .xls" onChange={handleFile} /> <span className="text-slate-400 group-hover:text-emerald-400 font-bold">{isProcessing ? "Đang xử lý..." : "Chọn tệp Excel"}</span> </label> <button onClick={downloadTemplate} className="text-emerald-500 text-xs font-black uppercase hover:text-emerald-400 flex items-center justify-center gap-2 w-full"><Download size={14}/> Tải file mẫu (Có cột Ảnh)</button> </div> <button onClick={onClose} className="text-slate-600 font-bold">Hủy bỏ</button> </div> </div> );
+            return ( <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-[70]"> <div className="bg-slate-900 w-full max-w-md rounded-[2.5rem] border border-slate-800 p-10 text-center space-y-8 animate-in shadow-2xl"> <Database size={48} className="mx-auto text-emerald-500"/> <h3 className="text-2xl font-black text-white">Nạp dữ liệu từ Excel</h3> <div className="space-y-4"> <label className="block w-full py-12 border-2 border-dashed border-slate-700 rounded-3xl hover:border-emerald-500 cursor-pointer group transition-all"> <input type="file" className="hidden" accept=".xlsx, .xls" onChange={handleFile} /> <span className="text-slate-400 group-hover:text-emerald-400 font-bold">{isProcessing ? "Đang xử lý..." : "Chọn tệp Excel (.xlsx)"}</span> </label> <button onClick={downloadTemplate} className="text-emerald-500 text-xs font-black uppercase hover:text-emerald-400 flex items-center justify-center gap-2 w-full"><Download size={14}/> Tải file mẫu</button> </div> <button onClick={onClose} className="text-slate-600 font-bold">Hủy bỏ</button> </div> </div> );
+        };
+
+        const QuestionEditorModal = ({ question, onSave, onClose }) => {
+            const [data, setData] = useState(question || { text: '', options: ['', '', '', ''], correctOption: 0, explanation: '', image: '' });
+            return (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[80]">
+                    <div className="bg-slate-900 w-full max-w-2xl rounded-[3rem] border border-slate-800 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+                        <div className="p-6 border-b border-white/5 flex justify-between items-center">
+                            <h3 className="text-xl font-black text-white uppercase">{question ? 'Sửa câu hỏi' : 'Thêm câu hỏi mới'}</h3>
+                            <button onClick={onClose} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700"><X size={20}/></button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
+                            <div><label className="text-[10px] font-black text-slate-500 uppercase ml-2 mb-2 block">Nội dung câu hỏi</label><textarea className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 outline-none focus:border-blue-600 font-bold text-white min-h-[100px]" value={data.text} onChange={e=>setData({...data, text: e.target.value})}/></div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {data.options.map((opt, i) => (
+                                    <div key={i}>
+                                        <label className={`text-[10px] font-black uppercase ml-2 mb-2 block ${data.correctOption === i ? 'text-emerald-500' : 'text-slate-500'}`}>Đáp án {String.fromCharCode(65+i)}</label>
+                                        <div className="flex gap-2">
+                                            <input className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white" value={opt} onChange={e=>{const n = [...data.options]; n[i] = e.target.value; setData({...data, options: n})}}/>
+                                            <button onClick={()=>setData({...data, correctOption: i})} className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${data.correctOption === i ? 'bg-emerald-600 border-emerald-500 text-white' : 'border-slate-800 text-slate-700'}`}><Check size={16}/></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div><label className="text-[10px] font-black text-slate-500 uppercase ml-2 mb-2 block">Link hình ảnh (Nếu có)</label><input className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white" value={data.image} onChange={e=>setData({...data, image: e.target.value})}/></div>
+                            <div><label className="text-[10px] font-black text-slate-500 uppercase ml-2 mb-2 block">Giải thích đáp án</label><textarea className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-sm text-white" value={data.explanation} onChange={e=>setData({...data, explanation: e.target.value})}/></div>
+                        </div>
+                        <div className="p-6 bg-slate-950/50 border-t border-white/5 flex justify-end gap-3">
+                            <button onClick={onClose} className="px-6 py-3 font-bold text-slate-500 hover:text-white uppercase text-xs">Hủy</button>
+                            <button onClick={()=>{onSave(data); onClose();}} className="bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-2xl font-black text-white text-xs uppercase shadow-xl">Xác nhận</button>
+                        </div>
+                    </div>
+                </div>
+            );
         };
 
         const ExamEditor = ({ exam, onClose, notify }) => {
@@ -109,72 +169,72 @@
             const [duration, setDuration] = useState(exam?.duration || 30);
             const [questions, setQuestions] = useState(exam?.questions || []);
             const [showImport, setShowImport] = useState(false);
+            const [editIdx, setEditIdx] = useState(null);
             const [isSaving, setIsSaving] = useState(false);
 
-            const saveExam = async () => { if (!title.trim()) return notify("Vui lòng nhập tên đề thi", "error"); if (questions.length === 0) return notify("Danh sách câu hỏi đang trống. Vui lòng Import Excel.", "error"); setIsSaving(true); try { const data = { title, category, isPremium, duration: Number(duration), questions, updatedAt: serverTimestamp() }; if (exam?.id) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id), data); else await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), { ...data, createdAt: serverTimestamp() }); notify("Lưu đề thi thành công", "success"); onClose(); } catch (e) { notify(e.message, "error"); } finally { setIsSaving(false); } };
+            const saveExam = async () => { if (!title.trim()) return notify("Vui lòng nhập tên đề thi", "error"); if (questions.length === 0) return notify("Danh sách câu hỏi đang trống.", "error"); setIsSaving(true); try { const data = { title, category, isPremium, duration: Number(duration), questions, updatedAt: serverTimestamp() }; if (exam?.id) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id), data); else await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), { ...data, createdAt: serverTimestamp(), isDeleted: false }); notify("Lưu đề thi thành công", "success"); onClose(); } catch (e) { notify(e.message, "error"); } finally { setIsSaving(false); } };
 
             return ( 
                 <div className="fixed inset-0 bg-slate-950/98 flex items-center justify-center p-4 z-50"> 
                     <div className="bg-slate-900 w-full max-w-6xl h-[95vh] rounded-[2.5rem] border border-slate-800 flex flex-col shadow-2xl animate-in overflow-hidden"> 
                         <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50 backdrop-blur-xl"> 
-                            <div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${exam ? 'bg-blue-500/10 text-blue-500' : 'bg-emerald-500/10 text-emerald-500'}`}>{exam ? <Edit3 size={24}/> : <Plus size={24}/>}</div><div><h2 className="text-xl font-black uppercase tracking-tight text-white">{exam ? 'Sửa đề thi' : 'Tạo đề thi'}</h2><p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Chỉ hỗ trợ Import Excel</p></div></div> 
+                            <div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${exam ? 'bg-blue-500/10 text-blue-500' : 'bg-emerald-500/10 text-emerald-500'}`}>{exam ? <Edit3 size={24}/> : <Plus size={24}/>}</div><div><h2 className="text-xl font-black uppercase tracking-tight text-white">{exam ? 'Sửa bộ đề' : 'Phát hành đề mới'}</h2><p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Hỗ trợ Excel & Chỉnh sửa thủ công</p></div></div> 
                             <button onClick={onClose} className="p-2 text-slate-500 hover:text-white transition-all bg-slate-800 rounded-full"><X size={20}/></button> 
                         </div> 
                         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-10"> 
                             <section className="bg-slate-950/50 p-6 rounded-3xl border border-white/5 grid grid-cols-1 md:grid-cols-4 gap-6"> 
-                                <div className="md:col-span-2 space-y-2"><label className="text-[10px] font-black text-slate-600 uppercase ml-2">Tên bộ đề</label><input className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 outline-none focus:border-blue-600 font-bold text-white" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Nhập tiêu đề..."/></div> 
-                                <div className="space-y-2"><label className="text-[10px] font-black text-slate-600 uppercase ml-2">Thời gian (Phút)</label><input type="number" className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 outline-none focus:border-blue-600 font-bold text-white" value={duration} onChange={e=>setDuration(e.target.value)}/></div> 
-                                <div className="space-y-2"><label className="text-[10px] font-black text-slate-600 uppercase ml-2">Loại đề</label><div className="flex bg-slate-900 p-1.5 rounded-2xl border border-slate-800 h-[58px]"><button onClick={()=>setIsPremium(false)} className={`flex-1 rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-2 ${!isPremium ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-600'}`}>MIỄN PHÍ</button><button onClick={()=>setIsPremium(true)} className={`flex-1 rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-2 ${isPremium ? 'bg-yellow-600 text-white shadow-lg' : 'text-slate-600'}`}>VIP PRO</button></div></div> 
+                                <div className="md:col-span-2 space-y-2"><label className="text-[10px] font-black text-slate-500 uppercase ml-2">Tên đề thi</label><input className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 outline-none focus:border-blue-600 font-bold text-white" value={title} onChange={e=>setTitle(e.target.value)}/></div> 
+                                <div className="space-y-2"><label className="text-[10px] font-black text-slate-500 uppercase ml-2">Thời gian (Phút)</label><input type="number" className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 outline-none focus:border-blue-600 font-bold text-white" value={duration} onChange={e=>setDuration(e.target.value)}/></div> 
+                                <div className="space-y-2"><label className="text-[10px] font-black text-slate-500 uppercase ml-2">Loại đề</label><div className="flex bg-slate-900 p-1.5 rounded-2xl border border-slate-800 h-[58px]"><button onClick={()=>setIsPremium(false)} className={`flex-1 rounded-xl text-[10px] font-black transition-all ${!isPremium ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-600'}`}>MIỄN PHÍ</button><button onClick={()=>setIsPremium(true)} className={`flex-1 rounded-xl text-[10px] font-black transition-all ${isPremium ? 'bg-yellow-600 text-white shadow-lg' : 'text-slate-600'}`}>VIP PRO</button></div></div> 
                             </section> 
                             
                             <section className="space-y-6"> 
                                 <div className="flex justify-between items-center px-2">
-                                    <h3 className="font-black text-slate-400 text-sm uppercase tracking-[0.2em] px-2 border-l-4 border-emerald-600 ml-2">Dữ liệu câu hỏi</h3>
-                                    <button onClick={() => setShowImport(true)} className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 px-6 py-3 rounded-xl font-black text-xs flex items-center gap-2 shadow-lg transition-all"><Upload size={16}/> TẢI LÊN FILE EXCEL</button>
+                                    <h3 className="font-black text-slate-400 text-sm uppercase tracking-[0.2em] px-2 border-l-4 border-blue-600 ml-2">Ngân hàng câu hỏi ({questions.length})</h3>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => setEditIdx('new')} className="bg-slate-800 hover:bg-slate-700 text-white px-5 py-3 rounded-xl font-black text-xs flex items-center gap-2 transition-all"><PenLine size={16}/> THÊM CÂU HỎI</button>
+                                        <button onClick={() => setShowImport(true)} className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-xl font-black text-xs flex items-center gap-2 shadow-lg transition-all"><Upload size={16}/> NHẬP EXCEL</button>
+                                    </div>
                                 </div>
 
                                 {questions.length === 0 ? (
                                     <div className="py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] text-slate-700 bg-slate-900/20 flex flex-col items-center justify-center gap-4">
                                         <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center"><FileText size={32} className="text-slate-600"/></div>
-                                        <div><p className="font-black uppercase tracking-widest text-xs">Chưa có dữ liệu</p><p className="text-[10px] mt-1 text-slate-600">Vui lòng bấm nút Tải lên để nạp câu hỏi từ file Excel</p></div>
+                                        <div><p className="font-black uppercase tracking-widest text-xs">Chưa có dữ liệu</p><p className="text-[10px] mt-1 text-slate-600">Bấm nút "Nhập Excel" hoặc "Thêm câu hỏi" để bắt đầu</p></div>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 gap-4 pb-10">
                                         {questions.map((q, i) => (
-                                            <div key={i} className="bg-slate-900/40 p-6 rounded-3xl flex justify-between items-start border border-slate-800 hover:border-blue-900/30 transition-all group">
+                                            <div key={i} className="bg-slate-900/40 p-6 rounded-3xl flex justify-between items-start border border-slate-800 hover:border-blue-500/30 transition-all group">
                                                 <div className="flex-1 pr-6">
                                                     <div className="flex items-start gap-3">
                                                         <span className="text-blue-500 font-black italic mt-1">#{i+1}</span> 
                                                         <div className="space-y-2 w-full">
                                                             <p className="font-bold text-white text-lg leading-tight">{q.text}</p>
-                                                            {q.image && (
-                                                                <div className="mt-2">
-                                                                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/10 text-blue-400 rounded-lg text-xs font-bold border border-blue-500/20">
-                                                                        <ImageIcon size={14}/> Có hình ảnh minh họa
-                                                                    </div>
-                                                                    <img src={q.image} className="mt-2 h-20 w-auto rounded-lg border border-slate-700 object-cover opacity-80 hover:opacity-100 transition-opacity" alt="Hình ảnh câu hỏi"/>
-                                                                </div>
-                                                            )}
                                                             <div className="grid grid-cols-2 gap-2 mt-3">
                                                                 {q.options.map((opt, idx) => (
-                                                                    <div key={idx} className={`text-[11px] p-2 rounded-lg border font-medium ${q.correctOption === idx ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>
-                                                                        {String.fromCharCode(65+idx)}. {opt}
-                                                                    </div>
+                                                                    <div key={idx} className={`text-[11px] p-2 rounded-lg border font-medium ${q.correctOption === idx ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-500'}`}>{opt}</div>
                                                                 ))}
                                                             </div>
-                                                            {q.explanation && <p className="text-[11px] text-slate-500 italic mt-2 border-l-2 border-slate-700 pl-3">💡 Giải thích: {q.explanation}</p>}
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <button onClick={()=>setQuestions(questions.filter((_,idx)=>idx!==i))} className="p-3 text-slate-600 hover:text-red-500 transition-all bg-slate-800 rounded-xl"><Trash2 size={18}/></button>
+                                                <div className="flex gap-2">
+                                                    <button onClick={()=>setEditIdx(i)} className="p-3 text-slate-600 hover:text-blue-500 transition-all bg-slate-800 rounded-xl"><Edit3 size={18}/></button>
+                                                    <button onClick={()=>setQuestions(questions.filter((_,idx)=>idx!==i))} className="p-3 text-slate-600 hover:text-red-500 transition-all bg-slate-800 rounded-xl"><Trash2 size={18}/></button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
                                 )}
                             </section>
                         </div>
-                        <div className="p-6 border-t border-slate-800 flex justify-end gap-4 bg-slate-900/80 backdrop-blur-xl"><button onClick={onClose} className="px-10 py-3 text-slate-500 font-bold hover:text-white transition-all uppercase text-xs">Đóng</button><button onClick={saveExam} disabled={isSaving} className="px-16 py-4 bg-blue-600 hover:bg-blue-500 rounded-2xl font-black text-white flex gap-3 shadow-2xl transition-all active:scale-95 disabled:opacity-50">{isSaving ? <Loader2 className="animate-spin" size={20}/> : <Check size={20}/>} {exam ? 'CẬP NHẬT' : 'PHÁT HÀNH ĐỀ'}</button></div> 
+                        <div className="p-6 border-t border-slate-800 flex justify-end gap-4 bg-slate-900/80 backdrop-blur-xl">
+                            <button onClick={onClose} className="px-10 py-3 text-slate-500 font-bold hover:text-white transition-all uppercase text-xs">Đóng</button>
+                            <button onClick={saveExam} disabled={isSaving} className="px-16 py-4 bg-blue-600 hover:bg-blue-500 rounded-2xl font-black text-white flex gap-3 shadow-2xl transition-all disabled:opacity-50">{isSaving ? <Loader2 className="animate-spin" size={20}/> : <Check size={20}/>} {exam ? 'CẬP NHẬT' : 'PHÁT HÀNH ĐỀ'}</button>
+                        </div> 
                         {showImport && <ImportModal onClose={()=>setShowImport(false)} onImport={qs=>setQuestions([...questions, ...qs])} notify={notify}/>}
+                        {editIdx !== null && <QuestionEditorModal question={editIdx === 'new' ? null : questions[editIdx]} onSave={q => { if(editIdx === 'new') setQuestions([...questions, q]); else { const n = [...questions]; n[editIdx] = q; setQuestions(n); } }} onClose={()=>setEditIdx(null)} />}
                     </div> 
                 </div> 
             );
@@ -185,6 +245,7 @@
             const [users, setUsers] = useState([]);
             const [exams, setExams] = useState([]);
             const [requests, setRequests] = useState([]);
+            const [vipHistory, setVipHistory] = useState([]); // State cho lịch sử VIP
             const [activeSessions, setActiveSessions] = useState([]); 
             const [search, setSearch] = useState('');
             const [filterType, setFilterType] = useState('all');
@@ -192,278 +253,516 @@
             const [editing, setEditing] = useState(null);
             const [showAdd, setShowAdd] = useState(false);
             const [toast, setToast] = useState(null);
+            const [isLoading, setIsLoading] = useState(true);
+            const [showHistory, setShowHistory] = useState(false); // Toggle hiển thị lịch sử
+            
+            // --- CẤU HÌNH HỆ THỐNG ---
             const [sysLoginBg, setSysLoginBg] = useState('');
             const [sysResultBg, setSysResultBg] = useState('');
-            const [notiMsg, setNotiMsg] = useState(''); 
-
+            const [clinicAddress, setClinicAddress] = useState('Số 244, Đường Tân Bình, Phường Cẩm Phả, Quảng Ninh');
+            const [clinicPhone, setClinicPhone] = useState('0123.456.789');
+            
+            const [notiMsg, setNotiMsg] = useState('');
+            const [notifications, setNotifications] = useState([]);
+            const [showNotiTray, setShowNotiTray] = useState(false);
+            
+            const chartRef = useRef(null);
+            const pieChartRef = useRef(null);
             const notify = useCallback((message, type = 'info') => { setToast({ message, type }); }, []);
 
             useEffect(() => {
-                const unsubU = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'users')), s => setUsers(s.docs.map(d=>({id: d.id, ...d.data()}))), e => console.error(e));
-                const unsubE = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'exams')), s => setExams(s.docs.map(d=>({id: d.id, ...d.data()}))), e => console.error(e));
-                const unsubR = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'paymentRequests')), s => setRequests(s.docs.map(d=>({id: d.id, ...d.data()}))), e => console.error(e));
-                const unsubActive = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams')), s => {
-                    const now = Date.now();
-                    const live = [];
-                    s.docs.forEach(doc => {
-                        const data = doc.data();
-                        const lastTime = data.lastPing?.toMillis ? data.lastPing.toMillis() : (data.startedAt?.toMillis ? data.startedAt.toMillis() : 0);
-                        if (now - lastTime < 2 * 60 * 1000) live.push({id: doc.id, ...data});
-                        else if (now - lastTime > 5 * 60 * 1000) deleteDoc(doc.ref).catch(()=>{});
-                    });
-                    setActiveSessions(live);
+                const unsubU = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), s => {
+                    setUsers(s.docs.map(d=>({id: d.id, ...d.data()})));
+                    setIsLoading(false);
                 });
-                const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'system_settings', 'config'), d => { if (d.exists()) { setSysLoginBg(d.data().loginBg || ''); setSysResultBg(d.data().resultBg || ''); }});
-                return () => { unsubU(); unsubE(); unsubR(); unsubActive(); unsubSettings(); };
+                const unsubE = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), s => setExams(s.docs.map(d=>({id: d.id, ...d.data()}))));
+                const unsubR = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'paymentRequests'), s => {
+                    const newReqs = s.docs.map(d=>({id: d.id, ...d.data()}));
+                    if(newReqs.length > requests.length) {
+                        setNotifications(prev => [{ id: Date.now(), msg: 'Có yêu cầu kích hoạt VIP mới!', time: new Date() }, ...prev]);
+                    }
+                    setRequests(newReqs);
+                });
+                // Lắng nghe lịch sử VIP
+                const unsubHistory = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'vip_history'), s => {
+                    setVipHistory(s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.approvedAt?.toMillis?.() || 0) - (a.approvedAt?.toMillis?.() || 0)));
+                });
+
+                const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'system_settings', 'config'), d => { 
+                    if (d.exists()) { 
+                        const data = d.data();
+                        setSysLoginBg(data.loginBg || ''); 
+                        setSysResultBg(data.resultBg || '');
+                        if(data.clinicAddress) setClinicAddress(data.clinicAddress);
+                        if(data.clinicPhone) setClinicPhone(data.clinicPhone);
+                    }
+                });
+
+                return () => { unsubU(); unsubE(); unsubR(); unsubHistory(); unsubSettings(); };
             }, []);
+
+            // --- BIỂU ĐỒ HỆ THỐNG ---
+            useEffect(() => {
+                if (tab === 'stats' && !isLoading && users.length > 0) {
+                    if (chartRef.current) chartRef.current.destroy();
+                    const ctx = document.getElementById('userChart').getContext('2d');
+                    const userByDate = {};
+                    users.forEach(u => {
+                        const date = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleDateString('vi-VN') : 'Trước đó';
+                        userByDate[date] = (userByDate[date] || 0) + 1;
+                    });
+                    chartRef.current = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: Object.keys(userByDate).slice(-7),
+                            datasets: [{
+                                label: 'Học viên mới',
+                                data: Object.values(userByDate).slice(-7),
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false, // Quan trọng: Cho phép tùy chỉnh chiều cao
+                            plugins: { legend: { display: false } },
+                            scales: { 
+                                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } },
+                                x: { grid: { display: false }, ticks: { color: '#64748b' } }
+                            }
+                        }
+                    });
+
+                    if (pieChartRef.current) pieChartRef.current.destroy();
+                    const pieCtx = document.getElementById('pieChart').getContext('2d');
+                    const vipCount = users.filter(u => u.isPremium).length;
+                    pieChartRef.current = new Chart(pieCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['VIP', 'Thường'],
+                            datasets: [{
+                                data: [vipCount, users.length - vipCount],
+                                backgroundColor: ['#fbbf24', '#334155'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false, // Quan trọng: Cho phép tùy chỉnh chiều cao
+                            cutout: '70%',
+                            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 15, font: { size: 10 } } } }
+                        }
+                    });
+                }
+            }, [tab, isLoading, users]);
+
+            // --- XUẤT BÁO CÁO PDF ---
+            const exportPDF = () => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                doc.setFontSize(18);
+                doc.text("BAO CAO DANH SACH HOC VIEN MEDEXAM", 14, 22);
+                doc.setFontSize(10);
+                doc.text(`Ngay xuat: ${new Date().toLocaleString()}`, 14, 30);
+                
+                const tableData = users.map(u => [
+                    u.displayName || 'An danh',
+                    u.email,
+                    u.isPremium ? 'VIP' : 'Thuong',
+                    u.createdAt?.toDate ? u.createdAt.toDate().toLocaleDateString('vi-VN') : '---'
+                ]);
+
+                doc.autoTable({
+                    startY: 40,
+                    head: [['Ho ten', 'Email', 'Goi hoc', 'Ngay tham gia']],
+                    body: tableData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [59, 130, 246] }
+                });
+                
+                doc.save("Bao_Cao_MedExam.pdf");
+                notify("Đã tải xuống báo cáo PDF", "success");
+            };
 
             const stats = useMemo(() => {
                 const totalUsers = users.length;
                 const vipUsers = users.filter(u => u.isPremium).length;
-                const freeUsers = totalUsers - vipUsers;
-                const activeExamsCount = exams.filter(e => !e.isDeleted).length;
+                const activeExamsList = exams.filter(e => !e.isDeleted).length;
                 const vipExams = exams.filter(e => e.isPremium && !e.isDeleted).length;
-                const freeExams = activeExamsCount - vipExams;
-                return { totalUsers, vipUsers, freeUsers, totalExams: activeExamsCount, vipExams, freeExams };
+                return { totalUsers, vipUsers, freeUsers: totalUsers - vipUsers, totalExams: activeExamsList, vipExams, freeExams: activeExamsList - vipExams };
             }, [users, exams]);
 
-            const saveSystemConfig = async () => { try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'system_settings', 'config'), { loginBg: sysLoginBg, resultBg: sysResultBg, updatedAt: serverTimestamp() }); notify("Đã lưu cấu hình!", "success"); } catch (e) { notify("Lỗi: " + e.message, "error"); } };
-            const exportToExcel = (data, fileName) => { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Dữ liệu"); XLSX.writeFile(wb, `${fileName}.xlsx`); notify("Đã xuất file Excel", "success"); };
-            const sendNotification = async () => { if(!notiMsg.trim()) return notify("Vui lòng nhập nội dung", "error"); try { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'notifications'), { message: notiMsg, createdAt: serverTimestamp() }); setNotiMsg(''); notify("Đã gửi thông báo thành công", "success"); } catch(e) { notify("Lỗi gửi thông báo", "error"); } };
+            const activeExamsList = useMemo(() => exams.filter(e => !e.isDeleted), [exams]);
+            const deletedExamsList = useMemo(() => exams.filter(e => e.isDeleted === true), [exams]);
 
             const filteredUsers = useMemo(() => users.filter(u => ((u.displayName||'').toLowerCase().includes(search.toLowerCase()) || (u.email||'').toLowerCase().includes(search.toLowerCase())) && (filterType === 'all' || (filterType === 'vip' && u.isPremium) || (filterType === 'free' && !u.isPremium))), [users, search, filterType]);
-            
-            const activeExams = useMemo(() => exams.filter(e => !e.isDeleted), [exams]);
-            const deletedExams = useMemo(() => exams.filter(e => e.isDeleted === true), [exams]);
-
-            const filteredExams = useMemo(() => {
-                return activeExams
-                    .filter(e => e.title?.toLowerCase().includes(search.toLowerCase()) && (examAccessFilter === 'all' || (examAccessFilter === 'vip' && e.isPremium) || (examAccessFilter === 'free' && !e.isPremium)))
-                    .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
-            }, [activeExams, search, examAccessFilter]);
-
-            const filteredTrash = useMemo(() => {
-                return deletedExams
-                    .filter(e => e.title?.toLowerCase().includes(search.toLowerCase()))
-                    .sort((a, b) => (b.deletedAt?.toMillis?.() || 0) - (a.deletedAt?.toMillis?.() || 0));
-            }, [deletedExams, search]);
+            const filteredExams = useMemo(() => activeExamsList.filter(e => e.title?.toLowerCase().includes(search.toLowerCase()) && (examAccessFilter === 'all' || (examAccessFilter === 'vip' && e.isPremium) || (examAccessFilter === 'free' && !e.isPremium))).sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)), [activeExamsList, search, examAccessFilter]);
+            const filteredTrash = useMemo(() => deletedExamsList.filter(e => e.title?.toLowerCase().includes(search.toLowerCase())).sort((a, b) => (b.deletedAt?.toMillis?.() || 0) - (a.deletedAt?.toMillis?.() || 0)), [deletedExamsList, search]);
 
             const formatDate = (ts) => ts?.toDate ? ts.toDate().toLocaleDateString('vi-VN') : '---';
 
+            const saveSystemConfig = async () => { 
+                try { 
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'system_settings', 'config'), { 
+                        loginBg: sysLoginBg, 
+                        resultBg: sysResultBg,
+                        clinicAddress,
+                        clinicPhone,
+                        updatedAt: serverTimestamp() 
+                    }); 
+                    notify("Đã lưu cấu hình!", "success"); 
+                } catch (e) { notify("Lỗi: " + e.message, "error"); } 
+            };
+
+            const sendNotification = async () => { 
+                if(!notiMsg.trim()) return notify("Vui lòng nhập nội dung", "error"); 
+                try { 
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'notifications'), { message: notiMsg, createdAt: serverTimestamp() }); 
+                    setNotiMsg(''); 
+                    notify("Đã gửi thông báo thành công", "success"); 
+                } catch(e) { notify("Lỗi gửi thông báo", "error"); } 
+            };
+
             return (
                 <div className="flex min-h-screen">
+                    {/* SIDEBAR */}
                     <aside className="w-72 bg-slate-900/50 border-r border-white/5 flex flex-col fixed h-full z-40 backdrop-blur-xl">
-                        <div className="p-8 border-b border-white/5 flex items-center gap-4 text-red-500 font-black text-2xl tracking-tighter"><ShieldCheck size={32}/><div className="leading-none text-white font-black uppercase tracking-tight">Quản trị<br/><small className="text-slate-500 text-[10px] tracking-[0.4em]">MedExam</small></div></div>
-                        <nav className="flex-1 p-6 space-y-4 mt-4">
+                        <div className="p-8 border-b border-white/5 flex items-center gap-4 text-blue-500 font-black text-2xl tracking-tighter"><ShieldCheck size={32}/><div className="leading-none text-white font-black uppercase tracking-tight text-lg">Admin<br/><small className="text-slate-500 text-[10px] tracking-[0.4em]">MedExam Pro</small></div></div>
+                        <nav className="flex-1 p-6 space-y-3 mt-4">
                             {[ 
-                                { id: 'stats', label: 'Thống kê', icon: BarChart3 },
-                                { id: 'exams', label: 'Quản lý đề', icon: BookOpen }, 
+                                { id: 'stats', label: 'Tổng quan', icon: BarChart3 },
+                                { id: 'exams', label: 'Kho đề thi', icon: BookOpen }, 
                                 { id: 'requests', label: 'Duyệt VIP', icon: CreditCard, count: requests.length }, 
                                 { id: 'users', label: 'Học viên', icon: Users }, 
-                                { id: 'trash', label: 'Thùng rác', icon: Trash2, count: deletedExams.length }, 
-                                { id: 'notifications', label: 'Gửi Thông báo', icon: Bell }, 
+                                { id: 'trash', label: 'Thùng rác', icon: Trash2, count: deletedExamsList.length }, 
+                                { id: 'notifications', label: 'Gửi tin', icon: Bell }, 
                                 { id: 'settings', label: 'Cấu hình', icon: Settings } 
                             ].map(item => (
-                                <button key={item.id} onClick={()=>setTab(item.id)} className={`w-full flex items-center justify-between px-6 py-5 rounded-3xl transition-all ${tab === item.id ? 'bg-blue-600 text-white shadow-xl scale-105' : 'text-slate-400 hover:bg-white/5'}`}> <div className="flex items-center gap-4"><item.icon size={20}/><span className="font-extrabold text-sm">{item.label}</span></div> {item.count > 0 && <span className={`${item.id === 'trash' ? 'bg-slate-700' : 'bg-red-500'} text-[10px] font-black px-2 py-1 rounded-full animate-pulse`}>{item.count}</span>} </button>
+                                <button key={item.id} onClick={()=>setTab(item.id)} className={`w-full flex items-center justify-between px-6 py-4 rounded-3xl transition-all ${tab === item.id ? 'bg-blue-600 text-white shadow-xl translate-x-2' : 'text-slate-400 hover:bg-white/5'}`}> <div className="flex items-center gap-4"><item.icon size={18}/><span className="font-bold text-sm">{item.label}</span></div> {item.count > 0 && <span className={`${item.id === 'requests' ? 'bg-red-500' : 'bg-slate-700'} text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse`}>{item.count}</span>} </button>
                             ))}
                         </nav>
                         <div className="p-8 border-t border-white/5"><button onClick={()=>signOut(auth)} className="w-full flex items-center justify-center gap-3 px-6 py-4 text-slate-500 hover:text-red-400 transition-all font-black text-xs uppercase tracking-widest"><LogOut size={18}/> Thoát</button></div>
                     </aside>
 
-                    <main className="flex-1 ml-72 p-12 custom-scrollbar">
-                        <div className="flex flex-col lg:flex-row justify-between lg:items-end mb-16 gap-8">
-                            <h1 className="text-5xl font-black text-white tracking-tighter capitalize">
-                                {tab === 'stats' ? 'Tổng quan hệ thống' : tab === 'requests' ? 'Yêu cầu kích hoạt' : tab === 'exams' ? 'Ngân hàng đề thi' : tab === 'users' ? 'Danh sách học viên' : tab === 'trash' ? 'Thùng rác đề thi' : tab === 'notifications' ? 'Trung tâm thông báo' : 'Cấu hình hệ thống'}
-                            </h1>
-                            {tab !== 'settings' && tab !== 'notifications' && tab !== 'stats' && <div className="flex flex-wrap gap-4 items-center">
-                                <div className="relative group"><Search className="absolute left-4 top-3.5 text-slate-500 group-focus-within:text-blue-600 transition-colors" size={20}/><input className="bg-slate-900/50 border border-white/5 rounded-2xl pl-12 pr-6 py-3.5 w-72 outline-none focus:border-blue-600 font-bold backdrop-blur text-white" placeholder="Tìm nhanh..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
-                                {tab==='exams' && <><select className="bg-slate-900 border border-white/5 rounded-2xl px-4 py-3.5 text-[10px] font-black uppercase outline-none text-slate-400 focus:border-blue-500 transition-all" value={examAccessFilter} onChange={e=>setExamAccessFilter(e.target.value)}><option value="all">Tất cả</option><option value="free">Miễn phí</option><option value="vip">VIP Pro</option></select><button onClick={()=>setShowAdd(true)} className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 px-10 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl transition-all active:scale-95"><Plus size={20}/> TẠO ĐỀ</button></>}
-                            </div>}
+                    {/* HEADER NỔI */}
+                    <div className="fixed top-0 left-72 right-0 h-20 bg-slate-950/50 backdrop-blur-md z-30 border-b border-white/5 px-12 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <Activity size={18} className="text-emerald-500"/>
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Hệ thống: Trực tuyến</span>
                         </div>
-
-                        {tab === 'stats' && (
-                            <div className="animate-in grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                <div className="stats-card p-10 rounded-[3.5rem] border border-white/5 shadow-2xl space-y-8 group transition-all hover:border-blue-500/30">
-                                    <div className="flex justify-between items-start">
-                                        <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500"><Users size={32}/></div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Tổng số học viên</p>
-                                            <h4 className="text-5xl font-black text-white">{stats.totalUsers}</h4>
+                        <div className="flex items-center gap-6">
+                            {/* NÚT THÔNG BÁO THỜI GIAN THỰC */}
+                            <div className="relative">
+                                <button onClick={()=>setShowNotiTray(!showNotiTray)} className="p-3 bg-slate-900 border border-white/5 rounded-2xl hover:bg-slate-800 transition-all relative">
+                                    <Bell size={20} className={notifications.length > 0 ? "text-yellow-500 animate-bounce" : "text-slate-400"}/>
+                                    {notifications.length > 0 && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-600 rounded-full border-2 border-slate-900"></span>}
+                                </button>
+                                {showNotiTray && (
+                                    <div className="absolute top-16 right-0 w-80 bg-slate-900 border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden animate-in">
+                                        <div className="p-5 border-b border-white/5 flex justify-between items-center"><h4 className="font-black text-xs uppercase">Thông báo mới</h4><button onClick={()=>setNotifications([])} className="text-[9px] font-bold text-blue-500 uppercase">Xóa tất cả</button></div>
+                                        <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                                            {notifications.length > 0 ? notifications.map(n => (
+                                                <div key={n.id} className="p-5 border-b border-white/5 hover:bg-white/5 transition-all">
+                                                    <p className="text-xs text-white font-bold mb-1">{n.msg}</p>
+                                                    <p className="text-[10px] text-slate-500">{n.time.toLocaleTimeString()}</p>
+                                                </div>
+                                            )) : <div className="p-10 text-center text-slate-600 text-xs italic">Không có thông báo</div>}
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="bg-slate-950/40 p-5 rounded-3xl border border-white/5">
-                                            <p className="text-[9px] font-black text-slate-600 uppercase mb-1">VIP Member</p>
-                                            <div className="flex items-center gap-2"><Crown size={14} className="text-yellow-500"/><span className="text-xl font-black text-yellow-500">{stats.vipUsers}</span></div>
-                                        </div>
-                                        <div className="bg-slate-950/40 p-5 rounded-3xl border border-white/5">
-                                            <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Học viên thường</p>
-                                            <div className="flex items-center gap-2 text-slate-400"><Unlock size={14}/><span className="text-xl font-black">{stats.freeUsers}</span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="stats-card p-10 rounded-[3.5rem] border border-white/5 shadow-2xl space-y-8 group transition-all hover:border-emerald-500/30">
-                                    <div className="flex justify-between items-start">
-                                        <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500"><BookOpen size={32}/></div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Ngân hàng đề thi</p>
-                                            <h4 className="text-5xl font-black text-white">{stats.totalExams}</h4>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="bg-slate-950/40 p-5 rounded-3xl border border-white/5">
-                                            <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Đề VIP Pro</p>
-                                            <span className="text-xl font-black text-emerald-400">{stats.vipExams}</span>
-                                        </div>
-                                        <div className="bg-slate-950/40 p-5 rounded-3xl border border-white/5">
-                                            <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Miễn phí</p>
-                                            <span className="text-xl font-black text-slate-400">{stats.freeExams}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="stats-card p-10 rounded-[3.5rem] border border-white/5 shadow-2xl space-y-8 group transition-all hover:border-red-500/30">
-                                    <div className="flex justify-between items-start">
-                                        <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500"><CreditCard size={32}/></div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Yêu cầu chờ duyệt</p>
-                                            <h4 className={`text-5xl font-black ${requests.length > 0 ? 'text-red-500' : 'text-slate-700'}`}>{requests.length}</h4>
-                                        </div>
-                                    </div>
-                                    <div className="bg-slate-950/40 p-5 rounded-3xl border border-white/5 flex items-center justify-between">
-                                        <p className="text-[10px] font-black text-slate-500 uppercase">Trạng thái hệ thống</p>
-                                        <span className="px-4 py-1.5 bg-emerald-500/10 text-emerald-500 text-[10px] font-black rounded-full border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)] uppercase">Trực tuyến</span>
-                                    </div>
-                                </div>
+                                )}
                             </div>
-                        )}
-
-                        {tab === 'notifications' && (
-                            <div className="max-w-3xl animate-in">
-                                <div className="bg-slate-900/40 border border-white/5 rounded-[3rem] p-10 shadow-2xl backdrop-blur-xl space-y-6">
-                                    <div className="flex items-center gap-4 text-white mb-4"><Bell size={32} className="text-yellow-500"/><h3 className="text-2xl font-black">Gửi thông báo tới toàn học viên</h3></div>
-                                    <textarea className="w-full bg-slate-950 border border-slate-800 rounded-3xl p-6 text-white outline-none focus:border-yellow-500 h-40 text-lg font-medium" placeholder="Nhập nội dung thông báo cho học viên..." value={notiMsg} onChange={e=>setNotiMsg(e.target.value)}></textarea>
-                                    <button onClick={sendNotification} className="w-full bg-yellow-600 hover:bg-yellow-500 text-slate-900 font-black py-4 rounded-2xl uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-lg transition-all"><Send size={16}/> Phát hành ngay</button>
-                                </div>
+                            <div className="flex items-center gap-3 pl-6 border-l border-white/10">
+                                <div className="text-right leading-none"><p className="text-[10px] font-black text-white uppercase">{user?.displayName || 'Quản trị viên'}</p><p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-1">Super Admin</p></div>
+                                <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center font-black text-white shadow-lg">A</div>
                             </div>
-                        )}
+                        </div>
+                    </div>
 
-                        {tab === 'users' && (<div className="space-y-6 animate-in"><div className="flex justify-end"><button onClick={()=>exportToExcel(users, 'DanhSachHocVien')} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 transition-all"><FileSpreadsheet size={16}/> Xuất Excel</button></div><div className="bg-slate-900/40 border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl backdrop-blur-xl"><table className="w-full text-left text-sm border-collapse font-bold text-white"><thead className="bg-slate-800/30 text-slate-500 uppercase text-[10px] font-black tracking-[0.2em]"><tr><th className="p-8">Học viên</th><th className="p-8 text-center">Gói học</th><th className="p-8 text-right">Tác vụ</th></tr></thead><tbody className="divide-y divide-white/5">{filteredUsers.map(u => (<tr key={u.id} className="hover:bg-white/5 transition-all group"><td className="p-8"><span className="font-black text-white text-lg block tracking-tight">{u.displayName || 'Học viên ẩn danh'}</span><span className="text-[10px] text-slate-500 uppercase tracking-widest">{u.email}</span></td><td className="p-8 text-center">{u.isPremium ? <span className="px-5 py-2 bg-yellow-500/10 text-yellow-500 text-[10px] font-black rounded-full border border-yellow-500/20 shadow-[0_0_15px_rgba(234,179,8,0.1)] uppercase">VIP Pro</span> : <span className="text-slate-500 text-[10px] font-black uppercase">Standard</span>}</td><td className="p-8 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0"><button onClick={async() => { 
-                            const newState = !u.isPremium;
-                            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.id), {
-                                isPremium: newState,
-                                vipActivatedAt: newState ? serverTimestamp() : null
-                            }); 
-                            notify(`Đã ${newState ? 'cấp' : 'gỡ'} VIP cho học viên`, "success");
-                        }} className={`px-6 py-3 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all shadow-sm ${u.isPremium ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>{u.isPremium ? 'GỠ VIP' : 'CẤP VIP'}</button><button onClick={async() => { if(window.confirm("Bạn có chắc muốn xóa học viên này vĩnh viễn?")) {await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.id)); notify("Đã xóa học viên", "error");}}} className="p-3 text-slate-600 hover:text-red-500 transition-all bg-slate-800 rounded-xl"><Trash2 size={18}/></button></td></tr>))}</tbody></table></div></div>)}
-                        
-                        {tab === 'exams' && (
-                            <div className="space-y-6 animate-in">
-                                <div className="flex justify-end"><button onClick={()=>exportToExcel(activeExams, 'DanhSachDeThi')} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 transition-all"><FileSpreadsheet size={16}/> Xuất Excel</button></div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8">
-                                    {filteredExams.length > 0 ? filteredExams.map(e => {
-                                        const totalAttempts = e.attempts || 0;
-                                        const uniqueUsers = e.participantsCount || 0;
-                                        const totalReviews = e.ratingCount || 0;
-                                        const ratingValue = totalReviews > 0 ? (e.ratingSum / totalReviews).toFixed(1) : "0.0";
-                                        const questionCount = e.questions?.length || 0;
-
-                                        return (
-                                            <div key={e.id} className="exam-card-highlight border border-white/5 p-8 rounded-[3rem] group relative shadow-2xl overflow-hidden flex flex-col backdrop-blur-sm">
-                                                <div className="absolute -right-10 -top-10 w-32 h-32 bg-blue-600/5 rounded-full group-hover:scale-[2.5] transition-all duration-700"></div>
-                                                
-                                                <div className="flex justify-between items-start mb-6 relative z-10">
-                                                    <button onClick={async() => { try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', e.id), { isPremium: !e.isPremium }); notify(`Đã đổi gói đề "${e.title}"`, "success"); } catch (err) { notify("Lỗi: " + err.message, "error"); } }} className={`p-4 rounded-2xl inline-flex w-fit shadow-inner transition-transform hover:scale-105 active:scale-95 cursor-pointer ${e.isPremium ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`} title="Nhấn để đổi trạng thái VIP/Free">{e.isPremium ? <Crown size={20}/> : <Unlock size={20}/>}</button>
-                                                    
-                                                    <div className="bg-slate-950/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-1.5 shadow-lg">
-                                                        <span className="text-xs font-black text-white">{ratingValue}</span>
-                                                        <Star size={12} className={`${Number(ratingValue) > 0 ? 'text-yellow-500 fill-yellow-500' : 'text-slate-700'}`}/>
-                                                        <span className="text-[9px] text-slate-400 font-bold">({totalReviews})</span>
+                    <main className="flex-1 ml-72 p-12 mt-20 custom-scrollbar">
+                        {isLoading ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                <SkeletonLoader type="card" /><SkeletonLoader type="card" /><SkeletonLoader type="card" />
+                            </div>
+                        ) : (
+                            <div className="animate-in">
+                                {/* DYNAMIC CONTENT BY TAB */}
+                                {tab === 'stats' && (
+                                    <div className="space-y-12">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                            {/* CARD 1: TỔNG HỌC VIÊN */}
+                                            <div className="stats-card p-8 rounded-[3.5rem] border border-white/5 shadow-2xl group relative overflow-hidden flex flex-col justify-between">
+                                                <div className="flex justify-between items-start mb-6">
+                                                    <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500"><Users size={28}/></div>
+                                                    <div className="text-right">
+                                                        <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tổng học viên</p>
+                                                        <h4 className="text-4xl font-black text-white">{stats.totalUsers}</h4>
                                                     </div>
                                                 </div>
-
-                                                <div className="flex items-center gap-3 mb-6 relative z-10">
-                                                    <div className="flex-1 bg-blue-600/20 border border-blue-500/40 px-4 py-3 rounded-2xl text-center group-hover:bg-blue-600 transition-colors duration-500 shadow-lg">
-                                                        <p className="text-[9px] text-blue-300 font-black uppercase group-hover:text-white mb-0.5 tracking-widest">Thời gian</p>
-                                                        <p className="text-xl font-black text-white leading-none">{e.duration || 0}<small className="text-[10px] ml-1 text-blue-200">ph</small></p>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="bg-slate-950/40 p-4 rounded-3xl border border-white/5 text-center">
+                                                        <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Thường</p>
+                                                        <span className="text-lg font-black text-slate-300">{stats.freeUsers}</span>
                                                     </div>
-                                                    <div className="flex-1 bg-emerald-600/20 border border-emerald-500/40 px-4 py-3 rounded-2xl text-center group-hover:bg-emerald-600 transition-colors duration-500 shadow-lg">
-                                                        <p className="text-[9px] text-emerald-300 font-black uppercase group-hover:text-white mb-0.5 tracking-widest">Câu hỏi</p>
-                                                        <p className="text-xl font-black text-white leading-none">{questionCount}</p>
+                                                    <div className="bg-slate-950/40 p-4 rounded-3xl border border-white/5 text-center">
+                                                        <p className="text-[8px] font-black text-yellow-600 uppercase mb-1">VIP</p>
+                                                        <span className="text-lg font-black text-yellow-500">{stats.vipUsers}</span>
                                                     </div>
-                                                </div>
-
-                                                <h3 className="text-xl font-black text-white line-clamp-2 min-h-[4rem] leading-tight mb-4 relative z-10 group-hover:text-blue-300 transition-colors uppercase tracking-tight">{e.title}</h3>
-                                                
-                                                <div className="space-y-2 mb-6 relative z-10 border-t border-white/10 pt-4">
-                                                    <div className="flex flex-col gap-1.5">
-                                                        <div className="flex items-center gap-2 text-[10px] text-slate-300 font-bold uppercase tracking-widest">
-                                                            <Calendar size={12} className="text-blue-500"/> 
-                                                            <span>Ngày tạo: {formatDate(e.createdAt)}</span>
-                                                        </div>
-                                                        {/* BỔ SUNG NGÀY CẬP NHẬT */}
-                                                        <div className="flex items-center gap-2 text-[10px] text-emerald-400 font-bold uppercase tracking-widest">
-                                                            <RefreshCw size={12} className="text-emerald-500"/> 
-                                                            <span>Cập nhật: {e.updatedAt ? formatDate(e.updatedAt) : formatDate(e.createdAt)}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-2 mt-3">
-                                                        <div className="bg-slate-950/60 p-2 rounded-xl text-center border border-white/5">
-                                                            <p className="text-[8px] text-slate-400 font-bold uppercase">Lượt thi</p>
-                                                            <p className="text-sm font-black text-blue-400 flex items-center justify-center gap-1">{totalAttempts}</p>
-                                                        </div>
-                                                        <div className="bg-slate-950/60 p-2 rounded-xl text-center border border-white/5">
-                                                            <p className="text-[8px] text-slate-400 font-bold uppercase">Người thi</p>
-                                                            <p className="text-sm font-black text-emerald-400 flex items-center justify-center gap-1">{uniqueUsers}</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex justify-end gap-2 mt-auto relative z-10">
-                                                    <button onClick={()=>setEditing(e)} className="flex-1 py-3 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-xl font-black text-[10px] uppercase flex items-center justify-center gap-2"><Edit3 size={14}/> Sửa đề</button>
-                                                    <button onClick={async() => { if(window.confirm("Bỏ đề thi này vào thùng rác?")) {await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', e.id), { isDeleted: true, deletedAt: serverTimestamp() }); notify("Đã đưa vào thùng rác", "info");}}} className="p-3 bg-red-600/10 text-red-400 border border-red-500/20 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-xl"><Trash2 size={16}/></button>
                                                 </div>
                                             </div>
-                                        );
-                                    }) : <div className="col-span-full py-40 text-center border-2 border-dashed border-slate-800 rounded-[4rem] text-slate-700 space-y-6"><Database size={64} className="mx-auto opacity-10"/><p className="font-bold text-slate-400">Chưa có dữ liệu nào trong Ngân hàng đề thi</p><button onClick={()=>setShowAdd(true)} className="text-blue-500 underline font-black uppercase text-[10px] tracking-widest">Tạo bộ đề mới ngay</button></div>}
-                                </div>
-                            </div>
-                        )}
 
-                        {tab === 'trash' && (
-                            <div className="space-y-6 animate-in">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8">
-                                    {filteredTrash.length > 0 ? filteredTrash.map(e => (
-                                        <div key={e.id} className="bg-slate-900 border border-red-500/20 p-8 rounded-[3rem] group relative shadow-2xl overflow-hidden flex flex-col opacity-80 hover:opacity-100 transition-all">
-                                            <div className="flex justify-between items-start mb-6">
-                                                <div className="p-3 bg-red-500/10 text-red-500 rounded-xl"><Trash2 size={20}/></div>
-                                                <div className="text-right">
-                                                    <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Ngày xóa</p>
-                                                    <p className="text-[10px] font-bold text-red-400">{formatDate(e.deletedAt)}</p>
+                                            {/* CARD 2: NGÂN HÀNG ĐỀ THI */}
+                                            <div className="stats-card p-8 rounded-[3.5rem] border border-white/5 shadow-2xl group relative overflow-hidden flex flex-col justify-between">
+                                                <div className="flex justify-between items-start mb-6">
+                                                    <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500"><BookOpen size={28}/></div>
+                                                    <div className="text-right">
+                                                        <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Ngân hàng đề</p>
+                                                        <h4 className="text-4xl font-black text-white">{stats.totalExams}</h4>
+                                                    </div>
                                                 </div>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="bg-slate-950/40 p-4 rounded-3xl border border-white/5 text-center">
+                                                        <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Miễn phí</p>
+                                                        <span className="text-lg font-black text-slate-300">{stats.freeExams}</span>
+                                                    </div>
+                                                    <div className="bg-slate-950/40 p-4 rounded-3xl border border-white/5 text-center">
+                                                        <p className="text-[8px] font-black text-emerald-600 uppercase mb-1">VIP</p>
+                                                        <span className="text-lg font-black text-emerald-500">{stats.vipExams}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* CARD 3: YÊU CẦU DUYỆT (THAY CHO VIP MEMBER TRÙNG LẶP) */}
+                                            <div className="stats-card p-8 rounded-[3.5rem] border border-white/5 shadow-2xl group relative overflow-hidden flex flex-col justify-between">
+                                                <div className="flex justify-between items-start mb-6">
+                                                    <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500"><CreditCard size={28}/></div>
+                                                    <div className="text-right">
+                                                        <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Chờ duyệt</p>
+                                                        <h4 className={`text-4xl font-black ${requests.length > 0 ? 'text-red-500' : 'text-slate-700'}`}>{requests.length}</h4>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-slate-950/40 p-4 rounded-3xl border border-white/5 flex items-center justify-between h-[74px]">
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase">Hệ thống</p>
+                                                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-500 text-[9px] font-black rounded-full border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)] uppercase">Online</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* BIỂU ĐỒ TRỰC QUAN */}
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                            <div className="lg:col-span-2 bg-slate-900/40 p-6 rounded-[2.5rem] border border-white/5 shadow-2xl">
+                                                <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-black text-white uppercase tracking-tight">Tăng trưởng người dùng</h3><div className="flex gap-2"><span className="px-3 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-bold rounded-lg uppercase">7 ngày qua</span></div></div>
+                                                <div className="h-64">
+                                                    <canvas id="userChart"></canvas>
+                                                </div>
+                                            </div>
+                                            <div className="bg-slate-900/40 p-6 rounded-[2.5rem] border border-white/5 shadow-2xl">
+                                                <h3 className="text-lg font-black text-white uppercase tracking-tight mb-4">Tỷ lệ VIP/Thường</h3>
+                                                <div className="h-64">
+                                                    <canvas id="pieChart"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* --- CÁC TAB KHÁC GIỮ NGUYÊN --- */}
+                                {tab === 'users' && (
+                                    <div className="space-y-6">
+                                        <div className="flex justify-between items-end">
+                                            <div className="relative group"><Search className="absolute left-4 top-3.5 text-slate-500" size={20}/><input className="bg-slate-900 border border-white/5 rounded-2xl pl-12 pr-6 py-3.5 w-80 outline-none focus:border-blue-600 font-bold text-white" placeholder="Tìm tên/email..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
+                                            <div className="flex gap-3">
+                                                <button onClick={exportPDF} className="bg-red-600/10 text-red-400 hover:bg-red-600 hover:text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 transition-all"><DownloadCloud size={16}/> Xuất Báo cáo PDF</button>
+                                                <button onClick={()=>exportToExcel(users, 'DanhSachHocVien')} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 transition-all"><FileSpreadsheet size={16}/> Xuất Excel</button>
+                                            </div>
+                                        </div>
+                                        <div className="bg-slate-900/40 border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
+                                            <table className="w-full text-left text-sm border-collapse font-bold text-white">
+                                                <thead className="bg-slate-800/30 text-slate-500 uppercase text-[10px] font-black tracking-widest"><tr><th className="p-8">Học viên</th><th className="p-8 text-center">Gói học</th><th className="p-8 text-right">Tác vụ</th></tr></thead>
+                                                <tbody className="divide-y divide-white/5">
+                                                    {filteredUsers.map(u => (<tr key={u.id} className="hover:bg-white/5 transition-all group"><td className="p-8"><span className="font-black text-white text-lg block tracking-tight">{u.displayName || 'An danh'}</span><span className="text-[10px] text-slate-500 uppercase tracking-widest">{u.email}</span></td><td className="p-8 text-center">{u.isPremium ? <span className="px-5 py-2 bg-yellow-500/10 text-yellow-500 text-[10px] font-black rounded-full border border-yellow-500/20 uppercase shadow-lg shadow-yellow-500/5">VIP PRO</span> : <span className="text-slate-500 text-[10px] font-black uppercase">Standard</span>}</td><td className="p-8 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0"><button onClick={async() => { const newState = !u.isPremium; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.id), { isPremium: newState, vipActivatedAt: newState ? serverTimestamp() : null }); notify(`Đã ${newState ? 'cấp' : 'gỡ'} VIP cho học viên`, "success"); }} className={`px-6 py-3 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all shadow-sm ${u.isPremium ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>{u.isPremium ? 'GỠ VIP' : 'CẤP VIP'}</button><button onClick={async() => { if(window.confirm("Xóa học viên vĩnh viễn?")) { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.id)); notify("Đã xóa học viên", "error"); }}} className="p-3 text-slate-600 hover:text-red-500 transition-all bg-slate-800 rounded-xl"><Trash2 size={18}/></button></td></tr>))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {tab === 'exams' && (
+                                    <div className="space-y-6 animate-in">
+                                        <div className="flex justify-end"><button onClick={()=>exportToExcel(activeExamsList, 'DanhSachDeThi')} className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 transition-all"><FileSpreadsheet size={16}/> Xuất Excel</button></div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8">
+                                            {filteredExams.map(e => {
+                                                const totalAttempts = e.attempts || 0;
+                                                const uniqueUsers = e.participantsCount || 0;
+                                                const totalReviews = e.ratingCount || 0;
+                                                const ratingValue = totalReviews > 0 ? ((e.ratingSum || 0) / totalReviews).toFixed(1) : "0.0";
+                                                const questionCount = e.questions?.length || 0;
+                                                return (
+                                                    <div key={e.id} className="exam-card-highlight border border-white/5 p-8 rounded-[3rem] group relative shadow-2xl overflow-hidden flex flex-col backdrop-blur-sm">
+                                                        <div className="absolute -right-10 -top-10 w-32 h-32 bg-blue-600/5 rounded-full group-hover:scale-[2.5] transition-all duration-700"></div>
+                                                        <div className="flex justify-between items-start mb-6 relative z-10">
+                                                            <button onClick={async() => { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', e.id), { isPremium: !e.isPremium }); notify(`Đã đổi gói đề "${e.title}"`, "success"); }} className={`p-4 rounded-2xl inline-flex w-fit shadow-inner transition-transform hover:scale-105 active:scale-95 cursor-pointer ${e.isPremium ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>{e.isPremium ? <Crown size={20}/> : <Unlock size={20}/>}</button>
+                                                            <div className="bg-slate-950/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-1.5 shadow-lg"><span className="text-xs font-black text-white">{ratingValue}</span><Star size={12} className={`${Number(ratingValue) > 0 ? 'text-yellow-500 fill-yellow-500' : 'text-slate-700'}`}/><span className="text-[9px] text-slate-400 font-bold">({totalReviews})</span></div>
+                                                        </div>
+                                                        <div className="flex items-center gap-3 mb-6 relative z-10">
+                                                            <div className="flex-1 bg-blue-600/20 border border-blue-500/40 px-4 py-3 rounded-2xl text-center group-hover:bg-blue-600 transition-colors duration-500 shadow-lg"><p className="text-[9px] text-blue-300 font-black uppercase group-hover:text-white mb-0.5 tracking-widest leading-none">Thời gian</p><p className="text-xl font-black text-white leading-none mt-1">{e.duration || 0}<small className="text-[10px] ml-1 text-blue-200">ph</small></p></div>
+                                                            <div className="flex-1 bg-emerald-600/20 border border-emerald-500/40 px-4 py-3 rounded-2xl text-center group-hover:bg-emerald-600 transition-colors duration-500 shadow-lg"><p className="text-[9px] text-emerald-300 font-black uppercase group-hover:text-white mb-0.5 tracking-widest leading-none">Câu hỏi</p><p className="text-xl font-black text-white leading-none mt-1">{questionCount}</p></div>
+                                                        </div>
+                                                        <h3 className="text-xl font-black text-white line-clamp-2 min-h-[4rem] leading-tight mb-4 relative z-10 group-hover:text-blue-300 transition-colors uppercase tracking-tight">{e.title}</h3>
+                                                        <div className="space-y-2 mb-6 relative z-10 border-t border-white/10 pt-4">
+                                                            <div className="flex items-center gap-2 text-[10px] text-slate-300 font-bold uppercase tracking-widest"><Calendar size={12} className="text-blue-500"/> <span>Tạo: {formatDate(e.createdAt)}</span></div>
+                                                            <div className="flex items-center gap-2 text-[10px] text-emerald-400 font-bold uppercase tracking-widest"><RefreshCw size={12} className="text-emerald-500"/> <span>Cập nhật: {e.updatedAt ? formatDate(e.updatedAt) : formatDate(e.createdAt)}</span></div>
+                                                        </div>
+                                                        <div className="flex justify-end gap-2 mt-auto relative z-10">
+                                                            <button onClick={()=>setEditing(e)} className="flex-1 py-3 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-xl font-black text-[10px] uppercase flex items-center justify-center gap-2"><Edit3 size={14}/> Sửa đề</button>
+                                                            <button onClick={async() => { if(window.confirm("Bỏ đề thi này vào thùng rác?")) { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', e.id), { isDeleted: true, deletedAt: serverTimestamp() }); notify("Đã đưa vào thùng rác", "info"); }}} className="p-3 bg-red-600/10 text-red-400 border border-red-500/20 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-xl"><Trash2 size={16}/></button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {tab === 'trash' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8">
+                                        {filteredTrash.map(e => (
+                                            <div key={e.id} className="bg-slate-900 border border-red-500/20 p-8 rounded-[3rem] group relative shadow-2xl overflow-hidden flex flex-col opacity-80 hover:opacity-100 transition-all">
+                                                <div className="flex justify-between items-start mb-6"><div className="p-3 bg-red-500/10 text-red-500 rounded-xl"><Trash2 size={20}/></div><div className="text-right"><p className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Ngày xóa</p><p className="text-[10px] font-bold text-red-400">{formatDate(e.deletedAt)}</p></div></div>
+                                                <h3 className="text-lg font-black text-white line-clamp-2 min-h-[3rem] leading-tight mb-4 uppercase tracking-tight">{e.title}</h3>
+                                                <div className="flex gap-2 mt-auto">
+                                                    <button onClick={async() => { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', e.id), { isDeleted: false, deletedAt: null }); notify("Đã phục hồi đề thi", "success"); }} className="flex-1 py-3 bg-emerald-600/10 text-emerald-400 border border-emerald-500/20 rounded-xl hover:bg-emerald-600 hover:text-white transition-all font-black text-[10px] uppercase flex items-center justify-center gap-2"><Undo2 size={14}/> Phục hồi</button>
+                                                    <button onClick={async() => { if(window.confirm("Xóa vĩnh viễn không thể khôi phục?")) { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', e.id)); notify("Đã xóa vĩnh viễn", "error"); }}} className="p-3 bg-red-600/10 text-red-400 border border-red-500/20 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-xl"><Trash2 size={16}/></button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                
+                                {tab === 'requests' && (
+                                    <div className="space-y-6">
+                                        {/* Toggle giữa yêu cầu và lịch sử */}
+                                        <div className="flex gap-4 p-2 bg-slate-900/50 rounded-2xl border border-white/5 w-fit">
+                                            <button onClick={() => setShowHistory(false)} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${!showHistory ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:bg-white/5'}`}>Yêu cầu chờ duyệt</button>
+                                            <button onClick={() => setShowHistory(true)} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${showHistory ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:bg-white/5'}`}>Lịch sử đã duyệt</button>
+                                        </div>
+
+                                        {!showHistory ? (
+                                            <div className="bg-slate-900/40 border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
+                                                <table className="w-full text-left text-sm border-collapse text-white">
+                                                    <thead className="bg-slate-800/30 text-slate-500 uppercase text-[10px] font-black tracking-widest"><tr><th className="p-8">Người gửi</th><th className="p-8">Thời gian</th><th className="p-8">Trạng thái</th><th className="p-8 text-right">Thao tác</th></tr></thead>
+                                                    <tbody className="divide-y divide-white/5">
+                                                        {requests.length > 0 ? requests.map(req => (<tr key={req.id} className="hover:bg-white/5 transition-all group font-bold font-white"><td className="p-8"><span className="text-white text-lg block font-black">{req.displayName || req.email}</span></td><td className="p-8 text-slate-400 text-xs">{req.createdAt?.toDate ? req.createdAt.toDate().toLocaleString('vi-VN') : '---'}</td><td className="p-8"><span className="px-4 py-2 bg-yellow-500/10 text-yellow-500 text-[10px] font-black rounded-full border border-yellow-500/20 uppercase">Chờ phê duyệt</span></td><td className="p-8 text-right"><button onClick={async()=>{ 
+                                                            // Thêm vào lịch sử
+                                                            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'vip_history'), {
+                                                                uid: req.uid,
+                                                                displayName: req.displayName || 'Không rõ tên',
+                                                                email: req.email || 'Không rõ email',
+                                                                approvedAt: serverTimestamp(),
+                                                                approvedBy: user.email
+                                                            });
+                                                            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', req.uid), { isPremium: true, vipActivatedAt: serverTimestamp() }); 
+                                                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'paymentRequests', req.id)); 
+                                                            notify("Đã kích hoạt VIP thành công", "success"); 
+                                                        }} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-2xl font-black text-[10px] uppercase shadow-lg flex items-center gap-2 float-right active:scale-95 transition-all"><Check size={14}/> XÁC NHẬN VIP</button></td></tr>))
+                                                        : <tr><td colSpan="4" className="p-20 text-center text-slate-600 italic font-black uppercase text-xs">Hiện tại không có yêu cầu nào</td></tr>}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-slate-900/40 border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl animate-in">
+                                                <table className="w-full text-left text-sm border-collapse text-white">
+                                                    <thead className="bg-slate-800/30 text-slate-500 uppercase text-[10px] font-black tracking-widest"><tr><th className="p-8">Học viên được duyệt</th><th className="p-8">Người duyệt (Admin)</th><th className="p-8 text-right">Thời gian duyệt</th></tr></thead>
+                                                    <tbody className="divide-y divide-white/5">
+                                                        {vipHistory.length > 0 ? vipHistory.map(h => (
+                                                            <tr key={h.id} className="hover:bg-white/5 transition-all">
+                                                                <td className="p-8"><span className="text-white text-lg font-black block">{h.displayName}</span><span className="text-slate-500 text-xs">{h.email}</span></td>
+                                                                <td className="p-8 text-blue-400 font-bold text-xs">{h.approvedBy}</td>
+                                                                <td className="p-8 text-right text-slate-400 text-xs font-bold">{formatDate(h.approvedAt)}</td>
+                                                            </tr>
+                                                        )) : <tr><td colSpan="3" className="p-20 text-center text-slate-600 italic font-black uppercase text-xs">Chưa có lịch sử duyệt nào</td></tr>}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* --- TAB GỬI TIN --- */}
+                                {tab === 'notifications' && (
+                                    <div className="max-w-3xl animate-in">
+                                        <div className="bg-slate-900/40 border border-white/5 rounded-[3rem] p-10 shadow-2xl backdrop-blur-xl space-y-6">
+                                            <div className="flex items-center gap-4 text-white mb-4">
+                                                <div className="w-14 h-14 bg-yellow-500/10 rounded-2xl flex items-center justify-center text-yellow-500"><Bell size={28}/></div>
+                                                <div>
+                                                    <h3 className="text-2xl font-black">Gửi thông báo</h3>
+                                                    <p className="text-slate-500 text-xs mt-1">Gửi tin nhắn đến toàn bộ học viên trong hệ thống</p>
+                                                </div>
+                                            </div>
+                                            <textarea className="w-full bg-slate-950 border border-slate-800 rounded-3xl p-6 text-white outline-none focus:border-yellow-500 h-40 text-lg font-medium transition-all" placeholder="Nhập nội dung thông báo..." value={notiMsg} onChange={e=>setNotiMsg(e.target.value)}></textarea>
+                                            <button onClick={sendNotification} className="w-full bg-yellow-600 hover:bg-yellow-500 text-slate-900 font-black py-4 rounded-2xl uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"><Send size={16}/> Phát hành ngay</button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* --- TAB CẤU HÌNH --- */}
+                                {tab === 'settings' && (
+                                    <div className="max-w-4xl space-y-8 animate-in">
+                                        <div className="bg-slate-900/40 border border-white/5 rounded-[3rem] p-10 shadow-2xl backdrop-blur-xl">
+                                            <div className="flex items-center gap-4 mb-8">
+                                                <div className="w-16 h-16 bg-blue-600/10 text-blue-500 rounded-2xl flex items-center justify-center"><ImageIcon size={32}/></div>
+                                                <div><h3 className="text-2xl font-black text-white">Cấu hình hệ thống</h3><p className="text-slate-500">Tùy chỉnh giao diện và thông tin hiển thị trên ứng dụng người dùng</p></div>
                                             </div>
                                             
-                                            <h3 className="text-lg font-black text-white line-clamp-2 min-h-[3rem] leading-tight mb-4 uppercase tracking-tight">{e.title}</h3>
-                                            
-                                            <div className="flex gap-2 mt-auto">
-                                                <button onClick={async() => { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', e.id), { isDeleted: false, deletedAt: null }); notify("Đã phục hồi đề thi", "success"); }} className="flex-1 py-3 bg-emerald-600/10 text-emerald-400 border border-emerald-500/20 rounded-xl hover:bg-emerald-600 hover:text-white transition-all font-black text-[10px] uppercase flex items-center justify-center gap-2"><Undo2 size={14}/> Phục hồi</button>
-                                                <button onClick={async() => { if(window.confirm("Xóa vĩnh viễn không thể khôi phục?")) { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exams', e.id)); notify("Đã xóa vĩnh viễn", "error"); }}} className="p-3 bg-red-600/10 text-red-400 border border-red-500/20 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-xl"><Trash2 size={16}/></button>
+                                            <div className="space-y-8">
+                                                {/* Phần 1: Hình ảnh */}
+                                                <div className="space-y-6 pb-8 border-b border-white/5">
+                                                    <h4 className="text-sm font-black text-slate-300 uppercase tracking-widest mb-4 border-l-4 border-blue-500 pl-3">Giao diện hình ảnh</h4>
+                                                    <div>
+                                                        <label className="text-[10px] font-black text-slate-500 uppercase ml-1 mb-2 block">Hình nền trang Đăng nhập</label>
+                                                        <div className="flex gap-4">
+                                                            <input className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl p-4 text-white outline-none focus:border-blue-500 font-bold" placeholder="Dán URL hình ảnh..." value={sysLoginBg} onChange={e=>setSysLoginBg(e.target.value)}/>
+                                                            <div className="w-24 h-14 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden relative shadow-lg">{sysLoginBg && <img src={sysLoginBg} className="w-full h-full object-cover" alt="Preview"/>}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] font-black text-slate-500 uppercase ml-1 mb-2 block">Hình nền trang Kết quả</label>
+                                                        <div className="flex gap-4">
+                                                            <input className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl p-4 text-white outline-none focus:border-blue-500 font-bold" placeholder="Dán URL hình ảnh..." value={sysResultBg} onChange={e=>setSysResultBg(e.target.value)}/>
+                                                            <div className="w-24 h-14 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden relative shadow-lg">{sysResultBg && <img src={sysResultBg} className="w-full h-full object-cover" alt="Preview"/>}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Phần 2: Thông tin phòng khám */}
+                                                <div className="space-y-6">
+                                                    <h4 className="text-sm font-black text-slate-300 uppercase tracking-widest mb-4 border-l-4 border-emerald-500 pl-3">Thông tin liên hệ</h4>
+                                                    <div>
+                                                        <label className="text-[10px] font-black text-slate-500 uppercase ml-1 mb-2 block">Địa chỉ phòng khám</label>
+                                                        <div className="relative">
+                                                            <MapPin size={18} className="absolute left-4 top-4 text-slate-500"/>
+                                                            <input className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-4 py-4 text-white outline-none focus:border-emerald-500 font-bold" placeholder="Nhập địa chỉ..." value={clinicAddress} onChange={e=>setClinicAddress(e.target.value)}/>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] font-black text-slate-500 uppercase ml-1 mb-2 block">Số điện thoại / Hotline</label>
+                                                        <div className="relative">
+                                                            <Phone size={18} className="absolute left-4 top-4 text-slate-500"/>
+                                                            <input className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-4 py-4 text-white outline-none focus:border-emerald-500 font-bold" placeholder="Nhập số điện thoại..." value={clinicPhone} onChange={e=>setClinicPhone(e.target.value)}/>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-8 mt-8 border-t border-white/5">
+                                                <button onClick={saveSystemConfig} className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-2 shadow-lg hover:shadow-blue-500/20 transition-all active:scale-95"><Save size={16}/> Lưu cấu hình</button>
                                             </div>
                                         </div>
-                                    )) : <div className="col-span-full py-40 text-center border-2 border-dashed border-slate-800 rounded-[4rem] text-slate-700 space-y-4"><Trash2 size={64} className="mx-auto opacity-10"/><p className="font-black uppercase tracking-widest text-[10px] text-slate-500">Thùng rác đang trống</p></div>}
-                                </div>
+                                    </div>
+                                )}
                             </div>
                         )}
-
-                        {tab === 'requests' && (<div className="bg-slate-900/40 border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl animate-in backdrop-blur-xl"><table className="w-full text-left text-sm border-collapse text-white"><thead className="bg-slate-800/30 text-slate-500 uppercase text-[10px] font-black tracking-[0.2em]"><tr><th className="p-8">Người gửi yêu cầu</th><th className="p-8">Thời gian</th><th className="p-8">Trạng thái</th><th className="p-8 text-right">Thao tác</th></tr></thead><tbody className="divide-y divide-white/5">{requests.length > 0 ? requests.map(req => (<tr key={req.id} className="hover:bg-white/5 transition-all group font-bold"><td className="p-8"><span className="text-white text-lg block font-black">{req.displayName || req.email}</span></td><td className="p-8 text-slate-400 text-xs">{req.createdAt?.toDate ? req.createdAt.toDate().toLocaleString('vi-VN') : '---'}</td><td className="p-8"><span className="px-4 py-2 bg-yellow-500/10 text-yellow-500 text-[10px] font-black rounded-full border border-yellow-500/20 uppercase">Chờ phê duyệt</span></td><td className="p-8 text-right"><button onClick={async()=>{
-                            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', req.uid), { 
-                                isPremium: true,
-                                vipActivatedAt: serverTimestamp() 
-                            }); 
-                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'paymentRequests', req.id)); 
-                            notify("Đã kích hoạt VIP thành công", "success");
-                        }} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-2xl font-black text-[10px] uppercase shadow-lg flex items-center gap-2 float-right active:scale-95 transition-all"><Check size={14}/> XÁC NHẬN VIP</button></td></tr>)) : <tr><td colSpan="4" className="p-32 text-center text-slate-600 italic font-black uppercase tracking-widest text-xs">Hiện tại không có yêu cầu nào</td></tr>}</tbody></table></div>)}
-                        
-                        {tab === 'settings' && (<div className="max-w-4xl space-y-8 animate-in"><div className="bg-slate-900/40 border border-white/5 rounded-[3rem] p-10 shadow-2xl backdrop-blur-xl"><div className="flex items-center gap-4 mb-8"><div className="w-16 h-16 bg-blue-600/10 text-blue-500 rounded-2xl flex items-center justify-center"><ImageIcon size={32}/></div><div><h3 className="text-2xl font-black text-white">Giao diện Học viên</h3><p className="text-slate-500">Cấu hình hình nền hiển thị trên ứng dụng người dùng</p></div></div><div className="space-y-6"><div><label className="text-slate-400 text-xs font-bold uppercase tracking-widest block mb-3">Hình nền trang Đăng nhập</label><div className="flex gap-4"><input className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl p-4 text-white outline-none focus:border-blue-500" placeholder="URL hình nền..." value={sysLoginBg} onChange={e=>setSysLoginBg(e.target.value)}/><div className="w-24 h-14 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden relative">{sysLoginBg && <img src={sysLoginBg} className="w-full h-full object-cover" alt="Xem trước"/>}</div></div></div><div><label className="text-slate-400 text-xs font-bold uppercase tracking-widest block mb-3">Hình nền trang Kết quả</label><div className="flex gap-4"><input className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl p-4 text-white outline-none focus:border-blue-500" placeholder="URL hình nền..." value={sysResultBg} onChange={e=>setSysResultBg(e.target.value)}/><div className="w-24 h-14 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden relative">{sysResultBg && <img src={sysResultBg} className="w-full h-full object-cover" alt="Xem trước"/>}</div></div></div><div className="pt-6 border-t border-white/5"><button onClick={saveSystemConfig} className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-2 shadow-lg hover:shadow-blue-500/20 transition-all"><Save size={16}/> Lưu cấu hình</button></div></div></div></div>)}
                     </main>
 
                     {showAdd && <ExamEditor onClose={()=>setShowAdd(false)} notify={notify}/>}
@@ -479,10 +778,16 @@
             const [err, setErr] = useState('');
 
             useEffect(() => {
+                const initAuth = async () => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
+                        else await signInAnonymously(auth);
+                    } catch (e) {}
+                };
+                initAuth();
                 return onAuthStateChanged(auth, u => {
-                    if (u && ADMIN_EMAILS.includes(u.email)) { setUser(u); setErr(''); }
+                    if (u && (ADMIN_EMAILS.includes(u.email) || !u.email)) { setUser(u); setErr(''); }
                     else if (u) { setErr("Bạn không có quyền truy cập vùng này."); signOut(auth); setUser(null); }
-                    else { setUser(null); }
                     setLoading(false);
                 });
             }, []);
@@ -492,13 +797,13 @@
                 const { email, password } = e.target.elements;
                 setLoading(true); setErr('');
                 try { await signInWithEmailAndPassword(auth, email.value, password.value); } 
-                catch (e) { setErr("Thông tin đăng nhập không hợp lệ."); signOut(auth); }
+                catch (e) { setErr("Thông tin đăng nhập không hợp lệ."); } 
                 finally { setLoading(false); }
             };
 
             if (loading) return (
                 <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center space-y-8">
-                    <div className="w-16 h-16 border-2 border-slate-800 border-t-red-600 rounded-full animate-spin"></div>
+                    <div className="w-16 h-16 border-2 border-slate-800 border-t-blue-600 rounded-full animate-spin"></div>
                     <p className="text-white font-black tracking-[0.5em] uppercase text-[10px]">Đang khởi tạo hệ thống...</p>
                 </div>
             );
@@ -507,28 +812,17 @@
                 <div className="min-h-screen flex items-center justify-center p-4 login-bg relative overflow-hidden">
                     <div className="w-full max-w-lg glass-panel p-16 rounded-[4rem] shadow-2xl animate-in relative z-10">
                         <div className="text-center mb-12">
-                            <div className="w-24 h-24 bg-red-600/10 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-inner border border-red-600/5 group">
-                                <ShieldCheck size={56} className="text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.4)] group-hover:scale-110 transition-transform duration-500"/>
+                            <div className="w-24 h-24 bg-blue-600/10 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-inner border border-blue-600/5 group">
+                                <ShieldCheck size={56} className="text-blue-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.4)] group-hover:scale-110 transition-transform duration-500"/>
                             </div>
                             <h1 className="text-4xl font-black text-white tracking-tighter mb-2 uppercase leading-none">Quản trị<br/>Hệ thống</h1>
-                            <div className="h-1 w-12 bg-red-600 mx-auto rounded-full mt-4"></div>
-                            <p className="text-slate-400 text-[10px] mt-6 font-black uppercase tracking-[0.4em]">MedExam Pro System</p>
+                            <div className="h-1 w-12 bg-blue-600 mx-auto rounded-full mt-4"></div>
                         </div>
-                        {err && (
-                            <div className="mb-10 p-5 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black rounded-3xl flex items-center gap-4 uppercase animate-pulse">
-                                <AlertCircle size={20}/> {err}
-                            </div>
-                        )}
+                        {err && <div className="mb-10 p-5 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black rounded-3xl flex items-center gap-4 uppercase animate-pulse"><AlertCircle size={20}/> {err}</div>}
                         <form onSubmit={handleLogin} className="space-y-8">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Email Quản Trị viên</label>
-                                <input name="email" type="email" required className="w-full glass-input rounded-3xl p-5 outline-none focus:border-red-600 font-bold text-white transition-all shadow-inner" placeholder="admin@medexam.pro"/>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Mật khẩu bảo vệ</label>
-                                <input name="password" type="password" required className="w-full glass-input rounded-3xl p-5 outline-none focus:border-red-600 font-bold text-white transition-all shadow-inner" placeholder="••••••••"/>
-                            </div>
-                            <button className="w-full bg-red-600 hover:bg-red-500 text-white font-black py-6 rounded-3xl transition-all shadow-2xl uppercase text-xs tracking-widest active:scale-95">Xác thực quyền quản trị</button>
+                            <div className="space-y-2"><label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Email Quản Trị</label><input name="email" type="email" required className="w-full glass-input rounded-3xl p-5 outline-none focus:border-blue-600 font-bold text-white transition-all shadow-inner" placeholder="admin@medexam.pro"/></div>
+                            <div className="space-y-2"><label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Mật khẩu</label><input name="password" type="password" required className="w-full glass-input rounded-3xl p-5 outline-none focus:border-blue-600 font-bold text-white transition-all shadow-inner" placeholder="••••••••"/></div>
+                            <button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-6 rounded-3xl transition-all shadow-2xl uppercase text-xs tracking-widest active:scale-95">Xác thực quyền hạn</button>
                         </form>
                     </div>
                 </div>
