@@ -37,6 +37,7 @@
                         'slide-left': 'slideLeft 0.3s ease-out',
                         'confetti': 'confetti 2s ease-out forwards',
                         'scale-up': 'scaleUp 0.3s ease-out',
+                        'bell-ring': 'bellRing 2s ease-in-out infinite', // Animation rung chuông
                     },
                     keyframes: {
                         blob: {
@@ -64,6 +65,11 @@
                         scaleUp: {
                             'from': { transform: 'scale(0.95)', opacity: '0' },
                             'to': { transform: 'scale(1)', opacity: '1' },
+                        },
+                        bellRing: {
+                            '0%, 100%': { transform: 'rotate(0deg)' },
+                            '10%, 30%, 50%, 70%, 90%': { transform: 'rotate(15deg)' },
+                            '20%, 40%, 60%, 80%': { transform: 'rotate(-15deg)' },
                         }
                     }
                 }
@@ -1252,7 +1258,7 @@
             );
         };
 
-        const Dashboard = ({ user, profile, onStartExam, onViewHistory, onUpgrade }) => {
+        const Dashboard = ({ user, profile, onStartExam, onViewHistory, onUpgrade, onOpenNoti, hasUnread }) => {
             const [exams, setExams] = useState([]);
             const [stats, setStats] = useState({ totalTaken: 0, avgScore: 0, rank: 'Tập sự' });
             const [historyData, setHistoryData] = useState([]); // Store raw history for chart
@@ -1466,217 +1472,6 @@
             );
         };
 
-        const HistoryPage = ({ user, onBack }) => {
-            const [history, setHistory] = useState([]);
-            useEffect(() => {
-                if (!user) return;
-                const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), orderBy('date', 'desc'));
-                const unsub = onSnapshot(q, s => setHistory(s.docs.map(d=>({id: d.id, ...d.data(), date: d.data().date?.toDate()}))), (error) => {
-                    console.error("History page sync error", error);
-                });
-                return unsub;
-            }, [user]);
-
-            return (
-                <div className="animate-fade-in pb-20 max-w-5xl mx-auto">
-                    <button onClick={onBack} className="mb-6 flex items-center gap-2 text-slate-400 hover:text-white transition-colors group">
-                        <div className="bg-slate-800 p-2 rounded-lg group-hover:bg-slate-700"><ChevronRight className="rotate-180" size={20}/></div>
-                        <span>Quay lại Dashboard</span>
-                    </button>
-                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-white"><div className="bg-cyan-500/20 p-2 rounded-xl text-cyan-400"><History size={24}/></div> Lịch sử làm bài</h2>
-                    <div className="glass-panel rounded-2xl overflow-hidden shadow-xl">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-slate-900/50 text-slate-400 uppercase text-xs font-bold tracking-wider"><tr><th className="p-5">Đề thi</th><th className="p-5">Ngày thi</th><th className="p-5 text-center">Kết quả</th><th className="p-5 text-center">Điểm số</th></tr></thead>
-                                <tbody className="divide-y divide-slate-700/50">
-                                    {history.map(r => (
-                                        <tr key={r.id} className="hover:bg-slate-700/30 transition-colors group">
-                                            <td className="p-5 font-bold text-white group-hover:text-cyan-400 transition-colors">{r.examTitle}</td>
-                                            <td className="p-5 text-slate-400 font-mono text-xs">{r.date?.toLocaleDateString('vi-VN')} {r.date?.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</td>
-                                            <td className="p-5 text-center"><span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${Number(r.score)>=5 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>{Number(r.score)>=5 ? 'Đạt' : 'Chưa đạt'}</span></td>
-                                            <td className="p-5 text-center"><span className="text-lg font-black text-white bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">{r.score}</span></td>
-                                        </tr>
-                                    ))}
-                                    {history.length === 0 && <tr><td colSpan="4" className="p-12 text-center text-slate-500 italic">Bạn chưa làm bài thi nào.</td></tr>}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        const ResultScreen = ({ result, onBack, onReview, globalConfig, user }) => {
-            const { addToast } = useToast();
-            const [rating, setRating] = useState(0);
-            const [hasRated, setHasRated] = useState(false);
-            const [feedback, setFeedback] = useState("");
-            const [tempRating, setTempRating] = useState(0);
-
-            useEffect(() => {
-                const checkRating = async () => {
-                    if (!user || !result.examId) return;
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'exam_ratings', `${result.examId}_${user.uid}`);
-                    try {
-                        const snap = await getDoc(docRef);
-                        if (snap.exists()) {
-                            setRating(snap.data().rating);
-                            setHasRated(true);
-                        }
-                    } catch (e) { console.error(e); }
-                };
-                checkRating();
-            }, [result.examId, user.uid]);
-
-            const submitRating = async (score, feedbackContent) => {
-                try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exam_ratings', `${result.examId}_${user.uid}`), {
-                        uid: user.uid,
-                        examId: result.examId,
-                        rating: score,
-                        createdAt: serverTimestamp()
-                    });
-                    
-                    const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', result.examId);
-                    await updateDoc(examRef, {
-                        ratingSum: increment(score),
-                        ratingCount: increment(1)
-                    });
-
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), {
-                        examId: result.examId,
-                        examTitle: result.examTitle || 'Unknown Exam',
-                        userId: user.uid,
-                        displayName: user.displayName || 'Anonymous',
-                        rating: score,
-                        feedback: feedbackContent, 
-                        createdAt: serverTimestamp()
-                    });
-
-                    setRating(score);
-                    setHasRated(true);
-                    setTempRating(0); 
-                    addToast("Đã gửi đánh giá thành công!", "success");
-                } catch (e) {
-                    console.error("Error rating:", e);
-                    addToast("Lỗi khi gửi đánh giá.", "error");
-                }
-            };
-
-            const handleStarClick = (score) => {
-                if (hasRated) return;
-                
-                if (score > 3) {
-                    submitRating(score, "");
-                } else {
-                    setTempRating(score);
-                }
-            };
-
-            const handleDownloadResult = async () => {
-                const element = document.getElementById('result-certificate');
-                if (!element) return;
-                try {
-                    const canvas = await window.html2canvas(element, { scale: 2, backgroundColor: null });
-                    const link = document.createElement('a');
-                    link.download = `MedExam_Result_${Date.now()}.png`;
-                    link.href = canvas.toDataURL();
-                    link.click();
-                } catch (e) { console.error(e); addToast("Lỗi tạo ảnh.", "error"); }
-            };
-
-            const handleShareFacebook = () => {
-               const text = `Tôi vừa hoàn thành bài thi "${result.examTitle}" với số điểm ${result.score}/10 trên MedExam Pro!`;
-               const url = "https://medexam-pro.web.app"; 
-               window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`, '_blank');
-            };
-
-            const handleShareZalo = () => {
-                const text = `Kết quả thi MedExam Pro:\nĐề: ${result.examTitle}\nĐiểm: ${result.score}/10\nĐúng: ${result.correctCount}/${result.total}`;
-                navigator.clipboard.writeText(text).then(() => addToast("Đã sao chép kết quả!", "info"));
-            };
-
-            return (
-                <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in relative overflow-hidden" style={{
-                    backgroundImage: globalConfig.resultBg ? `linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.9)), url('${globalConfig.resultBg}')` : undefined,
-                    backgroundColor: '#0f172a',
-                    backgroundSize: 'cover', backgroundPosition: 'center'
-                }}>
-                    {Number(result.score) >= 8 && <Confetti />}
-                    <div className="glass-result p-8 md:p-10 rounded-3xl text-center max-w-md w-full relative overflow-hidden border border-white/10 shadow-2xl animate-scale-up" id="result-certificate">
-                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
-                        <Award size={80} className={`mx-auto mb-6 ${Number(result.score)>=5?'text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-bounce':'text-slate-500'}`}/>
-                        <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-wide">Kết Quả Thi</h2>
-                        <h3 className="text-xl text-cyan-400 font-bold mb-4">{result.examTitle}</h3>
-                        <div className="text-6xl font-black text-white mb-2 tracking-tighter">{result.score}</div>
-                        
-                        <div className="grid grid-cols-2 gap-4 mb-6 mt-6">
-                            <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700"><p className="text-xs text-slate-500 uppercase font-bold">Câu đúng</p><p className="text-2xl font-bold text-emerald-400">{result.correctCount}/{result.total}</p></div>
-                            <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700"><p className="text-xs text-slate-500 uppercase font-bold">Trạng thái</p><p className={`text-2xl font-bold ${Number(result.score)>=5?'text-cyan-400':'text-red-400'}`}>{Number(result.score)>=5?'ĐẠT':'HỎNG'}</p></div>
-                        </div>
-
-                        {/* RATING SECTION */}
-                        <div className="mb-6 bg-slate-800/40 p-4 rounded-2xl border border-white/5 transition-all">
-                            {!hasRated ? (
-                                <>
-                                    <p className="text-slate-300 text-xs font-bold uppercase mb-3 tracking-wider">Đánh giá đề thi này</p>
-                                    <div className="flex justify-center gap-2 mb-3">
-                                        {[1,2,3,4,5].map(star => (
-                                            <button 
-                                                key={star} 
-                                                onClick={() => handleStarClick(star)}
-                                                className={`transition-all transform hover:scale-125 p-1 ${tempRating === star ? 'scale-125' : ''}`}
-                                            >
-                                                <Star size={28} fill={star <= (tempRating || rating) ? "#fbbf24" : "none"} className={star <= (tempRating || rating) ? "text-yellow-400" : "text-slate-600"} />
-                                            </button>
-                                        ))}
-                                    </div>
-                                    
-                                    {/* Feedback form for low rating */}
-                                    {tempRating > 0 && tempRating <= 3 && (
-                                        <div className="animate-fade-in mt-3">
-                                            <textarea 
-                                                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white placeholder-slate-500 mb-3 focus:border-cyan-500 outline-none"
-                                                rows="3"
-                                                placeholder="Bạn chưa hài lòng điểm nào? Hãy góp ý cho chúng tôi..."
-                                                value={feedback}
-                                                onChange={(e) => setFeedback(e.target.value)}
-                                            ></textarea>
-                                            <button 
-                                                onClick={() => submitRating(tempRating, feedback)}
-                                                className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition-all"
-                                            >
-                                                Gửi đánh giá & Góp ý
-                                            </button>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="animate-fade-in">
-                                    <div className="flex justify-center gap-1 mb-2">
-                                        {[1,2,3,4,5].map(star => (
-                                            <Star key={star} size={20} fill={star <= rating ? "#fbbf24" : "none"} className={star <= rating ? "text-yellow-400" : "text-slate-600"} />
-                                        ))}
-                                    </div>
-                                    <p className="text-emerald-400 text-[10px] font-bold animate-pulse">Cảm ơn bạn đã đánh giá!</p>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex justify-center gap-3 mb-6 relative z-10">
-                            <button onClick={handleDownloadResult} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white transition-all border border-slate-700 tooltip" title="Tải ảnh"><Download size={20}/></button>
-                            <button onClick={handleShareFacebook} className="p-3 bg-blue-600 hover:bg-blue-500 rounded-full text-white transition-all shadow-lg shadow-blue-500/20"><Facebook size={20}/></button>
-                            <button onClick={handleShareZalo} className="p-3 bg-blue-500 hover:bg-blue-400 rounded-full text-white transition-all shadow-lg shadow-blue-400/20 font-bold text-xs flex items-center">Zalo</button>
-                        </div>
-                        <div className="space-y-3 relative z-10">
-                            <button onClick={onReview} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 hover:translate-y-[-2px]"><Eye size={18}/> Xem lại đáp án</button>
-                            <button onClick={onBack} className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3.5 rounded-xl font-bold transition-all border border-slate-700 hover:border-slate-600">Về trang chủ</button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
         function App() {
             const [user, setUser] = useState(null);
             const [profile, setProfile] = useState(null);
@@ -1688,6 +1483,8 @@
             
             // --- SYSTEM NOTIFICATION STATE ---
             const [sysNoti, setSysNoti] = useState(null);
+            const [isNotiOpen, setIsNotiOpen] = useState(false);
+            const [hasUnread, setHasUnread] = useState(false);
 
             useEffect(() => {
                 const configPath = doc(db, 'artifacts', appId, 'public', 'data', 'system_settings', 'config');
@@ -1742,12 +1539,16 @@
                     if (!snapshot.empty) {
                         const docData = snapshot.docs[0].data();
                         const docId = snapshot.docs[0].id;
+                        setSysNoti({ id: docId, ...docData });
                         
                         // Check if user has already seen this notification
                         const seenId = localStorage.getItem('seen_noti_id');
                         
                         if (seenId !== docId) {
-                            setSysNoti({ id: docId, ...docData });
+                            setHasUnread(true);
+                            setIsNotiOpen(true); // Auto show for new
+                        } else {
+                            setHasUnread(false);
                         }
                     }
                 });
@@ -1755,10 +1556,21 @@
                 return () => unsubscribe();
             }, [user]);
 
-            const closeNoti = () => {
+            const handleCloseNoti = () => {
+                setIsNotiOpen(false);
+                // Mark as seen when closed
                 if(sysNoti) {
                     localStorage.setItem('seen_noti_id', sysNoti.id);
-                    setSysNoti(null);
+                    setHasUnread(false);
+                }
+            };
+
+            const handleOpenNoti = () => {
+                setIsNotiOpen(true);
+                // Mark as seen when opened via bell
+                if(sysNoti) {
+                    localStorage.setItem('seen_noti_id', sysNoti.id);
+                    setHasUnread(false);
                 }
             };
 
@@ -1817,6 +1629,12 @@
                                     <span className="font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-400">MedExam Pro</span>
                                 </button>
                                 <div className="flex items-center gap-2 md:gap-4">
+                                    {/* --- BELL ICON FOR NOTIFICATIONS --- */}
+                                    <button onClick={handleOpenNoti} className="relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all mr-1">
+                                        <Bell size={20} className={hasUnread ? "text-yellow-400 animate-bell-ring" : ""} />
+                                        {hasUnread && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-slate-900"></span>}
+                                    </button>
+
                                     <button onClick={()=>setView('leaderboard')} className="hidden md:flex bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs font-bold px-4 py-2 rounded-full border border-slate-700 items-center gap-2 transition-all">
                                         <Trophy size={14} className="text-yellow-500"/> BXH
                                     </button>
@@ -1839,7 +1657,15 @@
                             {view === 'history' ? <HistoryPage user={user} onBack={()=>setView('dashboard')}/> : 
                              view === 'profile' ? <ProfilePage user={user} profile={profile} onBack={()=>setView('dashboard')} /> :
                              view === 'leaderboard' ? <LeaderboardPage user={user} onBack={()=>setView('dashboard')} /> :
-                             <Dashboard user={user} profile={profile} onStartExam={startExam} onUpgrade={()=>setShowPay(true)} onViewHistory={()=>setView('history')} />}
+                             <Dashboard 
+                                user={user} 
+                                profile={profile} 
+                                onStartExam={startExam} 
+                                onUpgrade={()=>setShowPay(true)} 
+                                onViewHistory={()=>setView('history')} 
+                                onOpenNoti={handleOpenNoti} 
+                                hasUnread={hasUnread} 
+                             />}
                         </div>
                         {showPay && <PaymentModal onClose={()=>setShowPay(false)} user={user}/>}
                     </div>
@@ -1849,12 +1675,12 @@
             return (
                 <ToastProvider>
                     {/* --- SYSTEM NOTIFICATION POPUP --- */}
-                    {sysNoti && (
+                    {isNotiOpen && sysNoti && (
                         <div className="fixed top-0 left-0 w-full z-[100] animate-slide-down">
                             <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-4 shadow-xl border-b border-indigo-400/30">
                                 <div className="max-w-7xl mx-auto flex items-start gap-4">
                                     <div className="bg-white/20 p-2 rounded-full mt-1">
-                                        <Bell size={24} className="text-white animate-bounce" />
+                                        <Bell size={24} className="text-white animate-bell-ring" />
                                     </div>
                                     <div className="flex-1">
                                         <h4 className="font-bold text-lg">{sysNoti.title}</h4>
@@ -1863,7 +1689,7 @@
                                             {sysNoti.createdAt?.seconds ? new Date(sysNoti.createdAt.seconds * 1000).toLocaleString('vi-VN') : 'Vừa xong'}
                                         </p>
                                     </div>
-                                    <button onClick={closeNoti} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                                    <button onClick={handleCloseNoti} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
                                         <X size={20} />
                                     </button>
                                 </div>
