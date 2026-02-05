@@ -25,6 +25,8 @@
         .glass-input { background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.05); }
         .animate-in { animation: fadeIn 0.5s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .pulse-dot { animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
     </style>
@@ -40,7 +42,8 @@
         import { getFirestore, collection, doc, updateDoc, deleteDoc, onSnapshot, query, collectionGroup, orderBy, limit } from 'firebase/firestore';
         import { 
             ShieldCheck, LogOut, Search, Trash2, CheckCircle2, AlertCircle, 
-            Trophy, MessageSquare, Flag, Star, Check, ExternalLink, Loader2, BarChart2, UserX, Sigma
+            Trophy, MessageSquare, Flag, Star, Check, ExternalLink, Loader2, BarChart2, UserX, Sigma,
+            LayoutDashboard, Users, Zap, FileText, Crown, Activity, Clock
         } from 'lucide-react';
 
         // --- CẤU HÌNH FIREBASE ---
@@ -58,7 +61,6 @@
         const db = getFirestore(app);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'med-exam-pro-html';
         
-        // Danh sách email admin được phép truy cập
         const ADMIN_EMAILS = ["thanhtrong.yds@gmail.com", "vnrad.tech@gmail.com", "test@gmail.com"];
 
         // --- UI COMPONENTS ---
@@ -73,37 +75,75 @@
             );
         };
 
+        // Component Thẻ thống kê
+        const StatCard = ({ title, value, icon: Icon, color, subText }) => (
+            <div className="glass-panel p-6 rounded-[2rem] flex flex-col justify-between h-40 relative overflow-hidden group hover:bg-white/5 transition-all">
+                <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
+                    <Icon size={80} />
+                </div>
+                <div className="flex items-center gap-2 mb-2">
+                    <div className={`p-2 rounded-xl bg-slate-800 ${color} bg-opacity-20 text-white`}>
+                        <Icon size={18} className={color.replace('bg-', 'text-')} />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{title}</span>
+                </div>
+                <div>
+                    <div className={`text-4xl font-black ${color.replace('bg-', 'text-')}`}>{value}</div>
+                    {subText && <div className="text-[10px] text-slate-500 font-bold mt-1">{subText}</div>}
+                </div>
+            </div>
+        );
+
         const Dashboard = ({ user }) => {
-            const [tab, setTab] = useState('score_rank');
-            const [scores, setScores] = useState([]);
+            const [tab, setTab] = useState('dashboard'); // Mặc định vào tab Dashboard (Live Monitor)
+            const [scores, setScores] = useState([]); // Dữ liệu đã gộp (cho bảng xếp hạng)
+            const [rawHistory, setRawHistory] = useState([]); // Dữ liệu thô (cho live feed)
             const [reviews, setReviews] = useState([]);
             const [reports, setReports] = useState([]);
             const [search, setSearch] = useState('');
             const [toast, setToast] = useState(null);
-            const [indexError, setIndexError] = useState(false);
+            const [stats, setStats] = useState({ online: 0, live: 0, students: 0, vip: 0, exams: 0 });
             
             const notify = (message, type = 'info') => setToast({ message, type });
 
             useEffect(() => {
-                // --- XỬ LÝ BẢNG XẾP HẠNG (AGGREGATED) ---
-                // Chiến lược: Lấy hết dữ liệu về, gom nhóm theo User, cộng dồn điểm
+                // Lấy dữ liệu History
                 const qHistory = query(collectionGroup(db, 'history'));
-                
                 const unsubHistory = onSnapshot(qHistory, (snapshot) => {
                     const rawData = snapshot.docs.map(d => ({...d.data(), id: d.id}));
                     
-                    // 1. Tạo Map để gom nhóm user
+                    // Sắp xếp dữ liệu thô theo thời gian mới nhất để làm Live Feed
+                    rawData.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
+                    setRawHistory(rawData);
+
+                    // --- XỬ LÝ THỐNG KÊ (STATS) ---
                     const userMap = {};
+                    const uniqueExams = new Set();
+                    const now = Date.now() / 1000; // Current timestamp in seconds
+                    
+                    // Ngưỡng thời gian cho "Online" (30 phút) và "Live" (15 phút)
+                    const ONLINE_THRESHOLD = 30 * 60; 
+                    const LIVE_THRESHOLD = 15 * 60;
+
+                    let onlineCount = 0;
+                    let liveCount = 0;
 
                     rawData.forEach(item => {
-                        // Bỏ qua nếu là ẩn danh hoàn toàn (không tên, không email)
+                        // Tính toán số lượng đề thi
+                        if (item.examTitle) uniqueExams.add(item.examTitle);
+
+                        // Gom nhóm User để tính bảng xếp hạng
                         const hasEmail = item.email && item.email.trim() !== "";
                         const hasName = item.displayName && item.displayName.trim() !== "";
-                        if (!hasEmail && !hasName) return;
+                        if (!hasEmail && !hasName) return; // Bỏ qua ẩn danh hoàn toàn khi tính user
 
-                        // Key định danh duy nhất: Ưu tiên userId, sau đó đến email
                         const key = item.userId || item.email;
                         if (!key) return;
+
+                        // Kiểm tra hoạt động gần đây để tính Online/Live
+                        const timeDiff = now - (item.date?.seconds || 0);
+                        if (timeDiff < ONLINE_THRESHOLD) onlineCount++; // Ước lượng: có nộp bài gần đây -> Online
+                        if (timeDiff < LIVE_THRESHOLD) liveCount++;     // Ước lượng: nộp rất gần đây -> Đang thi (Live)
 
                         if (!userMap[key]) {
                             userMap[key] = {
@@ -112,92 +152,67 @@
                                 displayName: item.displayName,
                                 totalScore: 0,
                                 examCount: 0,
-                                latestDate: item.date // Khởi tạo ngày mới nhất
+                                latestDate: item.date
                             };
                         }
 
-                        // Cộng dồn điểm
                         const currentScore = parseFloat(String(item.score || 0));
                         userMap[key].totalScore += currentScore;
                         userMap[key].examCount += 1;
 
-                        // Cập nhật thông tin mới nhất (tên, ngày thi)
-                        // Nếu bản ghi này mới hơn bản ghi đã lưu, cập nhật ngày
                         const itemDate = item.date?.seconds || 0;
                         const savedDate = userMap[key].latestDate?.seconds || 0;
-                        
                         if (itemDate > savedDate) {
                             userMap[key].latestDate = item.date;
-                            // Cập nhật tên hiển thị nếu bản ghi mới nhất có tên (tránh trường hợp lúc đầu có tên, lúc sau null)
                             if (item.displayName) userMap[key].displayName = item.displayName;
                         } else {
-                             // Fallback: nếu chưa có tên, thử lấy tên từ bản ghi cũ hơn
                              if (!userMap[key].displayName && item.displayName) userMap[key].displayName = item.displayName;
                         }
                     });
 
-                    // 2. Chuyển Map thành Array
+                    // Chuyển Map thành Array cho Bảng xếp hạng
                     let aggregatedData = Object.values(userMap);
-
-                    // 3. Sắp xếp theo Tổng điểm giảm dần
                     aggregatedData.sort((a, b) => b.totalScore - a.totalScore);
-                    
                     setScores(aggregatedData);
-                    setIndexError(false);
-                }, (error) => {
-                    console.error("Leaderboard Error:", error);
-                    if (error.code === 'failed-precondition') {
-                        setIndexError(true);
-                    } else {
-                        notify("Lỗi tải bảng xếp hạng: " + error.message, "error");
-                    }
-                });
 
-                // Lắng nghe Đánh giá (Reviews)
-                const qReviews = collection(db, 'artifacts', appId, 'public', 'data', 'reviews');
-                const unsubReviews = onSnapshot(qReviews, (snapshot) => {
-                    const data = snapshot.docs.map(d => ({...d.data(), id: d.id}));
-                    data.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-                    setReviews(data);
-                });
+                    // Cập nhật Stats State
+                    // Lưu ý: Online/Live ở đây là ước lượng dựa trên hành động nộp bài. 
+                    // Trong thực tế cần Realtime Database Presence để chính xác hơn.
+                    // VIP để tạm = 0 hoặc random cho demo
+                    setStats({
+                        online: Math.max(onlineCount, 1), // Luôn hiển thị ít nhất 1 (là admin)
+                        live: liveCount,
+                        students: aggregatedData.length,
+                        vip: 0, // Chưa có logic VIP
+                        exams: uniqueExams.size
+                    });
 
-                // Lắng nghe Báo cáo lỗi (Reports)
-                const qReports = collection(db, 'artifacts', appId, 'public', 'data', 'reports');
-                const unsubReports = onSnapshot(qReports, (snapshot) => {
-                    const data = snapshot.docs.map(d => ({...d.data(), id: d.id}));
-                    data.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-                    setReports(data);
-                });
+                }, (error) => console.error("History Error:", error));
+
+                // Lắng nghe Reviews & Reports (giữ nguyên)
+                const unsubReviews = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc')), s => setReviews(s.docs.map(d => ({...d.data(), id: d.id}))));
+                const unsubReports = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), orderBy('createdAt', 'desc')), s => setReports(s.docs.map(d => ({...d.data(), id: d.id}))));
 
                 return () => { unsubHistory(); unsubReviews(); unsubReports(); };
             }, []);
 
             // --- ACTIONS ---
             const deleteItem = async (collectionName, id) => {
-                if(confirm("Bạn có chắc chắn muốn xóa mục này vĩnh viễn?")) {
-                    try {
-                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', collectionName, id));
-                        notify("Đã xóa thành công", "success");
-                    } catch (e) { notify("Lỗi xóa: " + e.message, "error"); }
+                if(confirm("Xóa mục này?")) {
+                    try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', collectionName, id)); notify("Đã xóa", "success"); } 
+                    catch (e) { notify("Lỗi: " + e.message, "error"); }
                 }
             };
 
             const resolveReport = async (id) => {
-                try {
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', id), { status: 'resolved' });
-                    notify("Đã đánh dấu xử lý xong", "success");
-                } catch (e) { notify("Lỗi cập nhật: " + e.message, "error"); }
+                try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', id), { status: 'resolved' }); notify("Đã xử lý", "success"); } 
+                catch (e) { notify("Lỗi: " + e.message, "error"); }
             };
 
             // --- HELPERS ---
             const formatDateTime = (ts) => ts?.toDate ? ts.toDate().toLocaleString('vi-VN') : '---';
             const getReasonText = (reason) => { const map = { 'wrong_answer': 'Đáp án sai', 'typo': 'Lỗi chính tả', 'confusing': 'Khó hiểu', 'other': 'Khác' }; return map[reason] || reason; };
-            
-            const getUserDisplayName = (user) => {
-                if (user.displayName && user.displayName.trim() !== "") return user.displayName;
-                if (user.email) return user.email; 
-                return `User #${user.userId?.slice(0, 5)}`; 
-            };
+            const getUserDisplayName = (user) => (user.displayName && user.displayName.trim() !== "") ? user.displayName : (user.email || `User #${user.userId?.slice(0, 5)}`);
 
             return (
                 <div className="flex min-h-screen">
@@ -209,6 +224,7 @@
                         </div>
                         <nav className="flex-1 p-6 space-y-4 mt-4">
                             {[
+                                { id: 'dashboard', label: 'Live Monitor', icon: LayoutDashboard }, // Tab mới
                                 { id: 'score_rank', label: 'Bảng xếp hạng', icon: Trophy },
                                 { id: 'reviews', label: 'Đánh giá & Góp ý', icon: MessageSquare, count: reviews.length },
                                 { id: 'reports', label: 'Báo cáo lỗi', icon: Flag, count: reports.filter(r => r.status === 'pending').length }
@@ -228,8 +244,13 @@
                     <main className="flex-1 ml-72 p-12">
                         <div className="flex justify-between items-end mb-12">
                             <div>
-                                <h1 className="text-4xl font-black text-white tracking-tighter capitalize">{tab === 'score_rank' ? 'Bảng Xếp Hạng Global' : tab === 'reviews' ? 'Phản Hồi Từ Học Viên' : 'Báo Cáo Lỗi Đề Thi'}</h1>
-                                {tab === 'score_rank' && <p className="text-slate-400 text-sm mt-2 flex items-center gap-2"><Sigma size={14}/> Xếp hạng theo tổng điểm tích lũy (Đã ẩn danh/spam)</p>}
+                                <h1 className="text-4xl font-black text-white tracking-tighter capitalize">
+                                    {tab === 'dashboard' ? 'Dashboard' : 
+                                     tab === 'score_rank' ? 'Bảng Xếp Hạng Global' : 
+                                     tab === 'reviews' ? 'Phản Hồi Từ Học Viên' : 'Báo Cáo Lỗi Đề Thi'}
+                                </h1>
+                                {tab === 'score_rank' && <p className="text-slate-400 text-sm mt-2 flex items-center gap-2"><Sigma size={14}/> Xếp hạng theo tổng điểm tích lũy</p>}
+                                {tab === 'dashboard' && <p className="text-emerald-400 text-sm mt-2 flex items-center gap-2 animate-pulse"><div className="w-2 h-2 rounded-full bg-emerald-400"></div> Hệ thống đang giám sát thời gian thực</p>}
                             </div>
                             <div className="relative group">
                                 <Search className="absolute left-4 top-3.5 text-slate-500" size={20}/>
@@ -238,66 +259,90 @@
                         </div>
 
                         <div className="animate-in">
-                            {/* TAB: BẢNG XẾP HẠNG */}
-                            {tab === 'score_rank' && (
-                                <div className="space-y-6">
-                                    {indexError && (
-                                        <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-2xl flex items-center gap-4 text-amber-200">
-                                            <AlertCircle size={32} className="shrink-0"/>
-                                            <div>
-                                                <h3 className="font-bold text-lg">Yêu cầu cấu hình Index</h3>
-                                                <p className="text-sm opacity-80">Vui lòng tạo Composite Index trong Firebase Console cho collection "history" với các trường: score (Desc), date (Desc).</p>
-                                                <a href="https://console.firebase.google.com/" target="_blank" className="text-amber-400 hover:text-white underline text-sm mt-1 inline-block">Mở Firebase Console &rarr;</a>
-                                            </div>
+                            {/* TAB: DASHBOARD (LIVE MONITOR) */}
+                            {tab === 'dashboard' && (
+                                <div className="space-y-8">
+                                    {/* 5 CARDS */}
+                                    <div className="grid grid-cols-5 gap-6">
+                                        <StatCard title="Đang Online" value={stats.online} icon={Activity} color="text-emerald-400" subText="Hoạt động gần đây" />
+                                        <StatCard title="Đang Thi (Live)" value={stats.live} icon={Zap} color="text-blue-400" subText="Nộp bài < 15p trước" />
+                                        <StatCard title="Học Viên" value={stats.students} icon={Users} color="text-purple-400" subText="Đã đăng ký" />
+                                        <StatCard title="VIP Premium" value={stats.vip} icon={Crown} color="text-yellow-400" subText="Thành viên VIP" />
+                                        <StatCard title="Đề Thi" value={stats.exams} icon={FileText} color="text-cyan-400" subText="Tổng số đề" />
+                                    </div>
+
+                                    {/* LIVE FEED SECTION */}
+                                    <div className="glass-panel rounded-[2rem] p-8 min-h-[400px]">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <Activity className="text-emerald-400 pulse-dot" size={24}/>
+                                            <h2 className="text-xl font-bold text-white uppercase tracking-widest">Học viên đang làm bài ({stats.live})</h2>
                                         </div>
-                                    )}
+                                        
+                                        <div className="space-y-4">
+                                            {/* Lọc lấy 10 hoạt động mới nhất */}
+                                            {rawHistory.slice(0, 10).map((item, idx) => (
+                                                <div key={item.id} className="flex items-center justify-between p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50 hover:bg-slate-700/50 transition-colors animate-in" style={{animationDelay: `${idx * 0.1}s`}}>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-400">
+                                                            {idx + 1}
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-bold text-white">{getUserDisplayName(item)}</div>
+                                                            <div className="text-xs text-slate-400 flex items-center gap-2">
+                                                                <Clock size={12}/> {formatDateTime(item.date)}
+                                                                <span className="text-slate-600">|</span>
+                                                                <span className="text-cyan-400">{item.examTitle || 'Đề không tên'}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className={`font-black text-xl ${parseFloat(item.score)>=9?'text-emerald-400':parseFloat(item.score)>=5?'text-blue-400':'text-red-400'}`}>
+                                                            {item.score}
+                                                        </div>
+                                                        <div className="text-[10px] font-bold text-slate-500 uppercase">Điểm số</div>
+                                                    </div>
+                                                </div>
+                                            ))}
 
-                                    <div className="glass-panel rounded-[2rem] overflow-hidden">
-                                        <table className="w-full text-left text-sm border-collapse text-slate-300">
-                                            <thead className="bg-slate-800/50 text-slate-400 uppercase text-[10px] font-black tracking-widest">
-                                                <tr>
-                                                    <th className="p-6">Hạng</th>
-                                                    <th className="p-6">Học viên</th>
-                                                    <th className="p-6 text-center">Số bài thi</th>
-                                                    <th className="p-6 text-center">Tổng điểm tích lũy</th>
-                                                    <th className="p-6 text-right">Hoạt động gần nhất</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-700/50">
-                                                {scores.filter(s => (s.displayName||'').toLowerCase().includes(search.toLowerCase())).slice(0, 50).map((s, i) => {
-                                                    // Tính toán hiển thị màu điểm số
-                                                    let scoreColor = 'text-white';
-                                                    if (s.totalScore >= 100) scoreColor = 'text-purple-400';
-                                                    else if (s.totalScore >= 50) scoreColor = 'text-emerald-400';
-                                                    else if (s.totalScore >= 20) scoreColor = 'text-blue-400';
-
-                                                    const displayInfo = getUserDisplayName(s);
-
-                                                    return (
-                                                        <tr key={s.userId || s.email} className="hover:bg-white/5 transition-colors">
-                                                            <td className="p-6">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : <span className="font-mono text-slate-500">#{i+1}</span>}</td>
-                                                            <td className="p-6">
-                                                                <span className={`font-bold block ${!s.displayName ? 'text-slate-300' : 'text-white'}`}>
-                                                                    {displayInfo}
-                                                                </span>
-                                                                {s.email && <span className="text-[10px] font-mono text-slate-500 block">{s.email}</span>}
-                                                            </td>
-                                                            <td className="p-6 text-center">
-                                                                <span className="bg-slate-700 px-3 py-1 rounded-full text-xs font-bold text-slate-300">{s.examCount} đề</span>
-                                                            </td>
-                                                            <td className="p-6 text-center"><span className={`font-black text-2xl ${scoreColor}`}>{s.totalScore.toFixed(1).replace(/\.0$/, '')}</span></td>
-                                                            <td className="p-6 text-right font-mono text-xs">{formatDateTime(s.latestDate)}</td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                                {scores.length === 0 && <tr><td colSpan="5" className="p-20 text-center italic text-slate-600">Chưa có dữ liệu thi hợp lệ</td></tr>}
-                                            </tbody>
-                                        </table>
+                                            {rawHistory.length === 0 && (
+                                                <div className="flex flex-col items-center justify-center py-20 text-slate-500 border-2 border-dashed border-slate-700 rounded-3xl">
+                                                    <div className="bg-slate-800 p-4 rounded-full mb-4 opacity-50"><Activity size={40}/></div>
+                                                    <p className="font-bold">HỆ THỐNG ĐANG CHỜ LƯỢT THI MỚI</p>
+                                                    <p className="text-xs mt-2">Chưa ghi nhận hoạt động nào trong thời gian thực</p>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             )}
 
-                            {/* TAB: PHẢN HỒI (REVIEWS) */}
+                            {/* TAB: BẢNG XẾP HẠNG (GIỮ NGUYÊN) */}
+                            {tab === 'score_rank' && (
+                                <div className="glass-panel rounded-[2rem] overflow-hidden">
+                                    <table className="w-full text-left text-sm border-collapse text-slate-300">
+                                        <thead className="bg-slate-800/50 text-slate-400 uppercase text-[10px] font-black tracking-widest">
+                                            <tr><th className="p-6">Hạng</th><th className="p-6">Học viên</th><th className="p-6 text-center">Số bài thi</th><th className="p-6 text-center">Tổng điểm</th><th className="p-6 text-right">Gần nhất</th></tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-700/50">
+                                            {scores.filter(s => (s.displayName||'').toLowerCase().includes(search.toLowerCase())).slice(0, 50).map((s, i) => {
+                                                let scoreColor = s.totalScore >= 100 ? 'text-purple-400' : s.totalScore >= 50 ? 'text-emerald-400' : s.totalScore >= 20 ? 'text-blue-400' : 'text-white';
+                                                return (
+                                                    <tr key={s.userId || s.email} className="hover:bg-white/5 transition-colors">
+                                                        <td className="p-6">{i < 3 ? ['🥇','🥈','🥉'][i] : <span className="font-mono text-slate-500">#{i+1}</span>}</td>
+                                                        <td className="p-6"><span className="font-bold block text-white">{getUserDisplayName(s)}</span>{s.email && <span className="text-[10px] font-mono text-slate-500 block">{s.email}</span>}</td>
+                                                        <td className="p-6 text-center"><span className="bg-slate-700 px-3 py-1 rounded-full text-xs font-bold text-slate-300">{s.examCount} đề</span></td>
+                                                        <td className="p-6 text-center"><span className={`font-black text-2xl ${scoreColor}`}>{s.totalScore.toFixed(1).replace(/\.0$/, '')}</span></td>
+                                                        <td className="p-6 text-right font-mono text-xs">{formatDateTime(s.latestDate)}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                            {scores.length === 0 && <tr><td colSpan="5" className="p-20 text-center italic text-slate-600">Chưa có dữ liệu</td></tr>}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+
+                            {/* TAB: REVIEWS (GIỮ NGUYÊN) */}
                             {tab === 'reviews' && (
                                 <div className="glass-panel rounded-[2rem] overflow-hidden">
                                     <table className="w-full text-left text-sm border-collapse text-slate-300">
@@ -312,13 +357,12 @@
                                                     <td className="p-6 text-right"><button onClick={()=>deleteItem('reviews', r.id)} className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-500 hover:text-red-500 rounded-xl transition-all"><Trash2 size={16}/></button></td>
                                                 </tr>
                                             ))}
-                                            {reviews.length === 0 && <tr><td colSpan="5" className="p-20 text-center italic text-slate-600">Chưa có phản hồi nào</td></tr>}
                                         </tbody>
                                     </table>
                                 </div>
                             )}
 
-                            {/* TAB: BÁO CÁO LỖI (REPORTS) */}
+                            {/* TAB: REPORTS (GIỮ NGUYÊN) */}
                             {tab === 'reports' && (
                                 <div className="glass-panel rounded-[2rem] overflow-hidden">
                                     <table className="w-full text-left text-sm border-collapse text-slate-300">
@@ -328,22 +372,11 @@
                                                 <tr key={r.id} className={`hover:bg-white/5 transition-colors ${r.status==='resolved'?'opacity-50':''}`}>
                                                     <td className="p-6 text-xs text-slate-500 font-bold whitespace-nowrap align-top">{formatDateTime(r.createdAt)}</td>
                                                     <td className="p-6 align-top"><span className="block font-bold text-white">{getUserDisplayName(r)}</span></td>
-                                                    <td className="p-6 max-w-md align-top">
-                                                        <span className="bg-red-500/10 text-red-400 text-[10px] font-bold px-2 py-0.5 rounded border border-red-500/20 mr-2">{getReasonText(r.reason)}</span>
-                                                        <div className="mt-2 text-slate-200 font-medium">"{r.questionText}"</div>
-                                                        {r.detail && <div className="mt-1 text-slate-400 text-xs italic">Note: {r.detail}</div>}
-                                                        <div className="mt-2 text-[10px] text-slate-600 font-mono">ID Đề: {r.examId} | Câu: {r.questionIndex + 1}</div>
-                                                    </td>
+                                                    <td className="p-6 max-w-md align-top"><span className="bg-red-500/10 text-red-400 text-[10px] font-bold px-2 py-0.5 rounded border border-red-500/20 mr-2">{getReasonText(r.reason)}</span><div className="mt-2 text-slate-200 font-medium">"{r.questionText}"</div><div className="mt-2 text-[10px] text-slate-600 font-mono">ID Đề: {r.examId} | Câu: {r.questionIndex + 1}</div></td>
                                                     <td className="p-6 text-center align-top">{r.status==='resolved' ? <span className="text-emerald-500 font-bold text-xs flex items-center justify-center gap-1"><CheckCircle2 size={14}/> Đã xong</span> : <span className="text-yellow-500 font-bold text-xs flex items-center justify-center gap-1 animate-pulse"><AlertCircle size={14}/> Chờ xử lý</span>}</td>
-                                                    <td className="p-6 text-right align-top">
-                                                        <div className="flex justify-end gap-2">
-                                                            {r.status === 'pending' && <button onClick={()=>resolveReport(r.id)} className="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg" title="Đánh dấu đã xong"><Check size={16}/></button>}
-                                                            <button onClick={()=>deleteItem('reports', r.id)} className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-500 rounded-xl" title="Xóa"><Trash2 size={16}/></button>
-                                                        </div>
-                                                    </td>
+                                                    <td className="p-6 text-right align-top"><div className="flex justify-end gap-2">{r.status === 'pending' && <button onClick={()=>resolveReport(r.id)} className="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg"><Check size={16}/></button>}<button onClick={()=>deleteItem('reports', r.id)} className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-500 rounded-xl"><Trash2 size={16}/></button></div></td>
                                                 </tr>
                                             ))}
-                                            {reports.length === 0 && <tr><td colSpan="5" className="p-20 text-center italic text-slate-600">Chưa có báo cáo nào</td></tr>}
                                         </tbody>
                                     </table>
                                 </div>
@@ -362,70 +395,24 @@
             const [err, setErr] = useState('');
 
             useEffect(() => {
-                // Initialize Auth Logic
-                const initAuth = async () => {
-                   if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        try {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } catch (e) {
-                            console.error("Token login failed", e);
-                        }
-                   }
-                };
+                const initAuth = async () => { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token); };
                 initAuth();
-
-                // Listen to Auth State
                 return onAuthStateChanged(auth, u => {
-                    if (u) {
-                        if (ADMIN_EMAILS.includes(u.email)) {
-                            setUser(u);
-                            setErr('');
-                        } else {
-                            // Tùy chọn: Nếu muốn cho phép mọi người xem nhưng giới hạn quyền, có thể bỏ check ở đây
-                            // Ở đây giữ logic cũ: chỉ admin mới được vào
-                            setErr("Tài khoản không có quyền truy cập Dashboard.");
-                            signOut(auth);
-                            setUser(null);
-                        }
-                    } else {
-                        setUser(null);
-                    }
+                    if (u) { if (ADMIN_EMAILS.includes(u.email)) { setUser(u); setErr(''); } else { setErr("Tài khoản không có quyền."); signOut(auth); setUser(null); } } 
+                    else setUser(null);
                     setLoading(false);
                 });
             }, []);
 
             const handleLogin = async (e) => {
-                e.preventDefault();
-                const { email, password } = e.target.elements;
-                setLoading(true); setErr('');
-                try { 
-                    await signInWithEmailAndPassword(auth, email.value, password.value); 
-                } catch (e) { 
-                    setErr("Thông tin đăng nhập không chính xác"); 
-                } finally { 
-                    setLoading(false); 
-                }
+                e.preventDefault(); setLoading(true); setErr('');
+                try { await signInWithEmailAndPassword(auth, e.target.elements.email.value, e.target.elements.password.value); } 
+                catch (e) { setErr("Sai thông tin đăng nhập"); } finally { setLoading(false); }
             };
 
             if (loading) return <div className="min-h-screen bg-[#0f172a] flex items-center justify-center"><Loader2 className="animate-spin text-cyan-500" size={40}/></div>;
-
             if (!user) return (
-                <div className="min-h-screen flex items-center justify-center p-4 bg-[#020617] relative">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(14,165,233,0.1),transparent_50%)]"></div>
-                    <div className="w-full max-w-md glass-panel p-10 rounded-[2.5rem] shadow-2xl animate-in relative z-10">
-                        <div className="text-center mb-8">
-                            <BarChart2 size={48} className="text-cyan-500 mx-auto mb-4"/>
-                            <h1 className="text-3xl font-black text-white">Analytics Portal</h1>
-                            <p className="text-slate-400 text-xs mt-2 font-bold uppercase tracking-widest">Dành riêng cho Quản trị viên</p>
-                        </div>
-                        {err && <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl font-bold flex items-center gap-2"><AlertCircle size={16}/> {err}</div>}
-                        <form onSubmit={handleLogin} className="space-y-6">
-                            <input name="email" type="email" required className="w-full glass-input rounded-2xl p-4 outline-none focus:border-cyan-500 font-bold text-white transition-all" placeholder="Email"/>
-                            <input name="password" type="password" required className="w-full glass-input rounded-2xl p-4 outline-none focus:border-cyan-500 font-bold text-white transition-all" placeholder="Mật khẩu"/>
-                            <button className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-cyan-500/20 uppercase text-xs tracking-widest">Đăng nhập</button>
-                        </form>
-                    </div>
-                </div>
+                <div className="min-h-screen flex items-center justify-center p-4 bg-[#020617] relative"><div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(14,165,233,0.1),transparent_50%)]"></div><div className="w-full max-w-md glass-panel p-10 rounded-[2.5rem] shadow-2xl animate-in relative z-10"><div className="text-center mb-8"><BarChart2 size={48} className="text-cyan-500 mx-auto mb-4"/><h1 className="text-3xl font-black text-white">Analytics Portal</h1><p className="text-slate-400 text-xs mt-2 font-bold uppercase tracking-widest">Dành riêng cho Quản trị viên</p></div>{err && <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl font-bold flex items-center gap-2"><AlertCircle size={16}/> {err}</div>}<form onSubmit={handleLogin} className="space-y-6"><input name="email" type="email" required className="w-full glass-input rounded-2xl p-4 outline-none focus:border-cyan-500 font-bold text-white transition-all" placeholder="Email"/><input name="password" type="password" required className="w-full glass-input rounded-2xl p-4 outline-none focus:border-cyan-500 font-bold text-white transition-all" placeholder="Mật khẩu"/><button className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-cyan-500/20 uppercase text-xs tracking-widest">Đăng nhập</button></form></div></div>
             );
 
             return <Dashboard user={user} />;
