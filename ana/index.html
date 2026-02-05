@@ -43,7 +43,7 @@
         import { 
             ShieldCheck, LogOut, Search, Trash2, CheckCircle2, AlertCircle, 
             Trophy, MessageSquare, Flag, Star, Check, ExternalLink, Loader2, BarChart2, UserX, Sigma,
-            LayoutDashboard, Users, Zap, FileText, Crown, Activity, Clock, Pencil, X, Database
+            LayoutDashboard, Users, Zap, FileText, Crown, Activity, Clock, Pencil, X, Database, Settings, RefreshCw
         } from 'lucide-react';
 
         // --- CẤU HÌNH FIREBASE ---
@@ -59,7 +59,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        // Default App ID fallback
+        // Fallback App ID
         const defaultAppId = typeof __app_id !== 'undefined' ? __app_id : 'med-exam-pro-html';
         
         const ADMIN_EMAILS = ["thanhtrong.yds@gmail.com", "vnrad.tech@gmail.com", "test@gmail.com"];
@@ -103,11 +103,11 @@
             const [search, setSearch] = useState('');
             const [toast, setToast] = useState(null);
             
-            // QUAN TRỌNG: Dynamic App ID để tự động tìm nguồn dữ liệu
+            // App ID Management
             const [currentAppId, setCurrentAppId] = useState(defaultAppId);
+            const [manualAppId, setManualAppId] = useState(defaultAppId); // For settings input
             const [isAutoDetected, setIsAutoDetected] = useState(false);
             
-            // Dùng null cho dbStudents/dbExams để phân biệt trạng thái "chưa load" và "bằng 0"
             const [stats, setStats] = useState({ 
                 online: 0, live: 0, 
                 historyStudents: 0, historyExams: 0,
@@ -124,8 +124,8 @@
                     const rawData = snapshot.docs.map(d => ({...d.data(), id: d.id, path: d.ref.path}));
                     
                     // --- AUTO DETECT APP ID ---
-                    // Phân tích đường dẫn: artifacts/{APP_ID}/users/...
-                    if (!isAutoDetected && rawData.length > 0) {
+                    // Chỉ auto detect nếu người dùng chưa tự set thủ công (manualAppId vẫn match default)
+                    if (!isAutoDetected && rawData.length > 0 && currentAppId === defaultAppId) {
                         try {
                             const firstPath = rawData[0].path;
                             const segments = firstPath.split('/');
@@ -134,7 +134,9 @@
                                 if (detectedId && detectedId !== currentAppId) {
                                     console.log("Detected App ID from history:", detectedId);
                                     setCurrentAppId(detectedId);
+                                    setManualAppId(detectedId); // Sync input
                                     setIsAutoDetected(true);
+                                    notify(`Đã tự động kết nối App ID: ${detectedId}`, "success");
                                 }
                             }
                         } catch (e) { console.warn("Cannot detect app ID", e); }
@@ -154,7 +156,6 @@
 
                     rawData.forEach(item => {
                         if (item.examTitle) uniqueExams.add(item.examTitle);
-
                         const hasEmail = item.email && item.email.trim() !== "";
                         const hasName = item.displayName && item.displayName.trim() !== "";
                         if (!hasEmail && !hasName) return;
@@ -167,14 +168,7 @@
                         if (timeDiff < LIVE_THRESHOLD) liveCount++;
 
                         if (!userMap[key]) {
-                            userMap[key] = {
-                                userId: item.userId,
-                                email: item.email,
-                                displayName: item.displayName,
-                                totalScore: 0,
-                                examCount: 0,
-                                latestDate: item.date
-                            };
+                            userMap[key] = { userId: item.userId, email: item.email, displayName: item.displayName, totalScore: 0, examCount: 0, latestDate: item.date };
                         }
                         userMap[key].totalScore += parseFloat(String(item.score || 0));
                         userMap[key].examCount += 1;
@@ -199,7 +193,7 @@
                 }, (error) => console.error("History Error:", error));
 
                 return () => unsubHistory();
-            }, [currentAppId, isAutoDetected]);
+            }, [currentAppId]); // Bỏ isAutoDetected khỏi dependency để tránh loop
 
             // 2. Listen to SPECIFIC collections based on currentAppId
             useEffect(() => {
@@ -207,49 +201,31 @@
 
                 const unsubs = [];
                 console.log(`Connecting to Public Data for App ID: ${currentAppId}`);
+                
+                // Reset DB stats khi đổi App ID
+                setStats(prev => ({ ...prev, dbExams: null, dbStudents: null, dbVip: 0 }));
 
                 // --- EXAMS COLLECTION ---
                 const qExams = query(collection(db, 'artifacts', currentAppId, 'public', 'data', 'exams'));
                 unsubs.push(onSnapshot(qExams, (snap) => {
-                    // Logic mới: Luôn tin tưởng số lượng từ DB nếu kết nối thành công (kể cả = 0)
+                    // Cập nhật số liệu thực tế từ DB
                     setStats(prev => ({ ...prev, dbExams: snap.size }));
-                }, (e) => {
-                    console.log("Exams path issue:", e);
-                }));
+                }, (e) => console.log("Exams path issue:", e)));
 
                 // --- USERS COLLECTION ---
                 const qUsers = query(collection(db, 'artifacts', currentAppId, 'public', 'data', 'users'));
                 unsubs.push(onSnapshot(qUsers, (snap) => {
                     const users = snap.docs.map(d => d.data());
                     
-                    // IMPROVED VIP DETECTION LOGIC V2
-                    // Quét toàn diện hơn để bắt được "VIP ACCESS"
+                    // --- DEEP SCAN VIP LOGIC ---
+                    // Chuyển toàn bộ object user thành string và tìm chữ "vip"
+                    // Đây là cách mạnh nhất để bắt mọi biến thể như "VIP ACCESS", "role: vip", "isVip: true"
                     const vipCount = users.filter(u => {
-                        // 1. Kiểm tra các trường định danh VIP phổ biến
-                        const fieldsToCheck = [
-                            u.isVIP, u.vip, u.isVip, 
-                            u.plan, u.role, u.tier, 
-                            u.type, u.accountType, u.subscription, u.goi // Thêm 'goi' nếu có
-                        ];
-                        
-                        // Kiểm tra xem có trường nào chứa từ 'vip' hoặc 'premium' không (không phân biệt hoa thường)
-                        const hasVipField = fieldsToCheck.some(val => {
-                            if (val === true) return true;
-                            if (typeof val === 'string') {
-                                const s = val.toLowerCase();
-                                return s.includes('vip') || s.includes('premium') || s.includes('pro') || s.includes('access');
-                            }
-                            if (val === 1) return true;
-                            return false;
-                        });
-
-                        // 2. Fallback: Nếu không tìm thấy ở trên, quét toàn bộ object xem có chuỗi nào chứa 'vip access' không
-                        if (!hasVipField) {
-                            const allValues = Object.values(u);
-                            return allValues.some(val => typeof val === 'string' && val.toLowerCase().includes('vip'));
-                        }
-
-                        return hasVipField;
+                        const jsonString = JSON.stringify(u).toLowerCase();
+                        // Loại trừ trường hợp email chứa chữ vip (ví dụ vip@gmail.com) nếu muốn kỹ hơn, 
+                        // nhưng ở đây ta cứ đếm rộng trước.
+                        // Thêm các từ khóa mở rộng
+                        return jsonString.includes('"vip') || jsonString.includes('vip"') || jsonString.includes('vip ') || jsonString.includes('premium') || jsonString.includes('access');
                     }).length;
                     
                     setStats(prev => ({ ...prev, dbStudents: snap.size, dbVip: vipCount }));
@@ -263,13 +239,9 @@
             }, [currentAppId]);
 
             const displayStats = useMemo(() => {
-                // LOGIC ƯU TIÊN V2: 
-                // 1. Nếu dbExams đã load (khác null), dùng dbExams. (Khắc phục lỗi hiện 4 đề do lịch sử còn lưu vết)
-                // 2. Nếu dbExams lỗi (null), mới dùng historyExams.
-                
+                // Logic ƯU TIÊN DB:
+                // Nếu dbExams !== null (đã kết nối thành công), dùng nó. Nếu không mới dùng History.
                 const realExams = stats.dbExams !== null ? stats.dbExams : stats.historyExams;
-                
-                // Tương tự với học viên
                 const realStudents = stats.dbStudents !== null ? stats.dbStudents : stats.historyStudents;
 
                 return {
@@ -280,6 +252,14 @@
                     exams: realExams || 0
                 };
             }, [stats]);
+
+            const handleSaveAppId = () => {
+                if (manualAppId && manualAppId.trim() !== "") {
+                    setCurrentAppId(manualAppId.trim());
+                    notify("Đã cập nhật App ID nguồn dữ liệu", "success");
+                    setTab('dashboard');
+                }
+            };
 
             const deleteItem = async (collectionName, id) => {
                 if(confirm("Xóa mục này?")) {
@@ -350,7 +330,8 @@
                                 { id: 'dashboard', label: 'Live Monitor', icon: LayoutDashboard },
                                 { id: 'score_rank', label: 'Bảng xếp hạng', icon: Trophy },
                                 { id: 'reviews', label: 'Đánh giá & Góp ý', icon: MessageSquare, count: reviews.length },
-                                { id: 'reports', label: 'Báo cáo lỗi', icon: Flag, count: reports.filter(r => r.status === 'pending').length }
+                                { id: 'reports', label: 'Báo cáo lỗi', icon: Flag, count: reports.filter(r => r.status === 'pending').length },
+                                { id: 'settings', label: 'Cấu hình', icon: Settings }
                             ].map(item => (
                                 <button key={item.id} onClick={()=>setTab(item.id)} className={`w-full flex items-center justify-between px-6 py-5 rounded-2xl transition-all ${tab === item.id ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:bg-white/5'}`}>
                                     <div className="flex items-center gap-4"><item.icon size={20}/><span className="font-bold text-sm">{item.label}</span></div>
@@ -368,21 +349,23 @@
                         <div className="flex justify-between items-end mb-12">
                             <div>
                                 <h1 className="text-4xl font-black text-white tracking-tighter capitalize">
-                                    {tab === 'dashboard' ? 'Dashboard' : tab === 'score_rank' ? 'Bảng Xếp Hạng Global' : tab === 'reviews' ? 'Phản Hồi Từ Học Viên' : 'Báo Cáo Lỗi Đề Thi'}
+                                    {tab === 'dashboard' ? 'Dashboard' : tab === 'score_rank' ? 'Bảng Xếp Hạng' : tab === 'reviews' ? 'Phản Hồi' : tab === 'reports' ? 'Báo Cáo Lỗi' : 'Cấu Hình Hệ Thống'}
                                 </h1>
                                 {tab === 'score_rank' && <p className="text-slate-400 text-sm mt-2 flex items-center gap-2"><Sigma size={14}/> Xếp hạng theo tổng điểm tích lũy</p>}
                                 {tab === 'dashboard' && (
                                     <div className="text-emerald-400 text-sm mt-2 flex items-center gap-3">
-                                        <span className="flex items-center gap-2 animate-pulse"><div className="w-2 h-2 rounded-full bg-emerald-400"></div> Hệ thống đang giám sát thời gian thực</span>
+                                        <span className="flex items-center gap-2 animate-pulse"><div className="w-2 h-2 rounded-full bg-emerald-400"></div> Live Sync</span>
                                         <span className="text-slate-600">|</span>
-                                        <span className="flex items-center gap-1 text-slate-400 text-xs font-mono bg-slate-800 px-2 py-1 rounded border border-slate-700"><Database size={10}/> APP ID: {currentAppId}</span>
+                                        <span className="flex items-center gap-1 text-slate-400 text-xs font-mono bg-slate-800 px-2 py-1 rounded border border-slate-700"><Database size={10}/> {currentAppId}</span>
                                     </div>
                                 )}
                             </div>
-                            <div className="relative group">
-                                <Search className="absolute left-4 top-3.5 text-slate-500" size={20}/>
-                                <input className="bg-slate-800 border border-slate-700 rounded-2xl pl-12 pr-6 py-3 w-80 outline-none focus:border-cyan-500 font-bold text-white transition-all" placeholder="Tìm kiếm dữ liệu..." value={search} onChange={e=>setSearch(e.target.value)}/>
-                            </div>
+                            {tab !== 'settings' && (
+                                <div className="relative group">
+                                    <Search className="absolute left-4 top-3.5 text-slate-500" size={20}/>
+                                    <input className="bg-slate-800 border border-slate-700 rounded-2xl pl-12 pr-6 py-3 w-80 outline-none focus:border-cyan-500 font-bold text-white transition-all" placeholder="Tìm kiếm dữ liệu..." value={search} onChange={e=>setSearch(e.target.value)}/>
+                                </div>
+                            )}
                         </div>
 
                         <div className="animate-in">
@@ -424,6 +407,47 @@
                                                     <p className="text-xs mt-2">Chưa ghi nhận hoạt động nào trong thời gian thực</p>
                                                 </div>
                                             )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {tab === 'settings' && (
+                                <div className="glass-panel rounded-[2rem] p-10 max-w-2xl mx-auto">
+                                    <div className="text-center mb-10">
+                                        <Database size={64} className="text-cyan-500 mx-auto mb-4"/>
+                                        <h2 className="text-2xl font-black text-white">Kết Nối Nguồn Dữ Liệu</h2>
+                                        <p className="text-slate-400 mt-2">Cấu hình App ID để Dashboard trỏ đúng vào kho dữ liệu của bạn</p>
+                                    </div>
+                                    
+                                    <div className="space-y-6">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">App ID Hiện Tại</label>
+                                            <div className="w-full glass-input p-4 rounded-xl text-emerald-400 font-mono flex items-center gap-2">
+                                                <CheckCircle2 size={16}/> {currentAppId}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Thay Đổi App ID</label>
+                                            <div className="flex gap-2">
+                                                <input 
+                                                    value={manualAppId} 
+                                                    onChange={(e)=>setManualAppId(e.target.value)}
+                                                    className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-cyan-500 text-white font-mono"
+                                                    placeholder="Nhập App ID mới..."
+                                                />
+                                                <button 
+                                                    onClick={handleSaveAppId}
+                                                    className="px-6 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-cyan-500/20"
+                                                >
+                                                    <RefreshCw size={18}/> Cập nhật
+                                                </button>
+                                            </div>
+                                            <p className="text-[10px] text-slate-500 mt-2 italic">
+                                                * App ID thường nằm trong URL của trang quản trị hoặc trong mã nhúng (ví dụ: med-exam-pro-html).
+                                                Nếu số liệu hiển thị 0 hoặc sai lệch, hãy thử nhập đúng App ID của ứng dụng bạn đang dùng.
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
