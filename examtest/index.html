@@ -1362,7 +1362,6 @@
                     const twUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
                     window.open(twUrl, '_blank');
                 } else if (platform === 'zalo') {
-                    // Zalo thường chia sẻ qua việc copy link hoặc API riêng, ở đây ta ưu tiên copy text kèm link
                     const fullText = `${shareText}\nXem tại: ${shareUrl}`;
                     const tempTextArea = document.createElement("textarea");
                     tempTextArea.value = fullText;
@@ -1475,30 +1474,6 @@
                                                 <div className="mb-4 flex-1">
                                                     <div className="flex justify-between items-start mb-3">
                                                         <h3 className="text-lg font-bold text-white line-clamp-2 group-hover:text-cyan-400 transition-colors pr-6">{exam.title}</h3>
-                                                        
-                                                        {/* SOCIAL SHARE POPUP */}
-                                                        <div className="relative group/share">
-                                                            <button 
-                                                                className="p-1.5 text-slate-500 hover:text-cyan-400 transition-colors"
-                                                                title="Chia sẻ đề thi"
-                                                            >
-                                                                <Share2 size={18} />
-                                                            </button>
-                                                            <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-2 hidden group-hover/share:flex flex-col gap-1 z-20 min-w-[160px] animate-scale-up">
-                                                                <button onClick={() => handleShareExam(exam, 'facebook')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
-                                                                    <div className="bg-blue-600 p-1 rounded-full"><Facebook size={12} /></div> Facebook
-                                                                </button>
-                                                                <button onClick={() => handleShareExam(exam, 'zalo')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
-                                                                    <div className="bg-blue-500 p-1 rounded-full"><SendHorizontal size={12} /></div> Zalo (Copy)
-                                                                </button>
-                                                                <button onClick={() => handleShareExam(exam, 'twitter')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
-                                                                    <div className="bg-slate-900 p-1 rounded-full"><Twitter size={12} /></div> Twitter (X)
-                                                                </button>
-                                                                <button onClick={() => handleShareExam(exam, 'link')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
-                                                                    <div className="bg-slate-600 p-1 rounded-full"><Copy size={12} /></div> Sao chép link
-                                                                </button>
-                                                            </div>
-                                                        </div>
                                                     </div>
 
                                                     <div className="flex flex-wrap gap-2 mb-4">
@@ -1536,16 +1511,45 @@
                                                 
                                                 <div className="flex justify-between items-end mt-4">
                                                     {renderStars(exam.ratingSum, exam.ratingCount)}
-                                                    <button 
-                                                        onClick={()=> isLocked ? onUpgrade() : onStartExam(exam)} 
-                                                        className={`px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all transform group-hover:scale-105 active:scale-95 flex items-center gap-2 ${
-                                                            isLocked 
-                                                            ? 'bg-slate-800 text-slate-500 hover:bg-slate-700 border border-white/5 cursor-not-allowed' 
-                                                            : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-500/20'
-                                                        }`}
-                                                    >
-                                                        {isLocked ? <><Lock size={14}/> Nâng cấp</> : 'Bắt đầu'}
-                                                    </button>
+                                                    
+                                                    <div className="flex items-center gap-2">
+                                                        {/* NÚT CHIA SẺ NỔI BẬT */}
+                                                        <div className="relative group/share">
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); }}
+                                                                className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-cyan-400 rounded-xl border border-slate-700 transition-all shadow-lg flex items-center justify-center"
+                                                                title="Chia sẻ đề thi"
+                                                            >
+                                                                <Share2 size={18} />
+                                                            </button>
+                                                            {/* MENU CHIA SẺ TRỒI LÊN */}
+                                                            <div className="absolute right-0 bottom-full mb-2 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-2 hidden group-hover/share:flex flex-col gap-1 z-30 min-w-[150px] animate-scale-up">
+                                                                <button onClick={() => handleShareExam(exam, 'facebook')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
+                                                                    <div className="bg-blue-600 p-1 rounded-full"><Facebook size={12} /></div> Facebook
+                                                                </button>
+                                                                <button onClick={() => handleShareExam(exam, 'zalo')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
+                                                                    <div className="bg-blue-500 p-1 rounded-full"><SendHorizontal size={12} /></div> Zalo (Copy)
+                                                                </button>
+                                                                <button onClick={() => handleShareExam(exam, 'twitter')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
+                                                                    <div className="bg-slate-900 p-1 rounded-full"><Twitter size={12} /></div> Twitter (X)
+                                                                </button>
+                                                                <button onClick={() => handleShareExam(exam, 'link')} className="flex items-center gap-2 p-2 hover:bg-slate-700 rounded-lg text-xs text-white transition-colors">
+                                                                    <div className="bg-slate-600 p-1 rounded-full"><Copy size={12} /></div> Sao chép link
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        <button 
+                                                            onClick={()=> isLocked ? onUpgrade() : onStartExam(exam)} 
+                                                            className={`px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all transform group-hover:scale-105 active:scale-95 flex items-center gap-2 ${
+                                                                isLocked 
+                                                                ? 'bg-slate-800 text-slate-500 hover:bg-slate-700 border border-white/5 cursor-not-allowed' 
+                                                                : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-500/20'
+                                                            }`}
+                                                        >
+                                                            {isLocked ? <><Lock size={14}/> Nâng cấp</> : 'Bắt đầu'}
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )
