@@ -40,7 +40,7 @@
         import { getFirestore, collection, doc, updateDoc, deleteDoc, onSnapshot, query, collectionGroup, orderBy, limit } from 'firebase/firestore';
         import { 
             ShieldCheck, LogOut, Search, Trash2, CheckCircle2, AlertCircle, 
-            Trophy, MessageSquare, Flag, Star, Check, ExternalLink, Loader2, BarChart2
+            Trophy, MessageSquare, Flag, Star, Check, ExternalLink, Loader2, BarChart2, UserX
         } from 'lucide-react';
 
         // --- CẤU HÌNH FIREBASE ---
@@ -86,21 +86,25 @@
 
             useEffect(() => {
                 // --- XỬ LÝ BẢNG XẾP HẠNG ---
-                // Chiến lược: Lấy dữ liệu về Client rồi sắp xếp số học (An toàn nhất với dữ liệu hỗn hợp String/Number)
+                // Chiến lược: Lấy dữ liệu về Client rồi sắp xếp số học
                 const qHistory = query(collectionGroup(db, 'history'));
                 
                 const unsubHistory = onSnapshot(qHistory, (snapshot) => {
-                    const data = snapshot.docs.map(d => ({...d.data(), id: d.id}));
+                    let data = snapshot.docs.map(d => ({...d.data(), id: d.id}));
                     
-                    // --- LOGIC SẮP XẾP QUAN TRỌNG ---
-                    // Sửa lỗi: 10.0 < 4.0 do sắp xếp String
+                    // --- BỘ LỌC TÀI KHOẢN ---
+                    // Chỉ giữ lại những user có Email (đã đăng ký) hoặc có Tên hiển thị rõ ràng
+                    data = data.filter(item => {
+                        const hasEmail = item.email && item.email.trim() !== "";
+                        const hasName = item.displayName && item.displayName.trim() !== "";
+                        // Logic: Phải có Email mới được coi là tài khoản chính thức
+                        return hasEmail || hasName; 
+                    });
+
+                    // --- LOGIC SẮP XẾP ---
                     data.sort((a, b) => {
-                        // Chuyển đổi an toàn về số thực (Float)
-                        // Xử lý cả trường hợp số lưu dạng String "10.0" hoặc Number 10
                         const scoreA = parseFloat(String(a.score || 0));
                         const scoreB = parseFloat(String(b.score || 0));
-                        
-                        // Sắp xếp giảm dần: Điểm cao đứng trước
                         return scoreB - scoreA;
                     });
                     
@@ -108,7 +112,6 @@
                     setIndexError(false);
                 }, (error) => {
                     console.error("Leaderboard Error:", error);
-                    // Nếu lỗi do thiếu index (nếu sau này bật orderBy server), hiển thị hướng dẫn
                     if (error.code === 'failed-precondition') {
                         setIndexError(true);
                     } else {
@@ -155,6 +158,12 @@
             // --- HELPERS ---
             const formatDateTime = (ts) => ts?.toDate ? ts.toDate().toLocaleString('vi-VN') : '---';
             const getReasonText = (reason) => { const map = { 'wrong_answer': 'Đáp án sai', 'typo': 'Lỗi chính tả', 'confusing': 'Khó hiểu', 'other': 'Khác' }; return map[reason] || reason; };
+            
+            const getUserDisplayName = (user) => {
+                if (user.displayName && user.displayName.trim() !== "") return user.displayName;
+                if (user.email) return user.email; 
+                return `User #${user.userId?.slice(0, 5)}`; 
+            };
 
             return (
                 <div className="flex min-h-screen">
@@ -184,7 +193,10 @@
                     {/* MAIN CONTENT */}
                     <main className="flex-1 ml-72 p-12">
                         <div className="flex justify-between items-end mb-12">
-                            <h1 className="text-4xl font-black text-white tracking-tighter capitalize">{tab === 'score_rank' ? 'Bảng Xếp Hạng Global' : tab === 'reviews' ? 'Phản Hồi Từ Học Viên' : 'Báo Cáo Lỗi Đề Thi'}</h1>
+                            <div>
+                                <h1 className="text-4xl font-black text-white tracking-tighter capitalize">{tab === 'score_rank' ? 'Bảng Xếp Hạng Global' : tab === 'reviews' ? 'Phản Hồi Từ Học Viên' : 'Báo Cáo Lỗi Đề Thi'}</h1>
+                                {tab === 'score_rank' && <p className="text-slate-400 text-sm mt-2 flex items-center gap-2"><UserX size={14}/> Đã ẩn các kết quả thi ẩn danh/chưa đăng ký</p>}
+                            </div>
                             <div className="relative group">
                                 <Search className="absolute left-4 top-3.5 text-slate-500" size={20}/>
                                 <input className="bg-slate-800 border border-slate-700 rounded-2xl pl-12 pr-6 py-3 w-80 outline-none focus:border-cyan-500 font-bold text-white transition-all" placeholder="Tìm kiếm dữ liệu..." value={search} onChange={e=>setSearch(e.target.value)}/>
@@ -217,17 +229,24 @@
                                                     if (rawScore >= 9) scoreColor = 'text-emerald-400';
                                                     else if (rawScore >= 5) scoreColor = 'text-blue-400';
 
+                                                    const displayInfo = getUserDisplayName(s);
+
                                                     return (
                                                         <tr key={s.id} className="hover:bg-white/5 transition-colors">
                                                             <td className="p-6">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : <span className="font-mono text-slate-500">#{i+1}</span>}</td>
-                                                            <td className="p-6"><span className="text-white font-bold block">{s.displayName || 'Ẩn danh'}</span><span className="text-[10px] font-mono text-slate-600">{s.userId?.slice(0,8)}</span></td>
+                                                            <td className="p-6">
+                                                                <span className={`font-bold block ${!s.displayName ? 'text-slate-300' : 'text-white'}`}>
+                                                                    {displayInfo}
+                                                                </span>
+                                                                {s.email && <span className="text-[10px] font-mono text-slate-500 block">{s.email}</span>}
+                                                            </td>
                                                             <td className="p-6 text-slate-400">{s.examTitle || 'Đề không tên'}</td>
                                                             <td className="p-6 text-center"><span className={`font-black text-lg ${scoreColor}`}>{rawScore}</span></td>
                                                             <td className="p-6 text-right font-mono text-xs">{formatDateTime(s.date)}</td>
                                                         </tr>
                                                     );
                                                 })}
-                                                {scores.length === 0 && <tr><td colSpan="5" className="p-20 text-center italic text-slate-600">Chưa có dữ liệu thi</td></tr>}
+                                                {scores.length === 0 && <tr><td colSpan="5" className="p-20 text-center italic text-slate-600">Chưa có dữ liệu thi hợp lệ</td></tr>}
                                             </tbody>
                                         </table>
                                     </div>
@@ -243,7 +262,7 @@
                                             {reviews.filter(r => (r.examTitle||'').toLowerCase().includes(search.toLowerCase())).map(r => (
                                                 <tr key={r.id} className="hover:bg-white/5 transition-colors">
                                                     <td className="p-6 text-xs text-slate-500 font-bold whitespace-nowrap">{formatDateTime(r.createdAt)}</td>
-                                                    <td className="p-6"><span className="block font-bold text-white">{r.displayName}</span></td>
+                                                    <td className="p-6"><span className="block font-bold text-white">{getUserDisplayName(r)}</span></td>
                                                     <td className="p-6"><div className="font-bold text-xs text-cyan-500 mb-1">{r.examTitle}</div>{r.feedback ? <div className="italic text-slate-400">"{r.feedback}"</div> : <span className="text-slate-600 text-xs">--</span>}</td>
                                                     <td className="p-6 text-center"><div className="flex justify-center gap-0.5">{[1,2,3,4,5].map(s=><Star key={s} size={14} className={s<=r.rating?'text-yellow-400 fill-yellow-400':'text-slate-700'}/>)}</div></td>
                                                     <td className="p-6 text-right"><button onClick={()=>deleteItem('reviews', r.id)} className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-500 hover:text-red-500 rounded-xl transition-all"><Trash2 size={16}/></button></td>
@@ -264,7 +283,7 @@
                                             {reports.filter(r => (r.questionText||'').toLowerCase().includes(search.toLowerCase())).map(r => (
                                                 <tr key={r.id} className={`hover:bg-white/5 transition-colors ${r.status==='resolved'?'opacity-50':''}`}>
                                                     <td className="p-6 text-xs text-slate-500 font-bold whitespace-nowrap align-top">{formatDateTime(r.createdAt)}</td>
-                                                    <td className="p-6 align-top"><span className="block font-bold text-white">{r.displayName}</span></td>
+                                                    <td className="p-6 align-top"><span className="block font-bold text-white">{getUserDisplayName(r)}</span></td>
                                                     <td className="p-6 max-w-md align-top">
                                                         <span className="bg-red-500/10 text-red-400 text-[10px] font-bold px-2 py-0.5 rounded border border-red-500/20 mr-2">{getReasonText(r.reason)}</span>
                                                         <div className="mt-2 text-slate-200 font-medium">"{r.questionText}"</div>
