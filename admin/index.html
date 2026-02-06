@@ -80,7 +80,7 @@
             ShieldCheck, Users, BookOpen, LogOut, Search, Trash2, Plus, 
             Upload, Download, X, CheckCircle2, AlertCircle, Edit3, 
             LayoutDashboard, FileText, Loader2, Info, Database,
-            TrendingUp, Tag, ChevronRight, Bell, Crown, Unlock, CreditCard, Check, FileUp, ListChecks, Lock, Activity, Trophy, Settings, Image as ImageIcon, Save, Star, Calendar, RefreshCw, PlayCircle, Clock, Send, FileSpreadsheet, BarChart3, Undo2, ChevronDown, DownloadCloud, PenLine, MapPin, Phone, History
+            TrendingUp, Tag, ChevronRight, Bell, Crown, Unlock, CreditCard, Check, FileUp, ListChecks, Lock, Activity, Trophy, Settings, Image as ImageIcon, Save, Star, Calendar, RefreshCw, PlayCircle, Clock, Send, FileSpreadsheet, BarChart3, Undo2, ChevronDown, DownloadCloud, PenLine, MapPin, Phone, History, Megaphone, CalendarDays, Link
         } from 'lucide-react';
 
         // --- CẤU HÌNH ĐỒNG BỘ ---
@@ -100,7 +100,6 @@
         const ADMIN_EMAILS = ["thanhtrong.yds@gmail.com", "vnrad.tech@gmail.com", "test@gmail.com"];
 
         // --- COMPONENTS ---
-        // SỬA LỖI: Thêm định nghĩa SkeletonLoader
         const SkeletonLoader = ({ type }) => {
             if (type === 'card') return (
                 <div className="stats-card p-8 rounded-[3rem] border border-white/5 space-y-4">
@@ -267,6 +266,11 @@
             const [notifications, setNotifications] = useState([]);
             const [showNotiTray, setShowNotiTray] = useState(false);
             
+            // --- STATE TIN TỨC & SỰ KIỆN ---
+            const [notiSubTab, setNotiSubTab] = useState('broadcast'); // broadcast | news
+            const [newsList, setNewsList] = useState([]);
+            const [newsForm, setNewsForm] = useState({ title: '', content: '', type: 'news', image: '', link: '' });
+
             const chartRef = useRef(null);
             const pieChartRef = useRef(null);
             const notify = useCallback((message, type = 'info') => { setToast({ message, type }); }, []);
@@ -288,6 +292,10 @@
                 const unsubHistory = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'vip_history'), s => {
                     setVipHistory(s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.approvedAt?.toMillis?.() || 0) - (a.approvedAt?.toMillis?.() || 0)));
                 });
+                // Lắng nghe Tin tức & Sự kiện
+                const unsubNews = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'news_events'), orderBy('createdAt', 'desc')), s => {
+                    setNewsList(s.docs.map(d => ({ id: d.id, ...d.data() })));
+                });
 
                 const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'system_settings', 'config'), d => { 
                     if (d.exists()) { 
@@ -299,7 +307,7 @@
                     }
                 });
 
-                return () => { unsubU(); unsubE(); unsubR(); unsubHistory(); unsubSettings(); };
+                return () => { unsubU(); unsubE(); unsubR(); unsubHistory(); unsubSettings(); unsubNews(); };
             }, []);
 
             // --- BIỂU ĐỒ HỆ THỐNG ---
@@ -426,6 +434,27 @@
                 } catch(e) { notify("Lỗi gửi thông báo", "error"); } 
             };
 
+            const handleAddNews = async () => {
+                if(!newsForm.title.trim() || !newsForm.content.trim()) return notify("Vui lòng nhập tiêu đề và nội dung", "error");
+                try {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'news_events'), {
+                        ...newsForm,
+                        createdAt: serverTimestamp()
+                    });
+                    setNewsForm({ title: '', content: '', type: 'news', image: '', link: '' });
+                    notify("Đã đăng tin thành công", "success");
+                } catch (e) { notify("Lỗi đăng tin", "error"); }
+            };
+
+            const handleDeleteNews = async (id) => {
+                if(window.confirm("Bạn có chắc muốn xóa tin này?")) {
+                    try {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'news_events', id));
+                        notify("Đã xóa tin", "success");
+                    } catch (e) { notify("Lỗi xóa tin", "error"); }
+                }
+            };
+
             return (
                 <div className="flex min-h-screen">
                     {/* SIDEBAR */}
@@ -438,7 +467,7 @@
                                 { id: 'requests', label: 'Duyệt VIP', icon: CreditCard, count: requests.length }, 
                                 { id: 'users', label: 'Học viên', icon: Users }, 
                                 { id: 'trash', label: 'Thùng rác', icon: Trash2, count: deletedExamsList.length }, 
-                                { id: 'notifications', label: 'Gửi tin', icon: Bell }, 
+                                { id: 'notifications', label: 'Gửi tin', icon: Megaphone }, 
                                 { id: 'settings', label: 'Cấu hình', icon: Settings } 
                             ].map(item => (
                                 <button key={item.id} onClick={()=>setTab(item.id)} className={`w-full flex items-center justify-between px-6 py-4 rounded-3xl transition-all ${tab === item.id ? 'bg-blue-600 text-white shadow-xl translate-x-2' : 'text-slate-400 hover:bg-white/5'}`}> <div className="flex items-center gap-4"><item.icon size={18}/><span className="font-bold text-sm">{item.label}</span></div> {item.count > 0 && <span className={`${item.id === 'requests' ? 'bg-red-500' : 'bg-slate-700'} text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse`}>{item.count}</span>} </button>
@@ -705,18 +734,92 @@
 
                                 {/* --- TAB GỬI TIN --- */}
                                 {tab === 'notifications' && (
-                                    <div className="max-w-3xl animate-in">
-                                        <div className="bg-slate-900/40 border border-white/5 rounded-[3rem] p-10 shadow-2xl backdrop-blur-xl space-y-6">
-                                            <div className="flex items-center gap-4 text-white mb-4">
-                                                <div className="w-14 h-14 bg-yellow-500/10 rounded-2xl flex items-center justify-center text-yellow-500"><Bell size={28}/></div>
-                                                <div>
-                                                    <h3 className="text-2xl font-black">Gửi thông báo</h3>
-                                                    <p className="text-slate-500 text-xs mt-1">Gửi tin nhắn đến toàn bộ học viên trong hệ thống</p>
+                                    <div className="max-w-5xl animate-in space-y-6">
+                                        {/* Sub-tabs Selector */}
+                                        <div className="flex gap-4 p-2 bg-slate-900/50 rounded-2xl border border-white/5 w-fit">
+                                            <button onClick={() => setNotiSubTab('broadcast')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${notiSubTab === 'broadcast' ? 'bg-yellow-600 text-slate-900 shadow-lg' : 'text-slate-500 hover:bg-white/5'}`}>
+                                                <Bell size={14} /> Gửi thông báo nhanh
+                                            </button>
+                                            <button onClick={() => setNotiSubTab('news')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${notiSubTab === 'news' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:bg-white/5'}`}>
+                                                <CalendarDays size={14} /> Quản lý Tin tức / Sự kiện
+                                            </button>
+                                        </div>
+
+                                        {notiSubTab === 'broadcast' ? (
+                                            <div className="bg-slate-900/40 border border-white/5 rounded-[3rem] p-10 shadow-2xl backdrop-blur-xl space-y-6">
+                                                <div className="flex items-center gap-4 text-white mb-4">
+                                                    <div className="w-14 h-14 bg-yellow-500/10 rounded-2xl flex items-center justify-center text-yellow-500"><Bell size={28}/></div>
+                                                    <div>
+                                                        <h3 className="text-2xl font-black">Gửi thông báo nhanh</h3>
+                                                        <p className="text-slate-500 text-xs mt-1">Gửi tin nhắn pop-up đến toàn bộ học viên đang online</p>
+                                                    </div>
+                                                </div>
+                                                <textarea className="w-full bg-slate-950 border border-slate-800 rounded-3xl p-6 text-white outline-none focus:border-yellow-500 h-40 text-lg font-medium transition-all" placeholder="Nhập nội dung thông báo..." value={notiMsg} onChange={e=>setNotiMsg(e.target.value)}></textarea>
+                                                <button onClick={sendNotification} className="w-full bg-yellow-600 hover:bg-yellow-500 text-slate-900 font-black py-4 rounded-2xl uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"><Send size={16}/> Phát hành ngay</button>
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                                {/* Form tạo tin mới */}
+                                                <div className="bg-slate-900/40 border border-white/5 rounded-[3rem] p-8 shadow-xl h-fit">
+                                                    <h3 className="text-xl font-black text-white mb-6 uppercase tracking-tight flex items-center gap-3"><Plus className="text-blue-500"/> Đăng tin mới</h3>
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase ml-2 mb-2 block">Tiêu đề tin</label>
+                                                            <input className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-white outline-none focus:border-blue-600 font-bold" value={newsForm.title} onChange={e => setNewsForm({...newsForm, title: e.target.value})} placeholder="VD: Lịch nghỉ lễ..."/>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase ml-2 mb-2 block">Loại tin</label>
+                                                            <div className="flex gap-2">
+                                                                <button onClick={() => setNewsForm({...newsForm, type: 'news'})} className={`flex-1 py-3 rounded-xl text-xs font-black uppercase border transition-all ${newsForm.type === 'news' ? 'bg-blue-600 border-blue-500 text-white' : 'border-slate-800 text-slate-500 hover:bg-slate-800'}`}>Tin tức</button>
+                                                                <button onClick={() => setNewsForm({...newsForm, type: 'event'})} className={`flex-1 py-3 rounded-xl text-xs font-black uppercase border transition-all ${newsForm.type === 'event' ? 'bg-purple-600 border-purple-500 text-white' : 'border-slate-800 text-slate-500 hover:bg-slate-800'}`}>Sự kiện</button>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase ml-2 mb-2 block">Liên kết ngoài (Tùy chọn)</label>
+                                                            <div className="relative">
+                                                                <Link size={16} className="absolute left-4 top-4 text-slate-500"/>
+                                                                <input className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-4 py-4 text-white outline-none focus:border-blue-600 text-sm" value={newsForm.link} onChange={e => setNewsForm({...newsForm, link: e.target.value})} placeholder="https://example.com/tin-tuc..."/>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase ml-2 mb-2 block">Link Hình ảnh (Tùy chọn)</label>
+                                                            <input className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-white outline-none focus:border-blue-600 text-sm" value={newsForm.image} onChange={e => setNewsForm({...newsForm, image: e.target.value})} placeholder="https://..."/>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-black text-slate-500 uppercase ml-2 mb-2 block">Nội dung chi tiết</label>
+                                                            <textarea className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-white outline-none focus:border-blue-600 min-h-[120px] text-sm" value={newsForm.content} onChange={e => setNewsForm({...newsForm, content: e.target.value})} placeholder="Nội dung..."></textarea>
+                                                        </div>
+                                                        <button onClick={handleAddNews} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 mt-2"><Save size={16}/> Lưu & Đăng tin</button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Danh sách tin tức */}
+                                                <div className="space-y-4">
+                                                    <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tight ml-2">Đang hiển thị ({newsList.length})</h3>
+                                                    <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
+                                                        {newsList.length > 0 ? newsList.map(news => (
+                                                            <div key={news.id} className="bg-slate-900 border border-white/10 rounded-[2rem] p-5 flex gap-4 group hover:border-blue-500/30 transition-all relative overflow-hidden">
+                                                                {news.image && <div className="w-20 h-20 rounded-xl bg-slate-800 flex-shrink-0 overflow-hidden"><img src={news.image} className="w-full h-full object-cover"/></div>}
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                        <span className={`px-2 py-0.5 text-[8px] font-black uppercase rounded-md ${news.type === 'event' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'}`}>{news.type === 'event' ? 'Sự kiện' : 'Tin tức'}</span>
+                                                                        <span className="text-[10px] text-slate-500 font-bold">{formatDate(news.createdAt)}</span>
+                                                                    </div>
+                                                                    <h4 className="text-white font-bold text-sm line-clamp-1 mb-1">{news.title}</h4>
+                                                                    <p className="text-slate-400 text-xs line-clamp-2">{news.content}</p>
+                                                                    {news.link && <a href={news.link} target="_blank" rel="noreferrer" className="text-[10px] text-blue-400 font-bold hover:underline flex items-center gap-1 mt-1"><Link size={10}/> {news.link}</a>}
+                                                                </div>
+                                                                <button onClick={() => handleDeleteNews(news.id)} className="absolute top-4 right-4 p-2 bg-slate-800 text-slate-500 hover:text-red-500 hover:bg-slate-700 rounded-lg transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button>
+                                                            </div>
+                                                        )) : (
+                                                            <div className="text-center py-12 border-2 border-dashed border-slate-800 rounded-[3rem]">
+                                                                <p className="text-slate-500 text-xs font-bold uppercase">Chưa có tin tức nào</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <textarea className="w-full bg-slate-950 border border-slate-800 rounded-3xl p-6 text-white outline-none focus:border-yellow-500 h-40 text-lg font-medium transition-all" placeholder="Nhập nội dung thông báo..." value={notiMsg} onChange={e=>setNotiMsg(e.target.value)}></textarea>
-                                            <button onClick={sendNotification} className="w-full bg-yellow-600 hover:bg-yellow-500 text-slate-900 font-black py-4 rounded-2xl uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"><Send size={16}/> Phát hành ngay</button>
-                                        </div>
+                                        )}
                                     </div>
                                 )}
 
