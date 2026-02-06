@@ -296,6 +296,101 @@
 
         const useToast = () => useContext(ToastContext);
 
+        // --- MODAL CONTEXT & PROVIDER (NEW) ---
+        const ModalContext = createContext();
+        const useModal = () => useContext(ModalContext);
+
+        const ModalProvider = ({ children }) => {
+            const [modalConfig, setModalConfig] = useState(null);
+            const { isDarkMode } = useTheme();
+
+            const showConfirmation = ({ 
+                title, 
+                message, 
+                icon, 
+                confirmText = "Xác nhận", 
+                cancelText = "Hủy", 
+                variant = "primary", // primary, danger, warning, success
+                onConfirm 
+            }) => {
+                setModalConfig({
+                    isOpen: true,
+                    title,
+                    message,
+                    icon,
+                    confirmText,
+                    cancelText,
+                    variant,
+                    onConfirm: async () => {
+                        if (onConfirm) await onConfirm();
+                        setModalConfig(null);
+                    },
+                    onCancel: () => setModalConfig(null)
+                });
+            };
+
+            const closeModal = () => setModalConfig(null);
+
+            // Styling based on variant
+            const getVariantClasses = (variant) => {
+                switch(variant) {
+                    case 'danger': return 'bg-red-600 hover:bg-red-500 shadow-red-500/30';
+                    case 'warning': return 'bg-yellow-600 hover:bg-yellow-500 shadow-yellow-500/30 text-white';
+                    case 'success': return 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/30';
+                    default: return 'bg-cyan-600 hover:bg-cyan-500 shadow-cyan-500/30';
+                }
+            };
+
+            return (
+                <ModalContext.Provider value={{ showConfirmation, closeModal }}>
+                    {children}
+                    {modalConfig && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+                            <div className={`w-full max-w-sm rounded-2xl border p-6 shadow-2xl animate-scale-up relative overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-blue-200'}`}>
+                                {/* Background Gradient Decoration */}
+                                <div className={`absolute top-0 left-0 w-full h-1.5 ${
+                                    modalConfig.variant === 'danger' ? 'bg-gradient-to-r from-red-500 to-orange-500' : 
+                                    modalConfig.variant === 'warning' ? 'bg-gradient-to-r from-yellow-400 to-orange-500' :
+                                    modalConfig.variant === 'success' ? 'bg-gradient-to-r from-emerald-400 to-teal-500' :
+                                    'bg-gradient-to-r from-cyan-400 to-blue-600'
+                                }`}></div>
+
+                                <div className="text-center mb-6">
+                                    <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+                                        modalConfig.variant === 'danger' ? 'bg-red-500/10 text-red-500' : 
+                                        modalConfig.variant === 'warning' ? 'bg-yellow-500/10 text-yellow-500' :
+                                        modalConfig.variant === 'success' ? 'bg-emerald-500/10 text-emerald-500' :
+                                        'bg-cyan-500/10 text-cyan-500'
+                                    }`}>
+                                        {modalConfig.icon || <Info size={32} />}
+                                    </div>
+                                    <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{modalConfig.title}</h3>
+                                    <div className={`text-sm leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                        {typeof modalConfig.message === 'string' ? modalConfig.message.split('\n').map((line, i) => <p key={i} className={i > 0 ? "mt-1" : ""}>{line}</p>) : modalConfig.message}
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <button 
+                                        onClick={modalConfig.onCancel} 
+                                        className={`flex-1 py-2.5 rounded-xl font-bold transition-all ${isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                                    >
+                                        {modalConfig.cancelText}
+                                    </button>
+                                    <button 
+                                        onClick={modalConfig.onConfirm} 
+                                        className={`flex-1 py-2.5 rounded-xl font-bold text-white shadow-lg transition-all transform active:scale-95 ${getVariantClasses(modalConfig.variant)}`}
+                                    >
+                                        {modalConfig.confirmText}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </ModalContext.Provider>
+            );
+        };
+
         const Confetti = () => (
             <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
                 {[...Array(13)].map((_, i) => (
@@ -542,7 +637,7 @@
             );
         };
 
-        // --- UPDATED HistoryPage Component ---
+        // --- HistoryPage Component ---
         const HistoryPage = ({ user, onBack }) => {
             const [history, setHistory] = useState([]);
             const [isLoading, setIsLoading] = useState(true);
@@ -870,6 +965,7 @@
 
         const ExamInterface = ({ exam, onFinish, onExit }) => {
             const { isDarkMode, toggleTheme } = useTheme();
+            const { showConfirmation } = useModal(); // Use Modal Context
             const [timeLeft, setTimeLeft] = useState(exam.duration * 60);
             const [answers, setAnswers] = useState({});
             const [submitting, setSubmitting] = useState(false);
@@ -899,60 +995,79 @@
             // Effect to trigger finish when time runs out
             useEffect(() => {
                 if (timeLeft === 0 && !submitting) {
-                     // Pass true to forceSubmit to skip confirmation
-                     // We use answersRef.current implicitly inside finish by calling setAnswers state? 
-                     // Actually finish uses state 'answers'. But since this effect runs when timeLeft changes to 0,
-                     // the closure might have stale answers if not careful.
-                     // However, since 'finish' is defined in the component scope, and this effect depends on [timeLeft],
-                     // it will close over the current 'finish' which closes over current 'answers' IF 'finish' was recreated.
-                     // But 'finish' is not a dependency here.
-                     // Best practice: The finish function below reads 'answers' state directly.
-                     // Since this useEffect runs on every render where timeLeft changes (every second),
-                     // the closure is fresh enough? No, setTimeLeft is functional update.
-                     // The effect runs when timeLeft updates.
-                     // To be safe, let's just call finish(true).
                      finish(true);
                 }
             }, [timeLeft]);
 
-            // ... (Ping logic for active exams, same as before) ...
             useEffect(() => { if (exam.sessionId) { const pingInterval = setInterval(async () => { try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId), { lastPing: serverTimestamp() }); } catch (e) { console.log("Ping error", e); } }, 30000); return () => clearInterval(pingInterval); } }, [exam.sessionId]);
+
+            const proceedFinish = async (currentAnswers) => {
+                setSubmitting(true);
+                let correct = 0; 
+                exam.questions.forEach((q, i) => { if(currentAnswers[i] === q.correctOption) correct++; });
+                const score = (correct / exam.questions.length) * 10;
+                
+                const user = auth.currentUser;
+                if (user) {
+                    if (exam.sessionId) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId)); } catch (e) {} }
+                    
+                    try {
+                        await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), { examId: exam.id, examTitle: exam.title, score: score.toFixed(1), totalQuestions: exam.questions.length, correctCount: correct, date: serverTimestamp(), userId: user.uid, displayName: user.displayName || 'User' });
+                        const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid); 
+                        await updateDoc(userRef, { totalScore: increment(Number(score)), examsCompleted: increment(1), lastActive: serverTimestamp() });
+                    } catch(e) { console.error("Save error", e); }
+                }
+                
+                onFinish({ score: score.toFixed(1), correctCount: correct, total: exam.questions.length, examTitle: exam.title, questions: exam.questions, userAnswers: currentAnswers, examId: exam.id });
+            };
 
             const finish = async (forceSubmit = false) => {
                 if(submitting) return;
                 const user = auth.currentUser;
                 if (!user) return;
                 
-                // Use answersRef for safety in auto-submit case, or state answers for manual
                 const currentAnswers = forceSubmit ? answersRef.current : answers;
                 
-                const unansweredCount = exam.questions.length - Object.keys(currentAnswers).length;
                 if (!forceSubmit) {
-                    if (unansweredCount > 0) { if (!confirm(`⚠️ CẢNH BÁO CHƯA LÀM HẾT\n\nBạn còn ${unansweredCount} câu hỏi chưa chọn đáp án.\nBạn có chắc chắn muốn nộp bài ngay bây giờ không?`)) return; }
-                    else { if (!confirm(`XÁC NHẬN NỘP BÀI\n\nBạn đã trả lời đủ ${exam.questions.length} câu.\nBạn có muốn kết thúc bài thi không?`)) return; }
+                    const unansweredCount = exam.questions.length - Object.keys(currentAnswers).length;
+                    if (unansweredCount > 0) { 
+                        showConfirmation({
+                            title: "Chưa hoàn thành",
+                            message: `Bạn còn ${unansweredCount} câu hỏi chưa chọn đáp án.\nBạn có chắc chắn muốn nộp bài ngay bây giờ không?`,
+                            icon: <AlertTriangle size={32} className="text-yellow-400" />,
+                            confirmText: "Nộp bài luôn",
+                            variant: "warning",
+                            onConfirm: () => proceedFinish(currentAnswers)
+                        });
+                        return; 
+                    } else { 
+                        showConfirmation({
+                            title: "Xác nhận nộp bài",
+                            message: `Bạn đã trả lời đủ ${exam.questions.length} câu.\nBạn có muốn kết thúc bài thi không?`,
+                            icon: <CheckCircle2 size={32} className="text-emerald-400" />,
+                            confirmText: "Nộp bài",
+                            variant: "success",
+                            onConfirm: () => proceedFinish(currentAnswers)
+                        });
+                        return; 
+                    }
                 }
-                
-                setSubmitting(true);
-                let correct = 0; 
-                exam.questions.forEach((q, i) => { if(currentAnswers[i] === q.correctOption) correct++; });
-                const score = (correct / exam.questions.length) * 10;
-                
-                if (exam.sessionId) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId)); } catch (e) {} }
-                
-                try {
-                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), { examId: exam.id, examTitle: exam.title, score: score.toFixed(1), totalQuestions: exam.questions.length, correctCount: correct, date: serverTimestamp(), userId: user.uid, displayName: user.displayName || 'User' });
-                    const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid); 
-                    await updateDoc(userRef, { totalScore: increment(Number(score)), examsCompleted: increment(1), lastActive: serverTimestamp() });
-                } catch(e) { console.error("Save error", e); }
-                
-                onFinish({ score: score.toFixed(1), correctCount: correct, total: exam.questions.length, examTitle: exam.title, questions: exam.questions, userAnswers: currentAnswers, examId: exam.id });
+                proceedFinish(currentAnswers);
             };
 
             const handleExit = async () => {
-                if (confirm("⚠️ XÁC NHẬN THOÁT\n\nKết quả bài làm sẽ KHÔNG được lưu lại.\nBạn có chắc chắn muốn thoát ra màn hình chính?")) {
-                    if (exam.sessionId) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId)); } catch (e) { console.error("Lỗi xóa session khi thoát:", e); } }
-                    onExit();
-                }
+                showConfirmation({
+                    title: "Xác nhận thoát",
+                    message: "Kết quả bài làm sẽ KHÔNG được lưu lại.\nBạn có chắc chắn muốn thoát ra màn hình chính?",
+                    icon: <LogOut size={32} className="text-red-400" />,
+                    confirmText: "Thoát ngay",
+                    cancelText: "Ở lại",
+                    variant: "danger",
+                    onConfirm: async () => {
+                        if (exam.sessionId) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId)); } catch (e) { console.error("Lỗi xóa session khi thoát:", e); } }
+                        onExit();
+                    }
+                });
             };
 
             const scrollToQuestion = (index) => { questionRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' }); setIsDrawerOpen(false); };
@@ -1055,6 +1170,7 @@
             const [search, setSearch] = useState('');
             const [loading, setLoading] = useState(true);
             const { isDarkMode } = useTheme();
+            const { showConfirmation } = useModal(); // Use modal
 
             useEffect(() => {
                 if (!user) return;
@@ -1073,7 +1189,7 @@
                     setStats({ totalTaken: total, avgScore: avg, rank });
                 }, (error) => console.error("History sync error", error));
 
-                // Lấy tin tức & sự kiện (Mới thêm)
+                // Lấy tin tức & sự kiện
                 const unsubNews = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'news_events'), orderBy('createdAt', 'desc'), limit(5)), s => {
                     setNewsList(s.docs.map(d => ({ id: d.id, ...d.data() })));
                 }, (error) => console.error("News sync error", error));
@@ -1083,8 +1199,18 @@
 
             const filteredExams = exams.filter(e => { const matchesSearch = e.title.toLowerCase().includes(search.toLowerCase()); if (filter === 'free') return matchesSearch && !e.isPremium; if (filter === 'vip') return matchesSearch && e.isPremium; return matchesSearch; });
             const renderStars = (ratingSum, ratingCount) => { const avg = ratingCount > 0 ? ratingSum / ratingCount : 0; return (<div className="flex items-center gap-1 text-yellow-400 text-xs bg-slate-900/40 px-2 py-1 rounded-full border border-yellow-500/10"><span className="font-bold text-white mr-1">{avg.toFixed(1)}</span><Star size={10} fill="currentColor"/><span className="text-slate-500 ml-1">({ratingCount || 0})</span></div>); };
-            const handleShareExam = (exam, platform) => { /* Share logic remains the same */ };
             const QuoteCard = () => ( <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-violet-600/20 to-indigo-600/20 border border-indigo-500/20 flex items-center gap-4 relative overflow-hidden"><Quote size={48} className="text-indigo-500 opacity-20 absolute top-2 left-2" /><div className="relative z-10"><p className="text-indigo-200 dark:text-indigo-200 text-indigo-800 italic font-medium">"Không có bí mật nào cho sự thành công. Đó là kết quả của sự chuẩn bị kỹ càng, làm việc chăm chỉ và học hỏi từ thất bại."</p><p className="text-indigo-400 dark:text-indigo-400 text-indigo-600 text-xs font-bold mt-2 uppercase tracking-wider">- Colin Powell</p></div></div> );
+
+            const handleStartExam = (exam) => {
+                showConfirmation({
+                    title: "Bắt đầu làm bài",
+                    message: `Bạn đã sẵn sàng để bắt đầu bài thi "${exam.title}" chưa?`,
+                    icon: <Activity size={32} className="text-cyan-400" />,
+                    confirmText: "Bắt đầu ngay",
+                    variant: "primary",
+                    onConfirm: () => onStartExam(exam)
+                });
+            };
 
             return (
                 <div className="pb-20 animate-fade-in max-w-7xl mx-auto">
@@ -1142,7 +1268,7 @@
                                                 </div>
                                                 <div className="flex justify-between items-end mt-4">
                                                     {renderStars(exam.ratingSum, exam.ratingCount)}
-                                                    <button onClick={()=> isLocked ? onUpgrade() : onStartExam(exam)} className={`px-6 py-2.5 rounded-xl font-black text-sm shadow-xl transition-all transform group-hover:scale-105 active:scale-95 flex items-center gap-2 ${isLocked ? 'bg-gradient-to-r from-yellow-600 via-amber-500 to-yellow-500 text-slate-900 shadow-yellow-500/30 ring-2 ring-yellow-400/50 hover:from-yellow-500 hover:to-yellow-400' : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-500/30'}`}>{isLocked ? (isPendingVip ? <><Hourglass size={16} className="animate-pulse"/> Chờ duyệt</> : <><Crown size={16} fill="currentColor"/> Nâng cấp ngay</>) : 'Bắt đầu'}</button>
+                                                    <button onClick={()=> isLocked ? onUpgrade() : handleStartExam(exam)} className={`px-6 py-2.5 rounded-xl font-black text-sm shadow-xl transition-all transform group-hover:scale-105 active:scale-95 flex items-center gap-2 ${isLocked ? 'bg-gradient-to-r from-yellow-600 via-amber-500 to-yellow-500 text-slate-900 shadow-yellow-500/30 ring-2 ring-yellow-400/50 hover:from-yellow-500 hover:to-yellow-400' : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-500/30'}`}>{isLocked ? (isPendingVip ? <><Hourglass size={16} className="animate-pulse"/> Chờ duyệt</> : <><Crown size={16} fill="currentColor"/> Nâng cấp ngay</>) : 'Bắt đầu'}</button>
                                                 </div>
                                             </div>
                                         )
@@ -1162,7 +1288,7 @@
                                 </div>
                              </div>
 
-                             {/* GIAO DIỆN TIN TỨC & SỰ KIỆN (MỚI) */}
+                             {/* GIAO DIỆN TIN TỨC & SỰ KIỆN */}
                              <div className={`mt-6 glass-panel rounded-3xl p-6 ${isDarkMode ? '' : 'bg-white border-blue-200 shadow-lg'}`}>
                                 <h3 className={`text-lg font-bold flex items-center gap-2 mb-4 ${isDarkMode ? 'text-white' : 'text-blue-900'}`}>
                                     <Megaphone size={20} className="text-yellow-500"/> Tin tức & Sự kiện
@@ -1215,8 +1341,6 @@
         };
 
         const ResultScreen = ({ result, onBack, onReview, globalConfig }) => {
-            // ... (Result screen is a celebratory screen, usually dark themed is fine, but can be adapted. Keeping simple dark for impact) ...
-            // Code condensed for brevity, similar to before
             return (
                 <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in relative overflow-hidden" style={{backgroundImage: globalConfig.resultBg ? `linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.9)), url('${globalConfig.resultBg}')` : undefined, backgroundColor: '#0f172a', backgroundSize: 'cover', backgroundPosition: 'center'}}>
                     {Number(result.score) >= 8 && <Confetti />}
@@ -1262,7 +1386,6 @@
 
             const themeContextValue = useMemo(() => ({ isDarkMode, toggleTheme }), [isDarkMode]);
 
-            // ... (Notifications and Auth logic same as before) ...
             const [sysNoti, setSysNoti] = useState(null);
             const [notifications, setNotifications] = useState([]);
             const [showNotiDropdown, setShowNotiDropdown] = useState(false);
@@ -1282,7 +1405,6 @@
                 return onAuthStateChanged(auth, u => { setUser(u); if (u) { setView('dashboard'); const unsub = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.uid), d => d.exists() && setProfile(d.data())); const qPending = query(collection(db, 'artifacts', appId, 'public', 'data', 'paymentRequests'), where('uid', '==', u.uid), where('status', '==', 'pending'), limit(1)); const unsubPending = onSnapshot(qPending, (snap) => setIsPendingVip(!snap.empty)); return () => { unsub(); unsubPending(); }; } else setView('auth'); }); 
             }, []);
 
-            // Guard the config fetching to prevent permission errors
             useEffect(() => { 
                 if (!user) return; 
                 const unsubscribe = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'system_settings', 'config'), (s) => { 
@@ -1298,9 +1420,7 @@
             const hideNotification = (e, id) => { e.stopPropagation(); const updated = [...hiddenNotiIds, id]; setHiddenNotiIds(updated); localStorage.setItem('hidden_noti_ids', JSON.stringify(updated)); };
             const filteredNotifications = notifications.filter(n => !hiddenNotiIds.includes(n.id)).slice(0, 5);
             
-            let daysLeft = null;
-            if (profile?.isPremium && profile?.vipActivatedAt) { try { const activationDate = profile.vipActivatedAt.toDate(); const expiryTime = activationDate.getTime() + VIP_DURATION_DAYS * 24 * 60 * 60 * 1000; const diffTime = expiryTime - Date.now(); if (diffTime > 0) daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); } catch(e) {} }
-            const startExam = async (exam) => { if (confirm(`Sẵn sàng thi bài "${exam.title}"?`)) { try { const sessionRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'), { uid: user.uid, displayName: user.displayName || user.email, examId: exam.id, examTitle: exam.title, startedAt: serverTimestamp() }); setActiveExam({ ...exam, sessionId: sessionRef.id }); } catch (e) { setActiveExam(exam); } setView('exam'); } };
+            const startExam = async (exam) => { try { const sessionRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'), { uid: user.uid, displayName: user.displayName || user.email, examId: exam.id, examTitle: exam.title, startedAt: serverTimestamp() }); setActiveExam({ ...exam, sessionId: sessionRef.id }); } catch (e) { setActiveExam(exam); } setView('exam'); };
 
             const renderContent = () => {
                 if (view === 'loading') return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-cyan-500"><Loader2 className="animate-spin" size={40}/></div>;
@@ -1342,18 +1462,20 @@
             return (
                 <ThemeContext.Provider value={themeContextValue}>
                     <ToastProvider>
-                        {sysNoti && (
-                            <div className="fixed top-0 left-0 w-full z-[100] animate-slide-down">
-                                <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-4 shadow-xl border-b border-indigo-400/30">
-                                    <div className="max-w-7xl mx-auto flex items-start gap-4">
-                                        <div className="bg-white/20 p-2 rounded-full mt-1"><Bell size={24} className="text-white animate-bounce" /></div>
-                                        <div className="flex-1"><h4 className="font-bold text-lg">{sysNoti.title}</h4><p className="text-indigo-100 text-sm mt-1">{sysNoti.message}</p></div>
-                                        <button onClick={closeNoti} className="p-2 hover:bg-white/10 rounded-lg transition-colors"><X size={20} /></button>
+                        <ModalProvider>
+                            {sysNoti && (
+                                <div className="fixed top-0 left-0 w-full z-[100] animate-slide-down">
+                                    <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-4 shadow-xl border-b border-indigo-400/30">
+                                        <div className="max-w-7xl mx-auto flex items-start gap-4">
+                                            <div className="bg-white/20 p-2 rounded-full mt-1"><Bell size={24} className="text-white animate-bounce" /></div>
+                                            <div className="flex-1"><h4 className="font-bold text-lg">{sysNoti.title}</h4><p className="text-indigo-100 text-sm mt-1">{sysNoti.message}</p></div>
+                                            <button onClick={closeNoti} className="p-2 hover:bg-white/10 rounded-lg transition-colors"><X size={20} /></button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
-                        {renderContent()}
+                            )}
+                            {renderContent()}
+                        </ModalProvider>
                     </ToastProvider>
                 </ThemeContext.Provider>
             );
