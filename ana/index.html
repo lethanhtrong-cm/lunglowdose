@@ -2,11 +2,11 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MedExam Pro - Analytics Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedExam Analytics - Admin Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <script type="importmap">
     {
@@ -20,82 +20,117 @@
         }
     }
     </script>
-
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: {
+                        dark: {
+                            bg: '#0B0F19', 
+                            sidebar: '#111827',
+                            card: '#1F2937',
+                            hover: '#374151'
+                        }
+                    },
+                    boxShadow: {
+                        'glow-cyan': '0 0 20px -5px rgba(6, 182, 212, 0.5)',
+                        'glow-purple': '0 0 20px -5px rgba(139, 92, 246, 0.5)',
+                        'glow-yellow': '0 0 20px -5px rgba(234, 179, 8, 0.5)',
+                        'glow-sky': '0 0 20px -5px rgba(14, 165, 233, 0.5)',
+                        'card-depth': '0 10px 30px -10px rgba(0, 0, 0, 0.5)',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         body { 
-            background-color: #0b1120; 
-            color: #f9fafb; 
-            font-family: 'Inter', sans-serif; 
-            overflow: hidden; 
-            -webkit-font-smoothing: antialiased;
+            background-color: #0B0F19; 
+            color: #e2e8f0; 
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
         }
-        /* Mobile scroll behavior */
-        .mobile-scroll {
-            -webkit-overflow-scrolling: touch;
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 99px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4B5563; }
+        
+        .modern-card {
+            background: rgba(31, 41, 55, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .sidebar-item { 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-        }
-        .sidebar-item.active { 
-            background: linear-gradient(135deg, #0891b2, #0e7490);
-            color: white; 
-            box-shadow: 0 10px 15px -3px rgba(8, 145, 178, 0.2);
-        }
-        .glass-card { 
-            background: #111827; 
-            border: 1px solid rgba(255, 255, 255, 0.04); 
-            border-radius: 1.5rem; 
-        }
-        .metric-card {
-            background: linear-gradient(145deg, rgba(30, 41, 59, 0.4), rgba(15, 23, 42, 0.6));
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 1.5rem;
-            transition: all 0.3s ease;
-        }
-        .metric-card:hover {
-            border-color: rgba(6, 182, 212, 0.2);
+        .modern-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
             transform: translateY(-2px);
         }
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade { animation: fadeIn 0.4s ease-out forwards; }
         
-        input, textarea { border: 1px solid rgba(255, 255, 255, 0.08) !important; background-color: #0f172a !important; }
-        input:focus, textarea:focus { border-color: #06b6d4 !important; outline: none !important; ring: 2px rgba(6, 182, 212, 0.2) !important; }
-
+        .sidebar-item {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .sidebar-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(to bottom, #06b6d4, #3b82f6);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+            border-radius: 0 4px 4px 0;
+        }
+        .sidebar-item.active {
+            background: linear-gradient(90deg, rgba(6, 182, 212, 0.1), transparent);
+            color: white;
+        }
+        .sidebar-item.active::before {
+            transform: scaleY(1);
+        }
+        
         .live-pulse {
-            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-            animation: pulse-green 2s infinite;
+            position: relative;
         }
-        @keyframes pulse-green {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        .live-pulse::after {
+            content: '';
+            position: absolute;
+            top: -4px; right: -4px; bottom: -4px; left: -4px;
+            border-radius: 50%;
+            border: 2px solid #10b981;
+            opacity: 0;
+            animation: ripple 1.5s infinite;
         }
-        
-        /* Mobile Specific Overrides */
-        @media (max-width: 1024px) {
-            .glass-card { border-radius: 1rem; padding: 1.25rem !important; }
-            .metric-card { border-radius: 1rem; padding: 1.25rem !important; }
+        @keyframes ripple {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
         }
     </style>
 </head>
 <body>
     <div id="root"></div>
-
-    <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useMemo } from 'react';
+    <script type="text/babel" data-type="module" data-presets="react">
+        import React, { useState, useEffect } from 'react';
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
-        import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from 'firebase/auth';
-        import { getFirestore, collection, query, onSnapshot, orderBy, limit, doc, deleteDoc, updateDoc, addDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, signInWithCustomToken } from 'firebase/auth';
+        import { getFirestore, collection, query, onSnapshot, where, orderBy, limit, doc, getDoc, updateDoc, serverTimestamp, addDoc, deleteDoc, writeBatch } from 'firebase/firestore';
         import { 
-            LayoutGrid, Trophy, MessageSquare, Flag, LogOut, Search, 
-            Activity, History, Users, Crown, FileText, Clock, AlertTriangle, CheckCircle, User, Zap, Tag, Trash2, Send, X, Inbox, ChevronRight, ShieldAlert, Lock, Star, ExternalLink, Menu
+            Activity, Users, FileText, Crown, AlertCircle, MessageSquare, 
+            LayoutDashboard, Trophy, LogOut, Search, Clock, Zap, Timer, 
+            LayoutGrid, Star, CheckCircle2, XCircle, Send, Reply, ChevronRight, Trash2,
+            MoreHorizontal, Bell, Wifi
         } from 'lucide-react';
 
-        const firebaseConfig = {
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyDqdo_DJIWa5iqxiCgBq-0iGX7f9sr6soo",
             authDomain: "rt-examination.firebaseapp.com",
             projectId: "rt-examination",
@@ -108,543 +143,612 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = 'med-exam-pro-html';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'med-exam-pro-html';
 
-        const App = () => {
-            const [user, setUser] = useState(null);
-            const [isAdmin, setIsAdmin] = useState(false);
-            const [activeTab, setActiveTab] = useState('analytics');
-            const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-            const [data, setData] = useState({
-                users: [],
-                exams: [],
-                activeExams: [],
-                leaderboard: [],
-                reviews: [],
-                reports: []
-            });
-            const [loading, setLoading] = useState(true);
+        // --- HELPER COMPONENTS ---
+
+        const ClockWidget = () => {
+            const [time, setTime] = useState(new Date());
+            useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
+            return (
+                <div className="flex items-center gap-3 bg-slate-900/80 border border-slate-700/50 rounded-xl px-5 py-2.5 shadow-lg backdrop-blur-md">
+                    <div className="p-1.5 bg-cyan-500/10 rounded-lg text-cyan-400">
+                        <Clock size={18} />
+                    </div>
+                    <div>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-none mb-0.5">Thời gian thực</p>
+                        <p className="text-sm font-mono font-bold text-white leading-none">{time.toLocaleTimeString('vi-VN')}</p>
+                    </div>
+                </div>
+            );
+        };
+
+        const StatCard = ({ title, value, icon, colorClass, gradient }) => (
+            <div className="modern-card p-6 rounded-3xl relative overflow-hidden group">
+                <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${gradient} opacity-10 rounded-full blur-2xl -mr-10 -mt-10 group-hover:opacity-20 transition-opacity`}></div>
+                <div className="relative z-10 flex flex-col h-full justify-between">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className={`p-3 rounded-2xl ${colorClass} bg-opacity-10 backdrop-blur-sm shadow-sm`}>
+                            {icon}
+                        </div>
+                        <span className="text-xs font-bold text-slate-500 bg-slate-800/50 px-2 py-1 rounded-lg border border-white/5">Auto</span>
+                    </div>
+                    <div>
+                        <h3 className="text-4xl font-extrabold text-white tracking-tight mb-1 group-hover:scale-105 transition-transform origin-left">{value}</h3>
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">{title}</p>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const LiveUserCard = ({ session }) => {
+            const [elapsed, setElapsed] = useState(0);
+            useEffect(() => {
+                const start = session.startedAt?.toDate ? session.startedAt.toDate().getTime() : Date.now();
+                const interval = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000 / 60)), 1000);
+                return () => clearInterval(interval);
+            }, [session.startedAt]);
+
+            return (
+                <div className="modern-card p-5 rounded-3xl relative overflow-hidden group border-l-4 border-l-emerald-500">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-white font-bold text-lg shadow-inner border border-white/10">
+                                {session.displayName?.charAt(0).toUpperCase() || "U"}
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-white text-base line-clamp-1">{session.displayName}</h4>
+                                <p className="text-[10px] text-slate-400 font-mono flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span> {session.uid?.substring(0, 6)}...</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                            <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wide">Live</span>
+                        </div>
+                    </div>
+                    <div className="bg-slate-900/50 rounded-xl p-3 border border-white/5">
+                        <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Đang làm bài</p>
+                        <p className="text-cyan-400 font-bold text-sm truncate">{session.examTitle}</p>
+                    </div>
+                    <div className="flex justify-between items-center mt-3 px-1">
+                        <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
+                            <Clock size={14} className="text-emerald-500"/>
+                            <span>{elapsed} phút trước</span>
+                        </div>
+                        <div className="w-20 h-1 bg-slate-700 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-500 w-1/3 animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- SECTIONS ---
+
+        const LeaderboardSection = () => {
+            const [users, setUsers] = useState([]);
+            useEffect(() => {
+                const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'users'), orderBy('totalScore', 'desc'), limit(20));
+                return onSnapshot(q, snap => setUsers(snap.docs.map(d => d.data())));
+            }, []);
+
+            return (
+                <div className="modern-card rounded-3xl overflow-hidden flex flex-col h-full">
+                    <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5 backdrop-blur-md">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-yellow-500/20 rounded-2xl text-yellow-400 shadow-glow-yellow"><Trophy size={24} /></div>
+                            <div>
+                                <h3 className="text-xl font-bold text-white">Bảng Xếp Hạng</h3>
+                                <p className="text-xs text-slate-400">Top 20 học viên xuất sắc nhất hệ thống</p>
+                            </div>
+                        </div>
+                        <button className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-white transition-colors border border-white/5">Xuất Excel</button>
+                    </div>
+                    <div className="overflow-auto flex-1 custom-scrollbar p-2">
+                        <table className="w-full text-left text-sm text-slate-400 border-separate border-spacing-y-2">
+                            <thead className="text-xs uppercase font-bold text-slate-500 sticky top-0 bg-[#1F2937] z-10">
+                                <tr><th className="px-4 py-3 text-center rounded-l-xl">Hạng</th><th className="px-4 py-3">Học viên</th><th className="px-4 py-3 text-center">Số đề</th><th className="px-4 py-3 text-right rounded-r-xl">Tổng điểm</th></tr>
+                            </thead>
+                            <tbody>
+                                {users.map((u, i) => (
+                                    <tr key={i} className="group hover:bg-white/5 transition-all duration-200">
+                                        <td className="px-4 py-3 text-center font-bold rounded-l-xl border-l-4 border-transparent group-hover:border-cyan-500 bg-slate-800/30 group-hover:bg-slate-800/80">
+                                            {i === 0 ? <span className="text-2xl">🥇</span> : i === 1 ? <span className="text-2xl">🥈</span> : i === 2 ? <span className="text-2xl">🥉</span> : <span className="text-slate-500 font-mono">#{i + 1}</span>}
+                                        </td>
+                                        <td className="px-4 py-3 bg-slate-800/30 group-hover:bg-slate-800/80">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center font-bold text-white border border-white/10 shadow-md group-hover:scale-110 transition-transform">{u.displayName?.charAt(0)}</div>
+                                                <div>
+                                                    <div className="font-bold text-slate-200 group-hover:text-cyan-400 transition-colors">{u.displayName}</div>
+                                                    <div className="text-[10px] text-slate-500 font-mono">{u.email?.split('@')[0]}***</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3 text-center bg-slate-800/30 group-hover:bg-slate-800/80">
+                                            <span className="px-2 py-1 rounded bg-slate-700/50 text-slate-300 font-mono text-xs">{u.examsCompleted || 0}</span>
+                                        </td>
+                                        <td className="px-4 py-3 text-right rounded-r-xl bg-slate-800/30 group-hover:bg-slate-800/80">
+                                            <span className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">{u.totalScore?.toFixed(1) || 0}</span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        const RatingsSection = ({ userMap, examMap }) => {
+            const [highRatings, setHighRatings] = useState([]);
+            const [lowRatings, setLowRatings] = useState([]);
+            const [replyText, setReplyText] = useState({});
 
             useEffect(() => {
-                const unsubscribe = onAuthStateChanged(auth, async (u) => {
-                    if (u) {
-                        setUser(u);
-                        setLoading(false);
-                    } else {
-                        signInAnonymously(auth);
-                    }
+                const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'exam_ratings'), orderBy('createdAt', 'desc'), limit(50));
+                return onSnapshot(q, snap => {
+                    const all = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    setHighRatings(all.filter(r => r.rating >= 4));
+                    setLowRatings(all.filter(r => r.rating <= 3));
                 });
-                return () => unsubscribe();
+            }, []);
+
+            const handleDeleteRating = async (id) => {
+                if(confirm("Bạn có chắc muốn xóa đánh giá này không?")) {
+                    try {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exam_ratings', id));
+                    } catch(e) { console.error(e); alert("Lỗi khi xóa"); }
+                }
+            };
+
+            const handleDeleteAll = async (items) => {
+                if(confirm(`Bạn có chắc chắn muốn xóa TOÀN BỘ ${items.length} đánh giá?`)) {
+                    try {
+                        const batch = writeBatch(db);
+                        items.forEach(item => batch.delete(doc(db, 'artifacts', appId, 'public', 'data', 'exam_ratings', item.id)));
+                        await batch.commit();
+                    } catch(e) { alert("Lỗi: " + e.message); }
+                }
+            };
+
+            const handleReplyRating = async (ratingId, userId) => {
+                const text = replyText[ratingId];
+                if (!text) return;
+                try {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'notifications'), {
+                        title: "Admin phản hồi đánh giá",
+                        message: `Admin đã phản hồi: "${text}"`,
+                        type: "system",
+                        userId: userId,
+                        createdAt: serverTimestamp()
+                    });
+                    setReplyText(prev => ({...prev, [ratingId]: ''}));
+                    alert("Đã gửi phản hồi!");
+                } catch (e) { alert("Lỗi gửi"); }
+            };
+
+            const RatingCard = ({ item, isLow }) => {
+                const userName = userMap[item.uid] || 'Unknown User';
+                const examName = examMap[item.examId] || 'Unknown Exam';
+
+                return (
+                    <div className={`p-5 rounded-2xl border mb-4 relative group transition-all hover:translate-x-1 ${isLow ? 'bg-gradient-to-br from-red-900/10 to-transparent border-red-500/20 hover:border-red-500/40' : 'bg-gradient-to-br from-emerald-900/10 to-transparent border-emerald-500/20 hover:border-emerald-500/40'}`}>
+                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => handleDeleteRating(item.id)} className="p-2 bg-slate-800 hover:bg-red-500 text-slate-400 hover:text-white rounded-lg shadow-lg transition-colors">
+                                <Trash2 size={14}/>
+                            </button>
+                        </div>
+                        
+                        <div className="flex justify-between items-start mb-3">
+                            <div>
+                                <div className="flex items-center gap-1 mb-1">
+                                    {[...Array(5)].map((_, i) => (
+                                        <Star key={i} size={14} fill={i < item.rating ? (isLow ? "#ef4444" : "#10b981") : "none"} className={i < item.rating ? (isLow ? "text-red-500" : "text-emerald-500") : "text-slate-700"} />
+                                    ))}
+                                </div>
+                                <div className="flex items-center gap-2 text-xs">
+                                    <span className="font-bold text-white">{userName}</span>
+                                    <span className="text-slate-600">•</span>
+                                    <span className="text-slate-500 font-mono">{item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleDateString('vi-VN') : ''}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5 mb-3">
+                            <p className="text-xs text-slate-500 font-bold uppercase mb-1">Đề thi:</p>
+                            <p className="text-sm font-bold text-cyan-400 line-clamp-1">{examName}</p>
+                        </div>
+
+                        {item.feedback && <div className="text-sm text-slate-300 italic mb-4 pl-3 border-l-2 border-slate-700">"{item.feedback}"</div>}
+
+                        <div className="flex gap-2">
+                            <input 
+                                type="text" 
+                                placeholder="Phản hồi người dùng..." 
+                                className="flex-1 bg-slate-950/50 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all"
+                                value={replyText[item.id] || ''}
+                                onChange={e => setReplyText({...replyText, [item.id]: e.target.value})}
+                            />
+                            <button onClick={() => handleReplyRating(item.id, item.uid)} className="bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-cyan-500/20 active:scale-95">
+                                <Send size={14}/>
+                            </button>
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-140px)]">
+                    <div className="modern-card rounded-3xl p-6 flex flex-col h-full overflow-hidden">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"><CheckCircle2 size={20}/></div>
+                                <div>
+                                    <h3 className="font-bold text-white text-lg">Tích cực</h3>
+                                    <p className="text-xs text-slate-400">Đánh giá 4 - 5 sao</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-lg border border-emerald-500/20">{highRatings.length}</span>
+                                {highRatings.length > 0 && <button onClick={() => handleDeleteAll(highRatings)} className="p-2 hover:bg-red-500/10 hover:text-red-500 rounded-lg transition-colors text-slate-500" title="Xóa tất cả"><Trash2 size={16}/></button>}
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                            {highRatings.map(r => <RatingCard key={r.id} item={r} />)}
+                        </div>
+                    </div>
+                    <div className="modern-card rounded-3xl p-6 flex flex-col h-full overflow-hidden">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20"><AlertCircle size={20}/></div>
+                                <div>
+                                    <h3 className="font-bold text-white text-lg">Cần cải thiện</h3>
+                                    <p className="text-xs text-slate-400">Đánh giá ≤ 3 sao</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="bg-red-500/20 text-red-400 text-xs font-bold px-2.5 py-1 rounded-lg border border-red-500/20">{lowRatings.length}</span>
+                                {lowRatings.length > 0 && <button onClick={() => handleDeleteAll(lowRatings)} className="p-2 hover:bg-red-500/10 hover:text-red-500 rounded-lg transition-colors text-slate-500" title="Xóa tất cả"><Trash2 size={16}/></button>}
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                            {lowRatings.length === 0 ? <div className="h-40 flex items-center justify-center text-slate-600 italic">Chưa có đánh giá thấp nào!</div> : lowRatings.map(r => <RatingCard key={r.id} item={r} isLow={true} />)}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ReportsSection = ({ examMap }) => {
+            const [reports, setReports] = useState([]);
+            const [replyText, setReplyText] = useState({});
+            
+            useEffect(() => {
+                const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), orderBy('createdAt', 'desc'));
+                return onSnapshot(q, snap => setReports(snap.docs.map(d => ({id: d.id, ...d.data()}))));
+            }, []);
+
+            const handleDeleteReport = async (id) => {
+                if(confirm("Xóa báo cáo này?")) {
+                    try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', id)); } catch(e) { alert("Lỗi"); }
+                }
+            };
+
+            const handleDeleteAllReports = async () => {
+                if(confirm(`CẢNH BÁO: Xóa toàn bộ ${reports.length} báo cáo?`)) {
+                    try {
+                        const batch = writeBatch(db);
+                        reports.forEach(item => batch.delete(doc(db, 'artifacts', appId, 'public', 'data', 'reports', item.id)));
+                        await batch.commit();
+                        alert("Đã xóa sạch!");
+                    } catch(e) { alert("Lỗi: " + e.message); }
+                }
+            };
+
+            const handleReply = async (reportId, userId) => {
+                const text = replyText[reportId];
+                if (!text) return;
+                try {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', reportId), { status: 'resolved', adminReply: text, resolvedAt: serverTimestamp() });
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'notifications'), {
+                        title: "Phản hồi báo cáo lỗi", message: `Admin đã trả lời: "${text}"`, type: "system", userId: userId, createdAt: serverTimestamp()
+                    });
+                    setReplyText(prev => ({...prev, [reportId]: ''}));
+                    alert("Đã gửi!");
+                } catch (e) { alert("Lỗi"); }
+            };
+
+            return (
+                <div className="modern-card rounded-3xl overflow-hidden border border-slate-800 h-[calc(100vh-140px)] flex flex-col">
+                    <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5 backdrop-blur-md">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-rose-500/20 rounded-2xl text-rose-400 shadow-glow-purple"><AlertCircle size={24} /></div>
+                            <div>
+                                <h3 className="text-xl font-bold text-white">Báo Cáo Lỗi</h3>
+                                <p className="text-xs text-slate-400">Phản hồi lỗi câu hỏi từ học viên</p>
+                            </div>
+                            <span className="bg-rose-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg shadow-rose-500/30">{reports.length}</span>
+                        </div>
+                        {reports.length > 0 && (
+                            <button onClick={handleDeleteAllReports} className="bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border border-rose-500/20 hover:shadow-lg hover:shadow-rose-500/20">
+                                <Trash2 size={16}/> Xóa tất cả
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                        {reports.map(r => {
+                            const examName = examMap[r.examId] || r.examId || 'Unknown Exam';
+                            return (
+                                <div key={r.id} className={`p-6 rounded-2xl border transition-all relative group ${r.status === 'resolved' ? 'bg-slate-900/40 border-slate-800 opacity-60 hover:opacity-100' : 'bg-[#1F2937]/80 border-rose-500/30 shadow-lg shadow-rose-900/10 hover:border-rose-500/50'}`}>
+                                    <div className="flex gap-4 mb-4">
+                                        <div className="mt-1">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${r.reason === 'wrong_answer' ? 'bg-red-500/20 text-red-400' : 'bg-orange-500/20 text-orange-400'}`}>!</div>
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${r.reason === 'wrong_answer' ? 'bg-red-500 text-slate-900' : 'bg-orange-500 text-slate-900'}`}>
+                                                        {r.reason === 'wrong_answer' ? 'Sai đáp án' : r.reason}
+                                                    </span>
+                                                    <span className="text-xs text-slate-500 font-mono">{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString('vi-VN') : ''}</span>
+                                                </div>
+                                                
+                                                {/* FIX: Tách biệt trạng thái và nút xóa */}
+                                                <div className="flex items-center gap-3">
+                                                    {r.status === 'resolved' ? 
+                                                        <span className="text-emerald-500 text-xs font-bold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20"><CheckCircle2 size={12}/> Đã xử lý</span> 
+                                                        : <span className="text-rose-500 text-xs font-bold flex items-center gap-1 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20"><Clock size={12}/> Chờ xử lý</span>
+                                                    }
+                                                    <button onClick={() => handleDeleteReport(r.id)} className="p-1.5 text-slate-500 hover:text-red-500 hover:bg-slate-800 rounded-lg transition-all" title="Xóa báo cáo">
+                                                        <Trash2 size={16}/>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="bg-slate-900/50 rounded-xl p-4 border border-white/5 mb-4">
+                                                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/5">
+                                                    <FileText size={14} className="text-cyan-500"/>
+                                                    <span className="text-xs font-bold text-cyan-400 uppercase tracking-wide">{examName}</span>
+                                                </div>
+                                                <p className="text-slate-300 text-sm font-medium mb-1">Câu hỏi: <span className="text-white">"{r.questionText}"</span></p>
+                                                <p className="text-slate-400 text-sm mt-2">Chi tiết báo lỗi: <span className="text-rose-400 italic">"{r.detail}"</span></p>
+                                                <div className="mt-3 flex items-center gap-2 text-xs text-slate-600 bg-slate-800/50 w-fit px-3 py-1.5 rounded-lg">
+                                                    <Users size={12}/> Báo bởi: <span className="text-slate-400 font-bold">{r.displayName}</span>
+                                                </div>
+                                            </div>
+
+                                            {r.status !== 'resolved' ? (
+                                                <div className="flex gap-2 bg-slate-900/30 p-1.5 rounded-xl border border-white/5">
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="Nhập phản hồi cho học viên..." 
+                                                        className="flex-1 bg-transparent border-none px-4 py-2 text-sm text-white focus:ring-0 placeholder:text-slate-600"
+                                                        value={replyText[r.id] || ''}
+                                                        onChange={e => setReplyText({...replyText, [r.id]: e.target.value})}
+                                                    />
+                                                    <button onClick={() => handleReply(r.id, r.userId)} className="bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all shadow-lg active:scale-95">
+                                                        <Send size={16}/> Gửi
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/10 flex gap-3">
+                                                    <Reply size={16} className="text-emerald-500 shrink-0 mt-1"/>
+                                                    <div>
+                                                        <p className="text-xs text-emerald-500 font-bold uppercase mb-1">Phản hồi của Admin:</p>
+                                                        <p className="text-sm text-slate-300">{r.adminReply}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {reports.length === 0 && <div className="text-center py-20"><div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-600"><CheckCircle2 size={32}/></div><p className="text-slate-500">Tuyệt vời! Không có báo cáo lỗi nào.</p></div>}
+                    </div>
+                </div>
+            );
+        };
+
+        const AdminDashboard = () => {
+            const [view, setView] = useState('live'); 
+            const [stats, setStats] = useState({ active: 0, online: 0, users: 0, vip: 0, exams: 0 });
+            const [liveSessions, setLiveSessions] = useState([]);
+            const [rawSessions, setRawSessions] = useState([]); 
+            const [rawUsers, setRawUsers] = useState([]);
+            const [user, setUser] = useState(null);
+            const [userMap, setUserMap] = useState({});
+            const [examMap, setExamMap] = useState({});
+
+            useEffect(() => {
+                const initAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                       try { await signInWithCustomToken(auth, __initial_auth_token); } 
+                       catch (e) { console.error(e); await signInAnonymously(auth); }
+                    } else { await signInAnonymously(auth); }
+                };
+                initAuth();
+                return onAuthStateChanged(auth, setUser);
             }, []);
 
             useEffect(() => {
                 if (!user) return;
+                
+                // 1. Live Active Exams (Doing tests)
+                const unsubActive = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'), (snap) => {
+                    const raw = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    setRawSessions(raw);
+                });
 
-                const unsubscribers = [
-                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), s => updateData('exams', s)),
-                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), s => updateData('users', s)),
-                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'active_exams'), s => updateData('activeExams', s)),
-                    onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'users'), orderBy('totalScore', 'desc'), limit(50)), s => updateData('leaderboard', s)),
-                    onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reviews'), orderBy('createdAt', 'desc'), limit(100)), s => updateData('reviews', s)),
-                    onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), orderBy('createdAt', 'desc')), s => updateData('reports', s))
-                ];
+                // 2. All Users (For Online stats)
+                const unsubUsers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), (snap) => {
+                    let v = 0; 
+                    const map = {};
+                    const usersList = [];
+                    snap.forEach(d => { 
+                        const data = d.data();
+                        if(data.isPremium) v++; 
+                        map[data.uid] = data.displayName || data.email;
+                        usersList.push(data);
+                    });
+                    setUserMap(map);
+                    setRawUsers(usersList);
+                    setStats(p => ({ ...p, users: snap.size, vip: v }));
+                });
 
-                return () => unsubscribers.forEach(u => u());
+                const unsubExams = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), (snap) => {
+                    const map = {};
+                    snap.forEach(d => { map[d.id] = d.data().title; });
+                    setExamMap(map);
+                    setStats(p => ({ ...p, exams: snap.size }));
+                });
+                return () => { unsubActive(); unsubUsers(); unsubExams(); };
             }, [user]);
 
-            const updateData = (key, snapshot) => {
-                setData(prev => ({
-                    ...prev,
-                    [key]: snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-                }));
-            };
-
-            const handleDelete = async (col, id) => {
-                if(confirm("Xác nhận xóa bản ghi này?")) {
-                    try {
-                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id));
-                    } catch (e) { console.error("Xóa thất bại", e); }
-                }
-            };
-
-            const handleAcceptReport = async (reportId, targetUserId, replyMessage) => {
-                try {
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', reportId), { 
-                        status: 'accepted',
-                        adminReply: replyMessage || "Admin đã tiếp nhận và xử lý báo cáo của bạn. Trân trọng!",
-                        respondedAt: serverTimestamp()
+            // Filter Loops
+            useEffect(() => {
+                const filterActive = () => {
+                    const now = Date.now();
+                    
+                    // 1. Filter Active Sessions (Đang thi)
+                    const activeSessions = rawSessions.filter(s => {
+                        const lastPing = s.lastPing?.toDate ? s.lastPing.toDate().getTime() : 0;
+                        const startedAt = s.startedAt?.toDate ? s.startedAt.toDate().getTime() : 0;
+                        const lastActivity = Math.max(lastPing, startedAt);
+                        return (now - lastActivity) < 120000; // 2 min timeout
                     });
                     
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'notifications'), {
-                        title: "Báo cáo lỗi đã được xử lý",
-                        message: `Admin phản hồi: "${replyMessage || 'Chúng tôi đã tiếp nhận báo cáo của bạn.'}"`,
-                        targetUserId: targetUserId,
-                        createdAt: serverTimestamp()
+                    // Get UIDs of people currently testing
+                    const activeUids = new Set(activeSessions.map(s => s.uid));
+
+                    // 2. Filter Online Users (active on site recently)
+                    const onlineUsers = rawUsers.filter(u => {
+                        const lastActive = u.lastActive?.toDate ? u.lastActive.toDate().getTime() : 0;
+                        return (now - lastActive) < 300000; // 5 min timeout
                     });
                     
-                    return true;
-                } catch (e) { 
-                    console.error("Lỗi gửi phản hồi:", e);
-                    return false; 
-                }
-            };
+                    // 3. Combine: Online = (Recent Users) UNION (Active Test Takers)
+                    // Even if lastActive is old, if they are taking a test (pinging), they are online.
+                    const uniqueOnlineUids = new Set([
+                        ...onlineUsers.map(u => u.uid),
+                        ...activeUids
+                    ]);
 
-            const closeMobileMenu = () => setIsMobileMenuOpen(false);
+                    setLiveSessions(activeSessions);
+                    setStats(p => ({ 
+                        ...p, 
+                        active: activeSessions.length,
+                        online: uniqueOnlineUids.size 
+                    }));
+                };
 
-            if (loading) return (
-                <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center text-cyan-500 gap-6">
-                    <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="font-bold tracking-widest uppercase text-xs animate-pulse text-slate-400">Đang tải dữ liệu...</p>
-                </div>
-            );
+                filterActive(); 
+                const interval = setInterval(filterActive, 30000); 
+                return () => clearInterval(interval);
+            }, [rawSessions, rawUsers]);
+
+            if (!user) return <div className="min-h-screen bg-[#0B0F19] flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div></div>;
 
             return (
-                <div className="flex h-screen overflow-hidden relative">
-                    {/* MOBILE MENU OVERLAY */}
-                    {isMobileMenuOpen && (
-                        <div className="fixed inset-0 bg-black/80 z-40 lg:hidden backdrop-blur-sm animate-fade" onClick={closeMobileMenu}></div>
-                    )}
-
-                    {/* SIDEBAR - RESPONSIVE */}
-                    <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-[#030712] border-r border-white/5 flex flex-col transition-transform duration-300 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} shadow-2xl lg:shadow-none`}>
-                        <div className="p-8 mb-2 flex items-center gap-3 text-left">
-                            <div className="bg-cyan-500 p-2 rounded-xl shadow-lg shadow-cyan-500/20">
-                                <Activity className="text-white" size={24}/>
+                <div className="flex h-screen bg-[#0B0F19] overflow-hidden text-slate-300 font-sans selection:bg-cyan-500/30">
+                    {/* SIDEBAR */}
+                    <aside className="w-72 bg-[#111827] border-r border-slate-800 flex flex-col shrink-0 relative z-20">
+                        <div className="h-24 flex items-center px-8 border-b border-slate-800/50">
+                            <div className="w-10 h-10 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20 mr-3 shrink-0">
+                                <Activity className="text-white" size={24} />
                             </div>
-                            <div className="text-left">
-                                <h1 className="text-lg font-black text-white tracking-tight uppercase leading-none text-left">Analytics</h1>
-                                <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mt-1 text-left">Admin Panel</p>
+                            <div>
+                                <h1 className="text-white font-extrabold text-xl tracking-tight leading-none">ANALYTICS</h1>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Admin Panel</p>
                             </div>
-                            <button className="ml-auto lg:hidden text-slate-400" onClick={closeMobileMenu}><X size={24}/></button>
                         </div>
 
-                        <nav className="flex-1 px-5 space-y-3 mt-4 overflow-y-auto custom-scrollbar">
-                            <SidebarLink icon={<LayoutGrid size={20}/>} label="Live Monitor" active={activeTab === 'analytics'} onClick={() => { setActiveTab('analytics'); closeMobileMenu(); }} />
-                            <SidebarLink icon={<Trophy size={20}/>} label="Bảng xếp hạng" active={activeTab === 'leaderboard'} onClick={() => { setActiveTab('leaderboard'); closeMobileMenu(); }} />
-                            <SidebarLink icon={<MessageSquare size={20}/>} label="Đánh giá & Góp ý" active={activeTab === 'feedback'} onClick={() => { setActiveTab('feedback'); closeMobileMenu(); }} badge={data.reviews.filter(r => r.feedback).length} />
-                            <SidebarLink icon={<Flag size={20}/>} label="Báo cáo lỗi" active={activeTab === 'reports'} onClick={() => { setActiveTab('reports'); closeMobileMenu(); }} badge={data.reports.filter(r => r.status !== 'accepted').length} />
-                            
-                            <div className="pt-6 mt-4 border-t border-white/5">
-                                <button 
-                                    onClick={() => window.location.href = 'https://vnrad.tech/admin'} 
-                                    className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-sm font-black tracking-tight bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-lg shadow-pink-500/30 hover:scale-[1.02] hover:shadow-pink-500/50 transition-all group"
-                                >
-                                    <ExternalLink size={20} className="group-hover:rotate-45 transition-transform"/> Admin
-                                </button>
+                        <nav className="flex-1 py-8 px-4 space-y-2">
+                            <div onClick={()=>setView('live')} className={`sidebar-item flex items-center gap-4 px-5 py-4 rounded-xl cursor-pointer ${view==='live'?'active bg-slate-800':'text-slate-400 hover:bg-slate-800/50 hover:text-white'}`}>
+                                <LayoutDashboard size={20} className={view==='live'?'text-cyan-400':''}/> <span className="font-bold text-sm">Live Monitor</span>
+                            </div>
+                            <div onClick={()=>setView('leaderboard')} className={`sidebar-item flex items-center gap-4 px-5 py-4 rounded-xl cursor-pointer ${view==='leaderboard'?'active bg-slate-800':'text-slate-400 hover:bg-slate-800/50 hover:text-white'}`}>
+                                <Trophy size={20} className={view==='leaderboard'?'text-yellow-400':''}/> <span className="font-bold text-sm">Bảng xếp hạng</span>
+                            </div>
+                            <div onClick={()=>setView('ratings')} className={`sidebar-item flex items-center gap-4 px-5 py-4 rounded-xl cursor-pointer ${view==='ratings'?'active bg-slate-800':'text-slate-400 hover:bg-slate-800/50 hover:text-white'}`}>
+                                <MessageSquare size={20} className={view==='ratings'?'text-emerald-400':''}/> <span className="font-bold text-sm">Đánh giá & Góp ý</span>
+                            </div>
+                            <div onClick={()=>setView('reports')} className={`sidebar-item flex items-center gap-4 px-5 py-4 rounded-xl cursor-pointer ${view==='reports'?'active bg-slate-800':'text-slate-400 hover:bg-slate-800/50 hover:text-white'}`}>
+                                <div className="relative">
+                                    <AlertCircle size={20} className={view==='reports'?'text-rose-400':''}/>
+                                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-[#111827]"></span>
+                                </div>
+                                <span className="font-bold text-sm">Báo cáo lỗi</span>
                             </div>
                         </nav>
 
-                        <div className="p-8 border-t border-white/5 mt-auto">
-                            <div className="bg-slate-900/50 rounded-2xl p-4 mb-6 border border-white/5">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center font-bold text-xs">AD</div>
-                                    <div className="flex-1 min-w-0 text-left"><p className="text-xs font-bold text-white truncate text-left">{user?.displayName || "Admin"}</p><p className="text-[10px] text-emerald-500 text-left">Quyền Quản Trị</p></div>
-                                </div>
+                        <div className="p-6 border-t border-slate-800/50 bg-slate-900/30">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-900 to-slate-900 text-cyan-400 flex items-center justify-center font-bold border border-cyan-500/20 shadow-lg">LT</div>
+                                <div><p className="text-white text-sm font-bold">Lê Thanh Trọng</p><p className="text-xs text-slate-500 font-medium">System Manager</p></div>
+                                <button className="ml-auto p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"><LogOut size={18}/></button>
                             </div>
-                            <button onClick={() => signOut(auth)} className="w-full flex items-center gap-3 text-slate-500 hover:text-red-400 transition-all text-sm font-bold uppercase tracking-wider group text-left">
-                                <LogOut size={18} className="group-hover:-translate-x-1 transition-transform"/> Đăng xuất
-                            </button>
                         </div>
                     </aside>
 
                     {/* MAIN CONTENT */}
-                    <main className="flex-1 overflow-y-auto custom-scrollbar bg-[#020617] scroll-smooth mobile-scroll w-full">
-                        {/* Mobile Header Toggle */}
-                        <div className="lg:hidden p-4 flex items-center justify-between bg-[#030712] sticky top-0 z-30 border-b border-white/5 shadow-xl">
-                            <div className="flex items-center gap-3">
-                                <button onClick={() => setIsMobileMenuOpen(true)} className="text-white p-2 rounded-lg bg-slate-800"><Menu size={24}/></button>
-                                <span className="font-bold text-white tracking-tight uppercase text-sm">MedExam Analytics</span>
+                    <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10">
+                        <header className="h-24 flex items-center justify-between px-10 sticky top-0 z-30">
+                            <div>
+                                <h2 className="text-4xl font-black text-white tracking-tighter uppercase drop-shadow-lg">{view === 'live' ? 'Dashboard' : (view === 'leaderboard' ? 'Xếp Hạng' : (view === 'ratings' ? 'Đánh Giá' : 'Báo Cáo'))}</h2>
+                                {view === 'live' && <div className="flex items-center gap-2 mt-1"><span className="live-pulse w-2 h-2 bg-emerald-500 rounded-full"></span><p className="text-emerald-500 text-xs font-bold uppercase tracking-widest">Giám sát thời gian thực</p></div>}
                             </div>
-                            <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center font-bold text-xs">A</div>
-                        </div>
+                            <div className="flex items-center gap-6">
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Search size={16} className="text-slate-500 group-focus-within:text-cyan-400 transition-colors"/></div>
+                                    <input type="text" className="bg-slate-900/80 border border-slate-700/50 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none w-64 shadow-lg backdrop-blur-sm transition-all" placeholder="Tìm kiếm dữ liệu..."/>
+                                </div>
+                                <div className="p-2.5 bg-slate-900/80 border border-slate-700/50 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer transition-colors shadow-lg backdrop-blur-sm relative"><Bell size={20}/><span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border border-slate-900"></span></div>
+                                <ClockWidget />
+                            </div>
+                        </header>
 
-                        <div className="p-4 md:p-8 lg:p-12 max-w-7xl mx-auto">
-                            {activeTab === 'analytics' && <AnalyticsView data={data} />}
-                            {activeTab === 'leaderboard' && <LeaderboardView leaderboard={data.leaderboard} />}
-                            {activeTab === 'feedback' && <FeedbackView reviews={data.reviews} users={data.users} onDelete={id => handleDelete('reviews', id)} />}
-                            {activeTab === 'reports' && <ReportsView reports={data.reports} exams={data.exams} users={data.users} onAccept={handleAcceptReport} onDelete={id => handleDelete('reports', id)} />}
+                        <div className="flex-1 overflow-y-auto px-10 pb-10 scroll-smooth">
+                            {view === 'live' && (
+                                <>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-10 mt-4">
+                                        <StatCard title="ONLINE" value={stats.online} icon={<Wifi size={24} className="text-sky-400"/>} colorClass="bg-sky-400" gradient="from-sky-400 to-blue-500"/>
+                                        <StatCard title="ĐANG THI" value={stats.active} icon={<Activity size={24} className="text-emerald-400"/>} colorClass="bg-emerald-400" gradient="from-emerald-400 to-teal-500"/>
+                                        <StatCard title="HỌC VIÊN" value={stats.users} icon={<Users size={24} className="text-purple-400"/>} colorClass="bg-purple-400" gradient="from-purple-400 to-violet-600"/>
+                                        <StatCard title="VIP PRO" value={stats.vip} icon={<Crown size={24} className="text-yellow-400"/>} colorClass="bg-yellow-400" gradient="from-yellow-400 to-orange-500"/>
+                                        <StatCard title="ĐỀ THI" value={stats.exams} icon={<FileText size={24} className="text-blue-400"/>} colorClass="bg-blue-400" gradient="from-blue-400 to-indigo-600"/>
+                                    </div>
+                                    <div className="mb-10">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h3 className="text-xl font-extrabold text-white flex items-center gap-3"><div className="p-2 bg-cyan-500/10 rounded-lg"><Zap size={20} className="text-cyan-400" /></div> TRẠNG THÁI NGƯỜI DÙNG</h3>
+                                            <div className="px-4 py-1.5 bg-slate-800 rounded-full border border-slate-700 text-xs font-bold text-slate-400">Online: <span className="text-white ml-1">{liveSessions.length}</span></div>
+                                        </div>
+                                        {liveSessions.length === 0 ? (
+                                            <div className="border-2 border-dashed border-slate-800 rounded-3xl p-16 text-center bg-slate-900/20">
+                                                <div className="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-600 animate-pulse"><Users size={40}/></div>
+                                                <p className="text-slate-500 font-bold text-lg">Chưa có người dùng nào đang làm bài thi.</p>
+                                                <p className="text-slate-600 text-sm mt-2">Dữ liệu sẽ xuất hiện khi có hoạt động.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                                {liveSessions.map(session => <LiveUserCard key={session.id} session={session} />)}
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+
+                            {view === 'leaderboard' && <LeaderboardSection />}
+                            {view === 'ratings' && <RatingsSection userMap={userMap} examMap={examMap} />}
+                            {view === 'reports' && <ReportsSection examMap={examMap} />}
                         </div>
                     </main>
                 </div>
             );
         };
 
-        const SidebarLink = ({ icon, label, active, onClick, badge }) => (
-            <button onClick={onClick} className={`sidebar-item w-full flex items-center justify-between px-6 py-4 rounded-2xl text-sm font-bold tracking-tight ${active ? 'active' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}>
-                <div className="flex items-center gap-4">{icon} {label}</div>
-                {badge > 0 && <span className="bg-red-500/90 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-black shadow-lg shadow-red-500/20">{badge}</span>}
-            </button>
-        );
-
-        const AnalyticsView = ({ data }) => {
-            const now = Date.now();
-            const onlineCount = data.users.filter(u => (now - (u.lastActive?.toDate?.().getTime() || 0)) < 300000).length;
-            const recentSubCount = data.reviews.filter(r => (now - (r.createdAt?.toDate?.().getTime() || 0)) < 900000).length;
-
-            return (
-                <div className="space-y-8 lg:space-y-12 animate-fade">
-                    <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-left">
-                        <div className="text-left">
-                            <h2 className="text-3xl lg:text-5xl font-black text-white tracking-tighter text-left">Dashboard</h2>
-                            <p className="text-emerald-500 text-xs lg:text-sm font-semibold mt-2 flex items-center gap-2">
-                                <span className="w-2 h-2 bg-emerald-500 rounded-full live-pulse"></span> 
-                                Giám sát thời gian thực
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3 bg-slate-900/80 px-4 py-2 lg:px-6 lg:py-3 rounded-2xl border border-white/5 shadow-xl w-full md:w-auto">
-                            <Clock size={18} className="text-cyan-500"/><span className="text-xs lg:text-sm font-mono font-bold text-slate-300 text-left">{new Date().toLocaleTimeString()}</span>
-                        </div>
-                    </header>
-
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 lg:gap-5">
-                        <MetricItem icon={<Activity size={20} className="text-emerald-400"/>} label="Hoạt động" value={onlineCount} color="emerald" />
-                        <MetricItem icon={<History size={20} className="text-cyan-400"/>} label="Vừa nộp" value={recentSubCount} color="cyan" />
-                        <MetricItem icon={<Users size={20} className="text-purple-400"/>} label="Học viên" value={data.users.length} color="purple" />
-                        <MetricItem icon={<Crown size={20} className="text-yellow-400"/>} label="VIP Pro" value={data.users.filter(u=>u.isPremium).length} color="yellow" />
-                        <MetricItem icon={<FileText size={20} className="text-blue-400"/>} label="Đề thi" value={data.exams.length} color="blue" />
-                    </div>
-
-                    <section className="space-y-6 text-left">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <h3 className="text-xl lg:text-2xl font-black text-white flex items-center gap-3 lg:gap-4 tracking-tight text-left"><Zap size={24} className="text-cyan-500"/> TRẠNG THÁI NGƯỜI DÙNG</h3>
-                            <span className="text-[10px] lg:text-xs font-bold text-slate-500 uppercase tracking-widest">Online hiện tại: {onlineCount}</span>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 text-left">
-                            {data.activeExams.map(ex => (
-                                <div key={ex.id} className="glass-card p-5 lg:p-6 flex flex-col justify-between min-h-[200px] lg:min-h-[240px] hover:border-cyan-500/40 transition-all shadow-xl group text-left">
-                                    <div className="flex justify-between items-start text-left">
-                                        <div className="flex items-center gap-3 text-left">
-                                            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center font-black text-white border border-white/10 shadow-inner text-lg lg:text-xl group-hover:scale-110 transition-transform">{ex.displayName?.charAt(0) || "U"}</div>
-                                            <div className="min-w-0 text-left">
-                                                <p className="font-bold text-slate-100 text-sm truncate text-left max-w-[100px]">{ex.displayName || "Thành viên"}</p>
-                                                <p className="text-[10px] text-slate-500 font-mono tracking-tighter text-left uppercase">UID: {ex.uid?.substring(0, 6)}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 px-2 lg:px-3 py-1 rounded-full border border-emerald-500/20 text-[8px] lg:text-[9px] font-black uppercase tracking-widest"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse text-left"></div> Live</div>
-                                    </div>
-                                    <div className="mt-4 lg:mt-6 p-3 lg:p-4 bg-slate-900/60 rounded-2xl border border-white/5 group-hover:bg-cyan-500/5 transition-colors text-left">
-                                        <p className="text-[9px] text-slate-500 font-black uppercase mb-1.5 tracking-widest text-left">Module hiện tại</p>
-                                        <p className="text-xs font-bold text-cyan-400 line-clamp-2 leading-relaxed text-left">{ex.examTitle || "Tải đề..."}</p>
-                                    </div>
-                                    <div className="mt-4 flex justify-between items-center text-[10px] font-bold text-slate-500 text-left">
-                                        <span className="flex items-center gap-1.5 bg-slate-900/50 px-2 py-1 rounded-lg text-left"><Clock size={12}/> {Math.floor((now - (ex.startedAt?.toDate?.().getTime() || now)) / 60000)}p trước</span>
-                                        <span className="text-cyan-500 italic text-left">Đang làm...</span>
-                                    </div>
-                                </div>
-                            ))}
-                            {data.activeExams.length === 0 && <div className="col-span-full py-16 lg:py-24 text-center glass-card border-dashed flex flex-col items-center gap-4 text-slate-500 text-left">
-                                <Inbox size={48} className="opacity-10 text-left"/>
-                                <p className="italic text-sm font-medium text-left">Phòng thi hiện đang trống.</p>
-                            </div>}
-                        </div>
-                    </section>
-                    
-                    <section className="glass-card p-6 lg:p-10 space-y-6 lg:space-y-10 shadow-2xl border border-white/5">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-white/5 pb-4 lg:pb-6 gap-4">
-                            <h3 className="text-xl lg:text-2xl font-black text-white flex items-center gap-4 tracking-tight uppercase"><History size={24} className="text-cyan-500"/> Nhật ký hoạt động</h3>
-                            <div className="relative w-full sm:w-auto"><Search className="absolute left-3 top-2.5 text-slate-600" size={14}/><input className="bg-slate-900/80 border border-white/5 rounded-xl pl-9 pr-4 py-2 text-xs w-full sm:w-64 focus:w-64 transition-all outline-none" placeholder="Tìm nhật ký..." /></div>
-                        </div>
-                        <div className="space-y-4 lg:space-y-5 max-h-[400px] lg:max-h-[600px] overflow-y-auto pr-2 lg:pr-4 custom-scrollbar">
-                            {data.reviews.map(r => (
-                                <div key={r.id} className="bg-slate-900/30 p-4 lg:p-6 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-slate-800/40 transition-all">
-                                    <div className="flex items-center gap-4 lg:gap-8">
-                                        <div className="text-[10px] lg:text-[12px] text-slate-600 font-mono font-black w-16 lg:w-auto text-left">{r.createdAt?.toDate?.().toLocaleTimeString('vi-VN')}</div>
-                                        <div className="text-left flex-1 min-w-0">
-                                            <p className="font-bold text-slate-100 text-sm group-hover:text-cyan-400 transition-colors text-left uppercase truncate">{r.displayName}</p>
-                                            <p className="text-[10px] text-slate-500 mt-1 lg:mt-1.5 flex flex-wrap items-center gap-2 lg:gap-3">
-                                                <span className="text-slate-600 uppercase font-black tracking-widest hidden sm:inline">{r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('vi-VN') : 'New'}</span>
-                                                <span className="w-1 h-1 bg-slate-700 rounded-full hidden sm:block"></span>
-                                                <span className="text-cyan-700 font-bold uppercase tracking-tighter italic group-hover:text-cyan-600 transition-colors truncate max-w-[150px] sm:max-w-none">{r.examTitle}</span>
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right flex items-center gap-3 lg:gap-6 pl-2">
-                                        <div className="text-right">
-                                            <p className="text-2xl lg:text-3xl font-black text-cyan-400 tracking-tighter tabular-nums leading-none">{r.score || "---"}</p>
-                                            <p className="text-[8px] lg:text-[9px] font-black text-slate-700 uppercase tracking-widest mt-1">Ghi nhận</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                </div>
-            );
-        };
-
-        const MetricItem = ({ icon, label, value, color }) => (
-            <div className="metric-card p-4 lg:p-6 flex flex-col justify-between border border-white/5 shadow-xl items-start relative overflow-hidden group text-left">
-                <div className={`p-2 lg:p-3 bg-slate-900/80 rounded-2xl text-slate-400 mb-4 lg:mb-6 border border-white/5 group-hover:scale-110 transition-transform text-left`}>{icon}</div>
-                <div className="text-left">
-                    <p className="text-2xl lg:text-4xl font-black text-white tracking-tighter mb-1 text-left">{value}</p>
-                    <p className="text-[9px] lg:text-[11px] text-slate-500 font-black uppercase tracking-widest text-left">{label}</p>
-                </div>
-                <div className="absolute -bottom-4 -right-4 w-16 h-16 lg:w-20 lg:h-20 bg-white/5 rounded-full blur-2xl group-hover:scale-150 transition-all duration-700 text-left"></div>
-            </div>
-        );
-
-        const LeaderboardView = ({ leaderboard }) => (
-            <div className="space-y-8 lg:space-y-12 animate-fade text-left">
-                <h2 className="text-3xl lg:text-4xl font-black text-white tracking-tight text-left uppercase text-left">Bảng danh vọng</h2>
-                <div className="glass-card overflow-hidden shadow-2xl border border-white/5 text-left overflow-x-auto">
-                    <table className="w-full text-left min-w-[600px]">
-                        <thead className="bg-[#0f172a]/80 text-[10px] uppercase text-slate-500 font-black tracking-widest border-b border-white/10 text-left">
-                            <tr><th className="px-6 lg:px-10 py-4 lg:py-6">Vị trí</th><th className="px-6 lg:px-10 py-4 lg:py-6">Học viên</th><th className="px-6 lg:px-10 py-4 lg:py-6 text-center">Tiến độ</th><th className="px-6 lg:px-10 py-4 lg:py-6 text-right">Tổng tích lũy</th></tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5 text-left">
-                            {leaderboard.map((u, i) => (
-                                <tr key={u.id} className="hover:bg-cyan-500/5 transition-all group text-left">
-                                    <td className="px-6 lg:px-10 py-5 lg:py-7 text-left">
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm shadow-lg text-left ${i === 0 ? 'bg-yellow-500 text-slate-950' : i === 1 ? 'bg-slate-300 text-slate-950' : i === 2 ? 'bg-amber-600 text-slate-950' : 'bg-slate-800 text-slate-600'}`}>
-                                            {i+1}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 lg:px-10 py-5 lg:py-7 font-bold text-slate-100 text-sm lg:text-base uppercase tracking-tight group-hover:text-white transition-colors text-left">{u.displayName}</td>
-                                    <td className="px-6 lg:px-10 py-5 lg:py-7 text-center text-left">
-                                        <span className="text-[10px] lg:text-xs font-black text-slate-500 bg-slate-900 px-3 py-1.5 rounded-xl border border-white/5 text-left">{u.examsCompleted || 0} ĐỀ</span>
-                                    </td>
-                                    <td className="px-6 lg:px-10 py-5 lg:py-7 text-right font-black text-cyan-400 text-xl lg:text-2xl tracking-tighter group-hover:scale-105 transition-transform text-right">{u.totalScore?.toFixed(1)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        );
-
-        const FeedbackView = ({ reviews, users, onDelete }) => {
-            const fiveStarReviews = reviews.filter(r => r.rating == 5);
-            const criticalFeedbacks = reviews.filter(r => r.rating <= 3 && r.feedback && r.feedback.trim() !== "");
-
-            // Helper để lấy thông tin user live từ danh sách users
-            const getUserInfo = (review) => {
-                const user = users.find(u => u.uid === review.userId || u.id === review.userId);
-                if (user) {
-                    return {
-                        name: user.displayName || "Chưa đặt tên",
-                        email: user.email,
-                        avatar: user.displayName?.charAt(0).toUpperCase() || "U"
-                    };
-                }
-                return {
-                    name: review.displayName || "Khách ẩn danh",
-                    email: review.userId && review.userId !== 'anonymous' ? `ID: ${review.userId.substring(0,8)}` : "Không có thông tin",
-                    avatar: review.displayName?.charAt(0).toUpperCase() || "?"
-                };
-            };
-
-            return (
-                <div className="space-y-8 lg:space-y-12 animate-fade text-left">
-                    <h2 className="text-3xl lg:text-4xl font-black text-white tracking-tight text-left uppercase">Trung tâm phản hồi</h2>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 pb-20">
-                        {/* Cột trái: Vinh danh 5 Sao */}
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="p-2 bg-yellow-500/10 rounded-xl text-yellow-500 border border-yellow-500/20"><Star size={20} fill="currentColor"/></div>
-                                <h3 className="text-lg font-black text-white uppercase tracking-widest">Lịch sử 5 Sao</h3>
-                            </div>
-                            <div className="space-y-4 max-h-[600px] lg:max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
-                                {fiveStarReviews.map(r => {
-                                    const u = getUserInfo(r);
-                                    return (
-                                        <div key={r.id} className="glass-card p-5 flex items-center justify-between group hover:bg-slate-800/60 transition-all border border-white/5 hover:border-yellow-500/30">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-500 font-black text-xs border border-yellow-500/20 shadow-lg shadow-yellow-500/5 shrink-0">5★</div>
-                                                <div className="min-w-0">
-                                                    <p className="text-sm font-bold text-white group-hover:text-yellow-400 transition-colors truncate">{u.name}</p>
-                                                    <p className="text-[9px] text-slate-500 truncate mb-1">{u.email}</p>
-                                                    <p className="text-[10px] text-slate-500 font-mono flex items-center gap-1 truncate"><FileText size={10}/> {r.examTitle}</p>
-                                                </div>
-                                            </div>
-                                            <span className="text-[10px] text-slate-600 font-mono font-bold tracking-widest shrink-0">{r.createdAt?.toDate?.().toLocaleDateString('vi-VN')}</span>
-                                        </div>
-                                    );
-                                })}
-                                {fiveStarReviews.length === 0 && <p className="text-slate-500 italic text-sm p-4 text-center border border-dashed border-white/5 rounded-xl">Chưa có đánh giá 5 sao nào.</p>}
-                            </div>
-                        </div>
-
-                        {/* Cột phải: Góp ý cần cải thiện */}
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="p-2 bg-red-500/10 rounded-xl text-red-500 border border-red-500/20"><AlertTriangle size={20}/></div>
-                                <h3 className="text-lg font-black text-white uppercase tracking-widest">Góp ý (≤ 3 Sao)</h3>
-                            </div>
-                            <div className="space-y-6 max-h-[600px] lg:max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
-                                {criticalFeedbacks.map(f => {
-                                    const u = getUserInfo(f);
-                                    return (
-                                        <div key={f.id} className="glass-card p-6 relative group hover:border-red-500/30 transition-all border border-white/5 hover:shadow-xl hover:shadow-red-500/5">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center font-bold text-slate-400 text-xs border border-white/5 shrink-0">{u.avatar}</div>
-                                                    <div className="min-w-0">
-                                                        <p className="text-xs font-bold text-white truncate">{u.name}</p>
-                                                        <p className="text-[9px] text-slate-500 truncate max-w-[150px]">{u.email}</p>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <div className="flex text-yellow-500 text-[9px] gap-0.5">
-                                                                {[...Array(f.rating)].map((_,i)=><Star key={i} size={8} fill="currentColor"/>)}
-                                                            </div>
-                                                            <span className="text-[9px] text-slate-600 font-mono">{f.createdAt?.toDate?.().toLocaleString()}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <button onClick={() => onDelete(f.id)} className="text-slate-600 hover:text-red-500 p-2 rounded-lg hover:bg-red-500/10 transition-colors"><Trash2 size={16}/></button>
-                                            </div>
-                                            <div className="p-4 bg-red-500/5 rounded-xl border border-red-500/10 text-slate-300 text-sm italic leading-relaxed relative">
-                                                <span className="absolute -top-2 -left-1 text-4xl text-red-500/20 font-serif leading-none">“</span>
-                                                {f.feedback}
-                                                <span className="absolute -bottom-4 -right-1 text-4xl text-red-500/20 font-serif leading-none">”</span>
-                                            </div>
-                                            <p className="mt-4 text-[9px] text-slate-500 font-black uppercase tracking-widest text-right flex justify-end items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                                                <FileText size={10}/> <span className="truncate max-w-[150px]">{f.examTitle}</span>
-                                            </p>
-                                        </div>
-                                    );
-                                })}
-                                {criticalFeedbacks.length === 0 && <p className="text-slate-500 italic text-sm p-8 text-center border border-dashed border-white/5 rounded-xl">Không có góp ý tiêu cực nào.</p>}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const ReportsView = ({ reports, exams, users, onAccept, onDelete }) => {
-            const [replyStates, setReplyStates] = useState({});
-            const [submittingIds, setSubmittingIds] = useState({});
-
-            const getUser = id => {
-                const found = users.find(u => u.uid === id || u.id === id);
-                if (found) return { name: found.displayName, email: found.email, verified: true };
-                return { name: id === 'anonymous' ? "Khách ẩn danh" : "ID: "+id?.substring(0,8), email: "Phiên làm việc ẩn danh", verified: false };
-            };
-
-            const toggleReply = (id) => {
-                setReplyStates(prev => ({ ...prev, [id]: prev[id] === undefined ? "" : undefined }));
-            };
-
-            const handleUpdateText = (id, text) => {
-                setReplyStates(prev => ({ ...prev, [id]: text }));
-            };
-
-            const handleSend = async (report) => {
-                const text = replyStates[report.id];
-                if (!text || !text.trim()) { alert("Vui lòng nhập nội dung!"); return; }
-                setSubmittingIds(prev => ({ ...prev, [report.id]: true }));
-                const success = await onAccept(report.id, report.userId, text);
-                if (success) { toggleReply(report.id); }
-                setSubmittingIds(prev => ({ ...prev, [report.id]: false }));
-            };
-
-            return (
-                <div className="space-y-12 pb-20 animate-fade text-left text-left">
-                    <h2 className="text-3xl lg:text-4xl font-black text-white tracking-tight text-left uppercase text-left">Báo cáo nội dung</h2>
-                    {reports.length === 0 ? <div className="py-40 text-center glass-card border-dashed flex flex-col items-center gap-5 text-slate-700 text-left text-left">
-                        <Flag size={64} className="opacity-10 text-left"/><p className="italic font-medium text-left">Hiện không có báo cáo lỗi cần xử lý.</p>
-                    </div> : (
-                        <div className="space-y-8 text-left text-left">
-                            {reports.map(r => {
-                                const u = getUser(r.userId);
-                                const exam = exams.find(e=>e.id===r.examId);
-                                const isReplying = replyStates[r.id] !== undefined;
-                                const isSubmitting = submittingIds[r.id];
-
-                                return (
-                                    <div key={r.id} className={`glass-card p-6 lg:p-12 border transition-all ${r.status === 'accepted' ? 'border-emerald-500/20 opacity-60' : 'border-red-500/20 shadow-2xl hover:border-red-500/40'} text-left text-left`}>
-                                        <div className="flex flex-col xl:flex-row gap-8 lg:gap-12 text-left text-left">
-                                            <div className="flex-1 space-y-6 lg:space-y-8 text-left text-left">
-                                                <div className="flex items-center gap-4 text-left text-left">
-                                                    <span className={`px-4 lg:px-5 py-1.5 lg:py-2 rounded-full text-[9px] lg:text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border shadow-lg text-left ${r.status === 'accepted' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-500 border-red-500/30 animate-pulse'}`}>
-                                                        {r.status === 'accepted' ? <><CheckCircle size={14}/> ĐÃ XỬ LÝ</> : <><Clock size={14}/> ĐANG CHỜ</>}
-                                                    </span>
-                                                    <span className="text-slate-600 text-[10px] lg:text-[11px] font-mono italic font-black tracking-widest text-left">{r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString() : 'Recent'}</span>
-                                                </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 text-left text-left text-left text-left">
-                                                    <div className="bg-slate-900/60 p-4 lg:p-6 rounded-3xl border border-white/5 text-left shadow-inner text-left text-left">
-                                                        <p className="text-slate-600 mb-2 lg:mb-3 tracking-widest text-[9px] lg:text-[10px] font-black uppercase text-left">Tài khoản báo cáo</p>
-                                                        <div className="flex items-center gap-3 text-left">
-                                                            <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 text-left"><User size={20}/></div>
-                                                            <div className="min-w-0 text-left"><p className={`text-sm font-bold truncate text-left ${!u.verified ? 'text-red-400' : 'text-slate-100'}`}>{u.name}</p><p className="text-[10px] text-slate-500 lowercase mt-0.5 truncate font-medium text-left">{u.email}</p></div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="bg-slate-900/60 p-4 lg:p-6 rounded-3xl border border-white/5 text-left shadow-inner text-left text-left text-left">
-                                                        <p className="text-slate-600 mb-2 lg:mb-3 tracking-widest text-[9px] lg:text-[10px] font-black uppercase text-left">Module liên quan</p>
-                                                        <div className="flex items-center gap-3 text-left">
-                                                            <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-cyan-600 text-left"><FileText size={20}/></div>
-                                                            <div className="min-w-0 text-left"><p className="text-sm font-bold text-cyan-500 line-clamp-1 uppercase tracking-tight text-left">{exam?.title || "ID: "+r.examId}</p><p className="text-[10px] text-slate-600 font-mono mt-0.5 italic text-left">Mã đề: {r.examId?.substring(0,10)}...</p></div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="p-6 lg:p-10 bg-slate-900/80 rounded-[2.5rem] border border-white/5 space-y-4 lg:space-y-6 text-left shadow-2xl relative text-left">
-                                                    <div className="flex items-center gap-3 lg:gap-4 text-red-500 font-black text-xs uppercase tracking-widest text-left text-left">
-                                                        <AlertTriangle size={18} className="fill-red-500/10 text-left"/> {r.reason?.toUpperCase()} | CÂU {r.questionIndex + 1}
-                                                    </div>
-                                                    <div className="text-base lg:text-lg text-slate-100 font-medium italic border-l-4 border-red-500/40 pl-6 lg:pl-8 text-left leading-relaxed py-1 text-left text-left">"{r.questionText}"</div>
-                                                    <div className="text-[11px] lg:text-[13px] text-slate-400 mt-6 lg:mt-8 bg-black/40 p-4 lg:p-6 rounded-2xl border border-white/5 italic text-left text-left">
-                                                        <span className="font-black text-slate-300 block mb-2 lg:mb-3 uppercase text-[9px] lg:text-[10px] tracking-widest opacity-60 text-left text-left text-left">Mô tả chi tiết từ học viên:</span>
-                                                        {r.detail || "Không có mô tả chi tiết."}
-                                                    </div>
-                                                </div>
-
-                                                {isReplying && (
-                                                    <div className="p-6 lg:p-10 bg-[#0891b2]/5 rounded-[2.5rem] border border-[#0891b2]/30 animate-fade space-y-4 lg:space-y-5 text-left shadow-2xl text-left">
-                                                        <div className="flex justify-between items-center text-left border-b border-white/5 pb-4 text-left">
-                                                            <p className="text-[10px] lg:text-[11px] font-black text-cyan-400 uppercase tracking-widest text-left flex items-center gap-2 text-left text-left text-left"><Send size={14}/> Soạn phản hồi trực tiếp</p>
-                                                            <button onClick={() => toggleReply(r.id)} className="text-slate-600 hover:text-white transition-colors bg-white/5 p-2 rounded-lg text-left"><X size={18}/></button>
-                                                        </div>
-                                                        <textarea 
-                                                            value={replyStates[r.id]} 
-                                                            onChange={e => handleUpdateText(r.id, e.target.value)}
-                                                            className="w-full h-32 lg:h-40 p-4 lg:p-6 text-sm lg:text-base rounded-[1.5rem] border border-white/10 outline-none focus:border-cyan-500 transition-all text-slate-200 shadow-inner text-left"
-                                                            placeholder="Nhập nội dung phản hồi..."
-                                                        ></textarea>
-                                                        <button 
-                                                            onClick={() => handleSend(r)}
-                                                            disabled={isSubmitting}
-                                                            className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-4 lg:py-5 rounded-[1.5rem] font-black text-[10px] lg:text-[12px] uppercase shadow-xl shadow-cyan-500/20 active:scale-95 flex items-center justify-center gap-3 text-left"
-                                                        >
-                                                            {isSubmitting ? <Activity className="animate-spin text-left" size={18}/> : <Send size={18}/>}
-                                                            Gửi thông điệp & Hoàn tất
-                                                        </button>
-                                                    </div>
-                                                )}
-
-                                                {r.adminReply && !isReplying && (
-                                                    <div className="p-6 lg:p-8 bg-emerald-500/5 rounded-[2rem] border border-emerald-500/10 flex items-start gap-4 lg:gap-5 text-left shadow-inner border-l-4 border-l-emerald-500 text-left">
-                                                        <div className="bg-emerald-500 p-2 lg:p-3 rounded-2xl text-white shadow-lg shadow-emerald-500/20 text-left"><CheckCircle size={18}/></div>
-                                                        <div className="text-left text-left text-left text-left">
-                                                            <p className="text-[9px] lg:text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1.5 text-left flex items-center gap-2 text-left">Hệ thống đã phản hồi</p>
-                                                            <p className="text-sm lg:text-base text-slate-300 italic text-left leading-relaxed text-left text-left text-left">"{r.adminReply}"</p>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="xl:w-60 flex flex-row xl:flex-col gap-4 shrink-0 text-left text-left w-full">
-                                                {r.status !== 'accepted' ? (
-                                                    <button onClick={() => toggleReply(r.id)} className={`flex-1 p-5 lg:p-6 rounded-[1.5rem] lg:rounded-[1.8rem] font-black text-[10px] lg:text-[11px] uppercase shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 border text-left ${isReplying ? 'bg-slate-800 text-slate-500 border-white/5' : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500/20 shadow-emerald-500/10'}`}>
-                                                        {isReplying ? <><X size={18}/> Hủy bỏ</> : <><CheckCircle size={18}/> Tiếp nhận</>}
-                                                    </button>
-                                                ) : (
-                                                    <div className="flex-1 flex flex-col items-center justify-center text-emerald-500 text-xs font-black uppercase bg-emerald-400/5 rounded-[1.5rem] lg:rounded-[1.8rem] border border-emerald-400/20 h-full min-h-[60px] gap-2 text-left"><CheckCircle size={24}/> Done</div>
-                                                )}
-                                                <button onClick={() => onDelete(r.id)} className="flex-1 bg-slate-900/80 hover:bg-red-500/10 text-slate-600 hover:text-red-500 p-5 lg:p-6 rounded-[1.5rem] lg:rounded-[1.8rem] font-black text-[10px] lg:text-[11px] uppercase border border-white/5 transition-all active:scale-95 flex items-center justify-center gap-3 group text-left">
-                                                    <Trash2 size={18} className="opacity-40 group-hover:opacity-100 transition-opacity text-left"/> Xóa bỏ
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
         const root = createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(<AdminDashboard />);
     </script>
 </body>
 </html>
