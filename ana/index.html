@@ -112,12 +112,14 @@
             0% { transform: scale(0.8); opacity: 1; }
             100% { transform: scale(2); opacity: 0; }
         }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #4B5563; border-radius: 4px; }
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="text/babel" data-type="module" data-presets="react">
-        import React, { useState, useEffect } from 'react';
+        import React, { useState, useEffect, useCallback } from 'react';
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInAnonymously, onAuthStateChanged, signOut, signInWithCustomToken } from 'firebase/auth';
@@ -126,7 +128,7 @@
             Activity, Users, FileText, Crown, AlertCircle, MessageSquare, 
             LayoutDashboard, Trophy, LogOut, Search, Clock, Zap, Timer, 
             LayoutGrid, Star, CheckCircle2, XCircle, Send, Reply, ChevronRight, Trash2,
-            MoreHorizontal, Bell, Wifi
+            MoreHorizontal, Bell, Wifi, MessageCircle
         } from 'lucide-react';
 
         // --- FIREBASE CONFIG ---
@@ -217,6 +219,80 @@
                         </div>
                         <div className="w-20 h-1 bg-slate-700 rounded-full overflow-hidden">
                             <div className="h-full bg-emerald-500 w-1/3 animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- EXTRACTED RATING CARD TO FIX FOCUS ISSUE ---
+        const RatingCard = ({ item, isLow, userMap, examMap, onDelete, onReply, replyText, setReplyText }) => {
+            const userName = userMap[item.uid] || 'Unknown User';
+            const examName = examMap[item.examId] || 'Unknown Exam';
+            
+            const templates = [
+                "Cảm ơn bạn đã góp ý!",
+                "Chúng tôi sẽ kiểm tra và khắc phục sớm.",
+                "Rất vui vì bạn đã hài lòng với đề thi.",
+                "Cảm ơn đánh giá của bạn, chúc bạn học tốt!",
+                "Chúng tôi ghi nhận ý kiến đóng góp của bạn."
+            ];
+
+            return (
+                <div className={`p-5 rounded-2xl border mb-4 relative group transition-all hover:translate-x-1 ${isLow ? 'bg-gradient-to-br from-red-900/10 to-transparent border-red-500/20 hover:border-red-500/40' : 'bg-gradient-to-br from-emerald-900/10 to-transparent border-emerald-500/20 hover:border-emerald-500/40'}`}>
+                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => onDelete(item.id)} className="p-2 bg-slate-800 hover:bg-red-500 text-slate-400 hover:text-white rounded-lg shadow-lg transition-colors">
+                            <Trash2 size={14}/>
+                        </button>
+                    </div>
+                    
+                    <div className="flex justify-between items-start mb-3">
+                        <div>
+                            <div className="flex items-center gap-1 mb-1">
+                                {[...Array(5)].map((_, i) => (
+                                    <Star key={i} size={14} fill={i < item.rating ? (isLow ? "#ef4444" : "#10b981") : "none"} className={i < item.rating ? (isLow ? "text-red-500" : "text-emerald-500") : "text-slate-700"} />
+                                ))}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs">
+                                <span className="font-bold text-white">{userName}</span>
+                                <span className="text-slate-600">•</span>
+                                <span className="text-slate-500 font-mono">{item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleDateString('vi-VN') : ''}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5 mb-3">
+                        <p className="text-xs text-slate-500 font-bold uppercase mb-1">Đề thi:</p>
+                        <p className="text-sm font-bold text-cyan-400 line-clamp-1">{examName}</p>
+                    </div>
+
+                    {item.feedback && <div className="text-sm text-slate-300 italic mb-4 pl-3 border-l-2 border-slate-700">"{item.feedback}"</div>}
+
+                    <div className="space-y-2">
+                        <div className="flex gap-2">
+                            <input 
+                                type="text" 
+                                placeholder="Phản hồi người dùng..." 
+                                className="flex-1 bg-slate-950/50 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all"
+                                value={replyText[item.id] || ''}
+                                onChange={e => setReplyText({...replyText, [item.id]: e.target.value})}
+                            />
+                            <button onClick={() => onReply(item.id, item.uid)} className="bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-cyan-500/20 active:scale-95">
+                                <Send size={14}/>
+                            </button>
+                        </div>
+                        
+                        {/* Quick Reply Templates */}
+                        <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                            {templates.map((tpl, i) => (
+                                <button 
+                                    key={i}
+                                    onClick={() => setReplyText({...replyText, [item.id]: tpl})}
+                                    className="whitespace-nowrap px-2 py-1 rounded-md bg-slate-800 border border-slate-700 text-[10px] text-slate-400 hover:text-white hover:bg-slate-700 transition-colors flex items-center gap-1"
+                                >
+                                    <MessageCircle size={10}/> {tpl}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -327,56 +403,6 @@
                 } catch (e) { alert("Lỗi gửi"); }
             };
 
-            const RatingCard = ({ item, isLow }) => {
-                const userName = userMap[item.uid] || 'Unknown User';
-                const examName = examMap[item.examId] || 'Unknown Exam';
-
-                return (
-                    <div className={`p-5 rounded-2xl border mb-4 relative group transition-all hover:translate-x-1 ${isLow ? 'bg-gradient-to-br from-red-900/10 to-transparent border-red-500/20 hover:border-red-500/40' : 'bg-gradient-to-br from-emerald-900/10 to-transparent border-emerald-500/20 hover:border-emerald-500/40'}`}>
-                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => handleDeleteRating(item.id)} className="p-2 bg-slate-800 hover:bg-red-500 text-slate-400 hover:text-white rounded-lg shadow-lg transition-colors">
-                                <Trash2 size={14}/>
-                            </button>
-                        </div>
-                        
-                        <div className="flex justify-between items-start mb-3">
-                            <div>
-                                <div className="flex items-center gap-1 mb-1">
-                                    {[...Array(5)].map((_, i) => (
-                                        <Star key={i} size={14} fill={i < item.rating ? (isLow ? "#ef4444" : "#10b981") : "none"} className={i < item.rating ? (isLow ? "text-red-500" : "text-emerald-500") : "text-slate-700"} />
-                                    ))}
-                                </div>
-                                <div className="flex items-center gap-2 text-xs">
-                                    <span className="font-bold text-white">{userName}</span>
-                                    <span className="text-slate-600">•</span>
-                                    <span className="text-slate-500 font-mono">{item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleDateString('vi-VN') : ''}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5 mb-3">
-                            <p className="text-xs text-slate-500 font-bold uppercase mb-1">Đề thi:</p>
-                            <p className="text-sm font-bold text-cyan-400 line-clamp-1">{examName}</p>
-                        </div>
-
-                        {item.feedback && <div className="text-sm text-slate-300 italic mb-4 pl-3 border-l-2 border-slate-700">"{item.feedback}"</div>}
-
-                        <div className="flex gap-2">
-                            <input 
-                                type="text" 
-                                placeholder="Phản hồi người dùng..." 
-                                className="flex-1 bg-slate-950/50 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all"
-                                value={replyText[item.id] || ''}
-                                onChange={e => setReplyText({...replyText, [item.id]: e.target.value})}
-                            />
-                            <button onClick={() => handleReplyRating(item.id, item.uid)} className="bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-2 rounded-lg font-bold text-xs transition-all shadow-lg shadow-cyan-500/20 active:scale-95">
-                                <Send size={14}/>
-                            </button>
-                        </div>
-                    </div>
-                );
-            };
-
             return (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-140px)]">
                     <div className="modern-card rounded-3xl p-6 flex flex-col h-full overflow-hidden">
@@ -394,7 +420,19 @@
                             </div>
                         </div>
                         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                            {highRatings.map(r => <RatingCard key={r.id} item={r} />)}
+                            {highRatings.map(r => (
+                                <RatingCard 
+                                    key={r.id} 
+                                    item={r} 
+                                    isLow={false} 
+                                    userMap={userMap} 
+                                    examMap={examMap} 
+                                    onDelete={handleDeleteRating}
+                                    onReply={handleReplyRating}
+                                    replyText={replyText}
+                                    setReplyText={setReplyText}
+                                />
+                            ))}
                         </div>
                     </div>
                     <div className="modern-card rounded-3xl p-6 flex flex-col h-full overflow-hidden">
@@ -412,7 +450,19 @@
                             </div>
                         </div>
                         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                            {lowRatings.length === 0 ? <div className="h-40 flex items-center justify-center text-slate-600 italic">Chưa có đánh giá thấp nào!</div> : lowRatings.map(r => <RatingCard key={r.id} item={r} isLow={true} />)}
+                            {lowRatings.length === 0 ? <div className="h-40 flex items-center justify-center text-slate-600 italic">Chưa có đánh giá thấp nào!</div> : lowRatings.map(r => (
+                                <RatingCard 
+                                    key={r.id} 
+                                    item={r} 
+                                    isLow={true} 
+                                    userMap={userMap} 
+                                    examMap={examMap} 
+                                    onDelete={handleDeleteRating}
+                                    onReply={handleReplyRating}
+                                    replyText={replyText}
+                                    setReplyText={setReplyText}
+                                />
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -493,7 +543,6 @@
                                                     <span className="text-xs text-slate-500 font-mono">{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString('vi-VN') : ''}</span>
                                                 </div>
                                                 
-                                                {/* FIX: Tách biệt trạng thái và nút xóa */}
                                                 <div className="flex items-center gap-3">
                                                     {r.status === 'resolved' ? 
                                                         <span className="text-emerald-500 text-xs font-bold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20"><CheckCircle2 size={12}/> Đã xử lý</span> 
@@ -609,13 +658,12 @@
             useEffect(() => {
                 const filterActive = () => {
                     const now = Date.now();
-                    
-                    // 1. Filter Active Sessions (Đang thi)
+                    // Active test sessions
                     const activeSessions = rawSessions.filter(s => {
                         const lastPing = s.lastPing?.toDate ? s.lastPing.toDate().getTime() : 0;
                         const startedAt = s.startedAt?.toDate ? s.startedAt.toDate().getTime() : 0;
                         const lastActivity = Math.max(lastPing, startedAt);
-                        return (now - lastActivity) < 120000; // 2 min timeout
+                        return (now - lastActivity) < 120000; // 2 min timeout for test
                     });
                     
                     // Get UIDs of people currently testing
@@ -624,11 +672,10 @@
                     // 2. Filter Online Users (active on site recently)
                     const onlineUsers = rawUsers.filter(u => {
                         const lastActive = u.lastActive?.toDate ? u.lastActive.toDate().getTime() : 0;
-                        return (now - lastActive) < 300000; // 5 min timeout
+                        return (now - lastActive) < 300000; // 5 min timeout for online status
                     });
                     
                     // 3. Combine: Online = (Recent Users) UNION (Active Test Takers)
-                    // Even if lastActive is old, if they are taking a test (pinging), they are online.
                     const uniqueOnlineUids = new Set([
                         ...onlineUsers.map(u => u.uid),
                         ...activeUids
