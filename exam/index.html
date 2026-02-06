@@ -1012,10 +1012,49 @@
                     if (exam.sessionId) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'active_exams', exam.sessionId)); } catch (e) {} }
                     
                     try {
-                        await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), { examId: exam.id, examTitle: exam.title, score: score.toFixed(1), totalQuestions: exam.questions.length, correctCount: correct, date: serverTimestamp(), userId: user.uid, displayName: user.displayName || 'User' });
+                        // 1. Kiểm tra lịch sử xem user đã làm đề này chưa
+                        const historyRef = collection(db, 'artifacts', appId, 'users', user.uid, 'history');
+                        // Sử dụng query đơn giản và hiệu quả
+                        const qCheck = query(historyRef, where('examId', '==', exam.id), limit(1));
+                        const historySnap = await getDocs(qCheck);
+                        const isFirstTime = historySnap.empty;
+
+                        // 2. Lưu lịch sử làm bài mới
+                        await addDoc(historyRef, { 
+                            examId: exam.id, 
+                            examTitle: exam.title, 
+                            score: score.toFixed(1), 
+                            totalQuestions: exam.questions.length, 
+                            correctCount: correct, 
+                            date: serverTimestamp(), 
+                            userId: user.uid, 
+                            displayName: user.displayName || 'User' 
+                        });
+                        
+                        // 3. Cập nhật thống kê cá nhân của User
                         const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid); 
-                        await updateDoc(userRef, { totalScore: increment(Number(score)), examsCompleted: increment(1), lastActive: serverTimestamp() });
-                    } catch(e) { console.error("Save error", e); }
+                        await updateDoc(userRef, { 
+                            totalScore: increment(Number(score)), 
+                            examsCompleted: increment(1), 
+                            lastActive: serverTimestamp() 
+                        });
+
+                        // 4. Cập nhật thống kê chung của Đề thi
+                        const examDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', exam.id);
+                        
+                        // Tạo object cập nhật: Luôn tăng lượt thi
+                        const examUpdateData = {
+                            attempts: increment(1)
+                        };
+                        
+                        // Chỉ tăng số người tham gia nếu là lần đầu tiên làm
+                        if (isFirstTime) {
+                            examUpdateData.participantsCount = increment(1);
+                        }
+
+                        await updateDoc(examDocRef, examUpdateData);
+
+                    } catch(e) { console.error("Lỗi khi lưu kết quả thi:", e); }
                 }
                 
                 onFinish({ score: score.toFixed(1), correctCount: correct, total: exam.questions.length, examTitle: exam.title, questions: exam.questions, userAnswers: currentAnswers, examId: exam.id });
@@ -1163,42 +1202,77 @@
 
         const Dashboard = ({ user, profile, onStartExam, onViewHistory, onUpgrade, isPendingVip }) => {
             const [exams, setExams] = useState([]);
-            const [stats, setStats] = useState({ totalTaken: 0, avgScore: 0, rank: 'Tập sự' });
+            const [stats, setStats] = useState({ totalTaken: 0, avgScore: 0, rank: 'Tập sự', totalRated: 0 }); // Thêm totalRated
             const [historyData, setHistoryData] = useState([]); 
-            const [newsList, setNewsList] = useState([]); // State cho tin tức
+            const [newsList, setNewsList] = useState([]);
+            const [userRatings, setUserRatings] = useState({}); // State lưu đánh giá của user
             const [filter, setFilter] = useState('all'); 
             const [search, setSearch] = useState('');
             const [loading, setLoading] = useState(true);
             const { isDarkMode } = useTheme();
-            const { showConfirmation } = useModal(); // Use modal
+            const { showConfirmation } = useModal(); 
 
             useEffect(() => {
                 if (!user) return;
                 
-                // Lấy danh sách đề thi
+                // 1. Lấy danh sách đề thi (Đã có logic realtime cập nhật ratingSum/ratingCount từ ResultScreen)
                 const unsubExams = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'exams'), orderBy('createdAt', 'desc')), s => {
                     setExams(s.docs.map(d=>({id: d.id, ...d.data()})));
                     setLoading(false);
                 }, (error) => setLoading(false));
 
-                // Lấy lịch sử thi
+                // 2. Lấy lịch sử thi
                 const unsubHistory = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'history'), orderBy('date', 'desc')), s => {
                     const records = s.docs.map(d=>d.data()); setHistoryData(records); 
                     const total = records.length; const avg = total > 0 ? (records.reduce((acc, r) => acc + Number(r.score), 0) / total).toFixed(1) : 0;
                     let rank = 'Tập sự'; if (total > 5) rank = 'Học viên'; if (total > 20 && avg > 7) rank = 'Chuyên cần'; if (total > 50 && avg > 8.5) rank = 'Tinh anh';
-                    setStats({ totalTaken: total, avgScore: avg, rank });
+                    setStats(prev => ({ ...prev, totalTaken: total, avgScore: avg, rank }));
                 }, (error) => console.error("History sync error", error));
 
-                // Lấy tin tức & sự kiện
+                // 3. Lấy tin tức & sự kiện
                 const unsubNews = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'news_events'), orderBy('createdAt', 'desc'), limit(5)), s => {
                     setNewsList(s.docs.map(d => ({ id: d.id, ...d.data() })));
                 }, (error) => console.error("News sync error", error));
 
-                return () => { unsubExams(); unsubHistory(); unsubNews(); };
+                // 4. Lấy đánh giá CÁ NHÂN của user (MỚI)
+                // Logic này giúp Dashboard biết user đã đánh giá đề nào, bao nhiêu sao
+                const unsubRatings = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'exam_ratings'), where('uid', '==', user.uid)), s => {
+                    const ratingMap = {};
+                    s.docs.forEach(doc => {
+                        const data = doc.data();
+                        ratingMap[data.examId] = data.rating;
+                    });
+                    setUserRatings(ratingMap);
+                    setStats(prev => ({ ...prev, totalRated: s.size })); // Cập nhật số lượng đề đã đánh giá
+                });
+
+                return () => { unsubExams(); unsubHistory(); unsubNews(); unsubRatings(); };
             }, [user]);
 
             const filteredExams = exams.filter(e => { const matchesSearch = e.title.toLowerCase().includes(search.toLowerCase()); if (filter === 'free') return matchesSearch && !e.isPremium; if (filter === 'vip') return matchesSearch && e.isPremium; return matchesSearch; });
-            const renderStars = (ratingSum, ratingCount) => { const avg = ratingCount > 0 ? ratingSum / ratingCount : 0; return (<div className="flex items-center gap-1 text-yellow-400 text-xs bg-slate-900/40 px-2 py-1 rounded-full border border-yellow-500/10"><span className="font-bold text-white mr-1">{avg.toFixed(1)}</span><Star size={10} fill="currentColor"/><span className="text-slate-500 ml-1">({ratingCount || 0})</span></div>); };
+            
+            // Hàm render sao cập nhật: Hiển thị cả điểm cộng đồng và điểm cá nhân
+            const renderStars = (ratingSum, ratingCount, examId) => { 
+                const avg = ratingCount > 0 ? ratingSum / ratingCount : 0; 
+                const myRating = userRatings[examId];
+
+                return (
+                    <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center gap-1 text-yellow-400 text-xs bg-slate-900/40 px-2 py-1 rounded-full border border-yellow-500/10" title="Đánh giá trung bình cộng đồng">
+                            <span className="font-bold text-white mr-1">{avg.toFixed(1)}</span>
+                            <Star size={10} fill="currentColor"/>
+                            <span className="text-slate-500 ml-1">({ratingCount || 0})</span>
+                        </div>
+                        {myRating && (
+                            <div className="flex items-center gap-1 text-[10px] text-cyan-400 font-bold bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20 animate-fade-in" title="Đánh giá của bạn">
+                                <span>Bạn: {myRating}</span>
+                                <Star size={8} fill="currentColor"/>
+                            </div>
+                        )}
+                    </div>
+                ); 
+            };
+            
             const QuoteCard = () => ( <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-violet-600/20 to-indigo-600/20 border border-indigo-500/20 flex items-center gap-4 relative overflow-hidden"><Quote size={48} className="text-indigo-500 opacity-20 absolute top-2 left-2" /><div className="relative z-10"><p className="text-indigo-200 dark:text-indigo-200 text-indigo-800 italic font-medium">"Không có bí mật nào cho sự thành công. Đó là kết quả của sự chuẩn bị kỹ càng, làm việc chăm chỉ và học hỏi từ thất bại."</p><p className="text-indigo-400 dark:text-indigo-400 text-indigo-600 text-xs font-bold mt-2 uppercase tracking-wider">- Colin Powell</p></div></div> );
 
             const handleStartExam = (exam) => {
@@ -1221,7 +1295,7 @@
                         confirmText: "Đăng nhập ngay",
                         cancelText: "Để sau",
                         variant: "warning",
-                        onConfirm: () => signOut(auth) // Đăng xuất để quay lại màn hình login
+                        onConfirm: () => signOut(auth) 
                     });
                 } else {
                     showConfirmation({
@@ -1247,7 +1321,7 @@
                             <div className="flex gap-3 md:gap-6">
                                 <div className="bg-slate-800/80 backdrop-blur p-4 rounded-2xl border border-white/5 min-w-[100px] text-center shadow-lg"><p className="text-slate-400 text-[10px] uppercase font-bold mb-1 tracking-wider">Đã làm</p><p className="text-2xl font-black text-cyan-400">{stats.totalTaken}</p></div>
                                 <div className="bg-slate-800/80 backdrop-blur p-4 rounded-2xl border border-white/5 min-w-[100px] text-center shadow-lg"><p className="text-slate-400 text-[10px] uppercase font-bold mb-1 tracking-wider">Điểm TB</p><p className="text-2xl font-black text-emerald-400">{stats.avgScore}</p></div>
-                                <div className="bg-slate-800/80 backdrop-blur p-4 rounded-2xl border border-white/5 min-w-[100px] text-center shadow-lg hidden sm:block"><p className="text-slate-400 text-[10px] uppercase font-bold mb-1 tracking-wider">Danh hiệu</p><p className="text-lg font-bold text-yellow-400">{stats.rank}</p></div>
+                                <div className="bg-slate-800/80 backdrop-blur p-4 rounded-2xl border border-white/5 min-w-[100px] text-center shadow-lg hidden sm:block"><p className="text-slate-400 text-[10px] uppercase font-bold mb-1 tracking-wider">Đã đánh giá</p><p className="text-lg font-bold text-yellow-400">{stats.totalRated}</p></div>
                             </div>
                         </div>
                     </div>
@@ -1284,13 +1358,21 @@
                                                     </div>
                                                     <div className={`flex flex-col gap-2 border-t pt-4 ${isDarkMode ? 'border-yellow-500/20' : 'border-blue-100'}`}>
                                                         <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border transition-colors ${isDarkMode ? 'bg-slate-800/60 border-white/10 hover:bg-slate-800' : 'bg-white border-blue-100'}`}><Calendar size={14} className="text-emerald-500 shrink-0"/> <div className={`text-[11px] font-bold uppercase tracking-tight ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>Ra đề: <span className={`${isDarkMode ? 'text-white' : 'text-slate-900'} ml-1`}>{formatDate(exam.createdAt)}</span></div></div>
+                                                        {exam.updatedAt && (
+                                                            <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border transition-colors ${isDarkMode ? 'bg-slate-800/60 border-white/10 hover:bg-slate-800' : 'bg-white border-blue-100'}`}>
+                                                                <RefreshCw size={14} className="text-orange-500 shrink-0"/> 
+                                                                <div className={`text-[11px] font-bold uppercase tracking-tight ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>
+                                                                    Cập nhật: <span className={`${isDarkMode ? 'text-white' : 'text-slate-900'} ml-1`}>{formatDate(exam.updatedAt)}</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className={`flex gap-4 text-xs font-bold mb-6 mt-4 border-t pt-4 opacity-80 ${isDarkMode ? 'text-slate-400 border-white/5' : 'text-slate-500 border-blue-100'}`}>
                                                     <span className="flex items-center gap-1.5" title="Lượt thi / Số người tham gia"><Users size={14} className="text-cyan-500"/> <span>{exam.attempts || 0} lượt</span><span className="text-slate-600 text-[10px]">•</span><span>{exam.participantsCount || 0} người</span></span>
                                                 </div>
                                                 <div className="flex justify-between items-end mt-4">
-                                                    {renderStars(exam.ratingSum, exam.ratingCount)}
+                                                    {renderStars(exam.ratingSum, exam.ratingCount, exam.id)}
                                                     <button onClick={()=> isLocked ? handleLockedClick() : handleStartExam(exam)} className={`px-6 py-2.5 rounded-xl font-black text-sm shadow-xl transition-all transform group-hover:scale-105 active:scale-95 flex items-center gap-2 ${isLocked ? 'bg-gradient-to-r from-yellow-600 via-amber-500 to-yellow-500 text-slate-900 shadow-yellow-500/30 ring-2 ring-yellow-400/50 hover:from-yellow-500 hover:to-yellow-400' : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-500/30'}`}>{isLocked ? (isPendingVip ? <><Hourglass size={16} className="animate-pulse"/> Chờ duyệt</> : <><Crown size={16} fill="currentColor"/> Nâng cấp ngay</>) : 'Bắt đầu'}</button>
                                                 </div>
                                             </div>
@@ -1364,6 +1446,70 @@
         };
 
         const ResultScreen = ({ result, onBack, onReview, globalConfig }) => {
+            const [rating, setRating] = useState(0);
+            const [oldRating, setOldRating] = useState(0); // Lưu rating cũ để tính toán chênh lệch
+            const [feedback, setFeedback] = useState('');
+            const [hasRated, setHasRated] = useState(false);
+            const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+            const { addToast } = useToast();
+            const auth = getAuth();
+            const user = auth.currentUser;
+
+            useEffect(() => {
+                const checkRating = async () => { 
+                    if (!user || !result.examId) return; 
+                    const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exam_ratings', `${result.examId}_${user.uid}`)); 
+                    if (snap.exists()) { 
+                        const data = snap.data();
+                        setRating(data.rating); 
+                        setOldRating(data.rating);
+                        setFeedback(data.feedback || '');
+                        setHasRated(true); 
+                    } 
+                };
+                checkRating();
+            }, [result.examId, user?.uid]);
+
+            const handleSubmitRating = async () => {
+                if (rating === 0 || !user) return; 
+                setIsSubmittingRating(true);
+                try {
+                    // 1. Lưu/Cập nhật document đánh giá của user
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'exam_ratings', `${result.examId}_${user.uid}`), { 
+                        uid: user.uid, 
+                        examId: result.examId, 
+                        rating: rating, 
+                        feedback: feedback,
+                        createdAt: serverTimestamp() 
+                    });
+
+                    // 2. Cập nhật thống kê chung của đề thi
+                    const examRef = doc(db, 'artifacts', appId, 'public', 'data', 'exams', result.examId);
+                    
+                    if (hasRated) {
+                        // Nếu đã đánh giá rồi -> Cập nhật chênh lệch điểm
+                        const diff = rating - oldRating;
+                        if (diff !== 0) {
+                            await updateDoc(examRef, { ratingSum: increment(diff) });
+                        }
+                        // Không tăng ratingCount vì user này đã được đếm rồi
+                        addToast("Đã cập nhật đánh giá!", "success");
+                    } else {
+                        // Nếu chưa đánh giá -> Cộng dồn điểm và tăng số người đánh giá
+                        await updateDoc(examRef, { ratingSum: increment(rating), ratingCount: increment(1) });
+                        addToast("Cảm ơn đánh giá của bạn!", "success");
+                    }
+
+                    setHasRated(true); 
+                    setOldRating(rating); // Cập nhật oldRating cho lần sửa sau
+                } catch (e) { 
+                    console.error(e);
+                    addToast("Lỗi khi gửi đánh giá.", "error"); 
+                } finally {
+                    setIsSubmittingRating(false);
+                }
+            };
+
             return (
                 <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in relative overflow-hidden" style={{backgroundImage: globalConfig.resultBg ? `linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.9)), url('${globalConfig.resultBg}')` : undefined, backgroundColor: '#0f172a', backgroundSize: 'cover', backgroundPosition: 'center'}}>
                     {Number(result.score) >= 8 && <Confetti />}
@@ -1374,6 +1520,41 @@
                         <h3 className="text-xl text-cyan-400 font-bold mb-4">{result.examTitle}</h3>
                         <div className="text-6xl font-black text-white mb-2 tracking-tighter">{result.score}</div>
                         <div className="grid grid-cols-2 gap-4 mb-6 mt-6"><div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700"><p className="text-xs text-slate-500 uppercase font-bold">Câu đúng</p><p className="text-2xl font-bold text-emerald-400">{result.correctCount}/{result.total}</p></div><div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700"><p className="text-xs text-slate-500 uppercase font-bold">Trạng thái</p><p className={`text-2xl font-bold ${Number(result.score)>=5?'text-cyan-400':'text-red-400'}`}>{Number(result.score)>=5?'ĐẠT':'HỎNG'}</p></div></div>
+                        
+                        {/* Rating Section Updated */}
+                        <div className="mb-6 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm transition-all">
+                            <p className="text-slate-400 text-xs font-bold uppercase mb-2 tracking-wider">Đánh giá đề thi</p>
+                            <div className="flex justify-center gap-2 mb-3">
+                                {[1,2,3,4,5].map(star => (
+                                    <button key={star} onClick={() => setRating(star)} className="transition-all hover:scale-110 active:scale-95 p-1">
+                                        <Star size={28} fill={star <= rating ? "#fbbf24" : "none"} className={star <= rating ? "text-yellow-400" : "text-slate-600"} />
+                                    </button>
+                                ))}
+                            </div>
+                            
+                            {/* Conditional Feedback Textarea (<= 3 stars) */}
+                            {rating > 0 && rating <= 3 && (
+                                <textarea 
+                                    className="w-full bg-slate-900/50 border border-slate-700 rounded-lg p-3 text-sm text-white placeholder-slate-500 mb-3 focus:border-cyan-500 outline-none animate-fade-in resize-none" 
+                                    rows="3"
+                                    placeholder="Xin hãy cho chúng tôi biết lý do để cải thiện..."
+                                    value={feedback}
+                                    onChange={(e) => setFeedback(e.target.value)}
+                                />
+                            )}
+
+                            {/* Submit/Update Button */}
+                            {rating > 0 && (
+                                <button 
+                                    onClick={handleSubmitRating} 
+                                    disabled={isSubmittingRating || (hasRated && rating === oldRating && feedback === '')} 
+                                    className="w-full py-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-cyan-600 hover:bg-cyan-500 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {isSubmittingRating ? <Loader2 className="animate-spin" size={14}/> : (hasRated ? 'Cập nhật đánh giá' : 'Gửi đánh giá')}
+                                </button>
+                            )}
+                        </div>
+
                         <div className="flex justify-center gap-3 mb-6 relative z-10"><button className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white transition-all border border-slate-700 tooltip"><Download size={20}/></button><button className="p-3 bg-blue-600 hover:bg-blue-500 rounded-full text-white transition-all shadow-lg shadow-blue-500/20"><Facebook size={20}/></button></div>
                         <div className="space-y-3 relative z-10"><button onClick={onReview} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 hover:translate-y-[-2px]"><Eye size={18}/> Xem lại đáp án</button><button onClick={onBack} className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3.5 rounded-xl font-bold transition-all border border-slate-700 hover:border-slate-600">Về trang chủ</button></div>
                     </div>
