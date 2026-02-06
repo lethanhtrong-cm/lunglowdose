@@ -1,1 +1,1458 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quản Lý Hoạt Động Đoàn</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Glassmorphism & Utilities */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        
+        .glass-sidebar {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Custom Scrollbar for Sidebar & Panels */
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scroll:hover::-webkit-scrollbar-thumb { background: #94a3b8; }
+
+        /* Checkbox Style */
+        .custom-checkbox:checked + div {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        .custom-checkbox:checked + div svg {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-[#F3F4F6] text-gray-800 h-screen overflow-hidden flex text-sm sm:text-base">
+
+    <!-- Background Decor -->
+    <div class="fixed top-0 right-0 w-[500px] h-[500px] bg-blue-200/40 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none z-0"></div>
+    <div class="fixed bottom-0 left-0 w-[400px] h-[400px] bg-purple-200/40 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none z-0"></div>
+
+    <!-- MOBILE MENU OVERLAY -->
+    <div id="mobile-menu-overlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-black/20 z-40 hidden backdrop-blur-sm transition-opacity md:hidden"></div>
+
+    <!-- SIDEBAR (LEFT MENU) -->
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 w-72 glass-sidebar z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col shadow-2xl md:shadow-none h-full">
+        <!-- Sidebar Header -->
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-blue-500/30 shadow-lg">
+                    Đ
+                </div>
+                <div>
+                    <h1 class="font-bold text-gray-900 leading-tight">Quản Lý Đoàn</h1>
+                    <p class="text-xs text-gray-500 font-medium">Nhiệm kỳ 2025-2030</p>
+                </div>
+            </div>
+            <!-- Close button for mobile -->
+            <button onclick="toggleMobileMenu()" class="md:hidden p-1 text-gray-400 hover:text-gray-600">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <!-- Sidebar Content -->
+        <div class="flex-1 overflow-y-auto custom-scroll py-6 px-4 space-y-8">
+            <!-- Main Group -->
+            <div>
+                <h3 class="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Chung</h3>
+                <nav class="space-y-1">
+                    <button onclick="router('dashboard')" id="nav-dashboard" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all hover:bg-blue-50 hover:text-blue-600 text-gray-600">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                        Tổng quan
+                    </button>
+                    <button onclick="router('members')" id="nav-members" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all hover:bg-blue-50 hover:text-blue-600 text-gray-600">
+                        <i data-lucide="users" class="w-5 h-5"></i>
+                        Đoàn viên BCH
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Months Group -->
+            <div>
+                <h3 class="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Kế hoạch năm 2026</h3>
+                <nav class="space-y-1" id="month-menu-list">
+                    <!-- Injected by JS -->
+                </nav>
+            </div>
+        </div>
+
+        <!-- Sidebar Footer -->
+        <div class="p-4 border-t border-gray-100 shrink-0">
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-blue-600 font-bold text-xs shadow-sm">A</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-gray-900 truncate">Nguyễn Văn A</p>
+                    <p class="text-xs text-gray-500 truncate">Bí thư Đoàn Bệnh viện</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="flex-1 flex flex-col h-full relative z-10 w-full overflow-hidden">
+        
+        <!-- HEADER -->
+        <header class="h-16 bg-white/50 backdrop-blur-md border-b border-gray-200/50 flex items-center justify-between px-4 sm:px-8 shrink-0">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleMobileMenu()" class="md:hidden p-2 -ml-2 text-gray-600 hover:bg-white rounded-lg transition-colors">
+                    <i data-lucide="menu" class="w-6 h-6"></i>
+                </button>
+                <div id="header-breadcrumbs" class="flex items-center gap-2 text-sm font-medium text-gray-500">
+                    <!-- Breadcrumbs injected by JS -->
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="relative hidden sm:block group">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                    <input type="text" placeholder="Tìm hoạt động..." class="bg-white border border-gray-200 rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all w-64">
+                </div>
+                <button class="relative p-2 text-gray-400 hover:text-blue-600 transition-colors">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                </button>
+            </div>
+        </header>
+
+        <!-- SCROLLABLE BODY (Flex Column container) -->
+        <main id="app-content" class="flex-1 overflow-hidden p-0 sm:p-6 h-full flex flex-col">
+            <!-- Content injected by JS -->
+        </main>
+
+    </div>
+
+    <!-- Modal/Overlay for Forms -->
+    <div id="modal-overlay" class="hidden fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm transition-opacity opacity-0 flex items-center justify-center p-4">
+        <div id="modal-content" class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl transform scale-95 opacity-0 transition-all duration-300 max-h-[95vh] flex flex-col">
+            <!-- Modal Content Injected JS -->
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- DATA STORE ---
+        const MEMBERS = [
+            { id: 1, name: "Nguyễn Văn A", role: "Bí thư", avatar: "A", color: "bg-red-100 text-red-600", image: null },
+            { id: 2, name: "Trần Thị B", role: "Phó Bí thư", avatar: "B", color: "bg-orange-100 text-orange-600", image: null },
+            { id: 3, name: "Lê Văn C", role: "UV BCH", avatar: "C", color: "bg-blue-100 text-blue-600", image: null },
+            { id: 4, name: "Phạm Thị D", role: "UV BCH", avatar: "D", color: "bg-purple-100 text-purple-600", image: null },
+            { id: 5, name: "Hoàng Văn E", role: "UV BCH", avatar: "E", color: "bg-green-100 text-green-600", image: null },
+        ];
+
+        const MEMBER_COLORS = [
+            "bg-red-100 text-red-600", "bg-orange-100 text-orange-600", "bg-blue-100 text-blue-600",
+            "bg-purple-100 text-purple-600", "bg-green-100 text-green-600", "bg-teal-100 text-teal-600",
+            "bg-pink-100 text-pink-600", "bg-indigo-100 text-indigo-600"
+        ];
+
+        const TODO_STATUS = {
+            'pending': { label: 'Chưa làm', color: 'text-gray-500', bg: 'bg-gray-100', border: 'border-gray-200' },
+            'in-progress': { label: 'Đang làm', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
+            'completed': { label: 'Hoàn tất', color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' },
+            'cancelled': { label: 'Hủy bỏ', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200' }
+        };
+
+        const STATUS_CONFIG = {
+            pending: { label: "Sắp tới", color: "text-gray-500", bg: "bg-gray-100", icon: "circle" },
+            "in-progress": { label: "Đang làm", color: "text-blue-600", bg: "bg-blue-100", icon: "clock" },
+            completed: { label: "Hoàn thành", color: "text-green-600", bg: "bg-green-100", icon: "check-circle-2" },
+        };
+
+        let state = {
+            view: 'dashboard',
+            selectedMonth: null,
+            activeEventId: null,
+            isTaskExpanded: true, 
+            taskId: null,
+            events: Array.from({ length: 12 }, (_, i) => ({
+                month: i + 1,
+                title: `Tháng ${i + 1}`,
+                theme: i === 2 ? "Tháng Thanh Niên" : (i === 6 ? "Chiến dịch Mùa Hè Xanh" : ""),
+                items: i === 2 ? [
+                    { 
+                        id: 101, title: "Lễ ra quân Tháng Thanh Niên", date: "2024-03-01", time: "07:30", location: "Sân trường ĐH", organizers: [1, 2], participants: "Toàn bộ đoàn viên", status: "completed", 
+                        content: "7h30: Tập trung\n8h00: Chào cờ\n8h30: Phát biểu khai mạc\n9h00: Ra quân dọn vệ sinh", important_notes: "Yêu cầu mặc áo Thanh niên Việt Nam đầy đủ.", budget: "2.000.000",
+                        plan_link: "https://docs.google.com/document/d/123456789/edit",
+                        absentees: [5],
+                        absence_reason: "Đồng chí E đi công tác.",
+                        checklist: [
+                            { id: 1, text: "Thuê âm thanh", description: "Thuê 2 loa công suất lớn, 4 mic không dây.", assigneeId: 1, status: 'completed' },
+                            { id: 2, text: "In băng rôn", description: "Kích thước 8m x 1m, logo Đoàn trường bên trái.", assigneeId: 2, status: 'completed' },
+                            { id: 3, text: "Mua nước uống", description: "5 thùng Aquafina, ly nhựa dùng 1 lần.", assigneeId: 3, status: 'in-progress' }
+                        ]
+                    },
+                    { 
+                        id: 102, title: "Hội thao Cán bộ Đoàn", date: "2024-03-15", time: "08:00", location: "Nhà thi đấu", organizers: [3, 4], participants: "BCH các chi đoàn", status: "in-progress", 
+                        content: "Thi đấu 3 môn...", important_notes: "Liên hệ y tế trực tại sân.", budget: "5.000.000",
+                        plan_link: "",
+                        absentees: [],
+                        absence_reason: "",
+                        checklist: [
+                            { id: 4, text: "Đặt sân", description: "Đặt 3 sân cầu lông", assigneeId: 3, status: 'completed' },
+                            { id: 5, text: "Mua giải thưởng", description: "Cờ lưu niệm", assigneeId: 4, status: 'pending' }
+                        ]
+                    }
+                ] : []
+            }))
+        };
+
+        // --- HELPER FUNCTIONS ---
+
+        function getAvatarHTML(member, sizeClass = "w-10 h-10", textSize = "text-sm") {
+            if (!member) return `<div class="${sizeClass} rounded-full flex items-center justify-center font-bold ${textSize} bg-gray-200 text-gray-500 border-2 border-white">?</div>`;
+            if (member.image) {
+                return `<img src="${member.image}" class="${sizeClass} rounded-full object-cover border-2 border-white shadow-sm">`;
+            }
+            return `<div class="${sizeClass} rounded-full flex items-center justify-center font-bold ${textSize} shadow-inner border-2 border-white ${member.color}">
+                        ${member.avatar}
+                    </div>`;
+        }
+
+        // --- CORE FUNCTIONS ---
+
+        function init() {
+            renderSidebarMonths();
+            render();
+        }
+
+        function router(viewName, params = null) {
+            state.view = viewName;
+            
+            if (viewName === 'month') {
+                state.selectedMonth = params;
+                state.activeEventId = null; 
+            } else if (viewName === 'tasks') {
+                state.taskId = params;
+            }
+            
+            const sidebar = document.getElementById('sidebar');
+            if (!sidebar.classList.contains('-translate-x-full') && window.innerWidth < 768) {
+                toggleMobileMenu();
+            }
+            render();
+        }
+
+        function selectEvent(eventId) {
+            state.activeEventId = eventId;
+            state.isTaskExpanded = false; // Reset accordion state
+            render();
+        }
+
+        function toggleTaskAccordion() {
+            state.isTaskExpanded = !state.isTaskExpanded;
+            const container = document.getElementById('task-accordion-container');
+            const icon = document.getElementById('task-accordion-icon');
+            
+            if (state.isTaskExpanded) {
+                renderChecklistInline(); 
+                container.classList.remove('hidden');
+                container.classList.add('animate-in', 'slide-in-from-top-2', 'fade-in');
+                if(icon) icon.style.transform = 'rotate(180deg)';
+            } else {
+                container.classList.add('hidden');
+                if(icon) icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobile-menu-overlay');
+            sidebar.classList.toggle('-translate-x-full');
+            if (overlay.classList.contains('hidden')) {
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            } else {
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        }
+
+        function renderSidebarMonths() {
+            const container = document.getElementById('month-menu-list');
+            let html = '';
+            state.events.forEach(m => {
+                html += `
+                    <button onclick="router('month', ${m.month})" id="nav-month-${m.month}" class="sidebar-item w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all text-gray-500 hover:bg-gray-100 hover:text-gray-900 group">
+                        <span class="flex items-center gap-3">
+                            <span class="w-6 h-6 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center text-xs font-bold group-hover:bg-white group-hover:shadow-sm transition-colors nav-month-badge">${m.month}</span>
+                            Tháng ${m.month}
+                        </span>
+                        ${m.items.length > 0 ? `<span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>` : ''}
+                    </button>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function render() {
+            const contentEl = document.getElementById('app-content');
+            const breadcrumbsEl = document.getElementById('header-breadcrumbs');
+
+            document.querySelectorAll('.sidebar-item').forEach(el => {
+                el.className = el.className.replace('bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:bg-blue-700 hover:text-white', 'hover:bg-blue-50 hover:text-blue-600 text-gray-600');
+                const badge = el.querySelector('.nav-month-badge');
+                if(badge) badge.className = "w-6 h-6 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center text-xs font-bold group-hover:bg-white group-hover:shadow-sm transition-colors nav-month-badge";
+            });
+
+            if (state.view === 'dashboard') {
+                document.getElementById('nav-dashboard').className = "sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:bg-blue-700 hover:text-white";
+                breadcrumbsEl.innerHTML = `<span>Trang chủ</span> <i data-lucide="chevron-right" class="w-4 h-4"></i> <span class="text-gray-900">Tổng quan</span>`;
+                contentEl.innerHTML = renderDashboard(); 
+                contentEl.className = "flex-1 overflow-y-auto no-scrollbar p-4 sm:p-8"; 
+            } 
+            else if (state.view === 'members') {
+                document.getElementById('nav-members').className = "sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:bg-blue-700 hover:text-white";
+                breadcrumbsEl.innerHTML = `<span>Trang chủ</span> <i data-lucide="chevron-right" class="w-4 h-4"></i> <span class="text-gray-900">Đoàn viên</span>`;
+                contentEl.innerHTML = renderMembers();
+                contentEl.className = "flex-1 overflow-y-auto no-scrollbar p-4 sm:p-8";
+            } 
+            else if (state.view === 'month') {
+                const btn = document.getElementById(`nav-month-${state.selectedMonth}`);
+                if(btn) {
+                    btn.className = "sidebar-item w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all bg-white text-blue-600 shadow-md border border-blue-50 group";
+                    const badge = btn.querySelector('.nav-month-badge');
+                    if(badge) badge.className = "w-6 h-6 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold transition-colors nav-month-badge";
+                }
+                breadcrumbsEl.innerHTML = `<span>Kế hoạch</span> <i data-lucide="chevron-right" class="w-4 h-4"></i> <span class="text-gray-900">Tháng ${state.selectedMonth}</span>`;
+                renderMonthDetail(contentEl); 
+                contentEl.className = "flex-1 overflow-hidden p-0 sm:p-6 h-full flex flex-col"; // Optimized layout class
+            }
+            else if (state.view === 'tasks') {
+                let eventTitle = "Chi tiết";
+                state.events.forEach(m => {
+                    const found = m.items.find(e => e.id === state.taskId);
+                    if(found) eventTitle = found.title;
+                });
+                breadcrumbsEl.innerHTML = `<span>Kế hoạch</span> <i data-lucide="chevron-right" class="w-4 h-4"></i> <span class="truncate max-w-[150px]">${eventTitle}</span> <i data-lucide="chevron-right" class="w-4 h-4"></i> <span class="text-gray-900">Tiến độ</span>`;
+                renderTaskManager(contentEl);
+                contentEl.className = "flex-1 overflow-y-auto no-scrollbar p-4 sm:p-8";
+            }
+
+            lucide.createIcons();
+        }
+
+        // --- RENDERERS ---
+
+        function renderDashboard() {
+            let html = `
+                <div class="max-w-6xl mx-auto space-y-8 fade-in p-4 sm:p-0">
+                    <!-- Hero Header -->
+                    <div class="relative rounded-3xl overflow-hidden shadow-xl shadow-blue-900/20 min-h-[180px] sm:min-h-[220px] flex items-center group">
+                        <div class="absolute inset-0 bg-blue-700">
+                            <img src="https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1674&q=80" class="w-full h-full object-cover opacity-30 mix-blend-overlay transition-transform duration-1000 group-hover:scale-105">
+                            <div class="absolute inset-0 bg-gradient-to-r from-blue-900/90 via-blue-800/80 to-blue-600/60"></div>
+                            <div class="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+                            <div class="absolute -left-20 -bottom-20 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl"></div>
+                        </div>
+                        <div class="relative z-10 p-6 sm:p-12 text-white max-w-4xl w-full">
+                            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                                <div>
+                                    <div class="flex items-center gap-3 mb-3">
+                                        <span class="bg-yellow-400 text-blue-900 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider shadow-sm">Tuổi trẻ tiên phong</span>
+                                        <span class="bg-white/20 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider backdrop-blur-md">Nhiệm kỳ 2025 - 2030</span>
+                                    </div>
+                                    <h1 class="text-2xl sm:text-4xl font-black mb-2 leading-tight tracking-tight">Đoàn cơ sở Bệnh viện 30 - 04<br><span class="text-blue-200">Bộ Công An</span></h1>
+                                    <p class="text-blue-100 text-sm md:text-base max-w-xl opacity-90 leading-relaxed hidden sm:block">Xung kích, sáng tạo, tình nguyện, lập công vì an ninh tổ quốc. Phấn đấu rèn luyện y đức, nâng cao trình độ chuyên môn phục vụ nhân dân.</p>
+                                </div>
+                                <button onclick="router('month', new Date().getMonth() + 1)" class="shrink-0 bg-white text-blue-900 px-6 py-3 rounded-full font-bold text-sm hover:bg-blue-50 transition-all shadow-lg flex items-center gap-2 group/btn">
+                                    <span>Hoạt động tháng này</span>
+                                    <i data-lucide="arrow-right" class="w-4 h-4 transition-transform group-hover/btn:translate-x-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-gray-800">Tiến độ năm 2024</h3>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            `;
+            state.events.forEach((m, idx) => {
+                const count = m.items.length;
+                const completed = m.items.filter(e => e.status === 'completed').length;
+                const percent = count > 0 ? (completed / count) * 100 : 0;
+                html += `
+                    <div onclick="router('month', ${m.month})" class="bg-white p-5 rounded-2xl border border-gray-100 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-500/10 transition-all cursor-pointer group">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center font-bold text-gray-500 group-hover:bg-blue-600 group-hover:text-white transition-colors">T${m.month}</div>
+                            ${count > 0 ? `<span class="bg-blue-50 text-blue-600 text-xs font-bold px-2 py-1 rounded-lg">${completed}/${count}</span>` : ''}
+                        </div>
+                        <h4 class="font-bold text-gray-800 mb-1">Tháng ${m.month}</h4>
+                        <p class="text-xs text-gray-500 h-4 mb-4 truncate">${m.theme || 'Hoạt động thường kỳ'}</p>
+                        <div class="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-blue-500 h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div></div></div>`;
+            // Add footer here for dashboard since we overwrote the layout padding
+            html += `
+            <footer class="py-6 border-t border-gray-200/50 bg-transparent shrink-0 mt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500 font-medium px-4">
+                    <div class="text-center md:text-left">
+                        <p class="font-bold text-gray-700 text-sm mb-1 uppercase tracking-wide">Đoàn cơ sở Bệnh viện 30 - 04, Bộ Công An</p>
+                        <p>&copy; 2024. Xây dựng và phát triển bởi Ban Chấp Hành.</p>
+                    </div>
+                </div>
+            </footer>
+            `;
+            return html;
+        }
+
+        function renderMembers() {
+            const stats = MEMBERS.map(mem => {
+                let total = 0, done = 0;
+                state.events.forEach(m => {
+                    m.items.forEach(e => {
+                        if(e.organizers.includes(mem.id)) {
+                            total++;
+                            if(e.status === 'completed') done++;
+                        }
+                    });
+                });
+                return { ...mem, total, done };
+            }).sort((a,b) => b.total - a.total);
+
+            let html = `
+                <div class="max-w-4xl mx-auto fade-in">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900">Ban Chấp Hành</h2>
+                            <p class="text-gray-500">Theo dõi hiệu suất hoạt động của các ủy viên</p>
+                        </div>
+                        <button onclick="openMemberModal(null)" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg shadow-blue-500/30 flex items-center gap-2 hover:bg-blue-700 transition-colors">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i> Thêm đoàn viên
+                        </button>
+                    </div>
+                    <div class="grid gap-4">
+            `;
+            stats.forEach(mem => {
+                const percent = mem.total > 0 ? (mem.done / mem.total) * 100 : 0;
+                html += `
+                    <div onclick="openMemberModal(${mem.id})" class="bg-white p-5 rounded-2xl flex items-center gap-6 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer group active:scale-[0.98]">
+                        ${getAvatarHTML(mem, "w-16 h-16", "text-2xl")}
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-start mb-1">
+                                <div>
+                                    <h3 class="font-bold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">${mem.name}</h3>
+                                    <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-gray-100 text-gray-500 mt-1">${mem.role}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="block text-2xl font-black text-gray-800">${mem.done}<span class="text-base text-gray-400 font-medium">/${mem.total}</span></span>
+                                    <span class="text-xs text-gray-400">Nhiệm vụ</span>
+                                </div>
+                            </div>
+                            <div class="mt-3 relative pt-1">
+                                <div class="w-full overflow-hidden h-2 mb-4 text-xs flex rounded-full bg-gray-100">
+                                    <div style="width:${percent}%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <i data-lucide="pencil" class="w-4 h-4 text-gray-300 group-hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all"></i>
+                    </div>
+                `;
+            });
+            html += `</div></div>`;
+            return html;
+        }
+
+        // --- NEW TOP-BOTTOM MONTH DETAIL LAYOUT (Mobile Optimized) ---
+
+        function renderMonthDetail(content) {
+            const monthIdx = state.selectedMonth - 1;
+            const monthData = state.events[monthIdx];
+            
+            if (!state.activeEventId && monthData.items.length > 0) {
+                state.activeEventId = monthData.items[0].id;
+            }
+
+            const activeEvent = monthData.items.find(e => e.id === state.activeEventId);
+
+            let html = `
+                <div class="flex flex-col h-full fade-in p-4 sm:p-0">
+                    <div class="flex items-center justify-between mb-4 shrink-0">
+                        <div>
+                            <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold uppercase mb-1 inline-block">Tháng ${monthData.month}</span>
+                            <h2 class="text-2xl font-bold text-gray-900">${monthData.title}</h2>
+                        </div>
+                        <button onclick="openModal(null)" class="bg-black text-white px-4 py-2.5 rounded-xl font-bold text-sm shadow-xl hover:bg-gray-800 transition-all flex items-center gap-2">
+                            <i data-lucide="plus" class="w-4 h-4"></i> <span class="hidden sm:inline">Thêm hoạt động</span>
+                        </button>
+                    </div>
+
+                    <!-- Event Carousel (Optimized for Mobile) -->
+                    <div class="w-full flex overflow-x-auto custom-scroll gap-3 sm:gap-4 pb-4 shrink-0 snap-x">
+                        ${monthData.items.length === 0 ? `
+                            <div class="w-full text-center py-10 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
+                                <i data-lucide="calendar-off" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
+                                <p class="text-sm">Chưa có sự kiện nào</p>
+                            </div>
+                        ` : monthData.items.map(event => {
+                            const status = STATUS_CONFIG[event.status];
+                            const isActive = event.id === state.activeEventId;
+                            return `
+                                <div onclick="selectEvent(${event.id})" 
+                                    class="min-w-[85vw] sm:min-w-[280px] sm:w-72 p-4 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden flex flex-col justify-between snap-center
+                                    ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 border-blue-600' : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md'}">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div class="flex flex-col">
+                                            <span class="text-2xl font-black ${isActive ? 'text-white' : 'text-gray-800'}">${event.date.split('-')[2]}</span>
+                                            <span class="text-[10px] font-bold uppercase tracking-wider ${isActive ? 'text-blue-200' : 'text-gray-400'}">Tháng ${event.date.split('-')[1]}</span>
+                                        </div>
+                                        <div class="${isActive ? 'bg-white/20 text-white' : status.bg + ' ' + status.color} p-1.5 rounded-full">
+                                            <i data-lucide="${status.icon}" class="w-3 h-3"></i>
+                                        </div>
+                                    </div>
+                                    <h3 class="font-bold text-sm leading-snug line-clamp-2 ${isActive ? 'text-white' : 'text-gray-800'}">${event.title}</h3>
+                                    ${isActive ? '<div class="absolute right-0 top-0 bottom-0 w-1 bg-white/20"></div>' : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <div class="flex-1 min-h-0 bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden flex flex-col relative mt-2">
+                        ${activeEvent ? `
+                            <div class="h-full overflow-y-auto custom-scroll p-5 sm:p-8 pb-20 sm:pb-8">
+                                ${renderDetailContent(activeEvent)}
+                            </div>
+                        ` : `
+                            <div class="flex-1 flex flex-col items-center justify-center text-gray-400">
+                                <i data-lucide="layout" class="w-16 h-16 mb-4 opacity-20"></i>
+                                <p>Chọn một sự kiện ở trên để xem chi tiết</p>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+            
+            content.innerHTML = html;
+            if(activeEvent && state.isTaskExpanded) {
+                renderChecklistInline();
+            }
+        }
+
+        function renderDetailContent(event) {
+            const status = STATUS_CONFIG[event.status];
+            const totalCheck = event.checklist ? event.checklist.length : 0;
+            const doneCheck = event.checklist ? event.checklist.filter(c => c.status === 'completed').length : 0;
+            const percent = totalCheck > 0 ? Math.round((doneCheck/totalCheck)*100) : 0;
+
+            let organizersHtml = '';
+            if (event.organizers.length > 0) {
+                organizersHtml = `<div class="flex flex-wrap gap-3 mt-1">`;
+                event.organizers.forEach(oid => {
+                     const m = MEMBERS.find(x => x.id == oid);
+                     if(m) {
+                         organizersHtml += `
+                            <div class="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+                                ${getAvatarHTML(m, "w-6 h-6", "text-[8px]")}
+                                <span class="text-sm font-semibold text-gray-700">${m.name}</span>
+                            </div>
+                         `;
+                     }
+                });
+                organizersHtml += `</div>`;
+            } else {
+                organizersHtml = '<span class="text-sm text-gray-400">Chưa phân công</span>';
+            }
+
+            let absenteesHtml = '';
+            if (event.absentees && event.absentees.length > 0) {
+                absenteesHtml = `<div class="flex flex-wrap gap-3 mt-1">`;
+                event.absentees.forEach(oid => {
+                     const m = MEMBERS.find(x => x.id == oid);
+                     if(m) {
+                         absenteesHtml += `
+                            <div class="flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-full border border-red-100">
+                                ${getAvatarHTML(m, "w-6 h-6", "text-[8px]")}
+                                <span class="text-sm font-semibold text-gray-700">${m.name}</span>
+                            </div>
+                         `;
+                     }
+                });
+                absenteesHtml += `</div>`;
+            } else {
+                absenteesHtml = '<span class="text-sm text-gray-400">Không có</span>';
+            }
+
+            return `
+                <!-- Actions -->
+                <div class="flex justify-between items-start mb-6">
+                    <span class="px-3 py-1 rounded-full text-xs font-bold ${status.bg} ${status.color} flex items-center gap-1">
+                        <i data-lucide="${status.icon}" class="w-3 h-3"></i> ${status.label}
+                    </span>
+                    <div class="flex gap-2">
+                        ${event.plan_link ? `
+                            <a href="${event.plan_link}" target="_blank" class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-2 rounded-lg hover:bg-blue-100 flex items-center gap-2 border border-blue-100 transition-colors">
+                                <i data-lucide="file-text" class="w-3 h-3"></i> Văn bản
+                            </a>
+                        ` : ''}
+                        <button onclick="openModal(${event.id})" class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Chỉnh sửa">
+                            <i data-lucide="pencil" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Title -->
+                <h1 class="text-2xl font-black text-gray-900 leading-tight mb-6">${event.title}</h1>
+
+                <!-- Grid Info -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center shrink-0"><i data-lucide="calendar" class="w-4 h-4"></i></div>
+                            <div>
+                                <p class="text-xs text-gray-500 font-semibold uppercase">Thời gian</p>
+                                <p class="font-bold text-gray-800">${event.time}, ${event.date}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center shrink-0"><i data-lucide="map-pin" class="w-4 h-4"></i></div>
+                            <div>
+                                <p class="text-xs text-gray-500 font-semibold uppercase">Địa điểm</p>
+                                <p class="font-bold text-gray-800">${event.location}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-green-50 text-green-500 flex items-center justify-center shrink-0"><i data-lucide="banknote" class="w-4 h-4"></i></div>
+                            <div>
+                                <p class="text-xs text-gray-500 font-semibold uppercase">Kinh phí</p>
+                                <p class="font-bold text-gray-800">${event.budget ? event.budget + ' VNĐ' : '---'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-500 flex items-center justify-center shrink-0"><i data-lucide="users" class="w-4 h-4"></i></div>
+                            <div class="flex-1">
+                                <p class="text-xs text-gray-500 font-semibold uppercase mb-1">Thành viên BCH tham gia</p>
+                                ${organizersHtml}
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center shrink-0"><i data-lucide="user-x" class="w-4 h-4"></i></div>
+                            <div class="flex-1">
+                                <p class="text-xs text-gray-500 font-semibold uppercase mb-1">Không tham gia</p>
+                                ${absenteesHtml}
+                                ${event.absence_reason ? `<p class="text-xs text-red-500 mt-1 italic">Lý do: ${event.absence_reason}</p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content & Notes -->
+                <div class="space-y-6 mb-8">
+                    ${event.content ? `
+                        <div>
+                            <h3 class="font-bold text-gray-800 mb-2 text-sm uppercase tracking-wide">Nội dung chi tiết</h3>
+                            <p class="text-gray-600 text-sm leading-relaxed whitespace-pre-line bg-gray-50 p-4 rounded-xl border border-gray-100">${event.content}</p>
+                        </div>
+                    ` : ''}
+                    
+                    ${event.important_notes ? `
+                        <div class="bg-red-50 p-4 rounded-xl border border-red-100">
+                            <h3 class="font-bold text-red-700 mb-1 text-xs uppercase flex items-center gap-1"><i data-lucide="alert-circle" class="w-3 h-3"></i> Lưu ý quan trọng</h3>
+                            <p class="text-red-600 text-sm leading-relaxed">${event.important_notes}</p>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <hr class="border-gray-100 mb-8">
+
+                <!-- Progress Section (Accordion at Bottom) -->
+                <div class="mb-4">
+                    <div onclick="toggleTaskAccordion()" class="bg-white rounded-2xl p-4 border border-gray-200 cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all group select-none">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                                <i data-lucide="list-todo" class="w-4 h-4 text-blue-600"></i> Tiến độ công việc
+                            </h3>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs font-bold text-gray-500">${doneCheck}/${totalCheck} hoàn thành</span>
+                                <i id="task-accordion-icon" data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transition-transform duration-300 ${state.isTaskExpanded ? 'rotate-180' : ''}"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                            <div class="bg-blue-500 h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Inline Task List (Collapsible) -->
+                    <div id="task-accordion-container" class="${state.isTaskExpanded ? '' : 'hidden'} mt-3 space-y-3 pl-1">
+                        <!-- Tasks injected here via JS -->
+                    </div>
+                    
+                    ${state.isTaskExpanded ? `
+                        <div class="mt-3 text-center">
+                            <button onclick="router('tasks', ${event.id})" class="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline flex items-center justify-center gap-1 mx-auto">
+                                <i data-lucide="maximize-2" class="w-3 h-3"></i> Mở quản lý đầy đủ
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderChecklistInline() {
+            const container = document.getElementById('task-accordion-container');
+            if(!container) return;
+
+            const monthIdx = state.selectedMonth - 1;
+            const event = state.events[monthIdx].items.find(e => e.id === state.activeEventId);
+            if(!event) return;
+
+            if(!event.checklist || event.checklist.length === 0) {
+                container.innerHTML = `<p class="text-sm text-gray-400 italic py-2">Chưa có công việc nào. Bấm nút sửa để thêm.</p>`;
+                return;
+            }
+
+            let html = event.checklist.map((item, index) => {
+                const st = TODO_STATUS[item.status];
+                const assignee = MEMBERS.find(m => m.id == item.assigneeId);
+                
+                return `
+                    <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-2 hover:border-blue-300 transition-colors">
+                        <div class="flex items-start gap-3">
+                            <div class="mt-1.5 w-2 h-2 rounded-full ${st.bg.replace('bg-', 'bg-')} ${st.color.replace('text-', 'bg-')}"></div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-bold text-gray-800">${item.text}</p>
+                                <textarea rows="3" 
+                                    onchange="updateTaskFromInline(${index}, 'description', this.value)"
+                                    class="w-full text-xs text-gray-500 bg-gray-50 rounded-lg p-2 mt-2 outline-none focus:ring-1 focus:ring-blue-100 resize-y placeholder-gray-400"
+                                    placeholder="Mô tả chi tiết cách thực hiện...">${item.description || ''}</textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between gap-2 pl-5 mt-1">
+                            <div class="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                                ${getAvatarHTML(assignee, "w-4 h-4", "text-[8px]")}
+                                <span class="text-[10px] font-medium text-gray-600">${assignee ? assignee.name : 'Chưa giao'}</span>
+                            </div>
+                            <span class="text-[10px] font-bold px-2 py-1 rounded-md border ${st.border} ${st.bg} ${st.color}">${st.label}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+        
+        function updateTaskFromInline(index, field, value) {
+            const monthIdx = state.selectedMonth - 1;
+            const event = state.events[monthIdx].items.find(e => e.id === state.activeEventId);
+            
+            if(event && event.checklist[index]) {
+                event.checklist[index][field] = value;
+            }
+        }
+
+        // --- NEW FULL-PAGE TASK MANAGER ---
+
+        function renderTaskManager(content) {
+            let event = null;
+            let monthIdx = -1;
+            
+            // Find event
+            state.events.forEach((m, idx) => {
+                const found = m.items.find(e => e.id === state.taskId);
+                if(found) {
+                    event = found;
+                    monthIdx = idx;
+                }
+            });
+
+            if (!event) {
+                content.innerHTML = `<div class="p-8 text-center text-gray-500">Không tìm thấy sự kiện.</div>`;
+                return;
+            }
+
+            const totalCheck = event.checklist ? event.checklist.length : 0;
+            const doneCheck = event.checklist ? event.checklist.filter(c => c.status === 'completed').length : 0;
+            const percent = totalCheck > 0 ? Math.round((doneCheck/totalCheck)*100) : 0;
+
+            let html = `
+                <div class="max-w-6xl mx-auto space-y-6 fade-in pb-12 p-4 sm:p-0">
+                    <!-- Header with Back Button -->
+                    <div class="flex items-center gap-4 mb-2">
+                        <button onclick="router('month', ${monthIdx + 1})" class="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm text-gray-600">
+                            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                        </button>
+                        <h2 class="text-2xl font-bold text-gray-900 flex-1">Quản lý tiến độ công việc</h2>
+                        <button onclick="addTaskFromManager()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-500/30 flex items-center gap-2 hover:bg-blue-700 transition-colors">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Thêm việc mới
+                        </button>
+                    </div>
+
+                    <!-- Event Info Card -->
+                    <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center gap-6">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold uppercase">Sự kiện</span>
+                                <h1 class="text-xl md:text-2xl font-black text-gray-900">${event.title}</h1>
+                            </div>
+                            <div class="flex gap-4 text-sm text-gray-500 mb-4">
+                                <div class="flex items-center gap-1"><i data-lucide="calendar" class="w-4 h-4"></i> ${event.date}</div>
+                                <div class="flex items-center gap-1"><i data-lucide="clock" class="w-4 h-4"></i> ${event.time}</div>
+                            </div>
+                            <!-- Progress Bar -->
+                            <div class="w-full bg-gray-100 h-3 rounded-full overflow-hidden relative">
+                                <div class="bg-gradient-to-r from-blue-500 to-green-400 h-full rounded-full transition-all duration-700" style="width: ${percent}%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs font-bold text-gray-500 mt-2">
+                                <span>Tiến độ: ${percent}%</span>
+                                <span>${doneCheck}/${totalCheck} hoàn thành</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Task List Grid -->
+                    <div class="grid gap-4" id="task-manager-list">
+                        <!-- Tasks Injected JS -->
+                    </div>
+                    
+                    ${totalCheck === 0 ? `
+                        <div class="flex flex-col items-center justify-center py-16 bg-white rounded-3xl border border-dashed border-gray-200">
+                            <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                                <i data-lucide="list-todo" class="w-8 h-8 text-gray-300"></i>
+                            </div>
+                            <p class="text-gray-400 font-medium">Chưa có đầu việc nào.</p>
+                            <button onclick="addTaskFromManager()" class="text-blue-600 font-bold text-sm mt-2 hover:underline">Thêm ngay</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            content.innerHTML = html;
+            renderTaskManagerList(event);
+        }
+
+        function renderTaskManagerList(event) {
+            const container = document.getElementById('task-manager-list');
+            if(!container || !event.checklist || event.checklist.length === 0) return;
+
+            let html = '';
+            event.checklist.forEach((item, index) => {
+                const st = TODO_STATUS[item.status];
+                const assignee = MEMBERS.find(m => m.id == item.assigneeId);
+                
+                // Build options for status dropdown
+                const statusOptions = Object.entries(TODO_STATUS).map(([key, val]) => 
+                    `<option value="${key}" ${item.status === key ? 'selected' : ''}>${val.label}</option>`
+                ).join('');
+
+                // Build options for assignee dropdown
+                const memberOptions = MEMBERS.map(m => 
+                    `<option value="${m.id}" ${item.assigneeId == m.id ? 'selected' : ''}>${m.name}</option>`
+                ).join('');
+
+                html += `
+                    <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all group relative">
+                        <div class="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                            
+                            <!-- Status Color Indicator -->
+                            <div class="w-2 h-2 md:h-12 rounded-full ${st.bg.replace('bg-', 'bg-')} ${st.color.replace('text-', 'bg-')} shrink-0"></div>
+
+                            <!-- Content -->
+                            <div class="flex-1 w-full space-y-2">
+                                <input type="text" value="${item.text}" 
+                                    onchange="updateTaskFromManager(${index}, 'text', this.value)"
+                                    class="text-lg font-bold text-gray-800 bg-transparent outline-none border-b border-transparent focus:border-blue-200 focus:bg-blue-50/50 rounded px-1 transition-colors w-full placeholder-gray-400" placeholder="Tên công việc...">
+                                
+                                <textarea rows="3" 
+                                    onchange="updateTaskFromManager(${index}, 'description', this.value)"
+                                    class="w-full text-sm text-gray-500 bg-gray-50 rounded-lg p-3 outline-none focus:ring-1 focus:ring-blue-200 resize-y" placeholder="Mô tả chi tiết cách thực hiện...">${item.description || ''}</textarea>
+                            </div>
+
+                            <!-- Controls -->
+                            <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto min-w-[200px]">
+                                <!-- Assignee -->
+                                <div class="relative flex-1">
+                                    <div class="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                                        ${getAvatarHTML(assignee, "w-6 h-6", "text-[10px]")}
+                                    </div>
+                                    <select onchange="updateTaskFromManager(${index}, 'assigneeId', this.value)" 
+                                        class="w-full bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-xl py-2.5 pl-10 pr-8 appearance-none focus:outline-none focus:border-blue-400 cursor-pointer hover:bg-gray-50">
+                                        <option value="">-- Phụ trách --</option>
+                                        ${memberOptions}
+                                    </select>
+                                    <i data-lucide="chevron-down" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
+                                </div>
+
+                                <!-- Status -->
+                                <div class="relative flex-1">
+                                    <select onchange="updateTaskFromManager(${index}, 'status', this.value)" 
+                                        class="w-full border ${st.border} ${st.bg} ${st.color} text-sm font-bold rounded-xl py-2.5 pl-4 pr-8 appearance-none focus:outline-none cursor-pointer hover:brightness-95 transition-all">
+                                        ${statusOptions}
+                                    </select>
+                                    <i data-lucide="chevron-down" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-50 pointer-events-none"></i>
+                                </div>
+                            </div>
+                            
+                            <!-- Delete -->
+                            <button onclick="removeTaskFromManager(${index})" class="absolute top-4 right-4 md:static p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Xóa việc này">
+                                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        // --- MANAGER LOGIC ---
+
+        function updateTaskFromManager(index, field, value) {
+            // Find current event
+            let event = null;
+            state.events.forEach(m => {
+                const found = m.items.find(e => e.id === state.taskId);
+                if(found) event = found;
+            });
+            
+            if(event && event.checklist[index]) {
+                event.checklist[index][field] = value;
+                // Re-render whole page to update progress bar if status changed
+                const contentEl = document.getElementById('app-content');
+                renderTaskManager(contentEl);
+            }
+        }
+
+        function addTaskFromManager() {
+            let event = null;
+            state.events.forEach(m => {
+                const found = m.items.find(e => e.id === state.taskId);
+                if(found) event = found;
+            });
+
+            if(event) {
+                if(!event.checklist) event.checklist = [];
+                event.checklist.push({ id: Date.now(), text: "", description: "", assigneeId: "", status: 'pending' });
+                const contentEl = document.getElementById('app-content');
+                renderTaskManager(contentEl);
+                
+                // Focus logic
+                setTimeout(() => {
+                    const inputs = document.querySelectorAll('#task-manager-list input[type="text"]');
+                    if(inputs.length > 0) inputs[inputs.length - 1].focus();
+                }, 50);
+            }
+        }
+
+        function removeTaskFromManager(index) {
+            if(!confirm("Xóa đầu việc này?")) return;
+            let event = null;
+            state.events.forEach(m => {
+                const found = m.items.find(e => e.id === state.taskId);
+                if(found) event = found;
+            });
+
+            if(event) {
+                event.checklist.splice(index, 1);
+                const contentEl = document.getElementById('app-content');
+                renderTaskManager(contentEl);
+            }
+        }
+
+
+        // --- MEMBER MODAL LOGIC (Updated for Avatar Upload) ---
+        let tempAvatar = null;
+
+        function openMemberModal(memberId) {
+            const overlay = document.getElementById('modal-overlay');
+            const content = document.getElementById('modal-content');
+            
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            // Init Data
+            let isNew = true;
+            let data = { id: null, name: '', role: '', avatar: '', color: '', image: null };
+            tempAvatar = null; // Reset temp avatar
+
+            if (memberId) {
+                const existing = MEMBERS.find(m => m.id === memberId);
+                if(existing) {
+                    data = { ...existing };
+                    isNew = false;
+                    tempAvatar = data.image; // Pre-fill if editing
+                }
+            }
+
+            const avatarDisplay = tempAvatar 
+                ? `<img src="${tempAvatar}" class="w-full h-full object-cover">`
+                : `<div class="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-3xl font-bold">${data.avatar || '?'}</div>`;
+
+            content.innerHTML = `
+                <div class="flex items-center justify-between p-6 border-b border-gray-100">
+                    <h3 class="text-xl font-bold text-gray-900">${isNew ? 'Thêm Thành Viên' : 'Cập Nhật Thành Viên'}</h3>
+                    <button onclick="closeModal()" class="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"><i data-lucide="x" class="w-5 h-5 text-gray-500"></i></button>
+                </div>
+                
+                <div class="p-6 space-y-6 flex-1">
+                    <!-- Avatar Upload -->
+                    <div class="flex flex-col items-center mb-6">
+                        <div class="relative w-24 h-24 mb-3 group cursor-pointer">
+                            <div id="m-avatar-preview" class="w-full h-full rounded-full overflow-hidden border-4 border-gray-100 shadow-sm bg-gray-50">
+                                ${avatarDisplay}
+                            </div>
+                            <div class="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <i data-lucide="camera" class="text-white w-8 h-8"></i>
+                            </div>
+                            <input type="file" id="m-avatar-input" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onchange="previewAvatar(this)">
+                        </div>
+                        <span class="text-xs text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded-full cursor-pointer hover:bg-blue-100 transition-colors pointer-events-none">Chạm để đổi ảnh</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Họ và tên <span class="text-red-500">*</span></label>
+                        <input type="text" id="m-name" value="${data.name}" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-100 font-medium" placeholder="VD: Nguyễn Văn A">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Chức vụ <span class="text-red-500">*</span></label>
+                        <input type="text" id="m-role" value="${data.role}" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-100 font-medium" placeholder="VD: UV BCH">
+                    </div>
+                </div>
+
+                <div class="p-6 border-t border-gray-100 bg-gray-50 rounded-b-3xl flex gap-3">
+                    ${!isNew ? `<button onclick="deleteMember(${data.id})" class="px-6 py-3 rounded-xl font-bold text-red-500 bg-red-50 hover:bg-red-100 transition-colors">Xóa</button>` : ''}
+                    <button onclick="saveMember(${isNew ? 'null' : data.id})" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-transform active:scale-95">Lưu thông tin</button>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function previewAvatar(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    tempAvatar = e.target.result;
+                    const preview = document.getElementById('m-avatar-preview');
+                    preview.innerHTML = `<img src="${tempAvatar}" class="w-full h-full object-cover">`;
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function saveMember(memberId) {
+            const name = document.getElementById('m-name').value.trim();
+            const role = document.getElementById('m-role').value.trim();
+            
+            if(!name || !role) {
+                alert('Vui lòng điền đầy đủ thông tin!');
+                return;
+            }
+
+            const words = name.split(' ');
+            const avatarChar = words.length > 0 ? words[words.length - 1][0].toUpperCase() : 'A';
+            
+            if (memberId) {
+                const idx = MEMBERS.findIndex(m => m.id === memberId);
+                if (idx !== -1) {
+                    MEMBERS[idx].name = name;
+                    MEMBERS[idx].role = role;
+                    MEMBERS[idx].avatar = avatarChar;
+                    if(tempAvatar) MEMBERS[idx].image = tempAvatar;
+                }
+            } else {
+                const color = MEMBER_COLORS[Math.floor(Math.random() * MEMBER_COLORS.length)];
+                const newMember = {
+                    id: Date.now(),
+                    name: name,
+                    role: role,
+                    avatar: avatarChar,
+                    color: color,
+                    image: tempAvatar
+                };
+                MEMBERS.push(newMember);
+            }
+
+            closeModal();
+            render();
+        }
+
+        function deleteMember(id) {
+            if(!confirm("Xóa thành viên này?")) return;
+            const idx = MEMBERS.findIndex(m => m.id === id);
+            if (idx !== -1) MEMBERS.splice(idx, 1);
+            closeModal();
+            render();
+        }
+
+        // --- GENERAL MODAL LOGIC (EVENTS) ---
+
+        function openModal(eventId) {
+            const overlay = document.getElementById('modal-overlay');
+            const content = document.getElementById('modal-content');
+            
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            // Data Init
+            let isNew = true;
+            let data = { title: '', date: '', time: '', location: '', content: '', important_notes: '', budget: '', plan_link: '', status: 'pending', organizers: [], absentees: [], absence_reason: '', checklist: [] };
+
+            if (eventId) {
+                const monthIdx = state.selectedMonth - 1;
+                const existing = state.events[monthIdx].items.find(e => e.id === eventId);
+                if (existing) { 
+                    data = { ...existing }; 
+                    isNew = false; 
+                }
+            }
+            
+            if (data.checklist && data.checklist.length > 0 && typeof data.checklist[0].done !== 'undefined') {
+                currentChecklist = data.checklist.map(i => ({
+                    id: Date.now() + Math.random(),
+                    text: i.text,
+                    description: '', 
+                    assigneeId: null,
+                    status: i.done ? 'completed' : 'pending'
+                }));
+            } else {
+                currentChecklist = data.checklist ? JSON.parse(JSON.stringify(data.checklist)) : [];
+            }
+
+            content.innerHTML = `
+                <div class="flex items-center justify-between p-6 border-b border-gray-100">
+                    <h3 class="text-xl font-bold text-gray-900">${isNew ? 'Thêm Hoạt Động Mới' : 'Cập Nhật Hoạt Động'}</h3>
+                    <button onclick="closeModal()" class="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"><i data-lucide="x" class="w-5 h-5 text-gray-500"></i></button>
+                </div>
+                
+                <div class="p-6 overflow-y-auto custom-scroll space-y-6 flex-1">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">Tên sự kiện <span class="text-red-500">*</span></label>
+                            <input type="text" id="f-title" value="${data.title}" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-100 font-medium" placeholder="VD: Ngày hội thanh niên...">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">Ngày & Giờ</label>
+                            <div class="flex gap-2">
+                                <input type="date" id="f-date" value="${data.date}" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm">
+                                <input type="time" id="f-time" value="${data.time}" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">Địa điểm</label>
+                            <input type="text" id="f-location" value="${data.location}" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3" placeholder="Nhập địa điểm">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-3">Thành viên BCH tham gia</label>
+                            <div class="flex flex-wrap gap-2" id="organizer-list">
+                                ${MEMBERS.map(m => {
+                                    const isSelected = data.organizers.includes(m.id);
+                                    return `<button onclick="this.classList.toggle('bg-blue-600'); this.classList.toggle('text-white'); this.classList.toggle('border-blue-600'); this.classList.toggle('bg-white'); this.classList.toggle('text-gray-600'); this.classList.toggle('border-gray-200'); this.dataset.selected = this.dataset.selected === 'true' ? 'false' : 'true'" 
+                                    data-id="${m.id}" data-selected="${isSelected}"
+                                    class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${isSelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}">
+                                    ${m.name}
+                                    </button>`
+                                }).join('')}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">Kinh phí dự kiến (VNĐ)</label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-3 text-gray-400 font-bold">₫</span>
+                                <input type="text" id="f-budget" value="${data.budget || ''}" class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-8 pr-4 py-3 font-medium" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Absent Members Section -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-3">Thành viên không tham gia</label>
+                        <div class="flex flex-wrap gap-2" id="absentee-list">
+                            ${MEMBERS.map(m => {
+                                const isSelected = data.absentees && data.absentees.includes(m.id);
+                                return `<button onclick="this.classList.toggle('bg-red-500'); this.classList.toggle('text-white'); this.classList.toggle('border-red-500'); this.classList.toggle('bg-white'); this.classList.toggle('text-gray-600'); this.classList.toggle('border-gray-200'); this.dataset.selected = this.dataset.selected === 'true' ? 'false' : 'true'" 
+                                data-id="${m.id}" data-selected="${isSelected}"
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${isSelected ? 'bg-red-500 text-white border-red-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-red-50'}">
+                                ${m.name}
+                                </button>`
+                            }).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Absence Reason -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Lý do không tham gia</label>
+                        <textarea id="f-absence-reason" rows="2" class="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-100" placeholder="VD: Đi công tác, ốm, ...">${data.absence_reason || ''}</textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                             Link văn bản kế hoạch <span class="text-xs font-normal text-gray-400">(Google Drive, v.v...)</span>
+                        </label>
+                        <div class="relative">
+                             <i data-lucide="link" class="absolute left-4 top-3.5 w-4 h-4 text-gray-400"></i>
+                             <input type="text" id="f-link" value="${data.plan_link || ''}" class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-100 font-medium text-blue-600" placeholder="https://...">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Nội dung chi tiết sự kiện</label>
+                        <textarea id="f-content" rows="4" class="w-full bg-white border border-gray-200 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-blue-100" placeholder="Kịch bản, các bước thực hiện...">${data.content || ''}</textarea>
+                    </div>
+                    
+                    <!-- Advanced Checklist (Inside Modal) -->
+                    <div class="bg-blue-50/40 p-5 rounded-2xl border border-blue-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <label class="block text-sm font-bold text-blue-900 flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+                                    <i data-lucide="list-todo" class="w-5 h-5"></i>
+                                </div>
+                                Danh sách công việc
+                            </label>
+                            <button onclick="addTodo()" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-blue-700 flex items-center gap-1 shadow-sm">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Thêm việc
+                            </button>
+                        </div>
+                        
+                        <div id="checklist-container" class="space-y-3">
+                            <!-- Items injected here -->
+                        </div>
+                        
+                        <div id="empty-checklist-state" class="hidden text-center py-6 text-gray-400 text-sm">
+                            Chưa có công việc nào. Bấm "Thêm việc" để bắt đầu.
+                        </div>
+                    </div>
+
+                    <div class="bg-red-50 p-4 rounded-xl border border-red-100">
+                        <label class="block text-sm font-bold text-red-600 mb-2 flex items-center gap-2">
+                            <i data-lucide="alert-circle" class="w-4 h-4"></i> Lưu ý quan trọng
+                        </label>
+                        <textarea id="f-important" rows="2" class="w-full bg-white border border-red-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-100" placeholder="Các vấn đề cần đặc biệt chú ý...">${data.important_notes || ''}</textarea>
+                    </div>
+
+                    ${!isNew ? `
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">Trạng thái chung</label>
+                            <div class="grid grid-cols-3 gap-3">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="status" value="pending" class="peer sr-only" ${data.status === 'pending' ? 'checked' : ''}>
+                                    <div class="text-center py-2 rounded-lg border border-gray-200 text-gray-500 peer-checked:bg-gray-100 peer-checked:text-gray-900 peer-checked:border-gray-400 font-bold text-sm">Sắp tới</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="status" value="in-progress" class="peer sr-only" ${data.status === 'in-progress' ? 'checked' : ''}>
+                                    <div class="text-center py-2 rounded-lg border border-gray-200 text-gray-500 peer-checked:bg-blue-50 peer-checked:text-blue-600 peer-checked:border-blue-300 font-bold text-sm">Đang làm</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="status" value="completed" class="peer sr-only" ${data.status === 'completed' ? 'checked' : ''}>
+                                    <div class="text-center py-2 rounded-lg border border-gray-200 text-gray-500 peer-checked:bg-green-50 peer-checked:text-green-600 peer-checked:border-green-300 font-bold text-sm">Hoàn thành</div>
+                                </label>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                </div>
+
+                <div class="p-6 border-t border-gray-100 bg-gray-50 rounded-b-3xl flex gap-3">
+                    ${!isNew ? `<button onclick="deleteEvent(${eventId})" class="px-6 py-3 rounded-xl font-bold text-red-500 bg-red-50 hover:bg-red-100 transition-colors">Xóa</button>` : ''}
+                    <button onclick="saveEvent(${isNew ? 'null' : eventId})" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-transform active:scale-95">Lưu hoạt động</button>
+                </div>
+            `;
+            
+            renderChecklist();
+            lucide.createIcons();
+        }
+
+        // --- CHECKLIST & SAVE EVENT LOGIC ---
+
+        function addTodo() {
+            currentChecklist.push({ id: Date.now(), text: "", description: "", assigneeId: "", status: 'pending' });
+            renderChecklist();
+            setTimeout(() => {
+                const inputs = document.querySelectorAll('#checklist-container input');
+                if(inputs.length > 0) inputs[inputs.length - 1].focus();
+            }, 50);
+        }
+
+        function updateTodoField(index, field, value) {
+            currentChecklist[index][field] = value;
+            if(field === 'status') renderChecklist();
+        }
+
+        function removeTodo(index) {
+            currentChecklist.splice(index, 1);
+            renderChecklist();
+        }
+
+        function renderChecklist() {
+            const container = document.getElementById('checklist-container');
+            const emptyState = document.getElementById('empty-checklist-state');
+            
+            if(!container) return;
+
+            if(currentChecklist.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+            
+            container.innerHTML = currentChecklist.map((item, index) => {
+                const st = TODO_STATUS[item.status];
+                const memberOptions = MEMBERS.map(m => `<option value="${m.id}" ${item.assigneeId == m.id ? 'selected' : ''}>${m.name}</option>`).join('');
+                const statusOptions = Object.entries(TODO_STATUS).map(([key, val]) => `<option value="${key}" ${item.status === key ? 'selected' : ''}>${val.label}</option>`).join('');
+
+                return `
+                <div class="bg-white border border-gray-200 rounded-xl p-3 shadow-sm group hover:border-blue-300 transition-colors">
+                    <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center mb-2">
+                        <div class="hidden sm:block w-1 self-stretch rounded-full ${st.bg.replace('bg-', 'bg-')} ${st.color.replace('text-', 'bg-')} opacity-50"></div>
+                        <div class="flex-1 w-full">
+                            <input type="text" value="${item.text}" onchange="updateTodoField(${index}, 'text', this.value)" class="w-full font-semibold text-gray-700 placeholder-gray-400 bg-transparent outline-none focus:text-blue-700" placeholder="Nhập tên công việc...">
+                        </div>
+                        <div class="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
+                            <div class="relative col-span-1">
+                                <select onchange="updateTodoField(${index}, 'assigneeId', this.value)" class="w-full sm:w-32 text-xs font-medium border border-gray-200 bg-gray-50 text-gray-600 rounded-lg py-1.5 pl-2 pr-6 appearance-none focus:outline-none focus:border-blue-300 cursor-pointer hover:bg-white transition-colors">
+                                    <option value="">-- Phụ trách --</option>${memberOptions}
+                                </select>
+                                <i data-lucide="user" class="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none"></i>
+                            </div>
+                            <div class="relative col-span-1">
+                                <select onchange="updateTodoField(${index}, 'status', this.value)" class="w-full sm:w-28 text-xs font-bold border ${st.border} ${st.bg} ${st.color} rounded-lg py-1.5 pl-2 pr-6 appearance-none focus:outline-none cursor-pointer">
+                                    ${statusOptions}
+                                </select>
+                                <i data-lucide="chevron-down" class="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 opacity-50 pointer-events-none"></i>
+                            </div>
+                            <button onclick="removeTodo(${index})" class="absolute sm:static top-2 right-2 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all sm:opacity-0 group-hover:opacity-100">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="pl-0 sm:pl-4 mt-2 border-t border-gray-50 pt-2">
+                        <textarea rows="3" onchange="updateTodoField(${index}, 'description', this.value)" class="w-full text-xs text-gray-600 bg-gray-50 rounded-lg p-2 focus:bg-white focus:ring-1 focus:ring-blue-100 outline-none resize-y placeholder-gray-400" placeholder="Mô tả chi tiết cách thực hiện...">${item.description || ''}</textarea>
+                    </div>
+                </div>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function closeModal() {
+            const overlay = document.getElementById('modal-overlay');
+            const content = document.getElementById('modal-content');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => { overlay.classList.add('hidden'); }, 300);
+        }
+
+        function saveEvent(eventId) {
+            const title = document.getElementById('f-title').value;
+            if(!title) { alert('Vui lòng nhập tên hoạt động'); return; }
+
+            const monthIdx = state.selectedMonth ? state.selectedMonth - 1 : 0; 
+            
+            const organizers = [];
+            document.querySelectorAll('#organizer-list button').forEach(btn => {
+                if(btn.dataset.selected === 'true') organizers.push(parseInt(btn.dataset.id));
+            });
+
+            const absentees = [];
+            document.querySelectorAll('#absentee-list button').forEach(btn => {
+                if(btn.dataset.selected === 'true') absentees.push(parseInt(btn.dataset.id));
+            });
+
+            const statusInput = document.querySelector('input[name="status"]:checked');
+            
+            const newEvent = {
+                id: eventId || Date.now(),
+                title: title,
+                date: document.getElementById('f-date').value,
+                time: document.getElementById('f-time').value,
+                location: document.getElementById('f-location').value,
+                content: document.getElementById('f-content').value,
+                important_notes: document.getElementById('f-important').value,
+                absence_reason: document.getElementById('f-absence-reason').value,
+                budget: document.getElementById('f-budget').value,
+                plan_link: document.getElementById('f-link').value,
+                checklist: currentChecklist,
+                organizers: organizers,
+                absentees: absentees,
+                status: statusInput ? statusInput.value : 'pending',
+                participants: 'Đoàn viên'
+            };
+
+            if (eventId) {
+                const evIdx = state.events[monthIdx].items.findIndex(e => e.id === eventId);
+                state.events[monthIdx].items[evIdx] = { ...state.events[monthIdx].items[evIdx], ...newEvent };
+            } else {
+                state.events[monthIdx].items.push(newEvent);
+            }
+
+            closeModal();
+            render();
+            renderSidebarMonths();
+        }
+
+        function deleteEvent(eventId) {
+            if(!confirm('Xóa hoạt động này?')) return;
+            const monthIdx = state.selectedMonth - 1;
+            state.events[monthIdx].items = state.events[monthIdx].items.filter(e => e.id !== eventId);
+            state.activeEventId = null; // Clear selection
+            closeModal();
+            render();
+            renderSidebarMonths();
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
