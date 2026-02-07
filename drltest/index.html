@@ -65,7 +65,7 @@
     <div id="authModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md hidden p-4">
         <div class="bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl transform transition-all border border-slate-100 relative">
             <button id="closeAuthModal" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
-            <div class="text-center mb-6">
+            <div class="text-center mb-8">
                 <div class="bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white shadow-xl rotate-3"><i data-lucide="shield-check" class="w-8 h-8"></i></div>
                 <h2 id="authTitle" class="text-2xl md:text-3xl font-black tracking-tight text-indigo-900">Đăng Nhập</h2>
             </div>
@@ -557,7 +557,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, setDoc, getDoc, query, where, getDocs, writeBatch, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // CONFIG & HELPERS
@@ -648,16 +648,21 @@
         };
 
         const renderHospitalSelect = () => {
-            const s = el('hospitalSelect'); const val = s.value;
+            const s = el('hospitalSelect'); 
+            if(!s) return;
+            const val = s.value;
             s.innerHTML = `<option disabled selected>-- Chọn --</option>`;
             getActiveList('hospital').forEach(h => s.innerHTML+=`<option value="${h}">${h}</option>`);
             s.innerHTML += `<option value="other">➕ Thêm bệnh viện</option>`;
             if(val) s.value = val;
             
-            const m = el('manufacturer'); const mVal = m.value;
-            m.innerHTML = `<option disabled selected>-- Chọn --</option>`;
-            getActiveList('manufacturer').forEach(i => m.innerHTML+=`<option value="${i}">${i}</option>`);
-            if(mVal) m.value = mVal;
+            const m = el('manufacturer'); 
+            if(m) {
+                const mVal = m.value;
+                m.innerHTML = `<option disabled selected>-- Chọn --</option>`;
+                getActiveList('manufacturer').forEach(i => m.innerHTML+=`<option value="${i}">${i}</option>`);
+                if(mVal) m.value = mVal;
+            }
         };
 
         // --- CHECK LOGIN STATUS ---
@@ -948,6 +953,26 @@
                     el('adminPassInput').value = '';
                 } else { 
                     showToast("Sai mã!"); 
+                }
+            });
+
+            // *** FIXED: Google Login Handler ***
+            on('googleLoginBtn', 'onclick', async () => {
+                const provider = new GoogleAuthProvider();
+                try {
+                    await setPersistence(auth, browserLocalPersistence); 
+                    await signInWithPopup(auth, provider);
+                    el('authModal').classList.add('hidden');
+                    showToast("Đăng nhập thành công!");
+                } catch (err) {
+                    console.error("Google Sign-in Error:", err);
+                    if (err.code === 'auth/popup-closed-by-user') {
+                         showToast("Bạn đã đóng cửa sổ đăng nhập.");
+                    } else if (err.code === 'auth/popup-blocked') {
+                         showToast("Trình duyệt đã chặn popup. Vui lòng cho phép.");
+                    } else {
+                         showToast("Lỗi: " + err.message);
+                    }
                 }
             });
 
