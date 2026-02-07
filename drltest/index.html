@@ -32,8 +32,11 @@
         #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f8fafc; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease-out, visibility 0.5s ease-out; }
         .loader-spinner { width: 48px; height: 48px; border: 5px solid #e2e8f0; border-bottom-color: #4f46e5; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite; }
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* Toast */
-        #toast { position: fixed; bottom: 2rem; right: 2rem; z-index: 120; transition: all 0.5s; }
+        /* Toast - Adjusted to fit content */
+        #toast { 
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            z-index: 150; pointer-events: none; transition: all 0.3s;
+        }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -550,9 +553,9 @@
     </div>
 
     <!-- Toast -->
-    <div id="toast" class="fixed bottom-10 right-10 p-4 bg-white border border-slate-100 rounded-[1.5rem] shadow-2xl z-[120] transform translate-y-20 opacity-0 pointer-events-none transition-all duration-500 flex items-center gap-4 text-slate-900 font-black">
-        <div class="p-3 rounded-xl bg-indigo-50 text-indigo-600"><i data-lucide="check" class="w-5 h-5"></i></div>
-        <p id="toastMessage" class="text-[10px] uppercase tracking-tight"></p>
+    <div id="toast" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-8 py-4 bg-white border border-indigo-50 rounded-2xl shadow-2xl z-[150] opacity-0 scale-90 pointer-events-none transition-all duration-300 flex items-center gap-3">
+        <div class="p-2 rounded-full bg-emerald-100 text-emerald-600"><i data-lucide="check" class="w-5 h-5"></i></div>
+        <p id="toastMessage" class="text-xs font-black text-slate-800 uppercase tracking-widest"></p>
     </div>
 
     <script type="module">
@@ -600,7 +603,17 @@
         const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getFirestore(app); const appId = 'wb-idr';
         const el = (id) => document.getElementById(id);
         const setText = (id, val) => { const e = el(id); if(e) e.textContent = val; };
-        const showToast = (msg) => { setText('toastMessage', msg); el('toast').classList.remove('translate-y-20', 'opacity-0'); setTimeout(() => el('toast').classList.add('translate-y-20', 'opacity-0'), 3000); };
+        
+        // UPDATED SHOW TOAST FUNCTION
+        const showToast = (msg) => { 
+            setText('toastMessage', msg); 
+            const t = el('toast'); 
+            if(t) {
+                t.classList.remove('opacity-0', 'scale-90', 'pointer-events-none'); 
+                setTimeout(() => t.classList.add('opacity-0', 'scale-90', 'pointer-events-none'), 2000); 
+            }
+        };
+        
         const on = (id, event, fn) => { const e = el(id); if (e) e[event] = fn; }; // Safe event binding helper
 
         const normalCDF = (x) => { const t = 1/(1+.2316419*Math.abs(x)); const d = .3989423*Math.exp(-x*x/2); return x>=0 ? 1-(d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))))) : 1- (1-(d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274)))))); }; 
@@ -1045,7 +1058,7 @@
                     userEmail: user && !user.isAnonymous ? user.email : 'Administrator',
                     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
                 });
-                showToast("Đã lưu!");
+                showToast("Đã lưu dữ liệu thành công!");
                 ['patientId','age','yob','weight','height','bmi','ctdi','dlp'].forEach(id=>{const elem=el(id); if(elem) elem.value='';});
             });
             lucide.createIcons();
