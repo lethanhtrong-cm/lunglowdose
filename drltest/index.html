@@ -465,7 +465,33 @@
         const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getFirestore(app); const appId = 'wb-idr';
         const el = (id) => document.getElementById(id);
         const setText = (id, val) => { const e = el(id); if(e) e.textContent = val; };
-        const showToast = (msg) => { setText('toastMessage', msg); const t = el('toast'); if(t) { t.classList.remove('opacity-0', 'scale-90', 'pointer-events-none'); setTimeout(() => t.classList.add('opacity-0', 'scale-90', 'pointer-events-none'), 2000); } };
+        
+        // --- UPDATED: Enhanced Toast Function ---
+        const showToast = (msg, type = 'success') => {
+            setText('toastMessage', msg);
+            const t = el('toast');
+            if(t) {
+                const iconContainer = t.querySelector('div');
+                const icon = t.querySelector('i');
+                
+                // Reset classes
+                iconContainer.className = 'p-4 rounded-full shadow-sm mb-1 transition-colors';
+                
+                if (type === 'error') {
+                    iconContainer.classList.add('bg-red-100', 'text-red-600');
+                    icon.setAttribute('data-lucide', 'alert-circle');
+                } else {
+                    iconContainer.classList.add('bg-emerald-100', 'text-emerald-600');
+                    icon.setAttribute('data-lucide', 'check');
+                }
+                lucide.createIcons();
+
+                t.classList.remove('opacity-0', 'scale-90', 'pointer-events-none');
+                setTimeout(() => t.classList.add('opacity-0', 'scale-90', 'pointer-events-none'), 2000);
+            }
+        };
+        // ----------------------------------------
+
         const on = (id, ev, fn) => { const e = el(id); if(e) e[ev] = fn; };
         const normalCDF = (x) => { const t = 1/(1+.2316419*Math.abs(x)); const d = .3989423*Math.exp(-x*x/2); return x>=0 ? 1-(d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))))) : 1- (1-(d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274)))))); };
         const calcStats = (arr, ref=0) => { if(!arr.length) return {mean:0, sd:0, median:0, p75:0, p:1}; const n=arr.length, s=arr.sort((a,b)=>a-b), mean=arr.reduce((a,b)=>a+b,0)/n; const sd=n>1?Math.sqrt(arr.reduce((a,b)=>a+Math.pow(b-mean,2),0)/(n-1)):0; const p= (sd>0&&n>1&&ref>0) ? 2*(1-normalCDF(Math.abs((mean-ref)/(sd/Math.sqrt(n))))) : 1; return { mean, sd, median: s[Math.floor(n*0.5)], p75: s[Math.floor(n*0.75)]||s[n-1], p }; };
@@ -697,8 +723,8 @@
         window.moveManu = async (n, d) => { let active = getActiveList('manufacturer'); const i = active.indexOf(n); if (i===-1||(i===0&&d===-1)||(i===active.length-1&&d===1)) return; [active[i], active[i+d]] = [active[i+d], active[i]]; manufacturerOrder = active; await saveManuConfig(); renderManufacturerManagementModal(); renderHospitalSelect(); }
         window.softDeleteManu = async (n) => { deletedManufacturers.add(n); await saveManuConfig(); renderManufacturerManagementModal(); renderHospitalSelect(); }
         window.restoreManu = async (n) => { deletedManufacturers.delete(n); await saveManuConfig(); renderManufacturerManagementModal(); renderHospitalSelect(); }
-        window.editHosp = async (o) => { const n = prompt("Tên mới:", o); if (!n || n === o || n.trim() === "") return; if (getActiveList('hospital').includes(n.trim())) return alert("Đã tồn tại!"); if (customHospitals.has(o)) customHospitals.delete(o); else deletedHospitals.add(o); customHospitals.add(n.trim()); const idx = hospitalOrder.indexOf(o); if (idx !== -1) hospitalOrder[idx] = n.trim(); await saveHospConfig(); renderHospitalManagementModal(); renderHospitalSelect(); }
-        window.editManu = async (o) => { const n = prompt("Tên mới:", o); if (!n || n === o || n.trim() === "") return; if (getActiveList('manufacturer').includes(n.trim())) return alert("Đã tồn tại!"); if (customManufacturers.has(o)) customManufacturers.delete(o); else deletedManufacturers.add(o); customManufacturers.add(n.trim()); const idx = manufacturerOrder.indexOf(o); if (idx !== -1) manufacturerOrder[idx] = n.trim(); await saveManuConfig(); renderManufacturerManagementModal(); renderHospitalSelect(); }
+        window.editHosp = async (o) => { const n = prompt("Tên mới:", o); if (!n || n === o || n.trim() === "") return; if (getActiveList('hospital').includes(n.trim())) return showToast("Đã tồn tại!", 'error'); if (customHospitals.has(o)) customHospitals.delete(o); else deletedHospitals.add(o); customHospitals.add(n.trim()); const idx = hospitalOrder.indexOf(o); if (idx !== -1) hospitalOrder[idx] = n.trim(); await saveHospConfig(); renderHospitalManagementModal(); renderHospitalSelect(); }
+        window.editManu = async (o) => { const n = prompt("Tên mới:", o); if (!n || n === o || n.trim() === "") return; if (getActiveList('manufacturer').includes(n.trim())) return showToast("Đã tồn tại!", 'error'); if (customManufacturers.has(o)) customManufacturers.delete(o); else deletedManufacturers.add(o); customManufacturers.add(n.trim()); const idx = manufacturerOrder.indexOf(o); if (idx !== -1) manufacturerOrder[idx] = n.trim(); await saveManuConfig(); renderManufacturerManagementModal(); renderHospitalSelect(); }
 
         window.selectRefStandard = (s) => { currentStandardName = s; const d = DRL_STANDARDS[s], active = el('protocol').value; if (d && d[active]) { el('manualRefCtdi').value = d[active].ctdi75; el('manualRefDlp').value = d[active].dlp75; document.querySelectorAll('.drl-row').forEach(r => r.classList.toggle('active', r.dataset.std === s)); renderDashboard(); } }
         function updateRefStandardTable() { const a = el('protocol').value, b = el('refStandardTableBody'); if(!b) return; b.innerHTML = ''; Object.entries(DRL_STANDARDS).forEach(([n, d]) => { const v = d[a] || { ctdi75: '-', ctdi50: '-', dlp75: '-', dlp50: '-' }; const tr = document.createElement('tr'); tr.className = `drl-row hover:bg-indigo-50 cursor-pointer transition-colors ${n === currentStandardName ? 'active' : ''}`; tr.dataset.std = n; tr.onclick = () => window.selectRefStandard(n); tr.innerHTML = `<td class="px-3 py-2 font-bold border-r border-indigo-50">${n}</td><td class="px-2 py-2 text-center text-slate-500 border-r border-indigo-50 bg-slate-50/30">${v.ctdi50}</td><td class="px-2 py-2 text-center text-indigo-600 font-black border-r border-indigo-50 bg-indigo-50/30">${v.ctdi75}</td><td class="px-2 py-2 text-center text-slate-500 border-r border-indigo-50 bg-slate-50/30">${v.dlp50}</td><td class="px-2 py-2 text-center text-amber-600 font-black bg-amber-50/30">${v.dlp75}</td>`; b.appendChild(tr); }); }
@@ -782,7 +808,7 @@
             });
             on('hospitalSelect', 'onchange', (e) => el('customHospitalName').classList.toggle('hidden', e.target.value !== 'other'));
             on('btnToggleRef', 'onclick', () => { el('refConfigContent').classList.toggle('hidden'); el('refChevron').classList.toggle('rotate-180'); });
-            on('authForm', 'onsubmit', async(e) => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, el('authEmail').value, el('authPassword').value); el('authModal').classList.add('hidden'); } catch(err){ alert(err.message); } });
+            on('authForm', 'onsubmit', async(e) => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, el('authEmail').value, el('authPassword').value); el('authModal').classList.add('hidden'); } catch(err){ showToast(err.message, 'error'); } });
             on('navLogoutBtn', 'onclick', () => { isAdmin = false; localStorage.removeItem('vnDrlAdmin'); signOut(auth); location.reload(); });
             const userBtn = el('userMenuBtn'), userDrop = el('userDropdown');
             if(userBtn) userBtn.onclick = (e) => { e.stopPropagation(); userDrop.classList.toggle('hidden'); };
@@ -790,8 +816,8 @@
             on('openAdminLogin', 'onclick', () => { el('authModal').classList.add('hidden'); el('adminAuthModal').classList.remove('hidden'); el('adminPassInput').focus(); });
             on('requestAdminBtn', 'onclick', () => { el('adminAuthModal').classList.remove('hidden'); userDrop.classList.add('hidden'); el('adminPassInput').focus(); });
             on('btnAdminAccess', 'onclick', () => { el('authModal').classList.add('hidden'); el('adminAuthModal').classList.remove('hidden'); el('adminPassInput').focus(); });
-            on('adminAuthForm', 'onsubmit', (e) => { e.preventDefault(); if (el('adminPassInput').value === ADMIN_PASSWORD) { isAdmin = true; localStorage.setItem('vnDrlAdmin', 'true'); checkLoginStatus(); showToast("Đã kích hoạt quyền ADMIN!"); el('adminAuthModal').classList.add('hidden'); el('adminPassInput').value = ''; } else { showToast("Sai mã!"); } });
-            on('googleLoginBtn', 'onclick', async () => { const provider = new GoogleAuthProvider(); try { await setPersistence(auth, browserLocalPersistence); await signInWithPopup(auth, provider); el('authModal').classList.add('hidden'); } catch (err) { if (err.code !== 'auth/popup-closed-by-user') showToast("Lỗi: " + err.message); } });
+            on('adminAuthForm', 'onsubmit', (e) => { e.preventDefault(); if (el('adminPassInput').value === ADMIN_PASSWORD) { isAdmin = true; localStorage.setItem('vnDrlAdmin', 'true'); checkLoginStatus(); showToast("Đã kích hoạt quyền ADMIN!"); el('adminAuthModal').classList.add('hidden'); el('adminPassInput').value = ''; } else { showToast("Sai mã!", 'error'); } });
+            on('googleLoginBtn', 'onclick', async () => { const provider = new GoogleAuthProvider(); try { await setPersistence(auth, browserLocalPersistence); await signInWithPopup(auth, provider); el('authModal').classList.add('hidden'); } catch (err) { if (err.code !== 'auth/popup-closed-by-user') showToast("Lỗi: " + err.message, 'error'); } });
             on('btnManageHospitals', 'onclick', () => { if(!isAdmin) { el('authModal').classList.add('hidden'); el('adminAuthModal').classList.remove('hidden'); el('adminPassInput').focus(); return; } renderHospitalManagementModal(); el('hospitalManageModal').classList.remove('hidden'); });
             on('btnManageManufacturers', 'onclick', () => { if(!isAdmin) { el('authModal').classList.add('hidden'); el('adminAuthModal').classList.remove('hidden'); el('adminPassInput').focus(); return; } renderManufacturerManagementModal(); el('manufacturerManageModal').classList.remove('hidden'); });
             on('addHospitalForm', 'onsubmit', async (e) => { e.preventDefault(); const n=el('newHospitalName').value.trim(); if(n && !getActiveList('hospital').includes(n)) { customHospitals.add(n); await saveHospConfig(); el('newHospitalName').value=''; renderHospitalManagementModal(); renderHospitalSelect(); } });
@@ -802,18 +828,30 @@
             const updateBMI = () => { const w=parseFloat(el('weight').value), h=parseFloat(el('height').value)/100; if(w>0&&h>0) el('bmi').value=(w/(h*h)).toFixed(1); else el('bmi').value=''; };
             el('weight').addEventListener('input',updateBMI); el('height').addEventListener('input',updateBMI);
             on('importExcelInput', 'onchange', (e) => {
-                if(!isAdmin && (!user || user.isAnonymous)) return showToast("Cần đăng nhập!");
+                if(!isAdmin && (!user || user.isAnonymous)) return showToast("Cần đăng nhập!", 'error');
                 const r = new FileReader(); r.onload = async(evt) => {
                     const wb = XLSX.read(evt.target.result, {type:'array'}), data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
                     for(const row of data) { await addDoc(collection(db,'artifacts',appId,'public','data','drl_entries'), { hospitalName: row['Bệnh viện']||'Imported', protocol: row['Protocol']||'Sọ não (Head)', manufacturer: row['Hãng máy']||'', patientId: String(row['ID Bệnh nhân']||Date.now()), age: row['Tuổi']||0, gender: row['Giới tính']||'M', weight: row['Cân nặng']||0, height: row['Chiều cao']||0, doseModulation: row['Modulation']||'Có', ctdi: row['CTDIvol']||0, dlp: row['DLP']||0, userId: user ? user.uid : 'admin', userEmail: user ? user.email : 'Administrator', createdAt: new Date().toISOString() }); }
-                    showToast("Đã import!");
+                    showToast("Đã import thành công!");
                 }; r.readAsArrayBuffer(e.target.files[0]);
             });
             on('drlForm', 'onsubmit', async(e) => {
                 e.preventDefault();
-                // Removed approval check
+                
+                // --- NEW: Enhanced Validation ---
+                const protocol = el('protocol').value;
+                const manuf = el('manufacturer').value;
+                const ctdi = el('ctdi').value;
+                const dlp = el('dlp').value;
+
+                if (!protocol || protocol === '-- Chọn --') return showToast("Vui lòng chọn Protocol!", 'error');
+                if (!manuf || manuf === '-- Chọn --') return showToast("Vui lòng chọn Hãng máy!", 'error');
+                if (!ctdi) return showToast("Vui lòng nhập chỉ số CTDIvol!", 'error');
+                if (!dlp) return showToast("Vui lòng nhập chỉ số DLP!", 'error');
+                // --------------------------------
+
                 const hVal = el('hospitalSelect').value;
-                await addDoc(collection(db,'artifacts',appId,'public','data','drl_entries'), { hospitalName: hVal==='other'?el('customHospitalName').value:hVal, manufacturer: el('manufacturer').value, protocol: el('protocol').value, patientId: el('patientId').value, scanDate: el('scanDate').value, age: el('age').value, gender: el('gender').value, weight: el('weight').value, height: el('height').value, doseModulation: document.querySelector('input[name="doseModulation"]:checked').value, ctdi: el('ctdi').value, dlp: el('dlp').value, kvp: el('kvp').value, mas: el('mas').value, userId: user ? user.uid : 'admin-override', userEmail: user && !user.isAnonymous ? user.email : 'Administrator', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+                await addDoc(collection(db,'artifacts',appId,'public','data','drl_entries'), { hospitalName: hVal==='other'?el('customHospitalName').value:hVal, manufacturer: manuf, protocol: protocol, patientId: el('patientId').value, scanDate: el('scanDate').value, age: el('age').value, gender: el('gender').value, weight: el('weight').value, height: el('height').value, doseModulation: document.querySelector('input[name="doseModulation"]:checked').value, ctdi: ctdi, dlp: dlp, kvp: el('kvp').value, mas: el('mas').value, userId: user ? user.uid : 'admin-override', userEmail: user && !user.isAnonymous ? user.email : 'Administrator', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
                 showToast("Đã lưu dữ liệu thành công!");
                 ['patientId','age','yob','weight','height','bmi','ctdi','dlp','kvp','mas'].forEach(id=>{if(el(id)) el(id).value='';});
             });
