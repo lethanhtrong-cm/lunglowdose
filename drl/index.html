@@ -559,13 +559,40 @@
              return base;
         }
 
+        // --- NEW: Anonymization Helpers ---
+        const getHospitalAliasMap = () => {
+            const all = getActiveList('hospital').sort((a,b) => a.localeCompare(b));
+            const map = {};
+            all.forEach((h, i) => { map[h] = `Cơ sở ẩn danh #${i + 1}`; });
+            return map;
+        };
+
+        const getMyHospitals = () => {
+            if (!user) return new Set();
+            const mySet = new Set();
+            entries.forEach(e => { if (e.userId === user.uid) mySet.add(e.hospitalName); });
+            return mySet;
+        };
+        // ----------------------------------
+
         function renderHospitalSelect() {
             const s = el('hospitalSelect'); if(!s) return;
             const savedHosp = localStorage.getItem('drl_saved_hospitalSelect');
             const val = (s.value && s.value !== '-- Chọn --') ? s.value : savedHosp;
             
             s.innerHTML = `<option disabled ${!val ? 'selected' : ''}>-- Chọn --</option>`;
-            getActiveList('hospital').forEach(h => s.innerHTML+=`<option value="${h}" ${h===val?'selected':''}>${h}</option>`);
+            
+            let displayList = [];
+            if (isAdmin) {
+                // Admin sees everything
+                displayList = getActiveList('hospital');
+            } else {
+                // User sees only their own hospitals
+                const myHospitals = getMyHospitals(); // Returns Set of names
+                displayList = Array.from(myHospitals).sort((a,b) => a.localeCompare(b));
+            }
+
+            displayList.forEach(h => s.innerHTML+=`<option value="${h}" ${h===val?'selected':''}>${h}</option>`);
             s.innerHTML += `<option value="other">➕ Thêm bệnh viện</option>`;
             
             if(val === 'other') el('customHospitalName').classList.remove('hidden');
@@ -723,11 +750,28 @@
                 setText(prefix+'Dlp75', sDlp.p75.toFixed(1)); setText(prefix+'DlpP', sDlp.p<0.001?'<0.001':sDlp.p.toFixed(3));
             };
             ['Sọ não không thuốc (Head)', 'Ngực không thuốc (Chest)', 'Bụng không thuốc (Abdomen)', 'Phổi liều thấp (LDCT)'].forEach((n,i)=>updateCard(n,['head','chest','abd','ldct'][i]));
+            
+            // --- UPDATED: Hospital Anonymization Logic ---
             const tbody = el('progressTableBody'); if (tbody) {
-                tbody.innerHTML = ''; let active = getActiveList('hospital');
+                tbody.innerHTML = ''; 
+                let active = getActiveList('hospital');
+                const aliasMap = getHospitalAliasMap();
+                const myHospitals = getMyHospitals();
+
                 active.map(h => ({ name: h, total: entries.filter(e => e.hospitalName === h).length })).sort((a,b)=>a.total-b.total).forEach(item => {
                     const row = document.createElement('tr'); row.className = "hover:bg-slate-50 transition-colors border-b border-slate-50";
-                    let html = `<td class="p-3 font-bold text-slate-700 text-xs border-r border-slate-50 sticky left-0 bg-white z-10">${item.name}</td>`;
+                    
+                    // Determine Display Name
+                    let displayName = aliasMap[item.name] || item.name;
+                    if (isAdmin || myHospitals.has(item.name)) {
+                        displayName = item.name; // Show Real Name
+                        if (isAdmin && aliasMap[item.name]) {
+                             // Optional: Show alias for admin context
+                             displayName += ` <span class="text-[9px] text-slate-400 font-normal">(${aliasMap[item.name]})</span>`;
+                        }
+                    }
+
+                    let html = `<td class="p-3 font-bold text-slate-700 text-xs border-r border-slate-50 sticky left-0 bg-white z-10">${displayName}</td>`;
                     THAI_DRL_PROTOCOLS.forEach(p => {
                         const kw = p.name.includes('Head') ? 'Head' : (p.name.includes('Chest') ? 'Chest' : (p.name.includes('Abdomen') ? 'Abdomen' : 'LDCT'));
                         const count = entries.filter(e => e.hospitalName === item.name && e.protocol && e.protocol.includes(kw)).length;
@@ -737,6 +781,8 @@
                     row.innerHTML = html; tbody.appendChild(row);
                 });
             }
+            // ---------------------------------------------
+
             const mCounts={}; entries.forEach(e=>{ let m=e.manufacturer||'Unk'; if(m.toLowerCase().startsWith('ge')) m='GE HealthCare'; mCounts[m]=(mCounts[m]||0)+1; });
             const totalM = Object.values(mCounts).reduce((a,b)=>a+b,0);
             if(pieChartInstance) pieChartInstance.destroy();
