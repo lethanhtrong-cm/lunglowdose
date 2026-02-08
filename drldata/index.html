@@ -1057,15 +1057,49 @@
             setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200);
         };
 
+        // NEW: Helper to group protocols for filter dropdown consistency
+        const getProtocolGroup = (p) => {
+            if (!p) return 'Khác';
+            const lower = p.toLowerCase();
+            // 1. Sọ não (Head) - Consolidate all variants
+            if (lower.includes('sọ') || lower.includes('head') || lower.includes('brain') || lower.includes('não')) return 'Sọ não (Head Routine)';
+            
+            // 2. Ngực (Chest)
+            if ((lower.includes('ngực') || lower.includes('chest') || lower.includes('thorax') || lower.includes('phổi')) && !lower.includes('low') && !lower.includes('thấp') && !lower.includes('ldct')) return 'Ngực (Chest Routine)';
+            
+            // 3. Bụng (Abdomen)
+            if (lower.includes('bụng') || lower.includes('abdomen') || lower.includes('abd')) return 'Bụng (Abdomen Routine)';
+            
+            // 4. Phổi liều thấp (LDCT)
+            if (lower.includes('low') || lower.includes('thấp') || lower.includes('ldct')) return 'Phổi liều thấp (LDCT)';
+            
+            // 5. Spine - Explicitly identify but will be filtered out
+            if (lower.includes('spine') || lower.includes('cột sống')) return 'Spine';
+            
+            return p; // Fallback
+        };
+
         function populateFilters() {
             const h = [...new Set(entries.map(e => e.hospitalName).filter(Boolean))].sort();
             const m = [...new Set(entries.map(e => e.manufacturer).filter(Boolean))].sort();
-            const p = [...new Set(entries.map(e => e.protocol).filter(Boolean))].sort();
+            
+            // UPDATED: Logic for Protocol Filter
+            const protocolGroups = new Set();
+            entries.forEach(e => {
+                const group = getProtocolGroup(e.protocol);
+                // Exclude 'Spine' from the dropdown list
+                if (group !== 'Spine' && !group.toLowerCase().includes('spine')) {
+                    protocolGroups.add(group);
+                }
+            });
+            const p = [...protocolGroups].sort();
+
             const fill = (id, arr) => { 
                 const s = el(id); const v = s.value; 
                 s.innerHTML = '<option value="all">Tất cả</option>'; 
                 arr.forEach(i => s.innerHTML += `<option value="${i}">${i}</option>`); 
-                s.value = v; 
+                // Preserve selection if valid, else reset
+                if (arr.includes(v)) s.value = v; else s.value = 'all';
             };
             fill('fHosp', h); fill('fManu', m); fill('fProt', p);
         }
@@ -1178,7 +1212,12 @@
             // Apply other filters
             filtered = filtered.filter(e => {
                 if (fH !== 'all' && e.hospitalName !== fH) return false;
-                if (fP !== 'all' && e.protocol !== fP) return false;
+                
+                // UPDATED: Use grouped protocol for filtering
+                if (fP !== 'all') {
+                    if (getProtocolGroup(e.protocol) !== fP) return false;
+                }
+                
                 if (fM !== 'all' && e.manufacturer !== fM) return false;
                 if (fG !== 'all') {
                     if (fG === 'M' && e.gender !== 'M' && e.gender !== 'Nam') return false;
