@@ -1,1 +1,1311 @@
 
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VN-DRL Study - Dashboard & Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: { 850: '#1e293b' } // Custom dark shade
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #334155; display: flex; flex-direction: column; min-height: 100vh; transition: background-color 0.3s, color 0.3s; }
+        
+        /* Dark Mode Transitions */
+        .dark body { background: #0f172a; color: #cbd5e1; }
+        .dark .glass-card { background: #1e293b; border-color: #334155; }
+        .dark .stat-card { background: #1e293b; border-color: #334155; }
+        .dark .stat-value-big { color: #f1f5f9; }
+        .dark select, .dark input { background-color: #1e293b; border-color: #475569; color: #f1f5f9; }
+        .dark tr.hover\:bg-indigo-50\/50:hover { background-color: rgba(55, 65, 81, 0.5); }
+        .dark .table-header { background: #0f172a; }
+        .dark .border-slate-200 { border-color: #334155; }
+        .dark .text-slate-700 { color: #e2e8f0; }
+        .dark .text-slate-600 { color: #cbd5e1; }
+        .dark .text-slate-500 { color: #94a3b8; }
+        .dark .text-slate-400 { color: #64748b; }
+        .dark .bg-white { background-color: #1e293b; }
+        .dark .bg-slate-50 { background-color: #0f172a; }
+        .dark .filter-stat-card { background-color: #1e293b; border-color: #334155; }
+
+        .glass-card { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); border: 1px solid #e2e8f0; }
+        
+        /* Updated Stat Card Styles */
+        .stat-card { background: white; border-radius: 1rem; padding: 1.5rem; position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .stat-card::after { content: ""; position: absolute; top: 0; right: 0; width: 80px; height: 80px; background: radial-gradient(circle at top right, rgba(255,255,255,0.8), transparent); opacity: 0.5; pointer-events: none; }
+        .dark .stat-card::after { background: radial-gradient(circle at top right, rgba(255,255,255,0.1), transparent); }
+
+        /* Dynamic Filtered Stats Card */
+        .filter-stat-card { background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1rem; display: flex; flex-direction: column; transition: all 0.2s; position: relative; overflow: hidden; height: 100%; }
+        .filter-stat-card:hover { border-color: #cbd5e1; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05); }
+        .dark .filter-stat-card:hover { border-color: #475569; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); }
+
+        .stat-label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+        .stat-value-big { font-size: 2rem; font-weight: 900; line-height: 1; letter-spacing: -0.05em; margin-bottom: 0.25rem; }
+        
+        /* Small stats box inside card */
+        .stats-detail-box { background-color: rgba(241, 245, 249, 0.6); border-radius: 0.5rem; padding: 0.5rem; margin-top: auto; border: 1px solid rgba(226, 232, 240, 0.8); }
+        .dark .stats-detail-box { background-color: rgba(15, 23, 42, 0.6); border-color: #334155; }
+        
+        .stats-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; line-height: 1.25rem; }
+        .stats-row-label { color: #64748b; font-weight: 600; text-transform: uppercase; }
+        .dark .stats-row-label { color: #94a3b8; }
+        .stats-row-val { font-weight: 700; color: #334155; font-family: 'Inter', monospace; }
+        .dark .stats-row-val { color: #e2e8f0; }
+
+        .custom-checkbox { appearance: none; background-color: #fff; width: 1.2em; height: 1.2em; border: 2px solid #cbd5e1; border-radius: 0.25em; display: grid; place-content: center; cursor: pointer; }
+        .dark .custom-checkbox { background-color: #1e293b; border-color: #475569; }
+        .custom-checkbox:checked { background-color: #4f46e5; border-color: #4f46e5; }
+        .custom-checkbox:checked::before { content: ""; width: 0.65em; height: 0.65em; box-shadow: inset 1em 1em white; transform-origin: center; clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%); }
+        tr.row-selected { background-color: #eef2ff !important; }
+        .dark tr.row-selected { background-color: rgba(67, 56, 202, 0.2) !important; }
+        
+        .page-btn { padding: 0.35rem 0.75rem; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 700; transition: all 0.2s; border: 1px solid #e2e8f0; background: white; }
+        .dark .page-btn { background: #1e293b; border-color: #334155; color: #cbd5e1; }
+        .page-btn:hover:not(:disabled) { border-color: #4f46e5; color: #4f46e5; }
+        .page-btn.active { background-color: #4f46e5; color: white; border-color: #4f46e5; }
+        
+        .table-header { background: #1e1b4b; color: white; }
+        .dark .table-header { background: #312e81; }
+        .table-header th { font-weight: 600; letter-spacing: 0.05em; font-size: 0.7rem; text-transform: uppercase; }
+        
+        .badge-protocol { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; font-weight: 700; font-size: 0.65rem; padding: 0.25rem 0.5rem; border-radius: 0.375rem; text-transform: uppercase; letter-spacing: 0.025em; }
+        .dark .badge-protocol { background: #0f172a; color: #94a3b8; border-color: #334155; }
+        
+        .badge-dose { background: #ecfdf5; color: #047857; font-weight: 800; padding: 0.25rem 0.5rem; border-radius: 0.375rem; border: 1px solid #d1fae5; }
+        .dark .badge-dose { background: rgba(6, 78, 59, 0.4); color: #34d399; border-color: rgba(6, 78, 59, 0.5); }
+        
+        .badge-dose-high { background: #fff1f2; color: #be123c; border: 1px solid #ffe4e6; }
+        .dark .badge-dose-high { background: rgba(136, 19, 55, 0.4); color: #fb7185; border-color: rgba(136, 19, 55, 0.5); }
+        
+        .badge-base { font-weight: 800; font-size: 0.65rem; padding: 0.25rem 0.5rem; border-radius: 0.375rem; text-transform: uppercase; letter-spacing: 0.025em; border: 1px solid transparent; }
+
+        /* Status Badge */
+        .status-pending { background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; }
+        .dark .status-pending { background: rgba(154, 52, 18, 0.2); color: #fdba74; border-color: rgba(154, 52, 18, 0.4); }
+        .status-approved { background: #f0fdf4; color: #15803d; border: 1px solid #dcfce7; }
+        .dark .status-approved { background: rgba(22, 101, 52, 0.2); color: #86efac; border-color: rgba(22, 101, 52, 0.4); }
+        .status-rejected { background: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2; }
+        .dark .status-rejected { background: rgba(153, 27, 27, 0.2); color: #fca5a5; border-color: rgba(153, 27, 27, 0.4); }
+
+        /* Tab Buttons */
+        .tab-btn { @apply px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wide transition-all; }
+        .tab-btn-active { background-color: #4f46e5; color: white; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3); }
+        .tab-btn-inactive { @apply text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200; }
+    </style>
+    <script>
+        // Init Theme
+        if (localStorage.theme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+</head>
+<body class="antialiased font-inter bg-slate-50/50 dark:bg-slate-900 transition-colors duration-300">
+    <!-- Header -->
+    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 shadow-sm backdrop-blur-md bg-white/90 dark:bg-slate-900/90 transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-indigo-600 p-2.5 rounded-xl text-white shadow-lg shadow-indigo-500/30"><i data-lucide="activity" class="w-5 h-5"></i></div>
+                    <div>
+                        <h1 class="font-black text-lg text-slate-800 dark:text-white uppercase tracking-tight leading-none">VN-DRL <span class="text-indigo-600 dark:text-indigo-400">STUDY</span></h1>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">National Database</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <!-- Navigation Links -->
+                    <div id="mainNav" class="hidden md:flex gap-3 items-center">
+                        <a href="https://vnrad.tech/drl" class="px-4 py-2.5 bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-400 rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white transition-all shadow-sm hover:shadow-indigo-300 hover:-translate-y-0.5 active:translate-y-0">
+                            <i data-lucide="layout-dashboard" class="w-4 h-4"></i> 
+                            <span class="uppercase tracking-wide">Dashboard</span>
+                        </a>
+                        <a href="https://vnrad.tech/chart" class="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-xs flex items-center gap-2 hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0">
+                            <i data-lucide="bar-chart-2" class="w-4 h-4"></i> 
+                            <span class="uppercase tracking-wide">Biểu đồ</span>
+                        </a>
+                    </div>
+                    
+                    <div class="h-8 w-px bg-slate-200 dark:bg-slate-700 hidden md:block"></div>
+                    
+                    <!-- Dark Mode Toggle -->
+                    <button onclick="toggleTheme()" class="p-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Chuyển chế độ Sáng/Tối">
+                        <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                        <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
+                    </button>
+    
+                    <!-- Admin Button -->
+                    <button id="authBtn" class="px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 border transition-all duration-300 shadow-md transform active:scale-95 bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 hover:text-white">
+                        <i data-lucide="lock" class="w-4 h-4"></i>
+                        <span class="uppercase tracking-wide">Admin Access</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Admin Tabs (Visible only to Admin) -->
+            <div id="adminTabs" class="hidden mt-4 pt-2 border-t border-slate-100 dark:border-slate-800 flex gap-2">
+                <button onclick="switchTab('dashboard')" id="tabDashboard" class="px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wide transition-all bg-indigo-600 text-white shadow-md shadow-indigo-500/30">Dashboard</button>
+                <button onclick="switchTab('users')" id="tabUsers" class="px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wide transition-all text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200">Quản lý tài khoản <span id="pendingCount" class="ml-1 px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[9px] hidden">0</span></button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl mx-auto w-full p-4 md:p-8 space-y-6">
+        
+        <!-- LOCK SCREEN -->
+        <div id="viewLock" class="flex flex-col items-center justify-center py-20 animate-in fade-in duration-500">
+            <div class="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6 shadow-xl">
+                <i data-lucide="lock" class="w-10 h-10 text-slate-400"></i>
+            </div>
+            <h2 class="text-2xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tight">Yêu cầu đăng nhập</h2>
+            
+            <p class="text-sm font-bold text-indigo-600 dark:text-indigo-400 mb-4 text-center max-w-lg px-4">
+                So sánh liều CT trung vị (Median - 50th percentile) của một số bệnh viện Việt Nam với chuẩn quốc tế.
+            </p>
+
+            <p class="text-slate-500 dark:text-slate-400 text-center max-w-md mb-8">
+                Vì lý do bảo mật, hệ thống VN-DRL Study yêu cầu xác thực để xem và nhập liệu dữ liệu đa trung tâm. Vui lòng đăng nhập và chờ phê duyệt để tiếp tục.
+            </p>
+            <button onclick="document.getElementById('authModal').classList.remove('hidden')" class="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 hover:shadow-indigo-500/50 transition-all transform hover:-translate-y-1">
+                Đăng nhập ngay
+            </button>
+        </div>
+
+        <!-- PENDING APPROVAL VIEW -->
+        <div id="viewPending" class="hidden flex flex-col items-center justify-center py-20 animate-in fade-in duration-500">
+            <div class="w-24 h-24 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-6 shadow-xl shadow-amber-200/50 dark:shadow-none">
+                <i data-lucide="clock" class="w-10 h-10 text-amber-600 dark:text-amber-400"></i>
+            </div>
+            <h2 class="text-2xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tight">Tài khoản chờ phê duyệt</h2>
+            <p class="text-slate-500 dark:text-slate-400 text-center max-w-md mb-8">
+                Cảm ơn bạn đã đăng ký tham gia VN-DRL Study. Tài khoản của bạn đang được xem xét. Vui lòng liên hệ quản trị viên để được kích hoạt quyền truy cập dữ liệu.
+            </p>
+            <div class="p-4 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300" id="pendingUserInitial">?</div>
+                <div>
+                    <div class="text-xs font-bold text-slate-400 uppercase">Tài khoản hiện tại</div>
+                    <div class="font-bold text-slate-800 dark:text-white" id="pendingUserEmail">...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN DASHBOARD VIEW -->
+        <div id="viewDashboard" class="space-y-6 hidden">
+            <!-- Global Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="stat-card group border-2 border-indigo-100 dark:border-indigo-900/50 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-xl hover:shadow-indigo-100 dark:hover:shadow-none transform hover:-translate-y-1 bg-gradient-to-br from-white to-indigo-50/20 dark:from-slate-800 dark:to-slate-800/50">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-[10px] font-black text-indigo-400 uppercase tracking-wider bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded">Tổng ca chụp</span>
+                        <span class="p-2.5 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none group-hover:scale-110 transition-transform"><i data-lucide="database" class="w-5 h-5"></i></span>
+                    </div>
+                    
+                    <div class="flex items-end gap-6">
+                        <div class="flex-1">
+                            <h3 class="text-5xl font-black text-slate-800 dark:text-white tracking-tight leading-none mb-1" id="statTotal">0</h3>
+                            <p class="text-[10px] font-bold text-slate-400 flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3 text-emerald-500"></i> Hợp lệ</p>
+                        </div>
+                        
+                        <div class="flex-1 border-l border-indigo-100 dark:border-slate-700 pl-4 space-y-1.5 py-1">
+                            <div class="flex justify-between items-center text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                <span class="flex items-center gap-1.5"><div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>Sọ não</span>
+                                <span class="text-slate-800 dark:text-white" id="countHead">0</span>
+                            </div>
+                            <div class="flex justify-between items-center text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                <span class="flex items-center gap-1.5"><div class="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>Ngực</span>
+                                <span class="text-slate-800 dark:text-white" id="countChest">0</span>
+                            </div>
+                            <div class="flex justify-between items-center text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                <span class="flex items-center gap-1.5"><div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div>Bụng</span>
+                                <span class="text-slate-800 dark:text-white" id="countAbd">0</span>
+                            </div>
+                            <div class="flex justify-between items-center text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                <span class="flex items-center gap-1.5"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>Liều thấp</span>
+                                <span class="text-slate-800 dark:text-white" id="countLow">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div onclick="showHospitalModal()" class="stat-card group border-2 border-emerald-100 dark:border-emerald-900/50 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-xl hover:shadow-emerald-100 dark:hover:shadow-none transform hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-white to-emerald-50/20 dark:from-slate-800 dark:to-slate-800/50">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-[10px] font-black text-emerald-500 uppercase tracking-wider bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded">Cơ sở y tế</span>
+                        <span class="p-2.5 bg-emerald-600 text-white rounded-xl shadow-lg shadow-emerald-200 dark:shadow-none group-hover:scale-110 transition-transform"><i data-lucide="building-2" class="w-5 h-5"></i></span>
+                    </div>
+                    
+                    <div class="flex items-end gap-6">
+                        <div class="flex-1">
+                            <h3 class="text-5xl font-black text-slate-800 dark:text-white tracking-tight leading-none mb-1" id="statHosp">0</h3>
+                            <p class="text-[11px] font-bold text-slate-400 mt-2 flex items-center gap-1">
+                                <i data-lucide="info" class="w-3 h-3 text-emerald-500"></i> Nhấn để xem DS
+                            </p>
+                        </div>
+                        
+                        <div class="flex-1 border-l border-emerald-100 dark:border-slate-700 pl-4 space-y-2 py-1" id="topHospitalsList">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter & Table Section -->
+            <div class="space-y-4">
+                <div class="glass-card p-5">
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-5 border-b border-slate-100 dark:border-slate-700 pb-4">
+                        <h2 class="text-sm font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-2"><i data-lucide="filter" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i> Bộ lọc dữ liệu</h2>
+                        <div class="flex gap-2">
+                            <button onclick="clearFilters()" class="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-lg text-[11px] font-bold uppercase hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-red-500 hover:border-red-200 transition-all flex items-center gap-2 active:scale-95" title="Xóa tất cả bộ lọc">
+                                <i data-lucide="filter-x" class="w-3 h-3"></i> Xóa lọc
+                            </button>
+                            
+                            <button onclick="renderTable()" class="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[11px] font-bold uppercase hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 hover:border-indigo-200 transition-all flex items-center gap-2 active:scale-95"><i data-lucide="refresh-cw" class="w-3 h-3"></i> Tải lại</button>
+                            
+                            <button id="btnExport" class="hidden px-3 py-2 bg-emerald-600 text-white rounded-lg text-[11px] font-bold uppercase hover:bg-emerald-700 flex items-center gap-2 shadow-lg shadow-emerald-200 transition-all active:scale-95"><i data-lucide="download" class="w-3 h-3"></i> Xuất Excel</button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                        <div class="col-span-1 lg:col-span-1"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Bệnh viện</label><select id="fHosp" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"><option value="all">Tất cả</option></select></div>
+                        <div class="col-span-1 lg:col-span-1"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Protocol</label><select id="fProt" class="w-full p-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs font-bold text-indigo-700 dark:text-indigo-300 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all shadow-sm"><option value="all">Tất cả</option></select></div>
+                        <div class="col-span-1 lg:col-span-1"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Hãng máy</label><select id="fManu" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"><option value="all">Tất cả</option></select></div>
+                        
+                        <div class="col-span-1 lg:col-span-1"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Giới tính</label><select id="fGender" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:border-indigo-500"><option value="all">Tất cả</option><option value="M">Nam (M)</option><option value="F">Nữ (F)</option></select></div>
+                        <div class="col-span-1 lg:col-span-1"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Modulation</label><select id="fMod" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:border-indigo-500"><option value="all">Tất cả</option><option value="on">Có (On)</option><option value="off">Không (Off)</option></select></div>
+                        
+                        <div class="col-span-1 lg:col-span-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Sắp xếp</label>
+                            <select id="fSort" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:border-indigo-500">
+                                <option value="date_desc">Ngày mới nhất</option>
+                                <option value="date_asc">Ngày cũ nhất</option>
+                                <option value="dose_desc">DLP Cao nhất</option>
+                                <option value="dose_asc">DLP Thấp nhất</option>
+                                <option value="ctdi_desc">CTDI Cao nhất</option>
+                                <option value="ctdi_asc">CTDI Thấp nhất</option>
+                                <option value="weight_desc">Cân nặng Cao nhất</option>
+                                <option value="weight_asc">Cân nặng Thấp nhất</option>
+                                <option value="age_desc">Tuổi Cao nhất</option>
+                                <option value="age_asc">Tuổi Thấp nhất</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-span-1 lg:col-span-1"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Tìm kiếm</label><div class="relative"><input id="fSearch" type="text" placeholder="ID, BV..." class="w-full p-2 pl-7 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:border-indigo-500"><i data-lucide="search" class="w-3 h-3 absolute left-2 top-2.5 text-slate-400"></i></div></div>
+                    </div>
+                </div>
+                
+                <div id="statsPlaceholder" class="glass-card p-8 flex flex-col items-center justify-center text-center gap-4 animate-in fade-in duration-500 border border-dashed border-indigo-200 dark:border-indigo-800 bg-indigo-50/30 dark:bg-indigo-900/10">
+                    <div class="bg-indigo-100 dark:bg-indigo-900 p-4 rounded-full text-indigo-500 dark:text-indigo-400 shadow-sm">
+                        <i data-lucide="bar-chart-2" class="w-8 h-8"></i>
+                    </div>
+                    <div class="max-w-md">
+                        <h3 class="text-sm font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-tight mb-1">Vui lòng chọn Protocol để hiển thị thống kê</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Hệ thống sẽ tính toán các chỉ số DRL (75th Percentile), Median, và Mean ± SD dựa trên protocol bạn chọn.</p>
+                    </div>
+                </div>
+
+                <!-- Dynamic Stats Section -->
+                <div id="dynamicStats" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 animate-in slide-in-from-top-4 duration-300 hidden">
+                    <div class="filter-stat-card border-l-4 border-l-slate-400 dark:border-l-slate-500 justify-between">
+                        <div>
+                            <span class="stat-label text-slate-500 dark:text-slate-400">Số lượng mẫu</span>
+                            <div class="stat-value-big text-slate-700 dark:text-slate-200" id="dCount">0</div>
+                            <div class="text-[10px] text-slate-400 font-medium">Ca chụp hợp lệ</div>
+                        </div>
+                    </div>
+
+                    <div class="filter-stat-card border-l-4 border-l-blue-500">
+                        <span class="stat-label text-blue-600 dark:text-blue-400">CTDIvol (mGy)</span>
+                        <div class="stat-value-big text-blue-700 dark:text-blue-300" id="dCTDIMedian">0</div>
+                        <div class="text-[10px] text-blue-400 dark:text-blue-500 font-bold mb-3 uppercase tracking-wider">Median (50th)</div>
+                        
+                        <div class="stats-detail-box">
+                            <div class="stats-row border-b border-dashed border-slate-300 dark:border-slate-600 pb-1 mb-1">
+                                <span class="stats-row-label">Mean ± SD</span>
+                                <span class="stats-row-val text-blue-600 dark:text-blue-400 font-black"><span id="dCTDIMean">0</span> ± <span id="dCTDISD">0</span></span>
+                            </div>
+                            <div class="stats-row">
+                                <span class="stats-row-label">75th (DRL)</span>
+                                <span class="stats-row-val" id="dCTDIP75">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-stat-card border-l-4 border-l-emerald-500">
+                        <span class="stat-label text-emerald-600 dark:text-emerald-400">DLP (mGy.cm)</span>
+                        <div class="stat-value-big text-emerald-700 dark:text-emerald-300" id="dDLPMedian">0</div>
+                        <div class="text-[10px] text-emerald-400 dark:text-emerald-500 font-bold mb-3 uppercase tracking-wider">Median (50th)</div>
+                        
+                        <div class="stats-detail-box">
+                            <div class="stats-row border-b border-dashed border-slate-300 dark:border-slate-600 pb-1 mb-1">
+                                <span class="stats-row-label">Mean ± SD</span>
+                                <span class="stats-row-val text-emerald-600 dark:text-emerald-400 font-black"><span id="dDLPMean">0</span> ± <span id="dDLPSD">0</span></span>
+                            </div>
+                            <div class="stats-row">
+                                <span class="stats-row-label">75th (DRL)</span>
+                                <span class="stats-row-val" id="dDLPP75">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-stat-card border-l-4 border-l-amber-500">
+                        <span class="stat-label text-amber-600 dark:text-amber-400">Chiều dài quét (cm)</span>
+                        <div class="stat-value-big text-amber-700 dark:text-amber-300" id="dLenMedian">0</div>
+                        <div class="text-[10px] text-amber-400 dark:text-amber-500 font-bold mb-3 uppercase tracking-wider">Median (50th)</div>
+                        
+                        <div class="stats-detail-box">
+                            <div class="stats-row border-b border-dashed border-slate-300 dark:border-slate-600 pb-1 mb-1">
+                                <span class="stats-row-label">Mean ± SD</span>
+                                <span class="stats-row-val text-amber-600 dark:text-amber-400 font-black"><span id="dLenMean">0</span> ± <span id="dLenSD">0</span></span>
+                            </div>
+                            <div class="stats-row">
+                                <span class="stats-row-label">75th</span>
+                                <span class="stats-row-val" id="dLenP75">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-stat-card border-l-4 border-l-purple-500">
+                        <span class="stat-label text-purple-600 dark:text-purple-400">Liều hiệu dụng (mSv)</span>
+                        <div class="stat-value-big text-purple-700 dark:text-purple-300" id="dEffMedian">0</div>
+                        <div class="text-[10px] text-purple-400 dark:text-purple-500 font-bold mb-3 uppercase tracking-wider">Median (50th)</div>
+                        
+                        <div class="stats-detail-box">
+                            <div class="stats-row border-b border-dashed border-slate-300 dark:border-slate-600 pb-1 mb-1">
+                                <span class="stats-row-label">Mean ± SD</span>
+                                <span class="stats-row-val text-purple-600 dark:text-purple-400 font-black"><span id="dEffMean">0</span> ± <span id="dEffSD">0</span></span>
+                            </div>
+                            <div class="stats-row">
+                                <span class="stats-row-label">75th</span>
+                                <span class="stats-row-val" id="dEffP75">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="glass-card overflow-hidden shadow-xl shadow-slate-200/50 dark:shadow-none">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="table-header sticky top-0 z-10 shadow-md">
+                                <tr>
+                                    <th class="p-4 w-12 text-center"><input type="checkbox" id="checkAll" class="custom-checkbox"></th>
+                                    <th class="p-4 cursor-pointer hover:text-indigo-200 transition-colors">Ngày / ID</th>
+                                    <th class="p-4">Cơ sở / Máy</th>
+                                    <th class="p-4">Thông tin BN</th>
+                                    <th class="p-4">Protocol</th>
+                                    <th class="p-4">Người nhập</th>
+                                    <th class="p-4 text-center">CTDIvol</th>
+                                    <th class="p-4 text-center">DLP</th>
+                                    <th class="p-4 text-right">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody" class="divide-y divide-slate-100 dark:divide-slate-700 bg-white dark:bg-slate-800">
+                                <!-- Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination Footer -->
+                    <div class="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">Hiển thị</span>
+                                <select id="rowsPerPage" onchange="changeRowsPerPage()" class="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg px-2 py-1.5 focus:outline-none focus:border-indigo-500">
+                                    <option value="10">10</option>
+                                    <option value="20" selected>20</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                            <div class="h-4 w-px bg-slate-200 dark:bg-slate-700"></div>
+                            <span id="pageInfo" class="text-xs font-bold text-slate-500 dark:text-slate-400">Đang tải...</span>
+                        </div>
+                        <div id="pagination" class="flex items-center gap-1.5"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- USERS MANAGEMENT VIEW -->
+        <div id="viewUsers" class="hidden glass-card p-6 animate-in slide-in-from-right duration-300">
+             <div class="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-700 pb-4">
+                <div>
+                    <h2 class="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Quản lý tài khoản</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Phê duyệt hoặc khóa quyền truy cập dữ liệu của thành viên.</p>
+                </div>
+                <button onclick="loadUserManagement()" class="px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-600"><i data-lucide="refresh-cw" class="w-3 h-3"></i> Tải lại</button>
+             </div>
+             
+             <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 uppercase font-bold">
+                        <tr>
+                            <th class="p-3 rounded-tl-lg">Email / Tên</th>
+                            <th class="p-3">Trạng thái</th>
+                            <th class="p-3">Đăng nhập cuối</th>
+                            <th class="p-3 text-right rounded-tr-lg">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody" class="divide-y divide-slate-100 dark:divide-slate-700">
+                    </tbody>
+                </table>
+             </div>
+        </div>
+
+    </main>
+
+    <!-- Global Dialog -->
+    <div id="globalDialog" class="fixed inset-0 z-[110] hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm shadow-2xl p-6 transform transition-all animate-in zoom-in-95">
+            <div id="dialogIcon" class="w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto"></div>
+            <h3 id="dialogTitle" class="text-lg font-black text-center text-slate-800 dark:text-white mb-2"></h3>
+            <p id="dialogMessage" class="text-sm text-slate-500 dark:text-slate-400 text-center mb-6"></p>
+            <div id="dialogActions" class="flex gap-3 justify-center"></div>
+        </div>
+    </div>
+
+    <!-- Bulk Action Toolbar -->
+    <div id="bulkToolbar" class="hidden fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-slate-800 text-white shadow-2xl rounded-2xl px-6 py-3 z-50 items-center gap-6 animate-in slide-in-from-bottom-4 duration-300 border border-slate-700/50 backdrop-blur-md">
+        <span class="text-xs font-bold"><span id="selCount" class="text-indigo-400 font-black text-sm">0</span> đã chọn</span>
+        <div class="flex gap-2">
+            <button onclick="deleteSelected()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg transition-all text-xs font-bold flex items-center gap-2" title="Xóa"><i data-lucide="trash-2" class="w-3 h-3"></i> Xóa</button>
+            <div class="w-px h-6 bg-slate-700 mx-1"></div>
+            <button onclick="clearSelection()" class="text-slate-400 hover:text-white transition-colors text-xs font-bold uppercase">Hủy</button>
+        </div>
+    </div>
+
+    <!-- Edit/Detail Modal -->
+    <div id="editModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg shadow-2xl z-10 overflow-hidden transform transition-all scale-95 opacity-0" id="modalContent">
+            <div class="bg-indigo-600 px-6 py-4 text-white flex justify-between items-center shadow-md">
+                <h3 class="text-base font-black uppercase tracking-tight flex items-center gap-2"><i data-lucide="edit-3" class="w-4 h-4"></i> <span id="modalTitle">Chi tiết ca chụp</span></h3>
+                <button onclick="closeModal()" class="text-indigo-200 hover:text-white bg-indigo-500/30 p-1.5 rounded-lg transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <div class="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+                <input type="hidden" id="eId">
+                <div class="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-700 grid grid-cols-2 gap-4 text-xs">
+                    <div><span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Bệnh viện</span><div id="eHosp" class="font-bold text-slate-700 dark:text-slate-200 truncate">---</div></div>
+                    <div><span class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Ngày chụp</span><div id="eDate" class="font-bold text-slate-700 dark:text-slate-200">---</div></div>
+                </div>
+                <div class="space-y-4">
+                    <h4 class="text-xs font-black text-indigo-900 dark:text-indigo-300 uppercase border-b border-indigo-50 dark:border-indigo-900 pb-2">Thông số kỹ thuật</h4>
+                    <div><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">Protocol</label><select id="eProt" class="w-full p-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-semibold outline-none focus:border-indigo-500"><option value="Head Routine">Head Routine</option><option value="Chest Routine">Chest Routine</option><option value="Abdomen Routine">Abdomen Routine</option><option value="Spine">Spine</option></select></div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">CTDIvol</label><input type="number" step="0.01" id="eCTDI" class="w-full p-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-bold text-slate-800 dark:text-white outline-none"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">DLP</label><input type="number" step="0.1" id="eDLP" class="w-full p-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-bold text-emerald-600 dark:text-emerald-400 outline-none"></div>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <h4 class="text-xs font-black text-indigo-900 dark:text-indigo-300 uppercase border-b border-indigo-50 dark:border-indigo-900 pb-2">Thông tin bệnh nhân</h4>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div><label class="block text-[10px] font-bold text-slate-400 mb-1">Tuổi</label><input type="number" id="eAge" class="w-full p-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium"></div>
+                        <div><label class="block text-[10px] font-bold text-slate-400 mb-1">Giới tính</label><select id="eGender" class="w-full p-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium"><option value="M">Nam</option><option value="F">Nữ</option></select></div>
+                        <div><label class="block text-[10px] font-bold text-slate-400 mb-1">Cân nặng</label><input type="number" id="eWeight" class="w-full p-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium"></div>
+                    </div>
+                    <div><label class="block text-[10px] font-bold text-slate-400 mb-1">Dose Modulation</label><select id="eMod" class="w-full p-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium"><option value="on">Có (On)</option><option value="off">Không (Off)</option><option value="">Không xác định</option></select></div>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-2">
+                <button onclick="closeModal()" class="px-4 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-600">Hủy</button>
+                <button id="btnSave" onclick="saveEntry()" class="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg text-xs hover:bg-indigo-700 shadow-lg shadow-indigo-200 dark:shadow-none flex items-center gap-2"><i data-lucide="save" class="w-3 h-3"></i> Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hospital List Modal -->
+    <div id="hospitalModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeHospitalModal()"></div>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl z-10 overflow-hidden transform transition-all scale-95 opacity-0" id="hospitalModalContent">
+            <div class="bg-emerald-600 px-6 py-4 text-white flex justify-between items-center shadow-md">
+                <h3 class="text-base font-black uppercase tracking-tight flex items-center gap-2"><i data-lucide="building-2" class="w-4 h-4"></i> Cơ sở y tế tham gia</h3>
+                <button onclick="closeHospitalModal()" class="text-emerald-100 hover:text-white bg-emerald-500/30 p-1.5 rounded-lg transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <div class="p-0 max-h-[60vh] overflow-y-auto bg-white dark:bg-slate-800">
+                <ul id="hospitalList" class="divide-y divide-slate-100 dark:divide-slate-700 text-sm"></ul>
+            </div>
+            <div class="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700 flex justify-end">
+                <button onclick="closeHospitalModal()" class="px-4 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-600">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="authModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div id="loginFormContainer" class="bg-white dark:bg-slate-800 rounded-[2rem] w-full max-w-md shadow-2xl p-8 relative overflow-hidden animate-in zoom-in-95 duration-200">
+             <button onclick="document.getElementById('authModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <i data-lucide="x" class="w-6 h-6"></i>
+             </button>
+
+             <div class="flex justify-center mb-4">
+                <div class="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <i data-lucide="shield-check" class="w-8 h-8 text-white"></i>
+                </div>
+             </div>
+
+             <h2 class="text-2xl font-black text-center text-slate-800 dark:text-white mb-8">Đăng Nhập</h2>
+
+             <div id="normalLoginForm">
+                 <div class="space-y-4">
+                     <div>
+                         <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Email Tài Khoản</label>
+                         <input type="email" id="authEmail" class="w-full p-3.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800 dark:text-white" placeholder="name@hospital.com">
+                     </div>
+                     <div>
+                         <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Mật khẩu</label>
+                         <input type="password" id="authPassword" class="w-full p-3.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800 dark:text-white" placeholder="••••••••">
+                     </div>
+                     <div class="flex items-center">
+                         <input type="checkbox" id="rememberMe" class="custom-checkbox">
+                         <label for="rememberMe" class="ml-2 text-xs font-bold text-slate-500 dark:text-slate-400 cursor-pointer">Ghi nhớ đăng nhập</label>
+                     </div>
+                 </div>
+
+                 <button onclick="doEmailLogin()" class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95 flex items-center justify-center gap-2">
+                     VÀO HỆ THỐNG <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                 </button>
+
+                 <div class="text-center mt-4">
+                     <a href="#" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">Chưa có tài khoản? <span class="underline">Đăng ký ngay</span></a>
+                 </div>
+
+                 <div class="relative my-6">
+                     <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200 dark:border-slate-700"></div></div>
+                     <div class="relative flex justify-center text-xs"><span class="px-2 bg-white dark:bg-slate-800 text-slate-400 font-bold uppercase">Hoặc</span></div>
+                 </div>
+
+                 <button onclick="doGoogleLogin()" class="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-200 font-bold py-3.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-600 transition-all flex items-center justify-center gap-3">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                    Tiếp tục với Google
+                 </button>
+
+                 <div class="mt-6 text-center">
+                     <button onclick="toggleAdminForm()" class="text-[10px] font-black text-slate-300 hover:text-slate-500 dark:hover:text-slate-400 uppercase tracking-widest transition-colors">Đăng nhập Admin (Key)</button>
+                 </div>
+             </div>
+
+             <div id="adminKeyForm" class="hidden animate-in slide-in-from-right duration-300">
+                <div class="mb-4">
+                     <button onclick="toggleAdminForm()" class="text-xs font-bold text-slate-500 flex items-center gap-1 hover:text-indigo-600"><i data-lucide="arrow-left" class="w-3 h-3"></i> Quay lại</button>
+                </div>
+                <div>
+                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Mã khóa Admin (Secret Key)</label>
+                     <input type="password" id="adminKeyInput" class="w-full p-3.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-slate-800 dark:text-white" placeholder="Nhập mã khóa...">
+                </div>
+                <button onclick="doAdminKeyLogin()" class="w-full mt-6 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                     XÁC THỰC ADMIN <i data-lucide="shield" class="w-4 h-4"></i>
+                </button>
+             </div>
+
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 p-4 bg-slate-800 dark:bg-slate-700 text-white rounded-xl shadow-2xl z-[120] transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-3">
+        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
+        <p id="toastMessage" class="text-xs font-bold"></p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signInAnonymously, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, updateDoc, onSnapshot, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Config
+        const firebaseConfig = { apiKey: "AIzaSyAtQdmDbA1BgOrvwevrG6gwuFzlUmBTbfY", authDomain: "wb-idr.firebaseapp.com", projectId: "wb-idr", appId: "1:716649486328:web:340d7ae8dd0bafa1e0680d" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = 'wb-idr';
+        const googleProvider = new GoogleAuthProvider();
+
+        const el = (id) => document.getElementById(id);
+
+        window.updateUserStatus = async (uid, newStatus) => {
+            try {
+                if(!uid || uid === 'undefined') throw new Error("Invalid User ID");
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_users', uid), { status: newStatus });
+                window.showToast(`Đã cập nhật trạng thái: ${newStatus}`);
+            } catch (err) {
+                console.error(err);
+                let msg = err.message;
+                if(msg.includes("permission")) msg = "Bạn không có quyền thực hiện thao tác này.";
+                window.showAlert("Lỗi", msg, 'error');
+            }
+        };
+
+        function showDialog(type, title, message, onConfirm = null) {
+            const dialog = el('globalDialog');
+            const iconEl = el('dialogIcon');
+            const titleEl = el('dialogTitle');
+            const msgEl = el('dialogMessage');
+            const actionsEl = el('dialogActions');
+            iconEl.className = 'w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto';
+            actionsEl.innerHTML = '';
+
+            if (type === 'success') {
+                iconEl.classList.add('bg-emerald-100', 'text-emerald-600');
+                iconEl.innerHTML = '<i data-lucide="check" class="w-6 h-6"></i>';
+                actionsEl.innerHTML = `<button onclick="document.getElementById('globalDialog').classList.add('hidden')" class="px-6 py-2 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors">Đóng</button>`;
+            } else if (type === 'error') {
+                iconEl.classList.add('bg-red-100', 'text-red-600');
+                iconEl.innerHTML = '<i data-lucide="alert-triangle" class="w-6 h-6"></i>';
+                actionsEl.innerHTML = `<button onclick="document.getElementById('globalDialog').classList.add('hidden')" class="px-6 py-2 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-colors">Đóng</button>`;
+            } else if (type === 'info') {
+                iconEl.classList.add('bg-indigo-100', 'text-indigo-600');
+                iconEl.innerHTML = '<i data-lucide="info" class="w-6 h-6"></i>';
+                actionsEl.innerHTML = `<button onclick="document.getElementById('globalDialog').classList.add('hidden')" class="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors">Đóng</button>`;
+            } else if (type === 'confirm') {
+                iconEl.classList.add('bg-amber-100', 'text-amber-600');
+                iconEl.innerHTML = '<i data-lucide="help-circle" class="w-6 h-6"></i>';
+                const btnCancel = document.createElement('button');
+                btnCancel.className = "px-6 py-2 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600";
+                btnCancel.textContent = "Hủy";
+                btnCancel.onclick = () => dialog.classList.add('hidden');
+                const btnConfirm = document.createElement('button');
+                btnConfirm.className = "px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/30";
+                btnConfirm.textContent = "Đồng ý";
+                btnConfirm.onclick = () => {
+                    dialog.classList.add('hidden');
+                    if (onConfirm) onConfirm();
+                };
+                actionsEl.appendChild(btnCancel);
+                actionsEl.appendChild(btnConfirm);
+            }
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+            lucide.createIcons();
+            dialog.classList.remove('hidden');
+        }
+
+        window.showAlert = (title, msg, type = 'info') => showDialog(type, title, msg);
+        window.showConfirm = (title, msg, callback) => showDialog('confirm', title, msg, callback);
+        window.showToast = (msg) => { 
+            const tm = el('toastMessage');
+            if(!tm) return;
+            tm.textContent = msg; 
+            const t = el('toast');
+            if(t) {
+                t.classList.remove('translate-y-20', 'opacity-0'); 
+                setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 3000); 
+            }
+        };
+
+        window.toggleTheme = () => {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        let user = null;
+        let userDocData = null;
+        let isAdminKey = false;
+        let entries = [];
+        let filtered = [];
+        let selected = new Set();
+        let currentPage = 1;
+        let rowsPerPage = 20;
+        let currentTab = 'dashboard';
+
+        signInAnonymously(auth).catch(console.error);
+
+        if (localStorage.getItem('vnrad_admin_key') === 'true') isAdminKey = true;
+
+        window.toggleAdminForm = () => {
+            el('normalLoginForm').classList.toggle('hidden');
+            el('adminKeyForm').classList.toggle('hidden');
+        };
+
+        window.doEmailLogin = async () => {
+            const email = el('authEmail').value;
+            const pwd = el('authPassword').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, pwd);
+                el('authModal').classList.add('hidden');
+                window.showToast("Đăng nhập thành công!");
+            } catch (error) {
+                window.showAlert("Lỗi đăng nhập", error.message, 'error');
+            }
+        };
+
+        window.doGoogleLogin = async () => {
+            try {
+                await signInWithPopup(auth, googleProvider);
+                el('authModal').classList.add('hidden');
+                window.showToast("Đăng nhập Google thành công!");
+            } catch (error) {
+                window.showAlert("Lỗi Google Login", error.message, 'error');
+            }
+        };
+
+        window.doAdminKeyLogin = () => {
+            const key = el('adminKeyInput').value;
+            if (key === 'gm@191223') {
+                isAdminKey = true;
+                localStorage.setItem('vnrad_admin_key', 'true');
+                updateAuthUI();
+                el('authModal').classList.add('hidden');
+                el('adminKeyInput').value = '';
+                window.showToast("Đã kích hoạt quyền Admin!");
+                loadUserManagement();
+            } else {
+                window.showAlert("Lỗi xác thực", "Mã khóa không đúng!", 'error');
+            }
+        };
+
+        el('authBtn').onclick = () => {
+            if ((user && !user.isAnonymous) || isAdminKey) {
+                window.showConfirm("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất?", () => {
+                     signOut(auth).then(() => {
+                        isAdminKey = false;
+                        localStorage.removeItem('vnrad_admin_key');
+                        userDocData = null;
+                        updateAuthUI();
+                        switchTab('dashboard');
+                    });
+                });
+            } else {
+                el('authModal').classList.remove('hidden');
+            }
+        };
+
+        function updateAuthUI() {
+            const btn = el('authBtn');
+            const isLoggedIn = (user && !user.isAnonymous);
+            const isSuperAdmin = isAdminKey || (user && user.email === 'admin@vnrad.tech');
+            const isApproved = isSuperAdmin || (userDocData && userDocData.status === 'approved');
+            const isPending = !isSuperAdmin && isLoggedIn && (!userDocData || userDocData.status === 'pending');
+
+            if (isSuperAdmin) {
+                btn.innerHTML = `<i data-lucide="shield-check" class="w-4 h-4"></i> <span class="uppercase tracking-wide">Admin (Active)</span>`;
+                btn.className = "px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 border transition-all duration-300 shadow-md shadow-red-500/30 transform active:scale-95 bg-red-600 text-white border-red-500 hover:bg-red-700 hover:shadow-red-500/50";
+                el('btnExport').classList.remove('hidden'); el('btnExport').classList.add('flex');
+            } else if (isLoggedIn) {
+                btn.innerHTML = `<i data-lucide="user" class="w-4 h-4"></i> <span class="uppercase tracking-wide">Thành viên</span>`;
+                btn.className = "px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 border transition-all duration-300 shadow-md shadow-indigo-500/30 transform active:scale-95 bg-indigo-600 text-white border-indigo-500 hover:bg-indigo-700 hover:shadow-indigo-500/50";
+                if(isApproved) {
+                    el('btnExport').classList.remove('hidden'); el('btnExport').classList.add('flex');
+                } else {
+                    el('btnExport').classList.add('hidden'); el('btnExport').classList.remove('flex');
+                }
+            } else {
+                btn.innerHTML = `<i data-lucide="log-in" class="w-4 h-4"></i> <span class="uppercase tracking-wide">Đăng nhập</span>`;
+                btn.className = "px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 border transition-all duration-300 shadow-md transform active:scale-95 bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 hover:text-white dark:bg-slate-700 dark:border-slate-600 dark:hover:bg-slate-600";
+                el('btnExport').classList.add('hidden'); el('btnExport').classList.remove('flex');
+            }
+
+            const viewDashboard = el('viewDashboard');
+            const viewPending = el('viewPending');
+            const viewLock = el('viewLock');
+            const viewUsers = el('viewUsers');
+            const navTabs = el('mainNav');
+            const adminTabs = el('adminTabs');
+
+            viewDashboard.classList.add('hidden');
+            viewPending.classList.add('hidden');
+            viewLock.classList.add('hidden');
+            viewUsers.classList.add('hidden');
+            navTabs.classList.add('hidden');
+            adminTabs.classList.add('hidden');
+
+            if (!isLoggedIn && !isAdminKey) {
+                viewLock.classList.remove('hidden');
+            } else if (isPending && !isAdminKey) {
+                viewPending.classList.remove('hidden');
+                el('pendingUserEmail').textContent = user.email || 'No Email';
+                el('pendingUserInitial').textContent = (user.email||'?').charAt(0).toUpperCase();
+            } else if (isSuperAdmin) {
+                adminTabs.classList.remove('hidden');
+                adminTabs.classList.add('flex');
+                navTabs.classList.remove('hidden');
+                navTabs.classList.add('flex');
+                if (currentTab === 'dashboard') {
+                    viewDashboard.classList.remove('hidden');
+                } else {
+                    viewUsers.classList.remove('hidden');
+                    loadUserManagement();
+                }
+            } else {
+                viewDashboard.classList.remove('hidden');
+                if(isApproved) {
+                    navTabs.classList.remove('hidden');
+                    navTabs.classList.add('flex');
+                }
+            }
+
+            if (!viewDashboard.classList.contains('hidden')) window.renderTable();
+            lucide.createIcons();
+        }
+
+        async function checkUserStatus(currentUser) {
+            if(!currentUser || currentUser.isAnonymous) return;
+            const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'drl_users', currentUser.uid);
+            onSnapshot(userRef, async (snap) => {
+                if (snap.exists()) {
+                    userDocData = snap.data();
+                    if (!userDocData.lastLogin || Date.now() - userDocData.lastLogin.toMillis() > 86400000) {
+                        await updateDoc(userRef, { lastLogin: serverTimestamp() });
+                    }
+                } else {
+                    const isSuperAdminEmail = currentUser.email === 'admin@vnrad.tech';
+                    const newUser = {
+                        email: currentUser.email,
+                        displayName: currentUser.displayName || currentUser.email.split('@')[0],
+                        photoURL: currentUser.photoURL,
+                        createdAt: serverTimestamp(),
+                        lastLogin: serverTimestamp(),
+                        status: isSuperAdminEmail ? 'approved' : 'pending',
+                        role: isSuperAdminEmail ? 'admin' : 'user'
+                    };
+                    await setDoc(userRef, newUser);
+                    userDocData = newUser;
+                }
+                updateAuthUI();
+            });
+        }
+
+        onAuthStateChanged(auth, async (u) => {
+            if (u) {
+                user = u;
+                if (!u.isAnonymous) await checkUserStatus(u);
+                else { userDocData = null; updateAuthUI(); }
+            } else {
+                signInAnonymously(auth).catch(console.error);
+            }
+        });
+        
+        window.switchTab = (tab) => {
+            currentTab = tab;
+            const btnDash = el('tabDashboard');
+            const btnUsers = el('tabUsers');
+            if (tab === 'dashboard') {
+                btnDash.classList.remove('tab-btn-inactive', 'bg-white', 'text-slate-500');
+                btnDash.classList.add('bg-indigo-600', 'text-white', 'shadow-md');
+                btnUsers.classList.remove('bg-indigo-600', 'text-white', 'shadow-md');
+                btnUsers.classList.add('tab-btn-inactive');
+            } else {
+                btnUsers.classList.remove('tab-btn-inactive', 'bg-white', 'text-slate-500');
+                btnUsers.classList.add('bg-indigo-600', 'text-white', 'shadow-md');
+                btnDash.classList.remove('bg-indigo-600', 'text-white', 'shadow-md');
+                btnDash.classList.add('tab-btn-inactive');
+            }
+            updateAuthUI();
+        };
+
+        window.loadUserManagement = () => {
+             const isSuperAdmin = isAdminKey || (user && user.email === 'admin@vnrad.tech');
+             if (!isSuperAdmin) return;
+             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'drl_users'), (snap) => {
+                 const users = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                 const tbody = el('usersTableBody');
+                 tbody.innerHTML = '';
+                 let pendingCount = 0;
+                 users.sort((a,b) => {
+                     if (a.status === 'pending' && b.status !== 'pending') return -1;
+                     if (a.status !== 'pending' && b.status === 'pending') return 1;
+                     return (b.lastLogin?.seconds || 0) - (a.lastLogin?.seconds || 0);
+                 });
+                 users.forEach(u => {
+                     if(u.status === 'pending') pendingCount++;
+                     const lastLogin = u.lastLogin ? new Date(u.lastLogin.seconds * 1000).toLocaleDateString('vi-VN') : 'N/A';
+                     const statusBadge = u.status === 'approved' 
+                        ? `<span class="px-2 py-1 rounded text-[10px] font-bold uppercase status-approved">Đã duyệt</span>`
+                        : (u.status === 'rejected' 
+                            ? `<span class="px-2 py-1 rounded text-[10px] font-bold uppercase status-rejected">Đã khóa</span>`
+                            : `<span class="px-2 py-1 rounded text-[10px] font-bold uppercase status-pending animate-pulse">Chờ duyệt</span>`);
+                     const row = document.createElement('tr');
+                     row.className = 'border-b border-slate-50 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors';
+                     row.innerHTML = `
+                        <td class="p-3">
+                            <div class="font-bold text-slate-700 dark:text-slate-200">${u.email}</div>
+                            <div class="text-[10px] text-slate-400">${u.displayName || 'No Name'}</div>
+                        </td>
+                        <td class="p-3">${statusBadge}</td>
+                        <td class="p-3 font-mono text-slate-500 text-[11px]">${lastLogin}</td>
+                        <td class="p-3 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                ${u.status !== 'approved' ? `<button onclick="window.updateUserStatus('${u.id}', 'approved')" class="p-1.5 bg-emerald-100 text-emerald-600 rounded hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer" title="Duyệt"><i data-lucide="check" class="w-4 h-4"></i></button>` : ''}
+                                ${u.status !== 'rejected' ? `<button onclick="window.updateUserStatus('${u.id}', 'rejected')" class="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-600 hover:text-white transition-colors cursor-pointer" title="Khóa"><i data-lucide="ban" class="w-4 h-4"></i></button>` : ''}
+                            </div>
+                        </td>
+                     `;
+                     tbody.appendChild(row);
+                 });
+                 const badge = el('pendingCount');
+                 if(pendingCount > 0) { badge.textContent = pendingCount; badge.classList.remove('hidden'); }
+                 else { badge.classList.add('hidden'); }
+                 lucide.createIcons();
+             });
+        };
+
+        const getDisplayProtocol = (p) => {
+            if (!p) return '';
+            const lowerP = p.toLowerCase();
+            if (lowerP.includes('sọ não') || lowerP.includes('head') || lowerP.includes('brain')) return 'Sọ não không thuốc';
+            if (lowerP.includes('ngực') || lowerP.includes('chest') || lowerP.includes('thorax')) return 'Ngực không thuốc';
+            if (lowerP.includes('bụng') || lowerP.includes('abdomen') || lowerP.includes('abd')) return 'Bụng không thuốc';
+            if (lowerP.includes('low') || lowerP.includes('thấp') || lowerP.includes('ldct')) return 'Phổi liều thấp';
+            return p;
+        };
+
+        onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), (snap) => {
+            entries = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(e => !e.isDeleted);
+            populateFilters();
+        });
+
+        window.showHospitalModal = () => {
+            const hospitals = [...new Set(entries.map(e => e.hospitalName).filter(Boolean))].sort();
+            const listEl = el('hospitalList');
+            listEl.innerHTML = '';
+            if (hospitals.length === 0) {
+                listEl.innerHTML = '<li class="p-4 text-center text-slate-400">Chưa có dữ liệu</li>';
+            } else {
+                const hospMap = {};
+                entries.forEach(e => { if(e.hospitalName) hospMap[e.hospitalName] = (hospMap[e.hospitalName] || 0) + 1; });
+                const sortedHospitals = hospitals.sort((a,b) => (hospMap[b]||0) - (hospMap[a]||0));
+                sortedHospitals.forEach((h, index) => {
+                    const count = hospMap[h] || 0;
+                    const li = document.createElement('li');
+                    li.className = 'p-4 flex items-center justify-between cursor-pointer transition-colors hover:bg-emerald-50/50 dark:hover:bg-slate-700 group border-b border-slate-50 dark:border-slate-700 last:border-b-0';
+                    li.innerHTML = `
+                        <div class="flex items-center gap-3 min-w-0 flex-1">
+                            <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 font-bold text-[10px] flex-shrink-0 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">${index + 1}</span>
+                            <span class="font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors truncate block w-full pr-2">${h}</span>
+                        </div>
+                        <span class="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-600 px-2 py-1 rounded-full flex-shrink-0">${count} ca</span>
+                    `;
+                    li.onclick = () => window.selectHospitalFromModal(h);
+                    listEl.appendChild(li);
+                });
+            }
+            const modal = el('hospitalModal');
+            const content = el('hospitalModalContent');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => { content.classList.remove('scale-95', 'opacity-0'); content.classList.add('scale-100', 'opacity-100'); }, 10);
+        };
+
+        window.selectHospitalFromModal = (name) => {
+            const select = el('fHosp');
+            select.value = name;
+            window.closeHospitalModal();
+            currentPage = 1;
+            window.renderTable();
+            const filterBar = el('fHosp');
+            filterBar.scrollIntoView({behavior: "smooth", block: "center"});
+            filterBar.classList.add('ring-2', 'ring-emerald-500');
+            setTimeout(() => filterBar.classList.remove('ring-2', 'ring-emerald-500'), 2000);
+        };
+
+        window.closeHospitalModal = () => {
+            const modal = el('hospitalModal');
+            const content = el('hospitalModalContent');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200);
+        };
+
+        function populateFilters() {
+            const h = [...new Set(entries.map(e => e.hospitalName).filter(Boolean))].sort();
+            const m = [...new Set(entries.map(e => e.manufacturer).filter(Boolean))].sort();
+            const p = [...new Set(entries.map(e => e.protocol).filter(Boolean))].sort();
+            const fill = (id, arr) => { 
+                const s = el(id); const v = s.value; 
+                s.innerHTML = '<option value="all">Tất cả</option>'; 
+                arr.forEach(i => s.innerHTML += `<option value="${i}">${i}</option>`); 
+                s.value = v; 
+            };
+            fill('fHosp', h); fill('fManu', m); fill('fProt', p);
+        }
+        
+        function calcStats(arr) {
+            if (!arr.length) return { mean: 0, sd: 0, median: 0, p75: 0 };
+            const n = arr.length;
+            const sum = arr.reduce((a, b) => a + b, 0);
+            const mean = sum / n;
+            const sorted = [...arr].sort((a, b) => a - b);
+            const median = n % 2 === 0 ? (sorted[n/2 - 1] + sorted[n/2]) / 2 : sorted[Math.floor(n/2)];
+            const p75 = sorted[Math.floor(n * 0.75)] || 0;
+            const variance = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n > 1 ? n - 1 : 1);
+            const sd = Math.sqrt(variance);
+            return { mean, sd, median, p75 };
+        }
+
+        function updateDynamicStats(data) {
+            el('dCount').innerText = data.length.toLocaleString();
+            if (data.length === 0) {
+                ['dCTDIMean','dCTDISD','dCTDIMedian', 'dDLPMean','dDLPSD','dDLPMedian', 'dLenMean','dLenMedian', 'dCTDIP75', 'dDLPP75', 'dLenP75', 'dLenSD', 'dEffMean', 'dEffSD', 'dEffMedian', 'dEffP75'].forEach(id => {
+                    const elem = el(id); if(elem) elem.innerText = 0;
+                });
+                return;
+            }
+            const ctdis = data.map(e => parseFloat(e.ctdi)).filter(n => !isNaN(n));
+            const dlps = data.map(e => parseFloat(e.dlp)).filter(n => !isNaN(n));
+            const getKFactor = (protocol) => {
+                const p = (protocol || '').toLowerCase();
+                if (p.includes('head') || p.includes('sọ') || p.includes('brain') || p.includes('não')) return 0.0021;
+                if (p.includes('neck') || p.includes('cổ')) return 0.0059;
+                if (p.includes('chest') || p.includes('ngực') || p.includes('thorax') || p.includes('phổi')) return 0.014;
+                if (p.includes('abdomen') || p.includes('bụng') || p.includes('abd')) return 0.015;
+                if (p.includes('pelvis') || p.includes('chậu')) return 0.015;
+                if (p.includes('spine') || p.includes('cột sống')) return 0.015;
+                return 0;
+            };
+            const lengths = []; const effDoses = [];
+            data.forEach(e => {
+                const c = parseFloat(e.ctdi); const d = parseFloat(e.dlp);
+                if (!isNaN(c) && !isNaN(d) && c !== 0) lengths.push(d / c);
+                if (!isNaN(d)) { const k = getKFactor(e.protocol); if (k > 0) effDoses.push(d * k); }
+            });
+            const sCTDI = calcStats(ctdis); const sDLP = calcStats(dlps); const sLen = calcStats(lengths); const sEff = calcStats(effDoses);
+            el('dCTDIMean').innerText = sCTDI.mean.toFixed(2); el('dCTDISD').innerText = sCTDI.sd.toFixed(2); el('dCTDIMedian').innerText = sCTDI.median.toFixed(2); el('dCTDIP75').innerText = sCTDI.p75.toFixed(2);
+            el('dDLPMean').innerText = sDLP.mean.toFixed(1); el('dDLPSD').innerText = sDLP.sd.toFixed(1); el('dDLPMedian').innerText = sDLP.median.toFixed(1); el('dDLPP75').innerText = sDLP.p75.toFixed(1);
+            el('dLenMean').innerText = sLen.mean.toFixed(1); el('dLenSD').innerText = sLen.sd.toFixed(1); el('dLenMedian').innerText = sLen.median.toFixed(1); el('dLenP75').innerText = sLen.p75.toFixed(1);
+            el('dEffMean').innerText = sEff.mean.toFixed(2); el('dEffSD').innerText = sEff.sd.toFixed(2); el('dEffMedian').innerText = sEff.median.toFixed(2); el('dEffP75').innerText = sEff.p75.toFixed(2);
+        }
+
+        function updateGlobalStats(data) {
+             el('statTotal').innerText = data.length.toLocaleString();
+             const hosps = new Set(data.map(e => e.hospitalName).filter(Boolean));
+             el('statHosp').innerText = hosps.size;
+             let head = 0, chest = 0, abd = 0, ldct = 0;
+             data.forEach(e => {
+                 const p = (e.protocol || '').toLowerCase();
+                 if(p.includes('low dose') || p.includes('ldct') || p.includes('liều thấp')) ldct++;
+                 else if (p.includes('head') || p.includes('brain') || p.includes('sọ') || p.includes('não')) head++;
+                 else if (p.includes('chest') || p.includes('thorax') || p.includes('ngực') || p.includes('phổi')) chest++;
+                 else if (p.includes('abdomen') || p.includes('abd') || p.includes('bụng')) abd++;
+             });
+             el('countHead').innerText = head; el('countChest').innerText = chest; el('countAbd').innerText = abd; el('countLow').innerText = ldct;
+             const hospMap = {}; data.forEach(e => { if(e.hospitalName) hospMap[e.hospitalName] = (hospMap[e.hospitalName] || 0) + 1; });
+             const sortedHosps = Object.entries(hospMap).sort((a,b) => b[1] - a[1]).slice(0, 3);
+             const topListEl = el('topHospitalsList');
+             if(topListEl) {
+                 topListEl.innerHTML = sortedHosps.map(([name, count], idx) => `
+                    <div class="flex justify-between items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 gap-3" title="${name}">
+                        <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                            <div class="w-1.5 h-1.5 rounded-full flex-shrink-0 ${idx===0?'bg-emerald-500':idx===1?'bg-emerald-400':'bg-emerald-300'}"></div>
+                            <span class="truncate block w-full">${name}</span>
+                        </div>
+                        <span class="text-slate-800 dark:text-white bg-slate-100 dark:bg-slate-700 px-1.5 rounded flex-shrink-0">${count}</span>
+                    </div>
+                 `).join('');
+             }
+        }
+
+        window.clearFilters = () => {
+            el('fHosp').value = 'all'; el('fProt').value = 'all'; el('fManu').value = 'all';
+            el('fGender').value = 'all'; el('fMod').value = 'all'; el('fSort').value = 'date_desc'; el('fSearch').value = '';
+            currentPage = 1; window.renderTable(); window.showToast("Đã xóa bộ lọc!");
+        };
+
+        window.changeRowsPerPage = () => { rowsPerPage = parseInt(el('rowsPerPage').value); currentPage = 1; window.renderTable(); }
+
+        const getProtocolClass = (p) => {
+            const prot = (p || '').toLowerCase();
+            if (prot.includes('head') || prot.includes('sọ') || prot.includes('não')) return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800';
+            if (prot.includes('chest') || prot.includes('ngực') || prot.includes('phổi')) return 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/40 dark:text-cyan-300 dark:border-cyan-800';
+            if (prot.includes('abdomen') || prot.includes('bụng')) return 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800';
+            if (prot.includes('spine') || prot.includes('cột sống')) return 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-800';
+            if (prot.includes('low') || prot.includes('thấp')) return 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800';
+            return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
+        };
+
+        window.renderTable = () => {
+            const isSuperAdmin = isAdminKey || (user && user.email === 'admin@vnrad.tech');
+            const isApproved = isSuperAdmin || (userDocData && userDocData.status === 'approved');
+            if(user && !user.isAnonymous && !isApproved && !isSuperAdmin) return;
+
+            const fH = el('fHosp').value, fP = el('fProt').value, fM = el('fManu').value;
+            const fG = el('fGender').value, fMod = el('fMod').value, search = el('fSearch').value.toLowerCase(), sort = el('fSort').value;
+
+            filtered = entries.filter(e => {
+                if (fH !== 'all' && e.hospitalName !== fH) return false;
+                if (fP !== 'all' && e.protocol !== fP) return false;
+                if (fM !== 'all' && e.manufacturer !== fM) return false;
+                if (fG !== 'all') {
+                    if (fG === 'M' && e.gender !== 'M' && e.gender !== 'Nam') return false;
+                    if (fG === 'F' && e.gender !== 'F' && e.gender !== 'Nữ') return false;
+                }
+                if (fMod !== 'all') {
+                    const mod = (e.modulation || '').toLowerCase();
+                    if (fMod === 'on' && mod !== 'on' && mod !== 'true' && mod !== 'có') return false;
+                    if (fMod === 'off' && mod !== 'off' && mod !== 'false' && mod !== 'không') return false;
+                }
+                if (search && !JSON.stringify(e).toLowerCase().includes(search)) return false;
+                return true;
+            });
+            
+            updateGlobalStats(entries); 
+            const statsDiv = el('dynamicStats'); const placeholderDiv = el('statsPlaceholder');
+            if (fP === 'all') { statsDiv.classList.add('hidden'); placeholderDiv.classList.remove('hidden'); }
+            else { placeholderDiv.classList.add('hidden'); statsDiv.classList.remove('hidden'); updateDynamicStats(filtered); }
+
+            if (sort === 'date_desc') filtered.sort((a,b) => (b.createdAt||'').localeCompare(a.createdAt||''));
+            else if (sort === 'date_asc') filtered.sort((a,b) => (a.createdAt||'').localeCompare(b.createdAt||''));
+            else if (sort === 'dose_desc') filtered.sort((a,b) => (parseFloat(b.dlp)||0) - (parseFloat(a.dlp)||0));
+            else if (sort === 'dose_asc') filtered.sort((a,b) => (parseFloat(a.dlp)||0) - (parseFloat(b.dlp)||0));
+            else if (sort === 'ctdi_desc') filtered.sort((a,b) => (parseFloat(b.ctdi)||0) - (parseFloat(a.ctdi)||0));
+            else if (sort === 'ctdi_asc') filtered.sort((a,b) => (parseFloat(a.ctdi)||0) - (parseFloat(b.ctdi)||0));
+            else if (sort === 'weight_desc') filtered.sort((a,b) => (parseFloat(b.weight)||0) - (parseFloat(a.weight)||0));
+            else if (sort === 'weight_asc') filtered.sort((a,b) => (parseFloat(a.weight)||0) - (parseFloat(b.weight)||0));
+            else if (sort === 'age_desc') filtered.sort((a,b) => (parseFloat(b.age)||0) - (parseFloat(a.age)||0));
+            else if (sort === 'age_asc') filtered.sort((a,b) => (parseFloat(a.age)||0) - (parseFloat(b.age)||0));
+
+            const totalPages = Math.ceil(filtered.length / rowsPerPage) || 1;
+            if (currentPage > totalPages) currentPage = 1;
+            const start = (currentPage - 1) * rowsPerPage;
+            const pageData = filtered.slice(start, start + rowsPerPage);
+            
+            const tbody = el('tableBody'); tbody.innerHTML = '';
+            if(pageData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-16 text-center text-slate-400 dark:text-slate-500"><div class="flex flex-col items-center gap-2"><div class="bg-slate-50 dark:bg-slate-700 p-4 rounded-full"><i data-lucide="inbox" class="w-8 h-8 text-slate-300 dark:text-slate-500"></i></div><span>Không tìm thấy dữ liệu</span></div></td></tr>`;
+                lucide.createIcons(); el('pageInfo').innerText = '0 kết quả'; el('pagination').innerHTML = ''; return;
+            }
+
+            pageData.forEach(e => {
+                const isSel = selected.has(e.id);
+                const isOwner = user && !user.isAnonymous && (user.uid === e.userId);
+                const canEdit = isOwner || isSuperAdmin;
+                const protocolClass = getProtocolClass(e.protocol);
+                const createdDate = new Date(e.createdAt);
+                const dateStr = createdDate.toLocaleDateString('vi-VN');
+                const timeStr = createdDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                const row = document.createElement('tr');
+                row.className = `hover:bg-indigo-50/50 dark:hover:bg-slate-700 border-b border-slate-50 dark:border-slate-700 group transition-colors even:bg-slate-50/50 dark:even:bg-slate-800/50 ${isSel ? 'row-selected' : ''}`;
+                row.innerHTML = `
+                    <td class="p-4 text-center"><input type="checkbox" class="custom-checkbox" onchange="toggleSel('${e.id}')" ${isSel ? 'checked' : ''}></td>
+                    <td class="p-4 font-bold text-slate-700 dark:text-slate-200">
+                        ${dateStr}<br>
+                        <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium block">${timeStr}</span>
+                        <span class="text-[10px] text-slate-400 font-normal font-mono select-all block mt-1">ID: ${e.patientId}</span>
+                    </td>
+                    <td class="p-4 font-medium text-slate-600 dark:text-slate-300 text-[11px]">
+                        <span class="block font-bold text-slate-700 dark:text-slate-200">${e.hospitalName}</span>
+                        <span class="text-slate-400">${e.manufacturer}</span>
+                    </td>
+                    <td class="p-4 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-slate-100 dark:bg-slate-700 px-1.5 rounded text-slate-600 dark:text-slate-300">${e.age}t</span>
+                            <span class="bg-slate-100 dark:bg-slate-700 px-1.5 rounded text-slate-600 dark:text-slate-300 font-bold ${e.gender==='F'?'text-pink-500 dark:text-pink-400':'text-blue-500 dark:text-blue-400'}">${e.gender}</span>
+                            <span class="bg-slate-100 dark:bg-slate-700 px-1.5 rounded text-slate-600 dark:text-slate-300">${e.weight}kg</span>
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <span class="badge-base ${protocolClass}">${getDisplayProtocol(e.protocol)}</span>
+                        ${e.modulation ? `<span class="ml-1 text-[9px] border px-1 rounded ${e.modulation.toLowerCase()==='on'?'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-800':'bg-slate-50 dark:bg-slate-700 text-slate-400 border-slate-200 dark:border-slate-600'}">${e.modulation}</span>` : ''}
+                    </td>
+                    <td class="p-4 text-[10px]">
+                        <div class="flex items-center gap-1.5" title="${e.userEmail || 'Unknown'}">
+                            <div class="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400">
+                                ${(e.userEmail || '?').charAt(0).toUpperCase()}
+                            </div>
+                            <span class="truncate max-w-[120px] text-blue-600 dark:text-blue-400 font-medium">${e.userEmail || 'Unknown'}</span>
+                        </div>
+                    </td>
+                    <td class="p-4 text-center font-bold text-slate-700 dark:text-slate-200">${e.ctdi}</td>
+                    <td class="p-4 text-center"><span class="${parseFloat(e.dlp) > 1000 ? 'badge-dose-high' : 'badge-dose'}">${e.dlp}</span></td>
+                    <td class="p-4 text-right">
+                        <div class="flex items-center justify-end gap-1.5">
+                            ${canEdit ? `<button onclick="editItem('${e.id}')" class="p-2 text-indigo-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-lg transition-all" title="Sửa"><i data-lucide="edit-3" class="w-4 h-4"></i></button>` : ''}
+                            ${canEdit ? `<button onclick="window.showConfirm('Xóa dữ liệu', 'Bạn có chắc chắn muốn xóa bản ghi này? Hành động không thể hoàn tác.', () => window.delItemAction('${e.id}'))" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all" title="Xóa"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            const end = Math.min(start + rowsPerPage, filtered.length);
+            const displayStart = filtered.length > 0 ? start + 1 : 0;
+            el('pageInfo').textContent = `Hiển thị ${displayStart}-${end} của ${filtered.length}`;
+            renderPagination(totalPages); updateBulkUI(); lucide.createIcons();
+        };
+
+        window.delItemAction = async (id) => { await deleteDoc(doc(db,'artifacts',appId,'public', 'data', 'drl_entries',id)); window.showToast("Đã xóa bản ghi!"); };
+
+        window.editItem = (id) => {
+            const e = entries.find(x => x.id === id); if (!e) return;
+            el('eId').value = id; el('eHosp').innerText = e.hospitalName || 'N/A'; el('eDate').innerText = new Date(e.createdAt).toLocaleString('vi-VN');
+            el('eProt').value = e.protocol || 'Head Routine'; el('eCTDI').value = e.ctdi || 0; el('eDLP').value = e.dlp || 0; el('eAge').value = e.age || ''; el('eGender').value = e.gender || 'M'; el('eWeight').value = e.weight || ''; el('eMod').value = e.modulation ? e.modulation.toLowerCase() : '';
+            const isOwner = user && !user.isAnonymous && (user.uid === e.userId); const isSuperAdmin = isAdminKey || (user && user.email === 'admin@vnrad.tech'); const canEdit = isOwner || isSuperAdmin;
+            el('btnSave').style.display = canEdit ? 'flex' : 'none'; el('modalTitle').innerText = canEdit ? 'Chỉnh sửa ca chụp' : 'Chi tiết ca chụp';
+            ['eProt', 'eCTDI', 'eDLP', 'eAge', 'eGender', 'eWeight', 'eMod'].forEach(i => el(i).disabled = !canEdit);
+            const modal = el('editModal'); const content = el('modalContent');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+            setTimeout(() => { content.classList.remove('scale-95', 'opacity-0'); content.classList.add('scale-100', 'opacity-100'); }, 10);
+        };
+
+        window.saveEntry = async () => {
+            if((!user || user.isAnonymous) && !isAdminKey) return;
+            const id = el('eId').value;
+            const updateData = { protocol: el('eProt').value, ctdi: parseFloat(el('eCTDI').value), dlp: parseFloat(el('eDLP').value), age: parseInt(el('eAge').value), gender: el('eGender').value, weight: parseFloat(el('eWeight').value), modulation: el('eMod').value };
+            try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id), updateData); window.showToast("Đã cập nhật dữ liệu!"); window.closeModal(); }
+            catch(err) { window.showAlert("Lỗi lưu trữ", err.message, 'error'); }
+        };
+
+        window.closeModal = () => {
+            const modal = el('editModal'); const content = el('modalContent');
+            content.classList.remove('scale-100', 'opacity-100'); content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200);
+        };
+
+        function renderPagination(total) {
+            const c = el('pagination'); c.innerHTML = '';
+            const btn = (i, t, d) => `<button onclick="goToPage(${i})" class="page-btn ${d?'cursor-not-allowed opacity-50':''} ${i===currentPage?'active':''}" ${d?'disabled':''}>${t}</button>`;
+            c.innerHTML += btn(currentPage-1, '<i data-lucide="chevron-left" class="w-3 h-3"></i>', currentPage===1);
+            let range = []; for(let i=1; i<=total; i++) { if(i===1 || i===total || (i >= currentPage-1 && i <= currentPage+1)) range.push(i); }
+            let prev = 0; range.forEach(i => { if(i - prev > 1) c.innerHTML += `<span class="text-xs text-slate-400 dark:text-slate-500 px-1">...</span>`; c.innerHTML += btn(i, i, false); prev = i; });
+            c.innerHTML += btn(currentPage+1, '<i data-lucide="chevron-right" class="w-3 h-3"></i>', currentPage===total);
+        }
+        window.goToPage = (p) => { currentPage = p; renderTable(); };
+        window.toggleSel = (id) => { selected.has(id) ? selected.delete(id) : selected.add(id); renderTable(); };
+        el('checkAll').onchange = (e) => { 
+            const ids = filtered.slice((currentPage-1)*rowsPerPage, currentPage*rowsPerPage).map(x=>x.id);
+            e.target.checked ? ids.forEach(i=>selected.add(i)) : ids.forEach(i=>selected.delete(i));
+            renderTable();
+        };
+        function updateBulkUI() {
+            const b = el('bulkToolbar');
+            if(selected.size > 0) { b.classList.remove('hidden'); b.classList.add('flex'); el('selCount').innerText = selected.size; }
+            else { b.classList.add('hidden'); b.classList.remove('flex'); }
+        }
+        window.clearSelection = () => { selected.clear(); el('checkAll').checked=false; renderTable(); };
+        window.deleteSelected = () => {
+            window.showConfirm('Xóa hàng loạt', `CẢNH BÁO: Bạn đang xóa ${selected.size} dòng dữ liệu. Hành động này không thể hoàn tác!`, async () => {
+                const batch = writeBatch(db);
+                selected.forEach(id => batch.delete(doc(db,'artifacts',appId,'public', 'data', 'drl_entries',id)));
+                await batch.commit(); selected.clear(); updateBulkUI(); window.showToast("Đã xóa dữ liệu thành công!");
+            });
+        };
+        el('btnExport').onclick = () => {
+            if(filtered.length===0) { window.showAlert("Thông báo", "Không có dữ liệu để xuất", 'info'); return; }
+            const ws = XLSX.utils.json_to_sheet(filtered.map(e => ({
+                Date: new Date(e.createdAt).toLocaleDateString(), Time: new Date(e.createdAt).toLocaleTimeString(), Hospital: e.hospitalName, Manufacturer: e.manufacturer, 
+                Protocol: e.protocol, PatientID: e.patientId, Age: e.age, Gender: e.gender, Weight: e.weight, 
+                CTDI: e.ctdi, DLP: e.dlp, Modulation: e.modulation, User: e.userEmail
+            })));
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "VN_DRL_Data");
+            XLSX.writeFile(wb, `VN_DRL_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+        };
+        ['fHosp','fProt','fManu','fSort','fGender','fMod'].forEach(i => el(i).onchange = () => { currentPage=1; renderTable(); });
+        el('fSearch').onkeyup = () => { currentPage=1; renderTable(); };
+        lucide.createIcons();
+    </script>
+</body>
+</html>
