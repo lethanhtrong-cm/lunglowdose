@@ -50,6 +50,7 @@
 
     <!-- Banned Overlay -->
     <div id="bannedOverlay" class="fixed inset-0 z-[200] bg-slate-900/80 hidden flex flex-col items-center justify-center text-white p-8 text-center">
+        <!-- Content will be injected by JS -->
         <div class="bg-red-500 p-4 rounded-full mb-6 shadow-2xl animate-bounce"><i data-lucide="ban" class="w-12 h-12"></i></div>
         <h2 class="text-3xl font-black uppercase tracking-tight mb-2">Tài khoản bị khóa</h2>
         <p class="text-sm font-medium text-slate-300 max-w-md">Quyền truy cập của bạn đã bị Admin thu hồi do vi phạm chính sách sử dụng.</p>
@@ -88,6 +89,31 @@
         </div>
     </div>
 
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-sm p-6 shadow-2xl border border-slate-100 text-center">
+            <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4"><i data-lucide="alert-triangle" class="w-6 h-6"></i></div>
+            <h3 class="text-lg font-black text-slate-900 mb-2">Xác nhận</h3>
+            <p id="confirmMessage" class="text-sm font-medium text-slate-500 mb-6">Bạn có chắc chắn muốn thực hiện?</p>
+            <div class="flex gap-3">
+                <button id="confirmCancelBtn" class="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs uppercase hover:bg-slate-200">Hủy</button>
+                <button id="confirmOkBtn" class="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase hover:bg-indigo-700 shadow-lg">Đồng ý</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Modal (Replacement for Prompt) -->
+    <div id="inputModal" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-sm p-6 shadow-2xl border border-slate-100">
+            <h3 id="inputModalTitle" class="text-lg font-black text-slate-900 mb-4 text-center">Nhập thông tin</h3>
+            <input type="text" id="inputModalValue" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500 mb-6">
+            <div class="flex gap-3">
+                <button id="inputCancelBtn" class="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs uppercase hover:bg-slate-200">Hủy</button>
+                <button id="inputSaveBtn" class="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase hover:bg-indigo-700 shadow-lg">Lưu</button>
+            </div>
+        </div>
+    </div>
+
     <!-- User Monitor Modal -->
     <div id="userMonitorModal" class="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
         <div class="bg-white rounded-[2.5rem] w-full max-w-2xl p-6 md:p-8 shadow-2xl border border-indigo-100 h-[80vh] flex flex-col">
@@ -105,7 +131,7 @@
             </div>
             <div id="user-tab-online" class="flex-1 overflow-hidden flex flex-col gap-4">
                 <div class="p-3 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-xl border border-emerald-100 mb-2 flex items-center gap-2">
-                    <i data-lucide="shield-alert" class="w-3 h-3"></i> Chỉ tài khoản được "DUYỆT" mới có thể nhập liệu.
+                    <i data-lucide="shield-check" class="w-3 h-3"></i> Danh sách người dùng đang hoạt động (Online).
                 </div>
                 <div class="flex-1 overflow-y-auto custom-scrollbar border border-slate-100 rounded-2xl p-2">
                     <div id="onlineUsersList" class="space-y-2"></div>
@@ -431,6 +457,7 @@
                             <div class="glass-card p-6 rounded-[2rem] shadow-lg flex flex-col justify-between h-28 border-b-4 border-cyan-500"><div><p class="section-label text-cyan-600 mb-1">Tuổi trung bình</p><h3 id="cardAvgAge" class="text-3xl font-black text-slate-900">--</h3></div></div>
                             <div class="glass-card p-6 rounded-[2rem] shadow-lg flex flex-col justify-between h-28 border-b-4 border-emerald-500"><div><p class="section-label text-emerald-600 mb-1">Cân nặng TB (kg)</p><h3 id="cardAvgWeight" class="text-3xl font-black text-slate-900">--</h3></div></div>
                         </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="protocolCardsContainer"></div>
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             <div class="lg:col-span-2 glass-card p-8 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center justify-center min-h-[300px]"><h3 class="section-label font-black text-slate-900 text-sm mb-6">Phân bố theo Hãng máy (n)</h3><div class="w-full h-[250px] md:h-[300px]"><canvas id="manufacturerPieChart"></canvas></div></div>
@@ -474,7 +501,26 @@
         const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getFirestore(app); const appId = 'wb-idr';
         const el = (id) => document.getElementById(id);
         const setText = (id, val) => { const e = el(id); if(e) e.textContent = val; };
-        const showToast = (msg) => { setText('toastMessage', msg); const t = el('toast'); if(t) { t.classList.remove('opacity-0', 'scale-90', 'pointer-events-none'); setTimeout(() => t.classList.add('opacity-0', 'scale-90', 'pointer-events-none'), 2000); } };
+        const showToast = (msg, type='success') => { 
+            setText('toastMessage', msg); 
+            const t = el('toast'); 
+            const icon = t.querySelector('i');
+            const iconContainer = t.querySelector('div');
+            
+            // Basic styling based on type
+            if(type === 'error') {
+                iconContainer.className = "p-4 rounded-full bg-red-100 text-red-600 shadow-sm mb-1";
+                // We'll keep the check icon or change it if we had a warning icon available easily
+                // For now, let's just change color
+            } else {
+                 iconContainer.className = "p-4 rounded-full bg-emerald-100 text-emerald-600 shadow-sm mb-1";
+            }
+
+            if(t) { 
+                t.classList.remove('opacity-0', 'scale-90', 'pointer-events-none'); 
+                setTimeout(() => t.classList.add('opacity-0', 'scale-90', 'pointer-events-none'), 2000); 
+            } 
+        };
         const on = (id, ev, fn) => { const e = el(id); if(e) e[ev] = fn; };
         const normalCDF = (x) => { const t = 1/(1+.2316419*Math.abs(x)); const d = .3989423*Math.exp(-x*x/2); return x>=0 ? 1-(d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))))) : 1- (1-(d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274)))))); };
         const calcStats = (arr, ref=0) => { if(!arr.length) return {mean:0, sd:0, median:0, p75:0, p:1}; const n=arr.length, s=arr.sort((a,b)=>a-b), mean=arr.reduce((a,b)=>a+b,0)/n; const sd=n>1?Math.sqrt(arr.reduce((a,b)=>a+Math.pow(b-mean,2),0)/(n-1)):0; const p= (sd>0&&n>1&&ref>0) ? 2*(1-normalCDF(Math.abs((mean-ref)/(sd/Math.sqrt(n))))) : 1; return { mean, sd, median: s[Math.floor(n*0.5)], p75: s[Math.floor(n*0.75)]||s[n-1], p }; };
@@ -488,6 +534,74 @@
         let userStatusUnsubscribe = null; let latestUserRegistryData = [];
         const currentYear = new Date().getFullYear();
 
+        // --- Custom UI Helpers ---
+        window.showConfirm = (msg, onConfirm) => {
+            const m = el('confirmModal');
+            setText('confirmMessage', msg);
+            m.classList.remove('hidden');
+            const okBtn = el('confirmOkBtn');
+            const cancelBtn = el('confirmCancelBtn');
+            
+            // Clean up old listeners to prevent stacking
+            const newOk = okBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newOk, okBtn);
+            
+            const newCancel = cancelBtn.cloneNode(true);
+            cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+
+            newOk.onclick = () => { m.classList.add('hidden'); if(onConfirm) onConfirm(); };
+            newCancel.onclick = () => { m.classList.add('hidden'); };
+        };
+
+        window.showInput = (title, currentVal, onSave) => {
+            const m = el('inputModal');
+            setText('inputModalTitle', title);
+            const input = el('inputModalValue');
+            input.value = currentVal || '';
+            m.classList.remove('hidden');
+            input.focus();
+
+            const saveBtn = el('inputSaveBtn');
+            const cancelBtn = el('inputCancelBtn');
+
+            const newSave = saveBtn.cloneNode(true);
+            saveBtn.parentNode.replaceChild(newSave, saveBtn);
+
+            const newCancel = cancelBtn.cloneNode(true);
+            cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+
+            newSave.onclick = () => { 
+                const val = input.value.trim();
+                if(val) {
+                     m.classList.add('hidden'); 
+                     if(onSave) onSave(val); 
+                } else {
+                    input.classList.add('warning');
+                    setTimeout(()=>input.classList.remove('warning'), 500);
+                }
+            };
+            newCancel.onclick = () => { m.classList.add('hidden'); };
+        };
+        // -------------------------
+
+        function handleQuotaError() {
+            const overlay = el('bannedOverlay');
+            if (overlay) {
+                overlay.innerHTML = `
+                    <div class="bg-amber-500 p-4 rounded-full mb-6 shadow-2xl"><i data-lucide="alert-octagon" class="w-12 h-12 text-white"></i></div>
+                    <h2 class="text-2xl md:text-3xl font-black uppercase tracking-tight mb-2 text-white">Hệ thống tạm ngưng</h2>
+                    <p class="text-sm font-medium text-slate-200 max-w-md mb-6">Đã hết hạn mức truy cập miễn phí trong ngày (Quota Exceeded).</p>
+                    <div class="bg-white/10 p-4 rounded-xl border border-white/20 text-slate-200 text-xs text-left space-y-2 mb-8 w-full max-w-xs">
+                        <p><strong>Nguyên nhân:</strong> Lượng đọc/ghi dữ liệu vượt quá giới hạn gói Spark (Free) của Firebase.</p>
+                        <p><strong>Giải pháp:</strong> Hệ thống sẽ tự động mở lại vào khoảng 15:00 chiều hàng ngày.</p>
+                    </div>
+                    <button onclick="window.location.reload()" class="px-6 py-3 bg-white text-amber-600 rounded-xl font-bold uppercase hover:bg-slate-100 transition-colors shadow-lg">Thử lại</button>
+                `;
+                overlay.classList.remove('hidden');
+                lucide.createIcons();
+            }
+        }
+
         function setupDataListeners() {
             if (isDataListenerSetup) return;
             isDataListenerSetup = true;
@@ -497,10 +611,20 @@
                     entries = snap.docs.map(d=>d.data()).filter(e => !e.isDeleted);
                     renderDashboard();
                     renderHospitalSelect(); // Updated here to sync hospitals
+                }, (error) => {
+                    if (error.code === 'resource-exhausted') {
+                        handleQuotaError();
+                    } else {
+                        showToast("Lỗi tải dữ liệu: " + error.message, 'error');
+                    }
                 });
                 onSnapshot(collection(db,'artifacts',appId,'public','data','user_registry'), (snap) => {
                     latestUserRegistryData = snap.docs.map(d => d.data());
                     renderUserMonitor(latestUserRegistryData);
+                }, (error) => {
+                    if (error.code === 'resource-exhausted') {
+                        handleQuotaError();
+                    }
                 });
             });
         }
@@ -534,6 +658,8 @@
                         currentUserStatus = data.status || 'pending';
                         el('bannedOverlay').classList.toggle('hidden', currentUserStatus !== 'blocked');
                     }
+                }, (error) => {
+                    if (error.code === 'resource-exhausted') handleQuotaError();
                 });
             } else { 
                 setText('userEmailDisplay', 'Khách'); 
@@ -606,21 +732,56 @@
             }
         }
         
-        async function fetchConfig() { try{ const h=await getDoc(doc(db,'artifacts',appId,'public','data','app_settings','hospital_config')); if(h.exists()){const d=h.data();customHospitals=new Set(d.customHospitals||[]);deletedHospitals=new Set(d.deletedHospitals||[]);hospitalOrder=d.hospitalOrder||[];} const m=await getDoc(doc(db,'artifacts',appId,'public','data','app_settings','manufacturer_config')); if(m.exists()){const d=m.data();customManufacturers=new Set(d.customManufacturers||[]);deletedManufacturers=new Set(d.deletedManufacturers||[]);manufacturerOrder=d.manufacturerOrder||[];} }catch(e){} }
-        async function saveHospConfig(){ await setDoc(doc(db,'artifacts',appId,'public','data','app_settings','hospital_config'),{customHospitals:[...customHospitals],deletedHospitals:[...deletedHospitals],hospitalOrder}); }
-        async function saveManuConfig(){ await setDoc(doc(db,'artifacts',appId,'public','data','app_settings','manufacturer_config'),{customManufacturers:[...customManufacturers],deletedManufacturers:[...deletedManufacturers],manufacturerOrder}); }
+        async function fetchConfig() { 
+            try { 
+                const h=await getDoc(doc(db,'artifacts',appId,'public','data','app_settings','hospital_config')); 
+                if(h.exists()){const d=h.data();customHospitals=new Set(d.customHospitals||[]);deletedHospitals=new Set(d.deletedHospitals||[]);hospitalOrder=d.hospitalOrder||[];} 
+                const m=await getDoc(doc(db,'artifacts',appId,'public','data','app_settings','manufacturer_config')); 
+                if(m.exists()){const d=m.data();customManufacturers=new Set(d.customManufacturers||[]);deletedManufacturers=new Set(d.deletedManufacturers||[]);manufacturerOrder=d.manufacturerOrder||[];} 
+            } catch(e) {
+                if (e.code === 'resource-exhausted') handleQuotaError();
+            } 
+        }
+        async function saveHospConfig(){ 
+            try {
+                await setDoc(doc(db,'artifacts',appId,'public','data','app_settings','hospital_config'),{customHospitals:[...customHospitals],deletedHospitals:[...deletedHospitals],hospitalOrder}); 
+            } catch (e) {
+                if (e.code === 'resource-exhausted') handleQuotaError();
+                else showToast("Lỗi lưu cấu hình: " + e.message, 'error');
+            }
+        }
+        async function saveManuConfig(){ 
+            try {
+                await setDoc(doc(db,'artifacts',appId,'public','data','app_settings','manufacturer_config'),{customManufacturers:[...customManufacturers],deletedManufacturers:[...deletedManufacturers],manufacturerOrder}); 
+            } catch (e) {
+                if (e.code === 'resource-exhausted') handleQuotaError();
+                else showToast("Lỗi lưu cấu hình: " + e.message, 'error');
+            }
+        }
 
         async function updateUserHeartbeat(currentUser) {
             if (!currentUser || currentUser.isAnonymous) return;
-            const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_registry', currentUser.uid);
-            await setDoc(userRef, { email: currentUser.email, displayName: currentUser.displayName || currentUser.email, lastActive: new Date().toISOString(), uid: currentUser.uid }, { merge: true });
+            try {
+                const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_registry', currentUser.uid);
+                await setDoc(userRef, { email: currentUser.email, displayName: currentUser.displayName || currentUser.email, lastActive: new Date().toISOString(), uid: currentUser.uid }, { merge: true });
+            } catch (e) {
+                if (e.code === 'resource-exhausted') handleQuotaError();
+            }
         }
 
         window.setUserStatus = async (targetUid, newStatus) => {
-            if (!isAdmin) return showToast("Chỉ Admin mới có quyền này!");
-            if (!confirm(newStatus === 'blocked' ? "CẢNH BÁO: KHÓA tài khoản này?" : "DUYỆT tài khoản này?")) return;
-            try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_registry', targetUid), { status: newStatus }); showToast("Đã cập nhật!"); } catch (e) { showToast("Lỗi: " + e.message); }
-        }
+            if (!isAdmin) return showToast("Chỉ Admin mới có quyền này!", 'error');
+            
+            window.showConfirm(newStatus === 'blocked' ? "CẢNH BÁO: KHÓA tài khoản này?" : "DUYỆT tài khoản này?", async () => {
+                try { 
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_registry', targetUid), { status: newStatus }); 
+                    showToast("Đã cập nhật!"); 
+                } catch (e) { 
+                    if (e.code === 'resource-exhausted') handleQuotaError();
+                    else showToast("Lỗi: " + e.message, 'error'); 
+                }
+            });
+        };
 
         window.switchUserTab = (tab) => {
             el('user-tab-online').classList.toggle('hidden', tab !== 'online');
@@ -645,8 +806,11 @@
                 const status = u.status || 'pending';
                 if (isOnline) onlineCount++;
                 const timeStr = lastActiveDate.toLocaleString('vi-VN');
-                let statusBadge = status === 'approved' ? '<span class="text-[8px] font-black text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded uppercase">Đã duyệt</span>' : (status === 'blocked' ? '<span class="text-[8px] font-black text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase">Đã khóa</span>' : '<span class="text-[8px] font-black text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded uppercase">Chờ duyệt</span>');
-                let adminControls = isAdmin ? `${status !== 'approved' ? `<button onclick="window.setUserStatus('${u.uid}', 'approved')" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"><i data-lucide="check-circle" class="w-4 h-4"></i></button>` : ''} ${status !== 'blocked' ? `<button onclick="window.setUserStatus('${u.uid}', 'blocked')" class="p-1.5 text-red-600 hover:bg-red-50 rounded"><i data-lucide="ban" class="w-4 h-4"></i></button>` : ''}` : '';
+                let statusBadge = status === 'blocked' ? '<span class="text-[8px] font-black text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase">Đã khóa</span>' : '<span class="text-[8px] font-black text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded uppercase">Hoạt động</span>';
+                
+                // Simplified Admin Controls: Only Block/Unblock
+                let adminControls = isAdmin ? `${status !== 'blocked' ? `<button onclick="window.setUserStatus('${u.uid}', 'blocked')" class="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Khóa"><i data-lucide="ban" class="w-4 h-4"></i></button>` : `<button onclick="window.setUserStatus('${u.uid}', 'approved')" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded" title="Mở khóa"><i data-lucide="check-circle" class="w-4 h-4"></i></button>`}` : '';
+                
                 const itemHtml = `<div class="flex items-center gap-3">
                         <div class="w-8 h-8 rounded-full ${isOnline ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'} flex items-center justify-center font-bold text-xs">${emailDisplay.charAt(0).toUpperCase()}</div>
                         <div><p class="text-xs font-bold text-slate-700 flex items-center gap-2">${emailDisplay} ${statusBadge}</p><p class="text-[9px] ${isOnline ? 'text-emerald-500' : 'text-slate-400'} font-medium">${isOnline ? 'Online' : 'Offline'}</p></div>
@@ -722,8 +886,40 @@
         window.moveManu = async (n, d) => { let active = getActiveList('manufacturer'); const i = active.indexOf(n); if (i===-1||(i===0&&d===-1)||(i===active.length-1&&d===1)) return; [active[i], active[i+d]] = [active[i+d], active[i]]; manufacturerOrder = active; await saveManuConfig(); renderManufacturerManagementModal(); renderHospitalSelect(); }
         window.softDeleteManu = async (n) => { deletedManufacturers.add(n); await saveManuConfig(); renderManufacturerManagementModal(); renderHospitalSelect(); }
         window.restoreManu = async (n) => { deletedManufacturers.delete(n); await saveManuConfig(); renderManufacturerManagementModal(); renderHospitalSelect(); }
-        window.editHosp = async (o) => { const n = prompt("Tên mới:", o); if (!n || n === o || n.trim() === "") return; if (getActiveList('hospital').includes(n.trim())) return alert("Đã tồn tại!"); if (customHospitals.has(o)) customHospitals.delete(o); else deletedHospitals.add(o); customHospitals.add(n.trim()); const idx = hospitalOrder.indexOf(o); if (idx !== -1) hospitalOrder[idx] = n.trim(); await saveHospConfig(); renderHospitalManagementModal(); renderHospitalSelect(); }
-        window.editManu = async (o) => { const n = prompt("Tên mới:", o); if (!n || n === o || n.trim() === "") return; if (getActiveList('manufacturer').includes(n.trim())) return alert("Đã tồn tại!"); if (customManufacturers.has(o)) customManufacturers.delete(o); else deletedManufacturers.add(o); customManufacturers.add(n.trim()); const idx = manufacturerOrder.indexOf(o); if (idx !== -1) manufacturerOrder[idx] = n.trim(); await saveManuConfig(); renderManufacturerManagementModal(); renderHospitalSelect(); }
+        
+        window.editHosp = async (o) => {
+            window.showInput("Đổi tên Bệnh viện", o, async (n) => {
+                if (n === o) return;
+                if (getActiveList('hospital').includes(n)) return showToast("Tên này đã tồn tại!", 'error');
+                
+                if (customHospitals.has(o)) customHospitals.delete(o); else deletedHospitals.add(o);
+                customHospitals.add(n);
+                
+                const idx = hospitalOrder.indexOf(o);
+                if (idx !== -1) hospitalOrder[idx] = n;
+                
+                await saveHospConfig();
+                renderHospitalManagementModal();
+                renderHospitalSelect();
+            });
+        };
+
+        window.editManu = async (o) => {
+            window.showInput("Đổi tên Hãng máy", o, async (n) => {
+                if (n === o) return;
+                if (getActiveList('manufacturer').includes(n)) return showToast("Tên này đã tồn tại!", 'error');
+
+                if (customManufacturers.has(o)) customManufacturers.delete(o); else deletedManufacturers.add(o);
+                customManufacturers.add(n);
+
+                const idx = manufacturerOrder.indexOf(o);
+                if (idx !== -1) manufacturerOrder[idx] = n;
+
+                await saveManuConfig();
+                renderManufacturerManagementModal();
+                renderHospitalSelect();
+            });
+        };
 
         window.selectRefStandard = (s) => { currentStandardName = s; const d = DRL_STANDARDS[s], active = el('protocol').value; if (d && d[active]) { el('manualRefCtdi').value = d[active].ctdi75; el('manualRefDlp').value = d[active].dlp75; document.querySelectorAll('.drl-row').forEach(r => r.classList.toggle('active', r.dataset.std === s)); renderDashboard(); } }
         function updateRefStandardTable() { const a = el('protocol').value, b = el('refStandardTableBody'); if(!b) return; b.innerHTML = ''; Object.entries(DRL_STANDARDS).forEach(([n, d]) => { const v = d[a] || { ctdi75: '-', ctdi50: '-', dlp75: '-', dlp50: '-' }; const tr = document.createElement('tr'); tr.className = `drl-row hover:bg-indigo-50 cursor-pointer transition-colors ${n === currentStandardName ? 'active' : ''}`; tr.dataset.std = n; tr.onclick = () => window.selectRefStandard(n); tr.innerHTML = `<td class="px-3 py-2 font-bold border-r border-indigo-50">${n}</td><td class="px-2 py-2 text-center text-slate-500 border-r border-indigo-50 bg-slate-50/30">${v.ctdi50}</td><td class="px-2 py-2 text-center text-indigo-600 font-black border-r border-indigo-50 bg-indigo-50/30">${v.ctdi75}</td><td class="px-2 py-2 text-center text-slate-500 border-r border-indigo-50 bg-slate-50/30">${v.dlp50}</td><td class="px-2 py-2 text-center text-amber-600 font-black bg-amber-50/30">${v.dlp75}</td>`; b.appendChild(tr); }); }
@@ -807,7 +1003,7 @@
             });
             on('hospitalSelect', 'onchange', (e) => el('customHospitalName').classList.toggle('hidden', e.target.value !== 'other'));
             on('btnToggleRef', 'onclick', () => { el('refConfigContent').classList.toggle('hidden'); el('refChevron').classList.toggle('rotate-180'); });
-            on('authForm', 'onsubmit', async(e) => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, el('authEmail').value, el('authPassword').value); el('authModal').classList.add('hidden'); } catch(err){ alert(err.message); } });
+            on('authForm', 'onsubmit', async(e) => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, el('authEmail').value, el('authPassword').value); el('authModal').classList.add('hidden'); } catch(err){ showToast("Lỗi đăng nhập: " + err.message, 'error'); } });
             on('navLogoutBtn', 'onclick', () => { isAdmin = false; localStorage.removeItem('vnDrlAdmin'); signOut(auth); location.reload(); });
             const userBtn = el('userMenuBtn'), userDrop = el('userDropdown');
             if(userBtn) userBtn.onclick = (e) => { e.stopPropagation(); userDrop.classList.toggle('hidden'); };
@@ -815,8 +1011,8 @@
             on('openAdminLogin', 'onclick', () => { el('authModal').classList.add('hidden'); el('adminAuthModal').classList.remove('hidden'); el('adminPassInput').focus(); });
             on('requestAdminBtn', 'onclick', () => { el('adminAuthModal').classList.remove('hidden'); userDrop.classList.add('hidden'); el('adminPassInput').focus(); });
             on('btnAdminAccess', 'onclick', () => { el('authModal').classList.add('hidden'); el('adminAuthModal').classList.remove('hidden'); el('adminPassInput').focus(); });
-            on('adminAuthForm', 'onsubmit', (e) => { e.preventDefault(); if (el('adminPassInput').value === ADMIN_PASSWORD) { isAdmin = true; localStorage.setItem('vnDrlAdmin', 'true'); checkLoginStatus(); showToast("Đã kích hoạt quyền ADMIN!"); el('adminAuthModal').classList.add('hidden'); el('adminPassInput').value = ''; } else { showToast("Sai mã!"); } });
-            on('googleLoginBtn', 'onclick', async () => { const provider = new GoogleAuthProvider(); try { await setPersistence(auth, browserLocalPersistence); await signInWithPopup(auth, provider); el('authModal').classList.add('hidden'); } catch (err) { if (err.code !== 'auth/popup-closed-by-user') showToast("Lỗi: " + err.message); } });
+            on('adminAuthForm', 'onsubmit', (e) => { e.preventDefault(); if (el('adminPassInput').value === ADMIN_PASSWORD) { isAdmin = true; localStorage.setItem('vnDrlAdmin', 'true'); checkLoginStatus(); showToast("Đã kích hoạt quyền ADMIN!"); el('adminAuthModal').classList.add('hidden'); el('adminPassInput').value = ''; } else { showToast("Sai mã!", 'error'); } });
+            on('googleLoginBtn', 'onclick', async () => { const provider = new GoogleAuthProvider(); try { await setPersistence(auth, browserLocalPersistence); await signInWithPopup(auth, provider); el('authModal').classList.add('hidden'); } catch (err) { if (err.code !== 'auth/popup-closed-by-user') showToast("Lỗi: " + err.message, 'error'); } });
             on('btnManageHospitals', 'onclick', () => { if(!isAdmin) { el('authModal').classList.add('hidden'); el('adminAuthModal').classList.remove('hidden'); el('adminPassInput').focus(); return; } renderHospitalManagementModal(); el('hospitalManageModal').classList.remove('hidden'); });
             on('btnManageManufacturers', 'onclick', () => { if(!isAdmin) { el('authModal').classList.add('hidden'); el('adminAuthModal').classList.remove('hidden'); el('adminPassInput').focus(); return; } renderManufacturerManagementModal(); el('manufacturerManageModal').classList.remove('hidden'); });
             on('addHospitalForm', 'onsubmit', async (e) => { e.preventDefault(); const n=el('newHospitalName').value.trim(); if(n && !getActiveList('hospital').includes(n)) { customHospitals.add(n); await saveHospConfig(); el('newHospitalName').value=''; renderHospitalManagementModal(); renderHospitalSelect(); } });
@@ -827,7 +1023,7 @@
             const updateBMI = () => { const w=parseFloat(el('weight').value), h=parseFloat(el('height').value)/100; if(w>0&&h>0) el('bmi').value=(w/(h*h)).toFixed(1); else el('bmi').value=''; };
             el('weight').addEventListener('input',updateBMI); el('height').addEventListener('input',updateBMI);
             on('importExcelInput', 'onchange', (e) => {
-                if(!isAdmin && (!user || user.isAnonymous)) return showToast("Cần đăng nhập!");
+                if(!isAdmin && (!user || user.isAnonymous)) return showToast("Cần đăng nhập!", 'error');
                 const r = new FileReader(); r.onload = async(evt) => {
                     const wb = XLSX.read(evt.target.result, {type:'array'}), data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
                     for(const row of data) { await addDoc(collection(db,'artifacts',appId,'public','data','drl_entries'), { hospitalName: row['Bệnh viện']||'Imported', protocol: row['Protocol']||'Sọ não (Head)', manufacturer: row['Hãng máy']||'', patientId: String(row['ID Bệnh nhân']||Date.now()), age: row['Tuổi']||0, gender: row['Giới tính']||'M', weight: row['Cân nặng']||0, height: row['Chiều cao']||0, doseModulation: row['Modulation']||'Có', ctdi: row['CTDIvol']||0, dlp: row['DLP']||0, userId: user ? user.uid : 'admin', userEmail: user ? user.email : 'Administrator', createdAt: new Date().toISOString() }); }
@@ -836,11 +1032,55 @@
             });
             on('drlForm', 'onsubmit', async(e) => {
                 e.preventDefault();
-                if (!isAdmin && currentUserStatus !== 'approved') return showToast("Tài khoản chưa được cấp quyền nhập liệu!");
-                const hVal = el('hospitalSelect').value;
-                await addDoc(collection(db,'artifacts',appId,'public','data','drl_entries'), { hospitalName: hVal==='other'?el('customHospitalName').value:hVal, manufacturer: el('manufacturer').value, protocol: el('protocol').value, patientId: el('patientId').value, scanDate: el('scanDate').value, age: el('age').value, gender: el('gender').value, weight: el('weight').value, height: el('height').value, doseModulation: document.querySelector('input[name="doseModulation"]:checked').value, ctdi: el('ctdi').value, dlp: el('dlp').value, kvp: el('kvp').value, mas: el('mas').value, userId: user ? user.uid : 'admin-override', userEmail: user && !user.isAnonymous ? user.email : 'Administrator', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
-                showToast("Đã lưu dữ liệu thành công!");
-                ['patientId','age','yob','weight','height','bmi','ctdi','dlp','kvp','mas'].forEach(id=>{if(el(id)) el(id).value='';});
+                // REMOVED APPROVAL CHECK HERE
+                if (!isAdmin && (!user || user.isAnonymous)) return showToast("Vui lòng đăng nhập để nhập liệu!", 'error');
+                
+                let hVal = el('hospitalSelect').value;
+                const mVal = el('manufacturer').value;
+
+                // --- FIX: Validation for Hospital and Manufacturer ---
+                if (!hVal || hVal === '-- Chọn --') {
+                    return showToast("Vui lòng chọn Bệnh viện!", 'error');
+                }
+                
+                if (hVal === 'other') {
+                    const customName = el('customHospitalName').value.trim();
+                    if (!customName) return showToast("Vui lòng nhập tên Bệnh viện mới!", 'error');
+                    hVal = customName;
+                }
+
+                if (!mVal || mVal === '-- Chọn --') {
+                    return showToast("Vui lòng chọn Hãng máy!", 'error');
+                }
+                // ----------------------------------------------------
+
+                try {
+                    await addDoc(collection(db,'artifacts',appId,'public','data','drl_entries'), { 
+                        hospitalName: hVal, 
+                        manufacturer: mVal, 
+                        protocol: el('protocol').value, 
+                        patientId: el('patientId').value, 
+                        scanDate: el('scanDate').value, 
+                        age: el('age').value, 
+                        gender: el('gender').value, 
+                        weight: el('weight').value, 
+                        height: el('height').value, 
+                        doseModulation: document.querySelector('input[name="doseModulation"]:checked').value, 
+                        ctdi: el('ctdi').value, 
+                        dlp: el('dlp').value, 
+                        kvp: el('kvp').value, 
+                        mas: el('mas').value, 
+                        userId: user ? user.uid : 'admin-override', 
+                        userEmail: user && !user.isAnonymous ? user.email : 'Administrator', 
+                        createdAt: new Date().toISOString(), 
+                        updatedAt: new Date().toISOString() 
+                    });
+                    showToast("Đã lưu dữ liệu thành công!");
+                    ['patientId','age','yob','weight','height','bmi','ctdi','dlp','kvp','mas'].forEach(id=>{if(el(id)) el(id).value='';});
+                } catch (e) {
+                    if (e.code === 'resource-exhausted') handleQuotaError();
+                    else showToast("Lỗi khi lưu: " + e.message, 'error');
+                }
             });
             
             // --- NEW: Add LocalStorage Listeners & Restoration ---
