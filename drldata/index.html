@@ -615,37 +615,6 @@
         };
 
         // --- GLOBAL FUNCTIONS ---
-        window.updateUserStatus = async (uid, newStatus, btnElement) => {
-            if(!auth.currentUser && isAdminKey) {
-                 await signInAnonymously(auth); // Ensure we have a token
-            }
-            
-            // UI Feedback
-            let originalContent = '';
-            if (btnElement) {
-                originalContent = btnElement.innerHTML;
-                btnElement.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>';
-                btnElement.disabled = true;
-            }
-
-            try {
-                if(!uid || uid === 'undefined') throw new Error("Invalid User ID");
-                // Use setDoc with merge: true to update or create if missing, more robust than updateDoc
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_users', uid), { status: newStatus }, { merge: true });
-                window.showToast(`Đã cập nhật trạng thái: ${newStatus}`);
-            } catch (err) {
-                console.error(err);
-                let msg = err.message;
-                if(msg.includes("permission")) msg = "Bạn không có quyền thực hiện thao tác này.";
-                window.showAlert("Lỗi", msg, 'error');
-            } finally {
-                if (btnElement) {
-                    btnElement.innerHTML = originalContent;
-                    btnElement.disabled = false;
-                }
-            }
-        };
-
         function showDialog(type, title, message, onConfirm = null) {
             const dialog = el('globalDialog');
             const iconEl = el('dialogIcon');
@@ -783,7 +752,6 @@
                         sessionStorage.removeItem('vnrad_admin_key');
                         userDocData = null;
                         updateAuthUI();
-                        switchTab('dashboard');
                     });
                 });
             } else {
@@ -1425,8 +1393,8 @@
             const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "VN_DRL_Data");
             XLSX.writeFile(wb, `VN_DRL_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
         };
-        ['fHosp','fProt','fManu','fSort','fGender','fMod', 'fQuality'].forEach(i => el(i).onchange = () => { currentPage=1; renderTable(); });
-        el('fSearch').onkeyup = () => { currentPage=1; renderTable(); };
+        ['fHosp','fProt','fManu','fSort','fGender','fMod', 'fQuality'].forEach(i => el(i).onchange = () => { currentPage=1; window.renderTable(); });
+        el('fSearch').onkeyup = () => { currentPage=1; window.renderTable(); };
         
         // Add Enter key listeners for login
         el('adminKeyInput').addEventListener('keyup', (e) => { if(e.key === 'Enter') doAdminKeyLogin(); });
