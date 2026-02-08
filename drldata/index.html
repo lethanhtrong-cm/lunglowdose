@@ -932,14 +932,26 @@
                     userDocData = newUser;
                 }
                 updateAuthUI();
+            }, (error) => {
+                console.error("User Status Error:", error);
+                if (error.code === 'permission-denied') {
+                    // User is likely pending/new and can't read DB yet
+                    // Keep them in pending state
+                }
             });
         }
 
         onAuthStateChanged(auth, async (u) => {
             if (u) {
                 user = u;
-                if (!u.isAnonymous) await checkUserStatus(u);
-                else { userDocData = null; updateAuthUI(); }
+                // Immediate update to show "Pending" state while loading
+                if (!u.isAnonymous) {
+                    updateAuthUI(); 
+                    await checkUserStatus(u);
+                } else { 
+                    userDocData = null; 
+                    updateAuthUI(); 
+                }
             } else {
                 signInAnonymously(auth).catch(console.error);
             }
