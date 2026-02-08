@@ -206,7 +206,7 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <!-- PDF Export Button (Only visible in Charts tab) -->
+                <!-- PDF Export Button -->
                 <button id="btnExportPDF" onclick="exportReportPDF()" class="flex items-center gap-2 px-5 py-2.5 bg-rose-600 text-white rounded-2xl text-[10px] font-black uppercase hover:bg-rose-700 transition-all shadow-lg shadow-rose-200 active:scale-95">
                     <i data-lucide="file-down" class="w-4 h-4"></i> <span class="hidden sm:inline">Xuất PDF</span>
                 </button>
@@ -226,7 +226,7 @@
             <!-- Global Stats Bar -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="glass-card p-5 rounded-[2rem] flex flex-col items-center justify-center text-center hover:-translate-y-1 transition-transform duration-300">
-                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tổng số ca</span>
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tổng số ca hợp lệ</span>
                     <span id="statTotal" class="text-4xl font-black text-slate-900 mt-2">0</span>
                 </div>
                 <div class="glass-card p-5 rounded-[2rem] flex flex-col items-center justify-center text-center hover:-translate-y-1 transition-transform duration-300">
@@ -243,20 +243,20 @@
                 </div>
             </div>
 
-            <!-- ROW 1: Progress Chart (Counts) -->
+            <!-- ROW 1: Progress Table (REPLACED FROM BAR CHART) -->
             <div class="glass-card p-8 rounded-[2.5rem] bg-white border border-slate-200 shadow-xl break-inside-avoid">
                 <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center gap-3">
-                        <div class="bg-slate-800 p-2.5 rounded-xl text-white shadow-lg"><i data-lucide="bar-chart-big" class="w-6 h-6"></i></div>
+                        <div class="bg-indigo-600 p-2.5 rounded-xl text-white shadow-lg shadow-indigo-200"><i data-lucide="list-checks" class="w-6 h-6"></i></div>
                         <div>
-                            <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider">Số lượng ca chụp theo Bệnh viện</h3>
+                            <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider">Tiến độ nhập liệu theo Bệnh viện</h3>
                             <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5 flex items-center gap-1">
-                                <i data-lucide="target" class="w-3 h-3"></i> Mục tiêu: n ≥ 30 ca/protocol
+                                <i data-lucide="target" class="w-3 h-3"></i> Mục tiêu thống kê: n ≥ 30 ca mỗi protocol
                             </p>
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <button class="p-2 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors" onclick="downloadChart('progressChart', 'TienDo')"><i data-lucide="camera" class="w-4 h-4 text-slate-600"></i></button>
+                        <button class="p-2 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors" onclick="downloadChart('progressTableContainer', 'TienDoTable')"><i data-lucide="camera" class="w-4 h-4 text-slate-600"></i></button>
                         <select id="progModulation" class="filter-select border-slate-300 text-slate-600">
                             <option value="all">Tất cả (All)</option>
                             <option value="Có">Có Modulation</option>
@@ -264,9 +264,12 @@
                         </select>
                     </div>
                 </div>
-                <div class="chart-container h-[400px]">
-                    <canvas id="progressChart"></canvas>
+                
+                <!-- Table Container -->
+                <div id="progressTableContainer" class="overflow-x-auto bg-white p-2 rounded-xl">
+                    <!-- JS will render table here -->
                 </div>
+
                 <div class="insight-box" id="insight-progress">
                     <i data-lucide="lightbulb" class="insight-icon w-5 h-5"></i>
                     <div>
@@ -302,7 +305,6 @@
                             <option value="dlp">DLP (mGy.cm)</option>
                         </select>
                         <select id="benchRefCountry" class="filter-select border-rose-200 text-rose-600 focus:border-rose-500">
-                            <!-- Populated via JS -->
                         </select>
                     </div>
                 </div>
@@ -353,7 +355,6 @@
                             <option value="dlp">DLP (mGy.cm)</option>
                         </select>
                         <select id="benchMedRefCountry" class="filter-select border-teal-200 text-teal-600 focus:border-teal-500">
-                            <!-- Populated via JS -->
                         </select>
                     </div>
                 </div>
@@ -370,7 +371,7 @@
                 </div>
             </div>
 
-            <!-- NEW ROW: MULTI-PROTOCOL MEDIAN CHART (ADDED HERE) -->
+            <!-- ROW: MULTI-PROTOCOL MEDIAN CHART -->
             <div class="glass-card p-8 rounded-[2.5rem] bg-white border border-purple-50 shadow-xl relative overflow-hidden break-inside-avoid">
                 <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 relative z-10">
                     <div class="flex items-center gap-3">
@@ -551,7 +552,7 @@
                 </div>
             </div>
 
-            <!-- ROW 6b: ADVANCED SCATTER ANALYSIS (Split into 2 Columns) -->
+            <!-- ROW 6b: ADVANCED SCATTER ANALYSIS -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 break-inside-avoid">
                 <!-- CHART 1: Manufacturer Scatter -->
                 <div class="glass-card p-8 rounded-[2.5rem] bg-white border border-indigo-50 shadow-xl">
@@ -584,7 +585,7 @@
                     </div>
                 </div>
 
-                <!-- CHART 2: Scan Length Scatter (DLP vs CTDI) - NEW CHART -->
+                <!-- CHART 2: Scan Length Scatter (DLP vs CTDI) -->
                 <div class="glass-card p-8 rounded-[2.5rem] bg-white border border-emerald-50 shadow-xl">
                     <div class="flex flex-col gap-4 mb-6">
                         <div class="flex items-center justify-between">
@@ -700,7 +701,7 @@
                 </div>
             </div>
 
-            <!-- NEW SECTION: ADVANCED ANALYTICS (ADDED FEATURES) -->
+            <!-- NEW SECTION: ADVANCED ANALYTICS -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 break-inside-avoid">
                 <!-- FEATURE 1: Outlier Detection -->
                 <div class="glass-card p-6 rounded-[2.5rem] bg-white border border-red-50 shadow-xl">
@@ -722,7 +723,6 @@
                                 </tr>
                             </thead>
                             <tbody id="outlierTableBody" class="font-medium text-slate-600">
-                                <!-- Populated via JS -->
                             </tbody>
                         </table>
                         <div id="noOutliersMsg" class="hidden text-center text-slate-400 text-xs mt-10">Không phát hiện bất thường</div>
@@ -740,25 +740,21 @@
                     </div>
                     <div class="flex items-center justify-center h-[250px]">
                         <div class="grid grid-cols-4 gap-1 w-full max-w-sm text-[10px] font-bold">
-                            <!-- Header -->
                             <div></div>
                             <div class="text-center text-slate-500 py-2">Weight</div>
                             <div class="text-center text-slate-500 py-2">CTDI</div>
                             <div class="text-center text-slate-500 py-2">DLP</div>
                             
-                            <!-- Row 1: Weight -->
                             <div class="text-right text-slate-500 pr-2 py-3">Weight</div>
                             <div class="corr-cell bg-indigo-600 text-white rounded-lg flex items-center justify-center h-12">1.0</div>
                             <div id="corr-w-c" class="corr-cell bg-indigo-50 text-indigo-900 rounded-lg flex items-center justify-center h-12">--</div>
                             <div id="corr-w-d" class="corr-cell bg-indigo-50 text-indigo-900 rounded-lg flex items-center justify-center h-12">--</div>
 
-                            <!-- Row 2: CTDI -->
                             <div class="text-right text-slate-500 pr-2 py-3">CTDI</div>
                             <div id="corr-c-w" class="corr-cell bg-indigo-50 text-indigo-900 rounded-lg flex items-center justify-center h-12">--</div>
                             <div class="corr-cell bg-indigo-600 text-white rounded-lg flex items-center justify-center h-12">1.0</div>
                             <div id="corr-c-d" class="corr-cell bg-indigo-50 text-indigo-900 rounded-lg flex items-center justify-center h-12">--</div>
                             
-                            <!-- Row 3: DLP -->
                             <div class="text-right text-slate-500 pr-2 py-3">DLP</div>
                             <div id="corr-d-w" class="corr-cell bg-indigo-50 text-indigo-900 rounded-lg flex items-center justify-center h-12">--</div>
                             <div id="corr-d-c" class="corr-cell bg-indigo-50 text-indigo-900 rounded-lg flex items-center justify-center h-12">--</div>
@@ -768,7 +764,7 @@
                 </div>
             </div>
             
-            <!-- FEATURE 3: Raw Data Preview (Last 5 Entries) -->
+            <!-- FEATURE 3: Raw Data Preview (Last 10 Entries) -->
             <div class="glass-card p-6 rounded-[2.5rem] bg-white border border-slate-200 shadow-xl break-inside-avoid">
                  <div class="flex items-center gap-3 mb-4">
                     <div class="bg-slate-700 p-2.5 rounded-xl text-white shadow-lg"><i data-lucide="database" class="w-5 h-5"></i></div>
@@ -788,7 +784,6 @@
                              </tr>
                          </thead>
                          <tbody id="rawTableBody" class="divide-y divide-slate-100 text-slate-700 font-medium">
-                             <!-- JS Populated -->
                          </tbody>
                     </table>
                 </div>
@@ -796,7 +791,7 @@
 
         </div>
 
-        <!-- THEORY & PAPER TABS (UNCHANGED) -->
+        <!-- THEORY TAB CONTENT -->
         <div id="theoryContent" class="hidden space-y-8 p-4">
             <div class="glass-card p-10 rounded-[2.5rem] bg-white border border-teal-50 shadow-xl prose max-w-none">
                 <h2 class="text-2xl font-black text-teal-900 uppercase tracking-tighter mb-6 text-center border-b pb-4">Cơ sở Lý thuyết & Phương pháp Thống kê</h2>
@@ -842,6 +837,7 @@
             </div>
         </div>
 
+        <!-- PAPER TAB CONTENT -->
         <div id="paperContent" class="hidden space-y-8 p-4">
              <div class="glass-card p-12 rounded-[2.5rem] bg-white border border-indigo-50 shadow-xl prose max-w-none">
                 
@@ -875,7 +871,7 @@
                 <h4>2.3. Xử lý số liệu và Kiểm định thống kê</h4>
                 <ul>
                     <li><strong>Làm sạch dữ liệu:</strong> Loại bỏ các giá trị ngoại lai (outliers) do lỗi nhập liệu hoặc bệnh lý đặc biệt.</li>
-                    <li><strong>Kiểm định:</strong> Sử dụng Mann-Whitney U test để so sánh trung vị giữa 2 nhóm, Kruskal-Wallis test cho nhiều nhóm. Mức ý nghĩa thống kê p < 0.05.</li>
+                    <li><strong>Kiểm định:</strong> Sử dụng Mann-Whitney U test để so sánh trung vị giữa 2 nhóm, Kruskal-Wallis test cho nhiều nhóm. Mức ý nghĩa thống kê p <0.05.</li>
                 </ul>
 
                 <h3>3. Kết quả (Results)</h3>
@@ -911,15 +907,14 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Constants shared with main app
+        // Constants
         const THAI_DRL_PROTOCOLS = [
-            { name: 'Sọ não (Head)', refCtdi: 65, refDlp: 1000, k: 0.0021 },
-            { name: 'Ngực không thuốc (Chest)', refCtdi: 9, refDlp: 350, k: 0.014 },
-            { name: 'Bụng không thuốc (Abdomen)', refCtdi: 11, refDlp: 500, k: 0.015 },
-            { name: 'Phổi liều thấp (LDCT)', refCtdi: 3, refDlp: 150, k: 0.014 }
+            { name: 'Sọ não (Head)', refCtdi: 65, refDlp: 1000, k: 0.0021, shortName: 'SỌ NÃO' },
+            { name: 'Ngực không thuốc (Chest)', refCtdi: 9, refDlp: 350, k: 0.014, shortName: 'NGỰC' },
+            { name: 'Bụng không thuốc (Abdomen)', refCtdi: 11, refDlp: 500, k: 0.015, shortName: 'BỤNG' },
+            { name: 'Phổi liều thấp (LDCT)', refCtdi: 3, refDlp: 150, k: 0.014, shortName: 'LDCT' }
         ];
         
-        // --- International Benchmark Data ---
         const INTERNATIONAL_REFS = {
             'Thailand (2019)': {
                 'Sọ não (Head)': { ctdi75: 65, ctdi50: 58, dlp75: 1000, dlp50: 900 },
@@ -964,24 +959,20 @@
 
         let entries = [];
         let IS_AUTHORIZED = false;
-        
-        // Mật khẩu truy cập
         const ACCESS_PASSWORDS = ["123456", "ktv3mien", "admin123"];
 
         // Chart instances
-        let progressChart = null; 
         let benchmarkChart = null; 
         let benchmarkMedianChart = null; 
         let genderChart = null; 
-        let weightChart = null; // Renamed from bmiChart
+        let weightChart = null; 
         let modulationChart = null; 
         let trendChart = null; 
         let scatterManuChart = null; 
-        let scatterLengthChart = null; // NEW CHART
+        let scatterLengthChart = null; 
         let multiProtocolMedianChart = null; 
         let meanCtdiChart = null, meanDlpChart = null;
         let multiHospSDChart = null, multiManuSDChart = null; 
-        let drlCtdiChart = null, drlDlpChart = null;
         let normalityChart = null;
 
         const el = (id) => document.getElementById(id);
@@ -1008,30 +999,12 @@
 
         // --- Tab Switching Logic ---
         window.switchMainTab = (tabName) => {
-            const chartBtn = el('btn-tab-charts');
-            const theoryBtn = el('btn-tab-theory');
-            const paperBtn = el('btn-tab-paper'); 
-            const chartContent = el('chartsContent');
-            const theoryContent = el('theoryContent');
-            const paperContent = el('paperContent'); 
-            const exportBtn = el('btnExportPDF');
-
-            [chartBtn, theoryBtn, paperBtn].forEach(b => b.classList.remove('active'));
-            [chartContent, theoryContent, paperContent].forEach(c => c.classList.add('hidden'));
-            
-            if (tabName === 'charts') {
-                chartBtn.classList.add('active');
-                chartContent.classList.remove('hidden');
-                exportBtn.classList.remove('hidden');
-            } else if (tabName === 'theory') {
-                theoryBtn.classList.add('active');
-                theoryContent.classList.remove('hidden');
-                exportBtn.classList.add('hidden');
-            } else {
-                paperBtn.classList.add('active');
-                paperContent.classList.remove('hidden');
-                exportBtn.classList.add('hidden');
-            }
+            const tabs = ['charts', 'theory', 'paper'];
+            tabs.forEach(t => {
+                el(`btn-tab-${t}`).classList.toggle('active', t === tabName);
+                el(`${t}Content`).classList.toggle('hidden', t !== tabName);
+            });
+            el('btnExportPDF').classList.toggle('hidden', tabName !== 'charts');
         };
 
         // --- Helper Functions ---
@@ -1053,16 +1026,6 @@
             return (1 / (sd * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / sd, 2));
         };
 
-        const getContrastColor = (protocol) => {
-            const p = protocol || '';
-            if(p.includes('Head')) return '#ef4444'; 
-            if(p.includes('Chest')) return '#3b82f6';
-            if(p.includes('Abdomen')) return '#eab308';
-            if(p.includes('LDCT')) return '#22c55e';
-            return '#a855f7';
-        };
-
-        // --- Pearson Correlation Calculator ---
         function calculateCorrelation(x, y) {
             const n = x.length;
             if (n !== y.length || n === 0) return 0;
@@ -1076,16 +1039,14 @@
             return denominator === 0 ? 0 : numerator / denominator;
         }
 
-        // --- Data Processing for Charts ---
         function getMultiGroupData(data, primaryKey, secondaryKey, metricKey, statType) {
             const primaryLabels = [...new Set(data.map(e => {
-                let v = e[primaryKey];
-                v = v ? v.trim() : 'Unknown';
+                let v = e[primaryKey] ? e[primaryKey].trim() : 'Unknown';
                 if (primaryKey === 'manufacturer') { if (v.toLowerCase().startsWith('ge')) v = 'GE HealthCare'; }
                 return v;
             }))].sort();
             
-            const secondaryLabels = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))]; 
+            const secondaryLabels = THAI_DRL_PROTOCOLS.map(p => p.name); 
             const datasets = secondaryLabels.map((prot, idx) => {
                 const colors = ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#a855f7'];
                 return {
@@ -1130,7 +1091,7 @@
                     doc.setFontSize(10); doc.text(`Ngày xuất: ${new Date().toLocaleString('vi-VN')}`, margin, margin + 20);
                     doc.addImage(imgData, 'PNG', margin, margin + 30, pdfWidth, pdfHeight);
                 }
-                const chartCards = Array.from(content.querySelectorAll('.glass-card')).filter(card => card.querySelector('canvas'));
+                const chartCards = Array.from(content.querySelectorAll('.glass-card')).filter(card => card.querySelector('canvas') || card.querySelector('#progressTableContainer'));
                 for (let i = 0; i < chartCards.length; i++) {
                     const card = chartCards[i];
                     doc.addPage();
@@ -1149,60 +1110,93 @@
             } catch (err) { console.error(err); showToast("Lỗi xuất PDF: " + err.message); }
         };
 
+        // --- Render Progress Table ---
+        function renderProgressTable() {
+            const container = el('progressTableContainer');
+            const progMod = el('progModulation').value;
+            
+            // 1. Data Aggregation
+            const progressMap = {}; // { hospitalName: { protocolName: count } }
+            const hospitals = new Set();
+
+            entries.forEach(e => {
+                if (progMod !== 'all' && e.doseModulation !== progMod) return;
+                const h = (e.hospitalName || 'Unknown').trim();
+                hospitals.add(h);
+                if (!progressMap[h]) progressMap[h] = {};
+                progressMap[h][e.protocol] = (progressMap[h][e.protocol] || 0) + 1;
+            });
+
+            const sortedHospitals = Array.from(hospitals).sort();
+
+            // 2. Generate HTML
+            let html = `
+                <div class="min-w-[800px]">
+                    <div class="grid grid-cols-12 gap-4 border-b border-slate-100 pb-4 mb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <div class="col-span-4">BỆNH VIỆN</div>
+                        ${THAI_DRL_PROTOCOLS.map(p => `<div class="col-span-2 text-center">${p.shortName}</div>`).join('')}
+                    </div>
+                    <div class="max-h-[350px] overflow-y-auto pr-2 custom-scrollbar space-y-4">
+            `;
+
+            sortedHospitals.forEach(h => {
+                html += `
+                    <div class="grid grid-cols-12 gap-4 items-center border-b border-slate-50 pb-4 last:border-0 hover:bg-slate-50/50 transition-colors rounded-lg px-2">
+                        <div class="col-span-4 font-bold text-xs text-slate-700">${h}</div>
+                `;
+                
+                THAI_DRL_PROTOCOLS.forEach(p => {
+                    const count = progressMap[h]?.[p.name] || 0;
+                    const target = 30;
+                    const percent = Math.min(100, (count / target) * 100);
+                    const isComplete = count >= target;
+                    const colorText = isComplete ? 'text-emerald-600' : 'text-red-500';
+                    const colorBar = isComplete ? 'bg-emerald-500' : 'bg-red-500';
+
+                    html += `
+                        <div class="col-span-2 flex flex-col gap-1.5">
+                            <div class="flex justify-center text-[10px] font-black ${colorText}">
+                                <span>${count}/${target}</span>
+                            </div>
+                            <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full ${colorBar} transition-all duration-500" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+            });
+
+            html += `</div></div>`;
+            container.innerHTML = html;
+        }
+
         // --- Main Render ---
         function renderCharts() {
+            if (!IS_AUTHORIZED) return; 
+
             el('statTotal').textContent = entries.length;
             el('statHospitals').textContent = new Set(entries.map(e => (e.hospitalName || '').trim())).size;
             el('statMachines').textContent = new Set(entries.map(e => (e.manufacturer || '').trim())).size;
             el('statLastUpdate').textContent = new Date().toLocaleTimeString('vi-VN');
 
-            if (!IS_AUTHORIZED) return; 
-
-            // 1. Progress Chart (Count)
-            const progMod = el('progModulation').value;
-            const progData = {};
-            const protocols = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))];
-            entries.forEach(e => {
-                if (progMod !== 'all' && e.doseModulation !== progMod) return;
-                const hosp = e.hospitalName ? e.hospitalName.trim() : 'Unknown';
-                if (!progData[hosp]) progData[hosp] = {};
-                const prot = e.protocol || 'Other';
-                progData[hosp][prot] = (progData[hosp][prot] || 0) + 1;
-            });
-            const hospitals = Object.keys(progData).sort();
-            const progDatasets = protocols.map((prot, index) => {
-                const colorPalette = ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#a855f7']; 
-                return { label: prot, data: hospitals.map(h => progData[h][prot] || 0), backgroundColor: colorPalette[index % colorPalette.length], borderRadius: 4, barThickness: 25 };
-            });
-            if(progressChart) progressChart.destroy();
-            progressChart = new Chart(el('progressChart').getContext('2d'), {
-                type: 'bar', data: { labels: hospitals, datasets: progDatasets },
-                options: {
-                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { position: 'top', labels: { font: { size: 10, weight: 'bold' }, usePointStyle: true } },
-                        tooltip: { callbacks: { label: (context) => { const val = context.raw || 0; const rem = Math.max(0, 30 - val); return `${context.dataset.label}: ${val} ca - ${rem > 0 ? `⚠️ Thiếu ${rem}` : '✅ Đạt'}`; } } },
-                        title: { display: true, text: 'PHÂN BỐ SỐ LƯỢNG CA CHỤP', font: {size: 14, weight: 'bold'} }
-                    },
-                    scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, grid: { display: false } } }
-                }
-            });
-            // Insight Progress
+            // 1. Progress Chart -> NOW TABLE
+            renderProgressTable();
+            
             el('insight-progress').querySelector('.insight-content').textContent = `Hiện có ${entries.length} ca chụp. ${entries.length < 300 ? "Dữ liệu còn sơ khai (Mục tiêu > 300 ca)." : "Dữ liệu đã phong phú."}`;
 
-            // 2. Benchmarking Chart (Mean & Median Combined)
-            const benchProtocol = el('benchProtocol').value || THAI_DRL_PROTOCOLS[0].name;
+            const hospitals = [...new Set(entries.map(e => (e.hospitalName || '').trim()))].sort();
+            const protocols = THAI_DRL_PROTOCOLS.map(p => p.name);
+
+            // 2. Benchmarking Chart
+            const benchProtocol = el('benchProtocol').value || protocols[0];
             const benchMetric = el('benchMetric').value || 'ctdi';
             const benchMod = el('benchModulation').value;
             const benchCountry = el('benchRefCountry')?.value || 'Thailand (2019)';
             
             const hospitalStats = hospitals.map(h => {
-                const subset = entries.filter(e => {
-                    const matchHosp = (e.hospitalName||'').trim() === h;
-                    const matchProt = e.protocol === benchProtocol;
-                    const matchMod = (benchMod === 'all' || e.doseModulation === benchMod);
-                    return matchHosp && matchProt && matchMod;
-                });
+                const subset = entries.filter(e => (e.hospitalName||'').trim() === h && e.protocol === benchProtocol && (benchMod === 'all' || e.doseModulation === benchMod));
                 const vals = subset.map(e => parseFloat(e[benchMetric])).filter(n => !isNaN(n));
                 const stats = calcStats(vals);
                 return { mean: stats.mean, median: stats.median };
@@ -1213,68 +1207,26 @@
             const ref50 = benchMetric === 'ctdi' ? refData.ctdi50 : refData.dlp50;
 
             const benchDatasets = [
-                {
-                    type: 'bar',
-                    label: `Mean tại Viện`,
-                    data: hospitalStats.map(s => s.mean),
-                    backgroundColor: '#6366f1', // Indigo
-                    order: 2,
-                    borderRadius: 4
-                },
-                {
-                    type: 'bar',
-                    label: `Median tại Viện`,
-                    data: hospitalStats.map(s => s.median),
-                    backgroundColor: '#14b8a6', // Teal
-                    order: 3,
-                    borderRadius: 4
-                },
-                {
-                    type: 'line',
-                    label: `${benchCountry} P75 (DRL)`,
-                    data: Array(hospitals.length).fill(ref75),
-                    borderColor: '#f43f5e', // Rose
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    pointRadius: 0,
-                    fill: false,
-                    order: 1
-                },
-                {
-                    type: 'line',
-                    label: `${benchCountry} Median`,
-                    data: Array(hospitals.length).fill(ref50),
-                    borderColor: '#10b981', // Emerald
-                    borderWidth: 2,
-                    borderDash: [2, 2],
-                    pointRadius: 0,
-                    fill: false,
-                    order: 1
-                }
+                { type: 'bar', label: `Mean tại Viện`, data: hospitalStats.map(s => s.mean), backgroundColor: '#6366f1', order: 2, borderRadius: 4 },
+                { type: 'bar', label: `Median tại Viện`, data: hospitalStats.map(s => s.median), backgroundColor: '#14b8a6', order: 3, borderRadius: 4 },
+                { type: 'line', label: `${benchCountry} P75 (DRL)`, data: Array(hospitals.length).fill(ref75), borderColor: '#f43f5e', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false, order: 1 },
+                { type: 'line', label: `${benchCountry} Median`, data: Array(hospitals.length).fill(ref50), borderColor: '#10b981', borderWidth: 2, borderDash: [2, 2], pointRadius: 0, fill: false, order: 1 }
             ];
 
             if(benchmarkChart) benchmarkChart.destroy();
             benchmarkChart = new Chart(el('benchmarkChart'), {
                 data: { labels: hospitals, datasets: benchDatasets },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
+                    responsive: true, maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
-                    plugins: {
-                        title: { display: true, text: `ĐỐI SÁNH: ${benchProtocol.toUpperCase()} (${benchMetric.toUpperCase()})`, font: {size: 14, weight: 'bold'} }
-                    },
-                    scales: {
-                        y: { beginAtZero: true, title: { display: true, text: benchMetric.toUpperCase() } }
-                    }
+                    plugins: { title: { display: true, text: `ĐỐI SÁNH: ${benchProtocol.toUpperCase()} (${benchMetric.toUpperCase()})`, font: {size: 14, weight: 'bold'} } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: benchMetric.toUpperCase() } } }
                 }
             });
             
-            // Insight Benchmark (Combined)
             const meanHigh = hospitalStats.filter(s => s.mean > ref75).length;
             const medHigh = hospitalStats.filter(s => s.median > ref50).length;
-            el('insight-benchmark').querySelector('.insight-content').textContent = 
-                `Mean: ${meanHigh} viện > DRL (P75). Median: ${medHigh} viện > Chuẩn Median.`;
-
+            el('insight-benchmark').querySelector('.insight-content').textContent = `Mean: ${meanHigh} viện > DRL (P75). Median: ${medHigh} viện > Chuẩn Median.`;
 
             // 3. Gender Chart
             const genderMod = el('genderModulation').value;
@@ -1284,10 +1236,10 @@
             if(genderChart) genderChart.destroy();
             genderChart = new Chart(el('genderChart').getContext('2d'), {
                 type: 'doughnut', data: { labels: ['Nam', 'Nữ'], datasets: [{ data: [maleCount, femaleCount], backgroundColor: ['#3b82f6', '#ec4899'], borderWidth: 0 }] },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom' }, title: { display: false } } }
+                options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom' } } }
             });
 
-            // 3.5 Weight Chart
+            // 4. Weight Chart
             const weightMod = el('weightModulation').value;
             const filteredWeightEntries = entries.filter(e => weightMod === 'all' || e.doseModulation === weightMod);
             const weightCounts = { '<40kg': 0, '40-50kg': 0, '50-60kg': 0, '60-70kg': 0, '70-80kg': 0, '>80kg': 0 };
@@ -1303,29 +1255,24 @@
                 options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { display: false } } } }
             });
 
-            // 4. Modulation Chart (No filter)
+            // 5. Modulation Chart
             const modYes = entries.filter(e => e.doseModulation === 'Có').length;
             const modNo = entries.filter(e => e.doseModulation === 'Không').length;
             if(modulationChart) modulationChart.destroy();
             modulationChart = new Chart(el('modulationChart').getContext('2d'), {
                 type: 'doughnut', data: { labels: ['Có', 'Không'], datasets: [{ data: [modYes, modNo], backgroundColor: ['#f97316', '#cbd5e1'], borderWidth: 0 }] },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom' }, title: { display: false } } }
+                options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom' } } }
             });
-            el('insight-modulation').querySelector('.insight-content').textContent = `Tỷ lệ dùng Modulation: ${((modYes/(modYes+modNo))*100).toFixed(1)}%`;
+            el('insight-modulation').querySelector('.insight-content').textContent = `Tỷ lệ dùng Modulation: ${((modYes/Math.max(1,modYes+modNo))*100).toFixed(1)}%`;
 
-            // 2b. Benchmarking Chart (MEDIAN)
-            const benchMedProtocol = el('benchMedProtocol').value || THAI_DRL_PROTOCOLS[0].name;
+            // 6. Median Benchmark Chart
+            const benchMedProtocol = el('benchMedProtocol').value || protocols[0];
             const benchMedMetric = el('benchMedMetric').value || 'ctdi';
             const benchMedMod = el('benchMedModulation').value;
             const benchMedCountry = el('benchMedRefCountry')?.value || 'Thailand (2019)';
             
             const hospitalMedians = hospitals.map(h => {
-                const subset = entries.filter(e => {
-                    const matchHosp = (e.hospitalName||'').trim() === h;
-                    const matchProt = e.protocol === benchMedProtocol;
-                    const matchMod = (benchMedMod === 'all' || e.doseModulation === benchMedMod);
-                    return matchHosp && matchProt && matchMod;
-                });
+                const subset = entries.filter(e => (e.hospitalName||'').trim() === h && e.protocol === benchMedProtocol && (benchMedMod === 'all' || e.doseModulation === benchMedMod));
                 const vals = subset.map(e => parseFloat(e[benchMedMetric])).filter(n => !isNaN(n));
                 return calcStats(vals).median;
             });
@@ -1342,53 +1289,34 @@
                 data: { labels: hospitals, datasets: benchMedDatasets },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: `ĐỐI SÁNH TRUNG VỊ: ${benchMedProtocol.toUpperCase()}`, font: {size: 14, weight: 'bold'} } }, scales: { y: { beginAtZero: true, title: { display: true, text: benchMedMetric.toUpperCase() } } } }
             });
-             // Update Insight Benchmark Median
             const medHighs = hospitalMedians.filter(m => m > refMed50).length;
             el('insight-benchmark-median').querySelector('.insight-content').textContent = medHighs > 0 ? `Lưu ý: Có ${medHighs} bệnh viện có mức liều trung vị cao hơn chuẩn trung vị của ${benchMedCountry}.` : `Tuyệt vời: Median các viện đều tốt.`;
 
-            // NEW 2c. MULTI-PROTOCOL MEDIAN CHART
+            // 7. Multi-Protocol Median Chart
             const multiProtMetric = el('multiProtMetric').value;
             const multiProtMod = el('multiProtModulation').value;
-            const allHospitals = [...new Set(entries.map(e => (e.hospitalName || '').trim()))].sort();
-            const protocolsList = THAI_DRL_PROTOCOLS.map(p => p.name);
-            const protocolColors = ['#ef4444', '#3b82f6', '#eab308', '#22c55e']; // Red, Blue, Yellow, Green
-
-            const multiProtDatasets = protocolsList.map((prot, idx) => {
+            const protocolColors = ['#ef4444', '#3b82f6', '#eab308', '#22c55e'];
+            const multiProtDatasets = protocols.map((prot, idx) => {
                 return {
                     label: prot,
-                    data: allHospitals.map(h => {
-                        const subset = entries.filter(e => {
-                            return (e.hospitalName || '').trim() === h && 
-                                   e.protocol === prot &&
-                                   (multiProtMod === 'all' || e.doseModulation === multiProtMod);
-                        });
+                    data: hospitals.map(h => {
+                        const subset = entries.filter(e => (e.hospitalName || '').trim() === h && e.protocol === prot && (multiProtMod === 'all' || e.doseModulation === multiProtMod));
                         const vals = subset.map(e => parseFloat(e[multiProtMetric])).filter(n => !isNaN(n));
                         return calcStats(vals).median;
                     }),
-                    backgroundColor: protocolColors[idx],
+                    backgroundColor: protocolColors[idx % protocolColors.length],
                     borderRadius: 4,
                     barPercentage: 0.6
                 };
             });
-
             if (multiProtocolMedianChart) multiProtocolMedianChart.destroy();
             multiProtocolMedianChart = new Chart(el('multiProtocolMedianChart'), {
                 type: 'bar',
-                data: { labels: allHospitals, datasets: multiProtDatasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: { display: true, text: `MEDIAN 4 BỘ PHẬN (${multiProtMetric.toUpperCase()})`, font: { size: 14, weight: 'bold' } },
-                        tooltip: { mode: 'index', intersect: false }
-                    },
-                    scales: {
-                        y: { beginAtZero: true, title: { display: true, text: multiProtMetric.toUpperCase() } }
-                    }
-                }
+                data: { labels: hospitals, datasets: multiProtDatasets },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: `MEDIAN 4 BỘ PHẬN (${multiProtMetric.toUpperCase()})`, font: { size: 14, weight: 'bold' } } }, scales: { y: { beginAtZero: true } } }
             });
 
-            // 6. Normality Check
+            // 8. Normality Check
             const normHosp = el('normHospital').value; 
             const normProt = el('normProtocol').value || protocols[0];
             const normMet = el('normMetric').value || 'ctdi';
@@ -1403,14 +1331,14 @@
             el('normMean').textContent = normStats.mean.toFixed(2); el('normSD').textContent = normStats.sd.toFixed(2); el('normSkew').textContent = normStats.skew.toFixed(3); el('normKurt').textContent = normStats.kurt.toFixed(3);
             el('normInterpretation').textContent = normStats.n < 30 ? "Cỡ mẫu nhỏ (n < 30)" : (Math.abs(normStats.skew) < 0.5 ? "Phân phối xấp xỉ Chuẩn" : "Phân phối lệch");
             const nBinCount = Math.ceil(Math.sqrt(normStats.n)) || 10;
-            const nMin = Math.min(...normDataRaw); const nMax = Math.max(...normDataRaw); const nWidth = (nMax - nMin) / nBinCount || 1;
+            const nMin = Math.min(...normDataRaw, 0); const nMax = Math.max(...normDataRaw, 1); const nWidth = (nMax - nMin) / nBinCount;
             const nBins = Array(nBinCount).fill(0); const nLabels = Array(nBinCount).fill(0).map((_, i) => (nMin + i * nWidth + nWidth/2).toFixed(1));
             normDataRaw.forEach(val => { let idx = Math.floor((val - nMin) / nWidth); if(idx >= nBinCount) idx = nBinCount-1; nBins[idx]++; });
             const curveData = nLabels.map(x => normalDistribution(parseFloat(x), normStats.mean, normStats.sd) * normStats.n * nWidth);
             if(normalityChart) normalityChart.destroy();
-            normalityChart = new Chart(el('normalityChart').getContext('2d'), { type: 'bar', data: { labels: nLabels, datasets: [{ label: 'Thực tế', data: nBins, backgroundColor: 'rgba(139, 92, 246, 0.5)', order: 2 }, { label: 'Lý thuyết', data: curveData, type: 'line', borderColor: '#ef4444', borderWidth: 2, pointRadius: 0, order: 1 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'KIỂM ĐỊNH PHÂN PHỐI CHUẨN', font: {size: 14, weight: 'bold'} } }, scales: { x: {title: {display:true, text: normMet.toUpperCase()}} } } });
+            normalityChart = new Chart(el('normalityChart').getContext('2d'), { type: 'bar', data: { labels: nLabels, datasets: [{ label: 'Thực tế', data: nBins, backgroundColor: 'rgba(139, 92, 246, 0.5)', order: 2 }, { label: 'Lý thuyết', data: curveData, type: 'line', borderColor: '#ef4444', borderWidth: 2, pointRadius: 0, order: 1 }] }, options: { responsive: true, maintainAspectRatio: false } });
 
-            // 7. Trend over Time
+            // 9. Trend
             const trendMod = el('trendModulation').value;
             const trendDataMap = {}; 
             entries.forEach(e => {
@@ -1426,315 +1354,169 @@
             const trendPointsDLP = trendLabels.map(k => calcStats(trendDataMap[k].dlp).mean);
             const trendPointsCTDI = trendLabels.map(k => calcStats(trendDataMap[k].ctdi).mean);
             if(trendChart) trendChart.destroy();
-            trendChart = new Chart(el('trendChart').getContext('2d'), { type: 'line', data: { labels: trendLabels, datasets: [{ label: 'DLP', data: trendPointsDLP, borderColor: '#06b6d4', yAxisID: 'y' }, { label: 'CTDIvol', data: trendPointsCTDI, borderColor: '#8b5cf6', yAxisID: 'y1' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { type: 'linear', display: true, position: 'left' }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } } } } });
+            trendChart = new Chart(el('trendChart').getContext('2d'), { type: 'line', data: { labels: trendLabels, datasets: [{ label: 'DLP', data: trendPointsDLP, borderColor: '#06b6d4', yAxisID: 'y' }, { label: 'CTDIvol', data: trendPointsCTDI, borderColor: '#8b5cf6', yAxisID: 'y1' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { type: 'linear', position: 'left' }, y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false } } } } });
 
-            // 6b. Scatter Manufacturer (CTDIvol/DLP vs Weight)
+            // 10. Manufacturer Scatter
             const fManuMetric = el('scatterManuMetric').value;
             const fManuMod = el('scatterManuModulation').value;
             const fManuHosp = el('scatterManuHospital').value;
             const fManuProt = el('scatterManuProtocol').value;
-            
-            const manuScatterData = entries.filter(e => {
-                if (fManuMod !== 'all' && e.doseModulation !== fManuMod) return false;
-                if (fManuHosp !== 'all' && (e.hospitalName || '').trim() !== fManuHosp) return false;
-                if (fManuProt !== 'all' && e.protocol !== fManuProt) return false;
-                return !isNaN(parseFloat(e.weight)) && !isNaN(parseFloat(e[fManuMetric]));
-            });
-
+            const manuScatterData = entries.filter(e => (fManuMod === 'all' || e.doseModulation === fManuMod) && (fManuHosp === 'all' || (e.hospitalName || '').trim() === fManuHosp) && (fManuProt === 'all' || e.protocol === fManuProt) && !isNaN(parseFloat(e.weight)) && !isNaN(parseFloat(e[fManuMetric])));
             const manufacturers = [...new Set(manuScatterData.map(e => (e.manufacturer || 'Unknown').trim()))];
-            const manuColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1', '#06b6d4'];
-            
+            const manuColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
             const manuDatasets = manufacturers.map((manu, index) => {
-                const points = manuScatterData
-                    .filter(e => (e.manufacturer || 'Unknown').trim() === manu)
-                    .map(e => ({
-                        x: parseFloat(e.weight),
-                        y: parseFloat(e[fManuMetric])
-                    }));
-                
-                return {
-                    label: manu,
-                    data: points,
-                    backgroundColor: manuColors[index % manuColors.length],
-                    pointRadius: 5,
-                    pointHoverRadius: 7
-                };
+                return { label: manu, data: manuScatterData.filter(e => (e.manufacturer || 'Unknown').trim() === manu).map(e => ({ x: parseFloat(e.weight), y: parseFloat(e[fManuMetric]) })), backgroundColor: manuColors[index % manuColors.length], pointRadius: 5 };
             });
-
             if(scatterManuChart) scatterManuChart.destroy();
-            scatterManuChart = new Chart(el('scatterManuChart').getContext('2d'), {
-                type: 'scatter',
-                data: { datasets: manuDatasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' },
-                        tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: (${ctx.raw.x}kg, ${ctx.raw.y} mGy)` } },
-                        title: { display: true, text: `PHÂN TÁN ${fManuMetric.toUpperCase()} THEO HÃNG MÁY & CÂN NẶNG`, font: {size: 14, weight: 'bold'} }
-                    },
-                    scales: {
-                        x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Cân nặng (kg)', font: {weight: 'bold'} } },
-                        y: { beginAtZero: true, title: { display: true, text: fManuMetric === 'ctdi' ? 'CTDIvol (mGy)' : 'DLP (mGy.cm)', font: {weight: 'bold'} } }
-                    }
-                }
-            });
+            scatterManuChart = new Chart(el('scatterManuChart').getContext('2d'), { type: 'scatter', data: { datasets: manuDatasets }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Cân nặng (kg)' } }, y: { title: { display: true, text: fManuMetric.toUpperCase() } } } } });
 
-            // 6c. NEW SCATTER: DLP vs CTDIvol (Scan Length Check)
+            // 11. Scan Length Scatter
             const fLenMod = el('scatterLenModulation').value;
             const fLenHosp = el('scatterLenHospital').value;
-            
-            const lenScatterData = entries.filter(e => {
-                if (fLenMod !== 'all' && e.doseModulation !== fLenMod) return false;
-                if (fLenHosp !== 'all' && (e.hospitalName || '').trim() !== fLenHosp) return false;
-                return !isNaN(parseFloat(e.ctdi)) && !isNaN(parseFloat(e.dlp));
+            const lenScatterData = entries.filter(e => (fLenMod === 'all' || e.doseModulation === fLenMod) && (fLenHosp === 'all' || (e.hospitalName || '').trim() === fLenHosp) && !isNaN(parseFloat(e.ctdi)) && !isNaN(parseFloat(e.dlp)));
+            const lenDatasets = protocols.map((prot, index) => {
+                return { label: prot, data: lenScatterData.filter(e => e.protocol === prot).map(e => ({ x: parseFloat(e.ctdi), y: parseFloat(e.dlp), h: e.hospitalName })), backgroundColor: protocolColors[index % protocolColors.length], pointRadius: 4 };
             });
-
-            const protocolGroups = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))];
-            const lenColors = ['#ef4444', '#3b82f6', '#eab308', '#22c55e'];
-
-            const lenDatasets = protocolGroups.map((prot, index) => {
-                const points = lenScatterData
-                    .filter(e => e.protocol === prot)
-                    .map(e => ({
-                        x: parseFloat(e.ctdi),
-                        y: parseFloat(e.dlp),
-                        hospital: e.hospitalName // Store for tooltip
-                    }));
-                
-                return {
-                    label: prot,
-                    data: points,
-                    backgroundColor: lenColors[index % lenColors.length],
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                };
-            });
-
             if(scatterLengthChart) scatterLengthChart.destroy();
-            scatterLengthChart = new Chart(el('scatterLengthChart').getContext('2d'), {
-                type: 'scatter',
-                data: { datasets: lenDatasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' },
-                        tooltip: { 
-                            callbacks: { 
-                                label: (ctx) => {
-                                    const p = ctx.raw;
-                                    const len = (p.y / p.x).toFixed(1);
-                                    return `${p.hospital || '?'}: CTDI=${p.x}, DLP=${p.y} (L≈${len}cm)`; 
-                                } 
-                            } 
-                        },
-                        title: { display: true, text: `TƯƠNG QUAN DLP - CTDIvol (SCAN LENGTH)`, font: {size: 14, weight: 'bold'} }
-                    },
-                    scales: {
-                        x: { type: 'linear', position: 'bottom', title: { display: true, text: 'CTDIvol (mGy)', font: {weight: 'bold'} } },
-                        y: { beginAtZero: true, title: { display: true, text: 'DLP (mGy.cm)', font: {weight: 'bold'} } }
-                    }
-                }
-            });
+            scatterLengthChart = new Chart(el('scatterLengthChart').getContext('2d'), { type: 'scatter', data: { datasets: lenDatasets }, options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.raw.h}: CTDI=${ctx.raw.x}, DLP=${ctx.raw.y} (L≈${(ctx.raw.y/ctx.raw.x).toFixed(1)}cm)` } } }, scales: { x: { title: { display: true, text: 'CTDIvol' } }, y: { title: { display: true, text: 'DLP' } } } } });
 
-
-            // 9. SD Analysis
+            // 12. SD Charts
             const sdMetric = el('sdCompMetric').value;
             const sdMod = el('sdModulation').value;
             const sdEntries = entries.filter(e => sdMod === 'all' || e.doseModulation === sdMod);
-            const multiHospSDData = getMultiGroupData(sdEntries, 'hospitalName', 'protocol', sdMetric, 'sd');
             if(multiHospSDChart) multiHospSDChart.destroy();
-            multiHospSDChart = new Chart(el('multiHospSDChart'), { type: 'bar', data: multiHospSDData, options: { responsive: true, maintainAspectRatio: false } });
-            
-            const multiManuSDData = getMultiGroupData(sdEntries, 'manufacturer', 'protocol', sdMetric, 'sd');
+            multiHospSDChart = new Chart(el('multiHospSDChart'), { type: 'bar', data: getMultiGroupData(sdEntries, 'hospitalName', 'protocol', sdMetric, 'sd'), options: { responsive: true, maintainAspectRatio: false } });
             if(multiManuSDChart) multiManuSDChart.destroy();
-            multiManuSDChart = new Chart(el('multiManuSDChart'), { type: 'bar', data: multiManuSDData, options: { responsive: true, maintainAspectRatio: false } });
+            multiManuSDChart = new Chart(el('multiManuSDChart'), { type: 'bar', data: getMultiGroupData(sdEntries, 'manufacturer', 'protocol', sdMetric, 'sd'), options: { responsive: true, maintainAspectRatio: false } });
 
-            // 10. Detailed Mean Stats
+            // 13. Detailed Mean
             const groupBy = el('meanStatsGroupBy').value;
             const mFilterH = el('meanFilterHospital').value;
             const mFilterP = el('meanFilterProtocol').value; 
             const mFilterMod = el('meanFilterModulation').value;
-            const filteredMean = entries.filter(e => {
-                if (mFilterH !== 'all' && (e.hospitalName || '').trim() !== mFilterH) return false;
-                if (mFilterP !== 'all' && e.protocol !== mFilterP) return false;
-                if (mFilterMod !== 'all' && e.doseModulation !== mFilterMod) return false;
-                return true;
-            });
+            const filteredMean = entries.filter(e => (mFilterH === 'all' || (e.hospitalName || '').trim() === mFilterH) && (mFilterP === 'all' || e.protocol === mFilterP) && (mFilterMod === 'all' || e.doseModulation === mFilterMod));
             const groupedMean = {};
             filteredMean.forEach(e => {
                 let k = e[groupBy] || 'N/A';
                 if(groupBy === 'manufacturer' && k.toLowerCase().includes('ge')) k = 'GE HealthCare';
                 if(groupBy === 'weightRange') {
                     const w = parseFloat(e.weight);
-                    if (!isNaN(w) && w > 0) {
-                        if (w < 40) k = '<40kg'; else if (w < 50) k = '40-50kg'; else if (w < 60) k = '50-60kg'; else if (w < 70) k = '60-70kg'; else if (w < 80) k = '70-80kg'; else k = '>80kg';
-                    } else k = 'N/A';
+                    if (w < 40) k = '<40kg'; else if (w < 50) k = '40-50kg'; else if (w < 60) k = '50-60kg'; else if (w < 70) k = '60-70kg'; else if (w < 80) k = '70-80kg'; else k = '>80kg';
                 }
                 if(!groupedMean[k]) groupedMean[k] = { ctdi: [], dlp: [] };
-                if(e.ctdi) groupedMean[k].ctdi.push(parseFloat(e.ctdi));
-                if(e.dlp) groupedMean[k].dlp.push(parseFloat(e.dlp));
+                groupedMean[k].ctdi.push(parseFloat(e.ctdi)); groupedMean[k].dlp.push(parseFloat(e.dlp));
             });
-            let meanLabels = Object.keys(groupedMean);
-            if (groupBy === 'weightRange') {
-                const weightOrder = ['<40kg', '40-50kg', '50-60kg', '60-70kg', '70-80kg', '>80kg', 'N/A'];
-                meanLabels.sort((a, b) => weightOrder.indexOf(a) - weightOrder.indexOf(b));
-            } else meanLabels.sort();
+            let meanLabels = Object.keys(groupedMean).sort();
             const meanCtdiArr = meanLabels.map(k => calcStats(groupedMean[k].ctdi).mean);
             const meanDlpArr = meanLabels.map(k => calcStats(groupedMean[k].dlp).mean);
             if(meanCtdiChart) meanCtdiChart.destroy(); meanCtdiChart = new Chart(el('meanCtdiChart'), { type: 'bar', data: { labels: meanLabels, datasets: [{ label: 'Mean CTDI', data: meanCtdiArr, backgroundColor: '#0ea5e9' }] }, options: { responsive: true, maintainAspectRatio: false } });
             if(meanDlpChart) meanDlpChart.destroy(); meanDlpChart = new Chart(el('meanDlpChart'), { type: 'bar', data: { labels: meanLabels, datasets: [{ label: 'Mean DLP', data: meanDlpArr, backgroundColor: '#f59e0b' }] }, options: { responsive: true, maintainAspectRatio: false } });
 
-            // --- ADVANCED FEATURES RENDER ---
-            
-            // 1. Outlier Detection
+            // 14. Outliers
             const outlierBody = el('outlierTableBody');
-            const outlierHtml = [];
-            let hasOutliers = false;
-            
-            // Calculate outliers per protocol
+            let outlierHtml = ''; let hasOutliers = false;
             protocols.forEach(prot => {
                 const protEntries = entries.filter(e => e.protocol === prot);
-                const protVals = protEntries.map(e => parseFloat(e.ctdi)).filter(n => !isNaN(n));
-                const stats = calcStats(protVals);
+                const stats = calcStats(protEntries.map(e => parseFloat(e.ctdi)));
                 const limit = stats.mean + 2 * stats.sd;
-                
                 protEntries.forEach(e => {
-                   if (parseFloat(e.ctdi) > limit) {
-                       hasOutliers = true;
-                       outlierHtml.push(`
-                        <tr class="border-b border-slate-50 hover:bg-red-50/50 transition-colors">
-                            <td class="py-2 font-bold">${e.hospitalName || 'N/A'}</td>
-                            <td class="py-2">${e.protocol}</td>
-                            <td class="py-2 text-right text-red-600 font-bold">${parseFloat(e.ctdi).toFixed(1)}</td>
-                            <td class="py-2 text-right text-slate-400 text-[9px]">>${limit.toFixed(1)}</td>
-                        </tr>
-                       `);
-                   } 
+                    if (parseFloat(e.ctdi) > limit) {
+                        hasOutliers = true;
+                        outlierHtml += `<tr class="border-b border-slate-50"><td>${e.hospitalName}</td><td>${e.protocol}</td><td class="text-right text-red-600">${parseFloat(e.ctdi).toFixed(1)}</td><td class="text-right text-slate-400">>${limit.toFixed(1)}</td></tr>`;
+                    }
                 });
             });
-            
-            if (hasOutliers) {
-                outlierBody.innerHTML = outlierHtml.join('');
-                el('noOutliersMsg').classList.add('hidden');
-            } else {
-                outlierBody.innerHTML = '';
-                el('noOutliersMsg').classList.remove('hidden');
-            }
+            outlierBody.innerHTML = outlierHtml; el('noOutliersMsg').classList.toggle('hidden', hasOutliers);
 
-            // 2. Correlation Matrix
-            const validEntries = entries.filter(e => !isNaN(parseFloat(e.weight)) && !isNaN(parseFloat(e.ctdi)) && !isNaN(parseFloat(e.dlp)));
-            const weights = validEntries.map(e => parseFloat(e.weight));
-            const ctdis = validEntries.map(e => parseFloat(e.ctdi));
-            const dlps = validEntries.map(e => parseFloat(e.dlp));
-
-            const rWC = calculateCorrelation(weights, ctdis).toFixed(2);
-            const rWD = calculateCorrelation(weights, dlps).toFixed(2);
-            const rCD = calculateCorrelation(ctdis, dlps).toFixed(2);
-
+            // 15. Correlation
+            const valid = entries.filter(e => !isNaN(parseFloat(e.weight)) && !isNaN(parseFloat(e.ctdi)) && !isNaN(parseFloat(e.dlp)));
+            const rWC = calculateCorrelation(valid.map(e => parseFloat(e.weight)), valid.map(e => parseFloat(e.ctdi))).toFixed(2);
+            const rWD = calculateCorrelation(valid.map(e => parseFloat(e.weight)), valid.map(e => parseFloat(e.dlp))).toFixed(2);
+            const rCD = calculateCorrelation(valid.map(e => parseFloat(e.ctdi)), valid.map(e => parseFloat(e.dlp))).toFixed(2);
             const setCorr = (id, val) => {
-                const cell = el(id);
-                cell.textContent = val;
-                // Heatmap coloring logic
+                const cell = el(id); cell.textContent = val;
                 const v = Math.abs(parseFloat(val));
-                if (v > 0.7) cell.className = "corr-cell bg-indigo-500 text-white rounded-lg flex items-center justify-center h-12 font-bold";
-                else if (v > 0.4) cell.className = "corr-cell bg-indigo-300 text-white rounded-lg flex items-center justify-center h-12";
-                else cell.className = "corr-cell bg-indigo-50 text-indigo-900 rounded-lg flex items-center justify-center h-12";
+                cell.className = `corr-cell rounded-lg flex items-center justify-center h-12 ${v > 0.7 ? 'bg-indigo-500 text-white' : v > 0.4 ? 'bg-indigo-300 text-white' : 'bg-indigo-50 text-indigo-900'}`;
             };
+            setCorr('corr-w-c', rWC); setCorr('corr-c-w', rWC); setCorr('corr-w-d', rWD); setCorr('corr-d-w', rWD); setCorr('corr-c-d', rCD); setCorr('corr-d-c', rCD);
 
-            setCorr('corr-w-c', rWC); setCorr('corr-c-w', rWC);
-            setCorr('corr-w-d', rWD); setCorr('corr-d-w', rWD);
-            setCorr('corr-c-d', rCD); setCorr('corr-d-c', rCD);
-
-            // 3. Raw Data Preview (Latest 5)
-            const sortedEntries = [...entries].sort((a,b) => new Date(b.createdAt || b.scanDate) - new Date(a.createdAt || a.scanDate));
-            const latest5 = sortedEntries.slice(0, 10);
-            const rawBody = el('rawTableBody');
-            rawBody.innerHTML = latest5.map(e => `
-                <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="px-4 py-2">${new Date(e.createdAt || e.scanDate).toLocaleDateString('vi-VN')}</td>
-                    <td class="px-4 py-2 font-bold">${e.hospitalName || '-'}</td>
-                    <td class="px-4 py-2">${e.manufacturer || '-'}</td>
-                    <td class="px-4 py-2"><span class="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded text-[9px] font-bold border border-indigo-100">${e.protocol}</span></td>
-                    <td class="px-4 py-2 text-right">${e.weight || '-'} kg</td>
-                    <td class="px-4 py-2 text-right font-mono">${parseFloat(e.ctdi).toFixed(1)}</td>
-                    <td class="px-4 py-2 text-right font-mono">${parseFloat(e.dlp).toFixed(1)}</td>
-                </tr>
-            `).join('');
+            // 16. Raw Preview
+            el('rawTableBody').innerHTML = entries.slice(-10).reverse().map(e => `<tr><td class="px-4 py-2">${new Date(e.createdAt || e.scanDate).toLocaleDateString('vi-VN')}</td><td class="px-4 py-2">${e.hospitalName}</td><td class="px-4 py-2">${e.manufacturer}</td><td class="px-4 py-2">${e.protocol}</td><td class="px-4 py-2 text-right">${e.weight} kg</td><td class="px-4 py-2 text-right">${parseFloat(e.ctdi).toFixed(1)}</td><td class="px-4 py-2 text-right">${parseFloat(e.dlp).toFixed(1)}</td></tr>`).join('');
         }
 
         function populateFilters() {
             const hospitals = [...new Set(entries.map(e => (e.hospitalName || '').trim()))].sort();
-            const protocols = [...new Set(THAI_DRL_PROTOCOLS.map(p => p.name))];
+            const protocols = THAI_DRL_PROTOCOLS.map(p => p.name);
             const manufacturers = [...new Set(entries.map(e => (e.manufacturer || '').trim()))].sort();
 
-            const benchProt = el('benchProtocol');
-            const benchMedProt = el('benchMedProtocol'); 
-            const normProt = el('normProtocol'); 
-            if (benchProt && benchProt.options.length === 0) {
-                protocols.forEach(p => {
-                    benchProt.innerHTML += `<option value="${p}">${p}</option>`;
-                    if(benchMedProt) benchMedProt.innerHTML += `<option value="${p}">${p}</option>`;
-                    if(normProt) normProt.innerHTML += `<option value="${p}">${p}</option>`;
-                });
-            }
-            const benchCountry = el('benchRefCountry');
-            const benchMedCountry = el('benchMedRefCountry'); 
-            if (benchCountry && benchCountry.options.length === 0) {
-                Object.keys(INTERNATIONAL_REFS).forEach(c => {
-                    benchCountry.innerHTML += `<option value="${c}">${c}</option>`;
-                    if(benchMedCountry) benchMedCountry.innerHTML += `<option value="${c}">${c}</option>`;
-                });
-            }
-
-            const fill = (id, list, allText) => {
-                const s = el(id); if(!s || s.options.length > 1) return;
-                s.innerHTML = `<option value="all">${allText}</option>`;
-                list.forEach(i => s.innerHTML += `<option value="${i}">${i}</option>`);
+            const fillSelect = (id, list, allText) => {
+                const s = el(id); if(!s) return;
+                const current = s.value;
+                s.innerHTML = (allText ? `<option value="all">${allText}</option>` : '') + list.map(i => `<option value="${i}">${i}</option>`).join('');
+                if(current) s.value = current;
             };
 
-            fill('meanFilterHospital', hospitals, 'Tất cả BV');
-            fill('meanFilterProtocol', protocols, 'Tất cả Protocol');
-            fill('normHospital', hospitals, 'Tất cả BV'); 
-            fill('scatterManuHospital', hospitals, 'Tất cả BV');
-            fill('scatterManuProtocol', protocols, 'Tất cả Protocol');
-            
-            // Fill new filters for scatter length
-            fill('scatterLenHospital', hospitals, 'Tất cả BV');
+            fillSelect('benchProtocol', protocols);
+            fillSelect('benchMedProtocol', protocols);
+            fillSelect('normProtocol', protocols);
+            fillSelect('scatterManuProtocol', protocols, 'Tất cả Protocol');
+            fillSelect('meanFilterProtocol', protocols, 'Tất cả Protocol');
+
+            fillSelect('benchRefCountry', Object.keys(INTERNATIONAL_REFS));
+            fillSelect('benchMedRefCountry', Object.keys(INTERNATIONAL_REFS));
+
+            fillSelect('meanFilterHospital', hospitals, 'Tất cả BV');
+            fillSelect('normHospital', hospitals, 'Tất cả BV');
+            fillSelect('scatterManuHospital', hospitals, 'Tất cả BV');
+            fillSelect('scatterLenHospital', hospitals, 'Tất cả BV');
         }
 
         onAuthStateChanged(auth, async (u) => {
             if (!u) { await signInAnonymously(auth); } 
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), (snap) => {
-                entries = snap.docs.map(d => d.data());
+                // Filter entries to remove garbage data (no protocol, no ctdi, no dlp)
+                entries = snap.docs.map(d => d.data()).filter(e => {
+                    // Soft delete check
+                    if (e.isDeleted) return false; 
+                    if (e.status === 'deleted' || e.status === 'trash') return false;
+
+                    // Data validation
+                    if (!e.protocol) return false;
+                    if (isNaN(parseFloat(e.ctdi)) || isNaN(parseFloat(e.dlp))) return false;
+                    return true;
+                });
                 populateFilters();
                 renderCharts(); 
             });
         });
 
-        // Add ALL filters to the listener list so changing ANY dropdown redraws charts
         const filters = [
             'progModulation', 'genderModulation', 'weightModulation', 
-            'multiCompMetric', 'sdCompMetric', 'sdModulation', 'trendModulation', 
+            'sdCompMetric', 'sdModulation', 'trendModulation', 
             'meanStatsGroupBy', 'meanFilterHospital', 'meanFilterProtocol', 'meanFilterModulation', 
             'benchProtocol', 'benchMetric', 'benchRefCountry', 'benchModulation', 
             'benchMedProtocol', 'benchMedMetric', 'benchMedRefCountry', 'benchMedModulation', 
             'normHospital', 'normProtocol', 'normMetric', 'normModulation',
             'scatterManuModulation', 'scatterManuHospital', 'scatterManuProtocol', 'scatterManuMetric',
             'multiProtModulation', 'multiProtMetric',
-            'scatterLenModulation', 'scatterLenHospital' // New filters
+            'scatterLenModulation', 'scatterLenHospital'
         ];
         filters.forEach(id => { const e = el(id); if(e) e.onchange = renderCharts; });
         
         el('btnRefreshMean').onclick = () => { 
-            el('meanFilterHospital').value='all'; 
-            el('meanFilterProtocol').value='all'; 
-            el('meanFilterModulation').value='all';
-            renderCharts(); 
+            el('meanFilterHospital').value='all'; el('meanFilterProtocol').value='all'; el('meanFilterModulation').value='all'; renderCharts(); 
         };
 
         window.downloadChart = (id, title) => {
+            const elToCap = el(id);
+            if(elToCap.tagName !== 'CANVAS') {
+                html2canvas(elToCap).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `${title}_${Date.now()}.png`;
+                    link.href = canvas.toDataURL('image/png'); link.click();
+                });
+                return;
+            }
             const canvas = el(id);
             const link = document.createElement('a');
             link.download = `${title}_${Date.now()}.png`;
