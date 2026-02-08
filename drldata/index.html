@@ -912,7 +912,7 @@
 
         // Function to generate aliases
         function generateHospitalAliases(data) {
-            const allHosps = [...new Set(data.map(e => e.hospitalName).filter(Boolean))].sort();
+            const allHosps = [...new Set(data.map(e => e.hospitalName).filter(n => n && !n.toLowerCase().includes('chọn')))].sort();
             hospitalAliasMap = {};
             
             // Determine user's hospitals (if logged in as normal user)
@@ -976,7 +976,7 @@
         };
 
         window.showHospitalModal = () => {
-            const hospitals = [...new Set(entries.map(e => e.hospitalName).filter(Boolean))].sort();
+            const hospitals = [...new Set(entries.map(e => e.hospitalName).filter(n => n && !n.toLowerCase().includes('chọn')))].sort();
             const listEl = el('hospitalList');
             listEl.innerHTML = '';
             if (hospitals.length === 0) {
@@ -1033,13 +1033,13 @@
             // Need to update map before populating filters
             generateHospitalAliases(entries);
 
-            const h = [...new Set(entries.map(e => e.hospitalName).filter(Boolean))].sort();
-            const m = [...new Set(entries.map(e => e.manufacturer).filter(Boolean))].sort();
+            const h = [...new Set(entries.map(e => e.hospitalName).filter(n => n && !n.toLowerCase().includes('chọn')))].sort();
+            const m = [...new Set(entries.map(e => e.manufacturer).filter(n => n && !n.toLowerCase().includes('chọn')))].sort();
             
             const protocolGroups = new Set();
             entries.forEach(e => {
                 const group = getProtocolGroup(e.protocol);
-                if (group !== 'Spine' && !group.toLowerCase().includes('spine')) {
+                if (group !== 'Spine' && !group.toLowerCase().includes('spine') && group !== 'Khác') {
                     protocolGroups.add(group);
                 }
             });
@@ -1131,7 +1131,7 @@
              // Top Contributors Logic (Masked)
              const hospMap = {}; 
              activeData.forEach(e => { 
-                if(e.hospitalName && e.hospitalName !== 'Khác') hospMap[e.hospitalName] = (hospMap[e.hospitalName] || 0) + 1; 
+                if(e.hospitalName && e.hospitalName !== 'Khác' && !e.hospitalName.toLowerCase().includes('chọn')) hospMap[e.hospitalName] = (hospMap[e.hospitalName] || 0) + 1; 
              });
              const sortedHosps = Object.entries(hospMap).sort((a,b) => b[1] - a[1]).slice(0, 3);
              const topListEl = el('topHospitalsList');
