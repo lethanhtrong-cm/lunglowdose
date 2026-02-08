@@ -265,7 +265,6 @@
                     </div>
                     <span id="headerOnlineCount">0</span>
                 </button>
-                <button id="btnAdminAccess" class="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase hover:bg-slate-800 transition-all shadow-lg"><i data-lucide="lock" class="w-3 h-3"></i> ADMIN ACCESS</button>
                 <div class="relative">
                     <button id="userMenuBtn" class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 hover:bg-slate-50 transition-colors">
                         <i data-lucide="user" class="w-4 h-4 text-slate-600"></i>
@@ -280,7 +279,6 @@
                                 <span id="adminBadge" class="hidden px-1.5 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded text-[7px] font-black uppercase">Admin</span>
                             </div>
                         </div>
-                        <button id="requestAdminBtn" class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold text-slate-600 hover:bg-slate-50 rounded-lg text-left"><i data-lucide="shield" class="w-3 h-3"></i> Quyền Admin</button>
                         <button id="navLogoutBtn" class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 rounded-lg text-left mt-1 hidden"><i data-lucide="log-out" class="w-3 h-3"></i> Đăng xuất</button>
                     </div>
                 </div>
@@ -530,8 +528,9 @@
             if (el('navLoginBtn')) el('navLoginBtn').classList.toggle('hidden', hasAccess);
             if (el('navLogoutBtn')) el('navLogoutBtn').classList.toggle('hidden', !hasAccess);
 
-            if (isAdmin || (user && user.email === 'vietnam.vart2@gmail.com')) { 
-                isAdmin = true; // FORCE ADMIN FOR THIS EMAIL
+            // UPDATED: Check for isAdmin flag set via Key OR simple check for specific email if needed.
+            // But per request "xóa hết email là admin", we rely solely on Key or localStorage.
+            if (isAdmin) { 
                 setText('userEmailDisplay', 'Administrator'); 
                 setText('dropdownEmail', 'Administrator');
                 updateAdminUI(); 
@@ -795,6 +794,71 @@
 
         window.selectRefStandard = (s) => { currentStandardName = s; const d = DRL_STANDARDS[s], active = el('protocol').value; if (d && d[active]) { el('manualRefCtdi').value = d[active].ctdi75; el('manualRefDlp').value = d[active].dlp75; document.querySelectorAll('.drl-row').forEach(r => r.classList.toggle('active', r.dataset.std === s)); renderDashboard(); } }
         function updateRefStandardTable() { const a = el('protocol').value, b = el('refStandardTableBody'); if(!b) return; b.innerHTML = ''; Object.entries(DRL_STANDARDS).forEach(([n, d]) => { const v = d[a] || { ctdi75: '-', ctdi50: '-', dlp75: '-', dlp50: '-' }; const tr = document.createElement('tr'); tr.className = `drl-row hover:bg-indigo-50 cursor-pointer transition-colors ${n === currentStandardName ? 'active' : ''}`; tr.dataset.std = n; tr.onclick = () => window.selectRefStandard(n); tr.innerHTML = `<td class="px-3 py-2 font-bold border-r border-indigo-50">${n}</td><td class="px-2 py-2 text-center text-slate-500 border-r border-indigo-50 bg-slate-50/30">${v.ctdi50}</td><td class="px-2 py-2 text-center text-indigo-600 font-black border-r border-indigo-50 bg-indigo-50/30">${v.ctdi75}</td><td class="px-2 py-2 text-center text-slate-500 border-r border-indigo-50 bg-slate-50/30">${v.dlp50}</td><td class="px-2 py-2 text-center text-amber-600 font-black bg-amber-50/30">${v.dlp75}</td>`; b.appendChild(tr); }); }
+
+        const renderDashboard = () => {
+            if(!el('cardTotalCount')) return;
+            setText('cardTotalCount', entries.length);
+            const ages = entries.map(e=>parseFloat(e.age)||0).filter(n=>n>0), weights = entries.map(e=>parseFloat(e.weight)||0).filter(n=>n>0);
+            setText('cardAvgAge', calcStats(ages).mean.toFixed(1)); setText('cardAvgWeight', calcStats(weights).mean.toFixed(1));
+            const updateCard = (name, prefix) => {
+                let kw = name.includes('Head') ? 'Head' : (name.includes('Chest') ? 'Chest' : (name.includes('Abdomen') ? 'Abdomen' : 'LDCT'));
+                const sub = entries.filter(e => e.protocol && e.protocol.includes(kw));
+                const dlps = sub.map(e=>parseFloat(e.dlp)||0), ctdis = sub.map(e=>parseFloat(e.ctdi)||0);
+                const std = DRL_STANDARDS[currentStandardName], ref = std ? std[name] : null;
+                const mC = parseFloat(el('manualRefCtdi').value), mD = parseFloat(el('manualRefDlp').value);
+                const rC75 = (el('protocol').value===name && !isNaN(mC)) ? mC : (ref?.ctdi75 || 0), rD75 = (el('protocol').value===name && !isNaN(mD)) ? mD : (ref?.dlp75 || 0);
+                setText(prefix+'CtdiRef', rC75>0?rC75:'--'); setText(prefix+'DlpRef', rD75>0?rD75:'--');
+                setText(prefix+'CtdiRef50', ref?.ctdi50||'--'); setText(prefix+'DlpRef50', ref?.dlp50||'--');
+                const sDlp = calcStats(dlps, rD75), sCtdi = calcStats(ctdis, rC75);
+                setText(prefix+'Count', `n=${sub.length}`); setText(prefix+'CtdiMean', `${sCtdi.mean.toFixed(1)}±${sCtdi.sd.toFixed(1)}`);
+                setText(prefix+'CtdiMed', sCtdi.median.toFixed(1)); setText(prefix+'Ctdi75', sCtdi.p75.toFixed(1));
+                setText(prefix+'CtdiP', sCtdi.p<0.001?'<0.001':sCtdi.p.toFixed(3));
+                setText(prefix+'DlpMean', `${sDlp.mean.toFixed(1)}±${sDlp.sd.toFixed(1)}`); setText(prefix+'DlpMed', sDlp.median.toFixed(1));
+                setText(prefix+'Dlp75', sDlp.p75.toFixed(1)); setText(prefix+'DlpP', sDlp.p<0.001?'<0.001':sDlp.p.toFixed(3));
+            };
+            ['Sọ não không thuốc (Head)', 'Ngực không thuốc (Chest)', 'Bụng không thuốc (Abdomen)', 'Phổi liều thấp (LDCT)'].forEach((n,i)=>updateCard(n,['head','chest','abd','ldct'][i]));
+            
+            // --- UPDATED: Hospital Anonymization Logic ---
+            const tbody = el('progressTableBody'); if (tbody) {
+                tbody.innerHTML = ''; 
+                let active = getActiveList('hospital');
+                const aliasMap = getHospitalAliasMap();
+                const myHospitals = getMyHospitals();
+
+                active.map(h => ({ name: h, total: entries.filter(e => e.hospitalName === h).length })).sort((a,b)=>a.total-b.total).forEach(item => {
+                    const row = document.createElement('tr'); row.className = "hover:bg-slate-50 transition-colors border-b border-slate-50";
+                    
+                    // Determine Display Name
+                    let displayName = aliasMap[item.name] || item.name;
+                    if (isAdmin || myHospitals.has(item.name)) {
+                        displayName = item.name; // Show Real Name
+                        if (isAdmin && aliasMap[item.name]) {
+                             // Optional: Show alias for admin context
+                             displayName += ` <span class="text-[9px] text-slate-400 font-normal">(${aliasMap[item.name]})</span>`;
+                        }
+                    }
+
+                    let html = `<td class="p-3 font-bold text-slate-700 text-xs border-r border-slate-50 sticky left-0 bg-white z-10">${displayName}</td>`;
+                    THAI_DRL_PROTOCOLS.forEach(p => {
+                        const kw = p.name.includes('Head') ? 'Head' : (p.name.includes('Chest') ? 'Chest' : (p.name.includes('Abdomen') ? 'Abdomen' : 'LDCT'));
+                        const count = entries.filter(e => e.hospitalName === item.name && e.protocol && e.protocol.includes(kw)).length;
+                        const pct = Math.min((count/30)*100, 100), isDone = count >= 30;
+                        html += `<td class="p-3 border-r border-slate-50 align-middle"><div class="flex flex-col gap-1 items-center"><span class="text-[10px] font-black ${isDone?'text-emerald-600':'text-red-500'}">${count}/30</span><div class="w-full bg-slate-100 rounded-full h-1.5 min-w-[60px]"><div class="${isDone?'bg-emerald-500':'bg-red-500'} h-1.5 rounded-full" style="width:${pct}%"></div></div></div></td>`;
+                    });
+                    row.innerHTML = html; tbody.appendChild(row);
+                });
+            }
+            // ---------------------------------------------
+
+            const mCounts={}; entries.forEach(e=>{ let m=e.manufacturer||'Unk'; if(m.toLowerCase().startsWith('ge')) m='GE HealthCare'; mCounts[m]=(mCounts[m]||0)+1; });
+            const totalM = Object.values(mCounts).reduce((a,b)=>a+b,0);
+            if(pieChartInstance) pieChartInstance.destroy();
+            if(el('manufacturerPieChart')) pieChartInstance = new Chart(el('manufacturerPieChart'), { type: 'doughnut', data: { labels: Object.keys(mCounts), datasets: [{ data: Object.values(mCounts), backgroundColor: ['#6366f1','#ec4899','#10b981','#f59e0b','#3b82f6','#a855f7','#64748b'], borderWidth: 2, borderColor: '#ffffff', cutout: '50%' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {position:'right', labels:{boxWidth:12, font:{size:11, weight:'bold'}}}, datalabels: { color:'#fff', font:{weight:'bold', size:11}, formatter:(val)=>(val + '\n(' + (val*100/totalM).toFixed(1) + '%)') } } } });
+            const gCounts={'Nam':0,'Nữ':0}; entries.forEach(e=>(String(e.gender||'M').toUpperCase()==='M'||String(e.gender||'').toUpperCase()==='NAM')?gCounts['Nam']++:gCounts['Nữ']++);
+            const totalG=gCounts['Nam']+gCounts['Nữ'];
+            if(genderPieChartInstance) genderPieChartInstance.destroy();
+            if(el('genderPieChart')) genderPieChartInstance = new Chart(el('genderPieChart'), { type: 'pie', data: { labels: ['Nam', 'Nữ'], datasets: [{ data: [gCounts['Nam'], gCounts['Nữ']], backgroundColor: ['#3b82f6', '#ec4899'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {position:'bottom'}, datalabels: { color:'#fff', font:{weight:'bold'}, formatter:(val)=>(totalG>0?val+' ('+(val*100/totalG).toFixed(1)+'%)':'') } } } });
+        };
 
         window.onload = async () => {
             setTimeout(() => { if(el('globalLoader')) el('globalLoader').style.display='none'; }, 1000);
