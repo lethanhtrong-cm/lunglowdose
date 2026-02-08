@@ -40,13 +40,15 @@
         
         /* Banned Overlay */
         #bannedOverlay { backdrop-filter: blur(8px); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="antialiased font-inter text-slate-900">
     <div id="globalLoader"><div class="flex flex-col items-center gap-4"><span class="loader-spinner"></span><p class="text-xs font-black text-indigo-900 tracking-widest uppercase animate-pulse">Đang tải ứng dụng...</p></div></div>
     <div class="mesh-bg"></div>
 
-    <!-- Banned Overlay (New) -->
+    <!-- Banned Overlay -->
     <div id="bannedOverlay" class="fixed inset-0 z-[200] bg-slate-900/80 hidden flex flex-col items-center justify-center text-white p-8 text-center">
         <div class="bg-red-500 p-4 rounded-full mb-6 shadow-2xl animate-bounce"><i data-lucide="ban" class="w-12 h-12"></i></div>
         <h2 class="text-3xl font-black uppercase tracking-tight mb-2">Tài khoản bị khóa</h2>
@@ -86,19 +88,16 @@
         </div>
     </div>
 
-    <!-- User Monitor Modal (Updated with Search) -->
+    <!-- User Monitor Modal -->
     <div id="userMonitorModal" class="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
         <div class="bg-white rounded-[2.5rem] w-full max-w-2xl p-6 md:p-8 shadow-2xl border border-indigo-100 h-[80vh] flex flex-col">
             <div class="text-center mb-4 flex-none">
                 <div class="bg-indigo-600 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 text-white shadow-lg"><i data-lucide="users" class="w-6 h-6"></i></div>
                 <h3 class="text-lg font-black text-slate-900 uppercase">Giám sát Người dùng</h3>
                 <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Quản lý quyền truy cập & Trạng thái</p>
-                
-                <!-- Search Bar -->
                 <div class="mt-4 px-2">
                     <input type="text" id="userSearchInput" placeholder="Tìm kiếm theo tên hoặc email..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-center">
                 </div>
-
                 <div class="flex justify-center gap-2 mt-4">
                     <button onclick="switchUserTab('online')" id="btn-user-online" class="px-4 py-2 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center gap-2"><span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> Đang Online</button>
                     <button onclick="switchUserTab('all')" id="btn-user-all" class="px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-500 border border-slate-100 hover:bg-slate-50">Tất cả tài khoản</button>
@@ -109,9 +108,7 @@
                     <i data-lucide="shield-alert" class="w-3 h-3"></i> Chỉ tài khoản được "DUYỆT" mới có thể nhập liệu.
                 </div>
                 <div class="flex-1 overflow-y-auto custom-scrollbar border border-slate-100 rounded-2xl p-2">
-                    <div id="onlineUsersList" class="space-y-2">
-                        <!-- User items will be injected here -->
-                    </div>
+                    <div id="onlineUsersList" class="space-y-2"></div>
                 </div>
             </div>
             <div id="user-tab-all" class="flex-1 overflow-hidden flex-col gap-4 hidden">
@@ -249,7 +246,6 @@
                 </a>
             </div>
             <div class="flex items-center gap-2">
-                <!-- User Monitor Button (Visible to everyone for now or restricted) -->
                 <button id="btnUserMonitor" onclick="document.getElementById('userMonitorModal').classList.remove('hidden')" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm" title="Người dùng Online">
                     <div class="relative flex items-center justify-center w-2.5 h-2.5">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -257,7 +253,6 @@
                     </div>
                     <span id="headerOnlineCount">0</span>
                 </button>
-
                 <button id="btnAdminAccess" class="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase hover:bg-slate-800 transition-all shadow-lg"><i data-lucide="lock" class="w-3 h-3"></i> ADMIN ACCESS</button>
                 <div class="relative">
                     <button id="userMenuBtn" class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 hover:bg-slate-50 transition-colors">
@@ -265,7 +260,6 @@
                         <span id="userEmailDisplay" class="text-[10px] font-bold text-indigo-600 truncate max-w-[80px] md:max-w-[150px]">Khách</span>
                         <span id="adminStatusDot" class="w-2 h-2 rounded-full bg-red-500 hidden"></span>
                     </button>
-                    <!-- User Dropdown -->
                     <div id="userDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 hidden z-50 p-2">
                         <div class="px-3 py-2 border-b border-slate-50 mb-1">
                             <p class="text-[9px] font-bold text-slate-400 uppercase">Tài khoản</p>
@@ -274,12 +268,8 @@
                                 <span id="adminBadge" class="hidden px-1.5 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded text-[7px] font-black uppercase">Admin</span>
                             </div>
                         </div>
-                        <button id="requestAdminBtn" class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold text-slate-600 hover:bg-slate-50 rounded-lg text-left">
-                            <i data-lucide="shield" class="w-3 h-3"></i> Quyền Admin
-                        </button>
-                        <button id="navLogoutBtn" class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 rounded-lg text-left mt-1 hidden">
-                            <i data-lucide="log-out" class="w-3 h-3"></i> Đăng xuất
-                        </button>
+                        <button id="requestAdminBtn" class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold text-slate-600 hover:bg-slate-50 rounded-lg text-left"><i data-lucide="shield" class="w-3 h-3"></i> Quyền Admin</button>
+                        <button id="navLogoutBtn" class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 rounded-lg text-left mt-1 hidden"><i data-lucide="log-out" class="w-3 h-3"></i> Đăng xuất</button>
                     </div>
                 </div>
                 <button id="navLoginBtn" onclick="document.getElementById('authModal').classList.remove('hidden')" class="px-3 md:px-6 py-2 md:py-2.5 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-xl md:rounded-2xl hover:bg-indigo-700 shadow-lg">Login</button>
@@ -289,7 +279,6 @@
 
     <div class="app-layout gap-4 md:gap-8">
         <div class="section-container">
-            <!-- Lock Screen Content (Hidden by default) -->
             <div id="lockScreen" class="lock-container hidden px-4">
                 <div class="mb-8 flex flex-col items-center">
                     <div class="bg-indigo-600 p-4 rounded-3xl mb-6 shadow-xl shadow-indigo-200 transform -rotate-3"><i data-lucide="activity" class="w-12 h-12 text-white"></i></div>
@@ -300,15 +289,11 @@
                     <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-400"><i data-lucide="lock" class="w-6 h-6"></i></div>
                     <h3 class="text-lg font-black text-slate-800 uppercase tracking-tight mb-2">Yêu cầu truy cập</h3>
                     <p class="text-xs font-bold text-slate-400 mb-6">Vui lòng đăng nhập để xem Dashboard.</p>
-                    <button onclick="document.getElementById('authModal').classList.remove('hidden')" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-3">
-                        <span>Đăng nhập ngay</span> <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                    </button>
+                    <button onclick="document.getElementById('authModal').classList.remove('hidden')" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-3"><span>Đăng nhập ngay</span> <i data-lucide="arrow-right" class="w-4 h-4"></i></button>
                 </div>
             </div>
 
-            <!-- Main App Content (Wrapped) -->
             <div id="secureContent" class="hidden">
-                <!-- REPLACED Progress Table Section -->
                 <div id="progressChartSection" class="glass-card p-4 md:p-6 rounded-[2.5rem] shadow-xl border border-slate-100 bg-white">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
@@ -333,19 +318,21 @@
                 </div>
 
                 <div class="top-grid mt-6">
-                    <!-- Sidebar Input Form -->
                     <aside class="sidebar-form glass-card rounded-[2.5rem] flex flex-col overflow-hidden relative">
                         <div class="p-4 md:p-8 border-b border-slate-100 bg-white/40 z-20 flex justify-between items-center">
                             <h2 id="formTitle" class="font-black text-slate-900 flex items-center gap-3 uppercase tracking-widest text-xs"><i data-lucide="plus-circle" class="text-indigo-600 w-5 h-5"></i> Nhập dữ liệu</h2>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-1 md:gap-2">
+                                <!-- Guide Button (New) -->
+                                <a href="https://vnrad.tech/drlguide" target="_blank" class="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[8px] font-black uppercase hover:bg-indigo-100 transition-colors flex items-center gap-1" title="Hướng dẫn nhập liệu">
+                                    <i data-lucide="book-open" class="w-3 h-3"></i> Hướng dẫn
+                                </a>
                                 <button onclick="downloadTemplate()" class="px-2 py-1 bg-slate-50 text-slate-600 rounded-lg text-[8px] font-black uppercase hover:bg-slate-100 transition-colors flex items-center gap-1" title="Tải mẫu Excel">
-                                    <i data-lucide="download" class="w-3 h-3"></i> Tải mẫu
+                                    <i data-lucide="download" class="w-3 h-3"></i> Mẫu
                                 </button>
                                 <label for="importExcelInput" class="cursor-pointer px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[8px] font-black uppercase hover:bg-emerald-100 transition-colors flex items-center gap-1" title="Import Excel">
                                     <i data-lucide="upload" class="w-3 h-3"></i> Import
                                 </label>
                                 <input type="file" id="importExcelInput" accept=".xlsx, .xls" class="hidden">
-                                <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-lg text-[8px] font-black uppercase">Mới</span>
                             </div>
                         </div>
                         <form id="drlForm" class="flex flex-col flex-1 relative h-full">
@@ -354,22 +341,15 @@
                                 <div class="space-y-4">
                                     <label class="section-label flex items-center gap-2 font-bold"><i data-lucide="hospital" class="w-3 h-3 text-indigo-500"></i> Cơ sở & Thiết bị</label>
                                     <div class="space-y-3">
-                                        <!-- Hospital Select Row with Admin Button -->
                                         <div class="flex gap-2 items-center">
                                             <select id="hospitalSelect" class="w-full px-3 py-2.5 md:px-4 md:py-3 glass-input rounded-xl text-xs md:text-sm font-medium flex-1"></select>
-                                            <button id="btnManageHospitals" type="button" class="p-2.5 md:p-3 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm" title="Quản lý Bệnh viện">
-                                                <i data-lucide="settings" class="w-4 h-4"></i>
-                                            </button>
+                                            <button id="btnManageHospitals" type="button" class="p-2.5 md:p-3 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm" title="Quản lý Bệnh viện"><i data-lucide="settings" class="w-4 h-4"></i></button>
                                         </div>
-                                        
                                         <input type="text" id="customHospitalName" placeholder="Tên bệnh viện mới..." class="hidden w-full px-5 py-4 glass-input rounded-2xl text-sm outline-none border-indigo-200">
                                         <div class="grid grid-cols-2 gap-3">
-                                            <!-- Manufacturer Select Row with Admin Button -->
                                             <div class="flex gap-2 items-center">
                                                 <select id="manufacturer" class="w-full px-3 py-2.5 md:px-4 md:py-3 glass-input rounded-xl text-xs md:text-sm font-medium flex-1"></select>
-                                                <button id="btnManageManufacturers" type="button" class="p-2.5 md:p-3 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm" title="Quản lý Hãng máy">
-                                                    <i data-lucide="settings" class="w-4 h-4"></i>
-                                                </button>
+                                                <button id="btnManageManufacturers" type="button" class="p-2.5 md:p-3 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm" title="Quản lý Hãng máy"><i data-lucide="settings" class="w-4 h-4"></i></button>
                                             </div>
                                             <select id="sliceCount" class="px-3 py-2.5 md:px-4 md:py-3 glass-input rounded-xl text-xs md:text-sm font-medium"></select>
                                         </div>
@@ -416,9 +396,7 @@
                         </form>
                     </aside>
 
-                    <!-- Dashboard Main -->
                     <main class="dashboard-main flex-1">
-                        <!-- Config Ref -->
                         <div class="flex flex-col relative z-20">
                             <div class="glass-card rounded-full p-2 pl-4 pr-3 border-2 border-indigo-600 flex items-center justify-between shadow-xl shadow-indigo-100">
                                 <div class="flex items-center gap-4">
@@ -453,10 +431,7 @@
                             <div class="glass-card p-6 rounded-[2rem] shadow-lg flex flex-col justify-between h-28 border-b-4 border-cyan-500"><div><p class="section-label text-cyan-600 mb-1">Tuổi trung bình</p><h3 id="cardAvgAge" class="text-3xl font-black text-slate-900">--</h3></div></div>
                             <div class="glass-card p-6 rounded-[2rem] shadow-lg flex flex-col justify-between h-28 border-b-4 border-emerald-500"><div><p class="section-label text-emerald-600 mb-1">Cân nặng TB (kg)</p><h3 id="cardAvgWeight" class="text-3xl font-black text-slate-900">--</h3></div></div>
                         </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="protocolCardsContainer">
-                            <!-- Cards will be injected here by JS -->
-                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="protocolCardsContainer"></div>
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             <div class="lg:col-span-2 glass-card p-8 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center justify-center min-h-[300px]"><h3 class="section-label font-black text-slate-900 text-sm mb-6">Phân bố theo Hãng máy (n)</h3><div class="w-full h-[250px] md:h-[300px]"><canvas id="manufacturerPieChart"></canvas></div></div>
                             <div class="lg:col-span-1 glass-card p-8 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center justify-center min-h-[300px]"><h3 class="section-label font-black text-slate-900 text-sm mb-6">Phân bố theo Giới tính (n)</h3><div class="w-full h-[250px]"><canvas id="genderPieChart"></canvas></div></div>
@@ -478,8 +453,6 @@
         import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, setDoc, getDoc, query, where, getDocs, writeBatch, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // CONSTANTS & HELPERS
-        // NOTE: Names here match the new format, but logic below handles old format compatibility
         const THAI_DRL_PROTOCOLS = [
             {name:'Sọ não không thuốc (Head)', key:'Head', refCtdi:65, refDlp:1000},
             {name:'Ngực không thuốc (Chest)', key:'Chest', refCtdi:9, refDlp:350},
@@ -510,15 +483,11 @@
         let user = null, isAdmin = false, entries = [], progressChartInstance = null, pieChartInstance = null, genderPieChartInstance = null;
         let customHospitals = new Set(), deletedHospitals = new Set(), hospitalOrder = [];
         let customManufacturers = new Set(), deletedManufacturers = new Set(), manufacturerOrder = [];
-        let currentStandardName = 'Thailand 2019'; let editingHospitalName = null, editingManufacturerName = null;
-        let isDataListenerSetup = false;
-        let heartbeatInterval = null;
-        let currentUserStatus = 'pending';
-        let userStatusUnsubscribe = null; // New: To unsubscribe listener
-        let latestUserRegistryData = []; // Store raw user data for filtering
+        let currentStandardName = 'Thailand 2019'; let isDataListenerSetup = false;
+        let heartbeatInterval = null; let currentUserStatus = 'pending';
+        let userStatusUnsubscribe = null; let latestUserRegistryData = [];
         const currentYear = new Date().getFullYear();
 
-        // 1. DATA SETUP
         function setupDataListeners() {
             if (isDataListenerSetup) return;
             isDataListenerSetup = true;
@@ -527,9 +496,8 @@
                 onSnapshot(collection(db,'artifacts',appId,'public','data','drl_entries'), (snap) => {
                     entries = snap.docs.map(d=>d.data()).filter(e => !e.isDeleted);
                     renderDashboard();
+                    renderHospitalSelect(); // Updated here to sync hospitals
                 });
-                
-                // Monitor User Registry
                 onSnapshot(collection(db,'artifacts',appId,'public','data','user_registry'), (snap) => {
                     latestUserRegistryData = snap.docs.map(d => d.data());
                     renderUserMonitor(latestUserRegistryData);
@@ -537,7 +505,6 @@
             });
         }
 
-        // 2. CHECK STATUS - UPDATED
         function checkLoginStatus() {
             const storedAdmin = localStorage.getItem('vnDrlAdmin');
             if(storedAdmin === 'true') isAdmin = true;
@@ -546,7 +513,6 @@
 
             el('lockScreen').classList.toggle('hidden', hasAccess);
             el('secureContent').classList.toggle('hidden', !hasAccess);
-            
             if (el('navLoginBtn')) el('navLoginBtn').classList.toggle('hidden', hasAccess);
             if (el('navLogoutBtn')) el('navLogoutBtn').classList.toggle('hidden', !hasAccess);
 
@@ -554,48 +520,37 @@
                 setText('userEmailDisplay', 'Administrator'); 
                 setText('dropdownEmail', 'Administrator');
                 updateAdminUI(); 
-                el('bannedOverlay').classList.add('hidden'); // Admin never banned
-            }
-            else if (isLoggedIn) { 
+                el('bannedOverlay').classList.add('hidden');
+            } else if (isLoggedIn) { 
                 const displayName = user.displayName || user.email || 'User';
                 setText('userEmailDisplay', displayName); 
                 setText('dropdownEmail', user.email || 'User');
                 updateAdminUI(); 
 
-                // --- REAL-TIME STATUS LISTENER ---
-                if (userStatusUnsubscribe) userStatusUnsubscribe(); // Clear old listener
+                if (userStatusUnsubscribe) userStatusUnsubscribe();
                 userStatusUnsubscribe = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'user_registry', user.uid), (doc) => {
                     if (doc.exists()) {
                         const data = doc.data();
                         currentUserStatus = data.status || 'pending';
-                        
-                        // Immediate Lockout Logic
-                        if (currentUserStatus === 'blocked') {
-                            el('bannedOverlay').classList.remove('hidden');
-                            // Optionally restrict interactions behind overlay
-                        } else {
-                            el('bannedOverlay').classList.add('hidden');
-                        }
+                        el('bannedOverlay').classList.toggle('hidden', currentUserStatus !== 'blocked');
                     }
                 });
-            }
-            else { 
+            } else { 
                 setText('userEmailDisplay', 'Khách'); 
                 setText('dropdownEmail', 'Khách');
                 if (userStatusUnsubscribe) { userStatusUnsubscribe(); userStatusUnsubscribe = null; }
             }
-            
             if (hasAccess) setupDataListeners();
         }
 
-        // 3. HELPER DEFINITIONS
         function getActiveList(type) {
              const isH = type === 'hospital';
              let base = isH ? [...INITIAL_HOSPITALS] : [...MANUFACTURERS];
              (isH?customHospitals:customManufacturers).forEach(i => {if(!base.includes(i)) base.push(i)});
              entries.forEach(e => { 
                  const val = isH ? e.hospitalName : e.manufacturer; 
-                 if(val && !e.isDeleted && !base.includes(val)) base.push(val); 
+                 // Modified filtering to exclude invalid values
+                 if(val && val.trim() !== '' && val !== '-- Chọn --' && !e.isDeleted && !base.includes(val)) base.push(val); 
              });
              base = base.filter(i => !(isH?deletedHospitals:deletedManufacturers).has(i));
              const order = isH ? hospitalOrder : manufacturerOrder;
@@ -605,20 +560,22 @@
         }
 
         function renderHospitalSelect() {
-            const s = el('hospitalSelect'); 
-            if(!s) return;
-            const val = s.value;
-            s.innerHTML = `<option disabled selected>-- Chọn --</option>`;
-            getActiveList('hospital').forEach(h => s.innerHTML+=`<option value="${h}">${h}</option>`);
-            s.innerHTML += `<option value="other">➕ Thêm bệnh viện</option>`;
-            if(val) s.value = val;
+            const s = el('hospitalSelect'); if(!s) return;
+            const savedHosp = localStorage.getItem('drl_saved_hospitalSelect');
+            const val = (s.value && s.value !== '-- Chọn --') ? s.value : savedHosp;
             
-            const m = el('manufacturer'); 
-            if(m) {
-                const mVal = m.value;
-                m.innerHTML = `<option disabled selected>-- Chọn --</option>`;
-                getActiveList('manufacturer').forEach(i => m.innerHTML+=`<option value="${i}">${i}</option>`);
-                if(mVal) m.value = mVal;
+            s.innerHTML = `<option disabled ${!val ? 'selected' : ''}>-- Chọn --</option>`;
+            getActiveList('hospital').forEach(h => s.innerHTML+=`<option value="${h}" ${h===val?'selected':''}>${h}</option>`);
+            s.innerHTML += `<option value="other">➕ Thêm bệnh viện</option>`;
+            
+            if(val === 'other') el('customHospitalName').classList.remove('hidden');
+
+            const m = el('manufacturer'); if(m) {
+                const savedManu = localStorage.getItem('drl_saved_manufacturer');
+                const mVal = (m.value && m.value !== '-- Chọn --') ? m.value : savedManu;
+                
+                m.innerHTML = `<option disabled ${!mVal ? 'selected' : ''}>-- Chọn --</option>`;
+                getActiveList('manufacturer').forEach(i => m.innerHTML+=`<option value="${i}" ${i===mVal?'selected':''}>${i}</option>`);
             }
         }
         
@@ -626,40 +583,16 @@
         async function saveHospConfig(){ await setDoc(doc(db,'artifacts',appId,'public','data','app_settings','hospital_config'),{customHospitals:[...customHospitals],deletedHospitals:[...deletedHospitals],hospitalOrder}); }
         async function saveManuConfig(){ await setDoc(doc(db,'artifacts',appId,'public','data','app_settings','manufacturer_config'),{customManufacturers:[...customManufacturers],deletedManufacturers:[...deletedManufacturers],manufacturerOrder}); }
 
-        // --- USER PRESENCE & MONITOR (Security Updated) ---
         async function updateUserHeartbeat(currentUser) {
             if (!currentUser || currentUser.isAnonymous) return;
             const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_registry', currentUser.uid);
-            
-            // Note: We don't fetch status here anymore to avoid overwriting real-time updates.
-            // We just update the heartbeat timestamp.
-            
-            await setDoc(userRef, {
-                email: currentUser.email,
-                displayName: currentUser.displayName || currentUser.email,
-                lastActive: new Date().toISOString(),
-                uid: currentUser.uid
-                // Don't overwrite status here
-            }, { merge: true });
+            await setDoc(userRef, { email: currentUser.email, displayName: currentUser.displayName || currentUser.email, lastActive: new Date().toISOString(), uid: currentUser.uid }, { merge: true });
         }
 
-        // Admin actions to approve/block
         window.setUserStatus = async (targetUid, newStatus) => {
             if (!isAdmin) return showToast("Chỉ Admin mới có quyền này!");
-            
-            const confirmMsg = newStatus === 'blocked' 
-                ? "CẢNH BÁO: Bạn có chắc chắn muốn KHÓA tài khoản này? Họ sẽ bị đăng xuất ngay lập tức." 
-                : "Bạn có chắc chắn muốn DUYỆT tài khoản này?";
-            
-            if (!confirm(confirmMsg)) return;
-
-            try {
-                const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_registry', targetUid);
-                await updateDoc(userRef, { status: newStatus });
-                showToast(`Đã cập nhật trạng thái: ${newStatus === 'approved' ? 'Đã duyệt' : 'Đã khóa'}`);
-            } catch (e) {
-                showToast("Lỗi cập nhật: " + e.message);
-            }
+            if (!confirm(newStatus === 'blocked' ? "CẢNH BÁO: KHÓA tài khoản này?" : "DUYỆT tài khoản này?")) return;
+            try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_registry', targetUid), { status: newStatus }); showToast("Đã cập nhật!"); } catch (e) { showToast("Lỗi: " + e.message); }
         }
 
         window.switchUserTab = (tab) => {
@@ -670,656 +603,220 @@
         }
 
         function renderUserMonitor(allUsers) {
-            const onlineList = el('onlineUsersList');
-            const allList = el('allUsersList');
-            const onlineCountSpan = el('headerOnlineCount');
-            const searchInput = el('userSearchInput');
-            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
-            
+            const onlineList = el('onlineUsersList'); const allList = el('allUsersList');
+            const searchInput = el('userSearchInput'); const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
             if(!onlineList || !allList) return;
-            
-            onlineList.innerHTML = '';
-            allList.innerHTML = '';
-
-            const now = new Date();
-            const onlineThreshold = 2 * 60 * 1000; // 2 minutes
-
+            onlineList.innerHTML = ''; allList.innerHTML = '';
+            const now = new Date(); const onlineThreshold = 2 * 60 * 1000;
             let onlineCount = 0;
-
-            // Sort by last active desc
             allUsers.sort((a,b) => new Date(b.lastActive) - new Date(a.lastActive));
-
             allUsers.forEach(u => {
                 const emailDisplay = u.displayName || u.email || 'Ẩn danh';
-                
-                // Filter check
                 if (searchTerm && !emailDisplay.toLowerCase().includes(searchTerm)) return;
-
                 const lastActiveDate = new Date(u.lastActive);
                 const isOnline = (now - lastActiveDate) < onlineThreshold;
                 const status = u.status || 'pending';
-                
                 if (isOnline) onlineCount++;
-
                 const timeStr = lastActiveDate.toLocaleString('vi-VN');
-                
-                // Status badge
-                let statusBadge = '';
-                if (status === 'approved') statusBadge = '<span class="text-[8px] font-black text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded uppercase">Đã duyệt</span>';
-                else if (status === 'blocked') statusBadge = '<span class="text-[8px] font-black text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase">Đã khóa</span>';
-                else statusBadge = '<span class="text-[8px] font-black text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded uppercase">Chờ duyệt</span>';
-
-                // Admin Controls
-                let adminControls = '';
-                if (isAdmin) {
-                    if (status !== 'approved') adminControls += `<button onclick="window.setUserStatus('${u.uid}', 'approved')" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded" title="Duyệt"><i data-lucide="check-circle" class="w-4 h-4"></i></button>`;
-                    if (status !== 'blocked') adminControls += `<button onclick="window.setUserStatus('${u.uid}', 'blocked')" class="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Khóa"><i data-lucide="ban" class="w-4 h-4"></i></button>`;
-                }
-
-                // Render for Online Tab
-                if (isOnline) {
-                    const div = document.createElement('div');
-                    div.className = "flex items-center justify-between p-3 bg-emerald-50/50 rounded-xl border border-emerald-100";
-                    div.innerHTML = `
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-xs">${emailDisplay.charAt(0).toUpperCase()}</div>
-                            <div>
-                                <p class="text-xs font-bold text-slate-700 flex items-center gap-2">${emailDisplay} ${statusBadge}</p>
-                                <p class="text-[9px] text-emerald-600 font-medium">Đang hoạt động</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-[9px] font-bold text-slate-400">${timeStr.split(' ')[1]}</span>
-                            ${adminControls}
-                        </div>
-                    `;
-                    onlineList.appendChild(div);
-                }
-
-                // Render for All Users Tab
-                const row = document.createElement('div');
-                row.className = "flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100";
-                row.innerHTML = `
-                    <div class="flex items-center gap-3">
+                let statusBadge = status === 'approved' ? '<span class="text-[8px] font-black text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded uppercase">Đã duyệt</span>' : (status === 'blocked' ? '<span class="text-[8px] font-black text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase">Đã khóa</span>' : '<span class="text-[8px] font-black text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded uppercase">Chờ duyệt</span>');
+                let adminControls = isAdmin ? `${status !== 'approved' ? `<button onclick="window.setUserStatus('${u.uid}', 'approved')" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"><i data-lucide="check-circle" class="w-4 h-4"></i></button>` : ''} ${status !== 'blocked' ? `<button onclick="window.setUserStatus('${u.uid}', 'blocked')" class="p-1.5 text-red-600 hover:bg-red-50 rounded"><i data-lucide="ban" class="w-4 h-4"></i></button>` : ''}` : '';
+                const itemHtml = `<div class="flex items-center gap-3">
                         <div class="w-8 h-8 rounded-full ${isOnline ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'} flex items-center justify-center font-bold text-xs">${emailDisplay.charAt(0).toUpperCase()}</div>
-                        <div>
-                            <p class="text-xs font-bold text-slate-700 flex items-center gap-2">${emailDisplay} ${statusBadge}</p>
-                            <p class="text-[9px] ${isOnline ? 'text-emerald-500' : 'text-slate-400'} font-medium">${isOnline ? 'Online' : 'Offline'}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[9px] font-bold text-slate-400">${timeStr}</span>
-                        ${adminControls}
-                    </div>
-                `;
-                allList.appendChild(row);
+                        <div><p class="text-xs font-bold text-slate-700 flex items-center gap-2">${emailDisplay} ${statusBadge}</p><p class="text-[9px] ${isOnline ? 'text-emerald-500' : 'text-slate-400'} font-medium">${isOnline ? 'Online' : 'Offline'}</p></div>
+                    </div><div class="flex items-center gap-2"><span class="text-[9px] font-bold text-slate-400">${isOnline ? timeStr.split(' ')[1] : timeStr}</span>${adminControls}</div>`;
+                const div = document.createElement('div'); div.className = `flex items-center justify-between p-3 rounded-xl border ${isOnline ? 'bg-emerald-50/50 border-emerald-100' : 'bg-white border-slate-100'}`;
+                div.innerHTML = itemHtml; if (isOnline) onlineList.appendChild(div.cloneNode(true)); allList.appendChild(div);
             });
-
-            if (onlineCountSpan) onlineCountSpan.textContent = onlineCount;
+            if (el('headerOnlineCount')) el('headerOnlineCount').textContent = onlineCount;
             lucide.createIcons();
         }
 
-        // ... existing admin logic ...
         function updateAdminUI() {
              const ctrls = document.querySelectorAll('.admin-control');
              ctrls.forEach(c => c.classList.toggle('hidden', !isAdmin));
-             const badge = el('adminBadge'); if(badge) badge.classList.toggle('hidden', !isAdmin);
-             const dot = el('adminStatusDot'); if(dot) dot.classList.toggle('hidden', !isAdmin);
+             if(el('adminBadge')) el('adminBadge').classList.toggle('hidden', !isAdmin);
+             if(el('adminStatusDot')) el('adminStatusDot').classList.toggle('hidden', !isAdmin);
              const btn = el('btnAdminAccess');
              if(btn) {
-                 if(isAdmin) { btn.classList.remove('bg-slate-900','hover:bg-slate-800'); btn.classList.add('bg-red-600','hover:bg-red-700'); }
-                 else { btn.classList.add('bg-slate-900','hover:bg-slate-800'); btn.classList.remove('bg-red-600','hover:bg-red-700'); }
+                 btn.classList.toggle('bg-red-600', isAdmin); btn.classList.toggle('hover:bg-red-700', isAdmin);
+                 btn.classList.toggle('bg-slate-900', !isAdmin); btn.classList.toggle('hover:bg-slate-800', !isAdmin);
              }
         }
 
         function renderHospitalManagementModal() {
-            const activeDiv = el('activeHospitalsList');
-            const trashDiv = el('trashHospitalsList');
+            const activeDiv = el('activeHospitalsList'); const trashDiv = el('trashHospitalsList');
             activeDiv.innerHTML = ''; trashDiv.innerHTML = '';
-
-            let allHospitals = [...INITIAL_HOSPITALS];
-            customHospitals.forEach(h => { if(!allHospitals.includes(h)) allHospitals.push(h); });
-            
-            const active = allHospitals.filter(h => !deletedHospitals.has(h));
-            const trash = [...deletedHospitals];
-
-            active.sort((a,b) => {
-                const ia = hospitalOrder.indexOf(a);
-                const ib = hospitalOrder.indexOf(b);
-                if(ia !== -1 && ib !== -1) return ia - ib;
-                if(ia !== -1) return -1;
-                if(ib !== -1) return 1;
-                return a.localeCompare(b);
-            });
-
+            let allHospitals = [...INITIAL_HOSPITALS]; customHospitals.forEach(h => { if(!allHospitals.includes(h)) allHospitals.push(h); });
+            const active = allHospitals.filter(h => !deletedHospitals.has(h)); const trash = [...deletedHospitals];
+            active.sort((a,b) => { const ia = hospitalOrder.indexOf(a), ib = hospitalOrder.indexOf(b); return ia !== -1 && ib !== -1 ? ia - ib : (ia !== -1 ? -1 : (ib !== -1 ? 1 : a.localeCompare(b))); });
             active.forEach((h, idx) => {
-                const isCustom = customHospitals.has(h);
-                const row = document.createElement('div');
-                row.className = "flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 group";
-                row.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="flex flex-col gap-0.5">
-                            <button type="button" onclick="window.moveHosp('${h}', -1)" class="text-slate-300 hover:text-indigo-600 ${idx===0?'opacity-0 pointer-events-none':''}"><i data-lucide="chevron-up" class="w-4 h-4"></i></button>
-                            <button type="button" onclick="window.moveHosp('${h}', 1)" class="text-slate-300 hover:text-indigo-600 ${idx===active.length-1?'opacity-0 pointer-events-none':''}"><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
-                        </div>
-                        <span class="text-xs font-bold text-slate-700">${h} ${isCustom ? '<span class="text-[9px] text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded ml-1">MỚI</span>' : ''}</span>
-                    </div>
-                    <div class="flex items-center">
-                        <button type="button" onclick="window.editHosp('${h}')" class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors mr-1" title="Chỉnh sửa"><i data-lucide="pencil" class="w-4 h-4"></i></button>
-                        <button type="button" onclick="window.softDeleteHosp('${h}')" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Xóa tạm thời"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                    </div>
-                `;
+                const row = document.createElement('div'); row.className = "flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 group";
+                row.innerHTML = `<div class="flex items-center gap-3"><div class="flex flex-col gap-0.5">
+                    <button onclick="window.moveHosp('${h}', -1)" class="${idx===0?'opacity-0 pointer-events-none':''}"><i data-lucide="chevron-up" class="w-4 h-4"></i></button>
+                    <button onclick="window.moveHosp('${h}', 1)" class="${idx===active.length-1?'opacity-0 pointer-events-none':''}"><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
+                    </div><span class="text-xs font-bold text-slate-700">${h}${customHospitals.has(h)?'<span class="text-[9px] text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded ml-1 uppercase">Mới</span>':''}</span></div>
+                    <div class="flex items-center"><button onclick="window.editHosp('${h}')" class="p-2 text-slate-400 hover:text-indigo-600"><i data-lucide="pencil" class="w-4 h-4"></i></button><button onclick="window.softDeleteHosp('${h}')" class="p-2 text-slate-400 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;
                 activeDiv.appendChild(row);
             });
-
             trash.forEach(h => {
-                const row = document.createElement('div');
-                row.className = "flex items-center justify-between p-3 bg-red-50/50 rounded-xl border border-red-100";
-                row.innerHTML = `
-                    <span class="text-xs font-bold text-slate-500 line-through decoration-red-300">${h}</span>
-                    <div class="flex items-center gap-1">
-                        <button type="button" onclick="window.restoreHosp('${h}')" class="p-2 text-emerald-500 hover:bg-emerald-100 rounded-lg" title="Khôi phục"><i data-lucide="refresh-ccw" class="w-4 h-4"></i></button>
-                    </div>
-                `;
+                const row = document.createElement('div'); row.className = "flex items-center justify-between p-3 bg-red-50/50 rounded-xl border border-red-100";
+                row.innerHTML = `<span class="text-xs font-bold text-slate-500 line-through decoration-red-300">${h}</span><button onclick="window.restoreHosp('${h}')" class="p-2 text-emerald-500"><i data-lucide="refresh-ccw" class="w-4 h-4"></i></button>`;
                 trashDiv.appendChild(row);
             });
-            setText('trashCount', trash.length);
-            lucide.createIcons();
+            setText('trashCount', trash.length); lucide.createIcons();
         }
 
         function renderManufacturerManagementModal() {
-            const activeDiv = el('activeManufacturersList');
-            const trashDiv = el('trashManufacturersList');
+            const activeDiv = el('activeManufacturersList'); const trashDiv = el('trashManufacturersList');
             activeDiv.innerHTML = ''; trashDiv.innerHTML = '';
-
-            let allManu = [...MANUFACTURERS];
-            customManufacturers.forEach(m => { if(!allManu.includes(m)) allManu.push(m); });
-            
-            const active = allManu.filter(m => !deletedManufacturers.has(m));
-            const trash = [...deletedManufacturers];
-
-            active.sort((a,b) => {
-                const ia = manufacturerOrder.indexOf(a);
-                const ib = manufacturerOrder.indexOf(b);
-                if(ia !== -1 && ib !== -1) return ia - ib;
-                if(ia !== -1) return -1;
-                if(ib !== -1) return 1;
-                return a.localeCompare(b);
-            });
-
+            let allManu = [...MANUFACTURERS]; customManufacturers.forEach(m => { if(!allManu.includes(m)) allManu.push(m); });
+            const active = allManu.filter(m => !deletedManufacturers.has(m)); const trash = [...deletedManufacturers];
+            active.sort((a,b) => { const ia = manufacturerOrder.indexOf(a), ib = manufacturerOrder.indexOf(b); return ia !== -1 && ib !== -1 ? ia - ib : (ia !== -1 ? -1 : (ib !== -1 ? 1 : a.localeCompare(b))); });
             active.forEach((m, idx) => {
-                const isCustom = customManufacturers.has(m);
-                const row = document.createElement('div');
-                row.className = "flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 group";
-                row.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="flex flex-col gap-0.5">
-                            <button type="button" onclick="window.moveManu('${m}', -1)" class="text-slate-300 hover:text-indigo-600 ${idx===0?'opacity-0 pointer-events-none':''}"><i data-lucide="chevron-up" class="w-4 h-4"></i></button>
-                            <button type="button" onclick="window.moveManu('${m}', 1)" class="text-slate-300 hover:text-indigo-600 ${idx===active.length-1?'opacity-0 pointer-events-none':''}"><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
-                        </div>
-                        <span class="text-xs font-bold text-slate-700">${m} ${isCustom ? '<span class="text-[9px] text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded ml-1">MỚI</span>' : ''}</span>
-                    </div>
-                    <div class="flex items-center">
-                        <button type="button" onclick="window.editManu('${m}')" class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors mr-1" title="Chỉnh sửa"><i data-lucide="pencil" class="w-4 h-4"></i></button>
-                        <button type="button" onclick="window.softDeleteManu('${m}')" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Xóa tạm thời"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                    </div>
-                `;
+                const row = document.createElement('div'); row.className = "flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 group";
+                row.innerHTML = `<div class="flex items-center gap-3"><div class="flex flex-col gap-0.5">
+                    <button onclick="window.moveManu('${m}', -1)" class="${idx===0?'opacity-0 pointer-events-none':''}"><i data-lucide="chevron-up" class="w-4 h-4"></i></button>
+                    <button onclick="window.moveManu('${m}', 1)" class="${idx===active.length-1?'opacity-0 pointer-events-none':''}"><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
+                    </div><span class="text-xs font-bold text-slate-700">${m}${customManufacturers.has(m)?'<span class="text-[9px] text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded ml-1 uppercase">Mới</span>':''}</span></div>
+                    <div class="flex items-center"><button onclick="window.editManu('${m}')" class="p-2 text-slate-400 hover:text-indigo-600"><i data-lucide="pencil" class="w-4 h-4"></i></button><button onclick="window.softDeleteManu('${m}')" class="p-2 text-slate-400 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;
                 activeDiv.appendChild(row);
             });
-
             trash.forEach(m => {
-                const row = document.createElement('div');
-                row.className = "flex items-center justify-between p-3 bg-red-50/50 rounded-xl border border-red-100";
-                row.innerHTML = `
-                    <span class="text-xs font-bold text-slate-500 line-through decoration-red-300">${m}</span>
-                    <div class="flex items-center gap-1">
-                        <button type="button" onclick="window.restoreManu('${m}')" class="p-2 text-emerald-500 hover:bg-emerald-100 rounded-lg" title="Khôi phục"><i data-lucide="refresh-ccw" class="w-4 h-4"></i></button>
-                    </div>
-                `;
+                const row = document.createElement('div'); row.className = "flex items-center justify-between p-3 bg-red-50/50 rounded-xl border border-red-100";
+                row.innerHTML = `<span class="text-xs font-bold text-slate-500 line-through decoration-red-300">${m}</span><button onclick="window.restoreManu('${m}')" class="p-2 text-emerald-500"><i data-lucide="refresh-ccw" class="w-4 h-4"></i></button>`;
                 trashDiv.appendChild(row);
             });
-            setText('trashManuCount', trash.length);
-            lucide.createIcons();
+            setText('trashManuCount', trash.length); lucide.createIcons();
         }
 
-        // --- GLOBAL ACTIONS ---
-        window.switchHospTab = (tab) => {
-            el('hosp-tab-active').classList.toggle('hidden', tab !== 'active');
-            el('hosp-tab-trash').classList.toggle('hidden', tab !== 'trash');
-            el('btn-hosp-active').className = tab === 'active' ? "px-4 py-2 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100" : "px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-500 border border-slate-100 hover:bg-slate-50";
-            el('btn-hosp-trash').className = tab === 'trash' ? "px-4 py-2 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100" : "px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-500 border border-slate-100 hover:bg-slate-50";
-        }
-        window.switchManuTab = (tab) => {
-            el('manu-tab-active').classList.toggle('hidden', tab !== 'active');
-            el('manu-tab-trash').classList.toggle('hidden', tab !== 'trash');
-            el('btn-manu-active').className = tab === 'active' ? "px-4 py-2 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100" : "px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-500 border border-slate-100 hover:bg-slate-50";
-            el('btn-manu-trash').className = tab === 'trash' ? "px-4 py-2 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100" : "px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-500 border border-slate-100 hover:bg-slate-50";
-        }
+        window.moveHosp = async (n, d) => { let active = getActiveList('hospital'); const i = active.indexOf(n); if (i===-1||(i===0&&d===-1)||(i===active.length-1&&d===1)) return; [active[i], active[i+d]] = [active[i+d], active[i]]; hospitalOrder = active; await saveHospConfig(); renderHospitalManagementModal(); renderHospitalSelect(); }
+        window.softDeleteHosp = async (n) => { deletedHospitals.add(n); await saveHospConfig(); renderHospitalManagementModal(); renderHospitalSelect(); }
+        window.restoreHosp = async (n) => { deletedHospitals.delete(n); await saveHospConfig(); renderHospitalManagementModal(); renderHospitalSelect(); }
+        window.moveManu = async (n, d) => { let active = getActiveList('manufacturer'); const i = active.indexOf(n); if (i===-1||(i===0&&d===-1)||(i===active.length-1&&d===1)) return; [active[i], active[i+d]] = [active[i+d], active[i]]; manufacturerOrder = active; await saveManuConfig(); renderManufacturerManagementModal(); renderHospitalSelect(); }
+        window.softDeleteManu = async (n) => { deletedManufacturers.add(n); await saveManuConfig(); renderManufacturerManagementModal(); renderHospitalSelect(); }
+        window.restoreManu = async (n) => { deletedManufacturers.delete(n); await saveManuConfig(); renderManufacturerManagementModal(); renderHospitalSelect(); }
+        window.editHosp = async (o) => { const n = prompt("Tên mới:", o); if (!n || n === o || n.trim() === "") return; if (getActiveList('hospital').includes(n.trim())) return alert("Đã tồn tại!"); if (customHospitals.has(o)) customHospitals.delete(o); else deletedHospitals.add(o); customHospitals.add(n.trim()); const idx = hospitalOrder.indexOf(o); if (idx !== -1) hospitalOrder[idx] = n.trim(); await saveHospConfig(); renderHospitalManagementModal(); renderHospitalSelect(); }
+        window.editManu = async (o) => { const n = prompt("Tên mới:", o); if (!n || n === o || n.trim() === "") return; if (getActiveList('manufacturer').includes(n.trim())) return alert("Đã tồn tại!"); if (customManufacturers.has(o)) customManufacturers.delete(o); else deletedManufacturers.add(o); customManufacturers.add(n.trim()); const idx = manufacturerOrder.indexOf(o); if (idx !== -1) manufacturerOrder[idx] = n.trim(); await saveManuConfig(); renderManufacturerManagementModal(); renderHospitalSelect(); }
 
-        window.moveHosp = async (name, dir) => {
-            let active = getActiveList('hospital');
-            const idx = active.indexOf(name);
-            if (idx === -1 || (idx === 0 && dir === -1) || (idx === active.length - 1 && dir === 1)) return;
-            [active[idx], active[idx + dir]] = [active[idx + dir], active[idx]];
-            hospitalOrder = active;
-            await saveHospConfig();
-            renderHospitalManagementModal();
-            renderHospitalSelect();
-        }
-        window.softDeleteHosp = async (name) => { deletedHospitals.add(name); await saveHospConfig(); renderHospitalManagementModal(); renderHospitalSelect(); }
-        window.restoreHosp = async (name) => { deletedHospitals.delete(name); await saveHospConfig(); renderHospitalManagementModal(); renderHospitalSelect(); }
+        window.selectRefStandard = (s) => { currentStandardName = s; const d = DRL_STANDARDS[s], active = el('protocol').value; if (d && d[active]) { el('manualRefCtdi').value = d[active].ctdi75; el('manualRefDlp').value = d[active].dlp75; document.querySelectorAll('.drl-row').forEach(r => r.classList.toggle('active', r.dataset.std === s)); renderDashboard(); } }
+        function updateRefStandardTable() { const a = el('protocol').value, b = el('refStandardTableBody'); if(!b) return; b.innerHTML = ''; Object.entries(DRL_STANDARDS).forEach(([n, d]) => { const v = d[a] || { ctdi75: '-', ctdi50: '-', dlp75: '-', dlp50: '-' }; const tr = document.createElement('tr'); tr.className = `drl-row hover:bg-indigo-50 cursor-pointer transition-colors ${n === currentStandardName ? 'active' : ''}`; tr.dataset.std = n; tr.onclick = () => window.selectRefStandard(n); tr.innerHTML = `<td class="px-3 py-2 font-bold border-r border-indigo-50">${n}</td><td class="px-2 py-2 text-center text-slate-500 border-r border-indigo-50 bg-slate-50/30">${v.ctdi50}</td><td class="px-2 py-2 text-center text-indigo-600 font-black border-r border-indigo-50 bg-indigo-50/30">${v.ctdi75}</td><td class="px-2 py-2 text-center text-slate-500 border-r border-indigo-50 bg-slate-50/30">${v.dlp50}</td><td class="px-2 py-2 text-center text-amber-600 font-black bg-amber-50/30">${v.dlp75}</td>`; b.appendChild(tr); }); }
 
-        window.moveManu = async (name, dir) => {
-            let active = getActiveList('manufacturer');
-            const idx = active.indexOf(name);
-            if (idx === -1 || (idx === 0 && dir === -1) || (idx === active.length - 1 && dir === 1)) return;
-            [active[idx], active[idx + dir]] = [active[idx + dir], active[idx]];
-            manufacturerOrder = active;
-            await saveManuConfig();
-            renderManufacturerManagementModal();
-            renderHospitalSelect();
-        }
-        window.softDeleteManu = async (name) => { deletedManufacturers.add(name); await saveManuConfig(); renderManufacturerManagementModal(); renderHospitalSelect(); }
-        window.restoreManu = async (name) => { deletedManufacturers.delete(name); await saveManuConfig(); renderManufacturerManagementModal(); renderHospitalSelect(); }
-
-        // --- NEW: Edit Functions ---
-        window.editHosp = async (oldName) => {
-            const newName = prompt("Nhập tên mới cho bệnh viện:", oldName);
-            if (!newName || newName === oldName || newName.trim() === "") return;
-            const finalName = newName.trim();
-            
-            if (getActiveList('hospital').includes(finalName)) {
-                alert("Tên bệnh viện này đã tồn tại!");
-                return;
-            }
-
-            if (customHospitals.has(oldName)) {
-                customHospitals.delete(oldName);
-            } else {
-                deletedHospitals.add(oldName);
-            }
-            customHospitals.add(finalName);
-
-            const idx = hospitalOrder.indexOf(oldName);
-            if (idx !== -1) {
-                hospitalOrder[idx] = finalName;
-            }
-
-            await saveHospConfig();
-            renderHospitalManagementModal();
-            renderHospitalSelect();
-        }
-
-        window.editManu = async (oldName) => {
-            const newName = prompt("Nhập tên mới cho hãng máy:", oldName);
-            if (!newName || newName === oldName || newName.trim() === "") return;
-            const finalName = newName.trim();
-            
-            if (getActiveList('manufacturer').includes(finalName)) {
-                alert("Tên hãng máy này đã tồn tại!");
-                return;
-            }
-
-            if (customManufacturers.has(oldName)) {
-                customManufacturers.delete(oldName);
-            } else {
-                deletedManufacturers.add(oldName);
-            }
-            customManufacturers.add(finalName);
-
-            const idx = manufacturerOrder.indexOf(oldName);
-            if (idx !== -1) {
-                manufacturerOrder[idx] = finalName;
-            }
-
-            await saveManuConfig();
-            renderManufacturerManagementModal();
-            renderHospitalSelect();
-        }
-
-        // --- NEW: Select Standard Logic ---
-        window.selectRefStandard = (standardName) => {
-            currentStandardName = standardName;
-            const activeProt = el('protocol').value;
-            const stdData = DRL_STANDARDS[standardName];
-            if (stdData && stdData[activeProt]) {
-                const vals = stdData[activeProt];
-                el('manualRefCtdi').value = vals.ctdi75; el('manualRefDlp').value = vals.dlp75;
-                document.querySelectorAll('.drl-row').forEach(r => r.classList.remove('active'));
-                const row = Array.from(document.querySelectorAll('.drl-row')).find(r => r.dataset.std === standardName);
-                if(row) row.classList.add('active');
-                renderDashboard();
-            }
-        };
-
-        function updateRefStandardTable() {
-            const activeProt = el('protocol').value;
-            const tbody = el('refStandardTableBody'); 
-            if(!tbody) return;
-            tbody.innerHTML = '';
-            Object.entries(DRL_STANDARDS).forEach(([name, data]) => {
-                const vals = data[activeProt] || { ctdi75: '-', ctdi50: '-', dlp75: '-', dlp50: '-' };
-                const tr = document.createElement('tr');
-                tr.className = `drl-row hover:bg-indigo-50 cursor-pointer transition-colors ${name === currentStandardName ? 'active' : ''}`;
-                tr.dataset.std = name;
-                tr.onclick = () => window.selectRefStandard(name);
-                tr.innerHTML = `<td class="px-3 py-2 font-bold border-r border-indigo-50">${name}</td><td class="px-2 py-2 text-center text-slate-500 border-r border-indigo-50 bg-slate-50/30">${vals.ctdi50}</td><td class="px-2 py-2 text-center text-indigo-600 font-black border-r border-indigo-50 bg-indigo-50/30">${vals.ctdi75}</td><td class="px-2 py-2 text-center text-slate-500 border-r border-indigo-50 bg-slate-50/30">${vals.dlp50}</td><td class="px-2 py-2 text-center text-amber-600 font-black bg-amber-50/30">${vals.dlp75}</td>`;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // --- CHARTS & STATS (Moved outside onload for global access) ---
         const renderDashboard = () => {
-            if(!el('cardTotalCount')) return; // Guard clause if DOM not ready
+            if(!el('cardTotalCount')) return;
             setText('cardTotalCount', entries.length);
-            const ages = entries.map(e=>parseFloat(e.age)||0).filter(n=>n>0);
-            const weights = entries.map(e=>parseFloat(e.weight)||0).filter(n=>n>0);
-            setText('cardAvgAge', calcStats(ages).mean.toFixed(1));
-            setText('cardAvgWeight', calcStats(weights).mean.toFixed(1));
-
+            const ages = entries.map(e=>parseFloat(e.age)||0).filter(n=>n>0), weights = entries.map(e=>parseFloat(e.weight)||0).filter(n=>n>0);
+            setText('cardAvgAge', calcStats(ages).mean.toFixed(1)); setText('cardAvgWeight', calcStats(weights).mean.toFixed(1));
             const updateCard = (name, prefix) => {
-                // FIXED FILTERING LOGIC: Match both old 'Head' and new 'Head'
-                let keyword = '';
-                // Using the `key` from THAI_DRL_PROTOCOLS object for safer mapping
-                if(name.includes('Head')) keyword = 'Head';
-                else if(name.includes('Chest')) keyword = 'Chest';
-                else if(name.includes('Abdomen')) keyword = 'Abdomen';
-                else if(name.includes('LDCT')) keyword = 'LDCT';
-
-                // Robust filtering: Check if protocol field exists and contains keyword (case insensitive ideally, but data is likely capitalized)
-                const sub = entries.filter(e => e.protocol && e.protocol.includes(keyword));
-                
-                const dlps = sub.map(e=>parseFloat(e.dlp)||0);
-                const ctdis = sub.map(e=>parseFloat(e.ctdi)||0);
-                
-                const stdData = DRL_STANDARDS[currentStandardName];
-                const ref = stdData ? stdData[name] : null;
-                const manC = parseFloat(el('manualRefCtdi').value); const manD = parseFloat(el('manualRefDlp').value);
-                const rC75 = (el('protocol').value===name && !isNaN(manC)) ? manC : (ref?.ctdi75 || 0);
-                const rD75 = (el('protocol').value===name && !isNaN(manD)) ? manD : (ref?.dlp75 || 0);
-                const rC50 = ref?.ctdi50 || 0; const rD50 = ref?.dlp50 || 0;
-
+                let kw = name.includes('Head') ? 'Head' : (name.includes('Chest') ? 'Chest' : (name.includes('Abdomen') ? 'Abdomen' : 'LDCT'));
+                const sub = entries.filter(e => e.protocol && e.protocol.includes(kw));
+                const dlps = sub.map(e=>parseFloat(e.dlp)||0), ctdis = sub.map(e=>parseFloat(e.ctdi)||0);
+                const std = DRL_STANDARDS[currentStandardName], ref = std ? std[name] : null;
+                const mC = parseFloat(el('manualRefCtdi').value), mD = parseFloat(el('manualRefDlp').value);
+                const rC75 = (el('protocol').value===name && !isNaN(mC)) ? mC : (ref?.ctdi75 || 0), rD75 = (el('protocol').value===name && !isNaN(mD)) ? mD : (ref?.dlp75 || 0);
                 setText(prefix+'CtdiRef', rC75>0?rC75:'--'); setText(prefix+'DlpRef', rD75>0?rD75:'--');
-                setText(prefix+'CtdiRef50', rC50>0?rC50:'--'); setText(prefix+'DlpRef50', rD50>0?rD50:'--');
-
-                const sDlp = calcStats(dlps, rD75); const sCtdi = calcStats(ctdis, rC75);
-                setText(prefix+'Count', `n=${sub.length}`);
-                setText(prefix+'CtdiMean', `${sCtdi.mean.toFixed(1)}±${sCtdi.sd.toFixed(1)}`);
-                setText(prefix+'CtdiMed', sCtdi.median.toFixed(1));
-                setText(prefix+'Ctdi75', sCtdi.p75.toFixed(1));
+                setText(prefix+'CtdiRef50', ref?.ctdi50||'--'); setText(prefix+'DlpRef50', ref?.dlp50||'--');
+                const sDlp = calcStats(dlps, rD75), sCtdi = calcStats(ctdis, rC75);
+                setText(prefix+'Count', `n=${sub.length}`); setText(prefix+'CtdiMean', `${sCtdi.mean.toFixed(1)}±${sCtdi.sd.toFixed(1)}`);
+                setText(prefix+'CtdiMed', sCtdi.median.toFixed(1)); setText(prefix+'Ctdi75', sCtdi.p75.toFixed(1));
                 setText(prefix+'CtdiP', sCtdi.p<0.001?'<0.001':sCtdi.p.toFixed(3));
-                setText(prefix+'DlpMean', `${sDlp.mean.toFixed(1)}±${sDlp.sd.toFixed(1)}`);
-                setText(prefix+'DlpMed', sDlp.median.toFixed(1));
-                setText(prefix+'Dlp75', sDlp.p75.toFixed(1));
-                setText(prefix+'DlpP', sDlp.p<0.001?'<0.001':sDlp.p.toFixed(3));
+                setText(prefix+'DlpMean', `${sDlp.mean.toFixed(1)}±${sDlp.sd.toFixed(1)}`); setText(prefix+'DlpMed', sDlp.median.toFixed(1));
+                setText(prefix+'Dlp75', sDlp.p75.toFixed(1)); setText(prefix+'DlpP', sDlp.p<0.001?'<0.001':sDlp.p.toFixed(3));
             };
-            
-            // Map the defined protocols to their UI ID prefixes
-            updateCard('Sọ não không thuốc (Head)', 'head'); 
-            updateCard('Ngực không thuốc (Chest)', 'chest');
-            updateCard('Bụng không thuốc (Abdomen)', 'abd'); 
-            updateCard('Phổi liều thấp (LDCT)', 'ldct');
-
-            // Progress Table
-            const tbody = el('progressTableBody');
-            if (tbody) {
-                tbody.innerHTML = '';
-                let activeHospitals = getActiveList('hospital');
-                const hospitalStats = activeHospitals.map(h => ({ name: h, total: entries.filter(e => e.hospitalName === h).length })).sort((a, b) => a.total - b.total);
-
-                hospitalStats.forEach(item => {
-                    const h = item.name;
-                    const row = document.createElement('tr');
-                    row.className = "hover:bg-slate-50 transition-colors border-b border-slate-50";
-                    let html = `<td class="p-3 font-bold text-slate-700 text-xs border-r border-slate-50 sticky left-0 bg-white z-10">${h}</td>`;
+            ['Sọ não không thuốc (Head)', 'Ngực không thuốc (Chest)', 'Bụng không thuốc (Abdomen)', 'Phổi liều thấp (LDCT)'].forEach((n,i)=>updateCard(n,['head','chest','abd','ldct'][i]));
+            const tbody = el('progressTableBody'); if (tbody) {
+                tbody.innerHTML = ''; let active = getActiveList('hospital');
+                active.map(h => ({ name: h, total: entries.filter(e => e.hospitalName === h).length })).sort((a,b)=>a.total-b.total).forEach(item => {
+                    const row = document.createElement('tr'); row.className = "hover:bg-slate-50 transition-colors border-b border-slate-50";
+                    let html = `<td class="p-3 font-bold text-slate-700 text-xs border-r border-slate-50 sticky left-0 bg-white z-10">${item.name}</td>`;
                     THAI_DRL_PROTOCOLS.forEach(p => {
-                        let keyword = '';
-                        if(p.name.includes('Head')) keyword = 'Head';
-                        else if(p.name.includes('Chest')) keyword = 'Chest';
-                        else if(p.name.includes('Abdomen')) keyword = 'Abdomen';
-                        else if(p.name.includes('LDCT')) keyword = 'LDCT';
-
-                        const count = entries.filter(e => e.hospitalName === h && e.protocol && e.protocol.includes(keyword)).length;
-                        const target = 30; const pct = Math.min((count/target)*100, 100);
-                        const clr = count >= target ? 'bg-emerald-500' : 'bg-red-500';
-                        const txt = count >= target ? 'text-emerald-600' : 'text-red-500';
-                        html += `<td class="p-3 border-r border-slate-50 align-middle"><div class="flex flex-col gap-1 items-center"><span class="text-[10px] font-black ${txt}">${count}/30</span><div class="w-full bg-slate-100 rounded-full h-1.5 min-w-[60px]"><div class="${clr} h-1.5 rounded-full" style="width:${pct}%"></div></div></div></td>`;
+                        const kw = p.name.includes('Head') ? 'Head' : (p.name.includes('Chest') ? 'Chest' : (p.name.includes('Abdomen') ? 'Abdomen' : 'LDCT'));
+                        const count = entries.filter(e => e.hospitalName === item.name && e.protocol && e.protocol.includes(kw)).length;
+                        const pct = Math.min((count/30)*100, 100), isDone = count >= 30;
+                        html += `<td class="p-3 border-r border-slate-50 align-middle"><div class="flex flex-col gap-1 items-center"><span class="text-[10px] font-black ${isDone?'text-emerald-600':'text-red-500'}">${count}/30</span><div class="w-full bg-slate-100 rounded-full h-1.5 min-w-[60px]"><div class="${isDone?'bg-emerald-500':'bg-red-500'} h-1.5 rounded-full" style="width:${pct}%"></div></div></div></td>`;
                     });
                     row.innerHTML = html; tbody.appendChild(row);
                 });
             }
-
-            // Charts
             const mCounts={}; entries.forEach(e=>{ let m=e.manufacturer||'Unk'; if(m.toLowerCase().startsWith('ge')) m='GE HealthCare'; mCounts[m]=(mCounts[m]||0)+1; });
             const totalM = Object.values(mCounts).reduce((a,b)=>a+b,0);
             if(pieChartInstance) pieChartInstance.destroy();
-            // Check if canvas exists before init chart
-            if(el('manufacturerPieChart')) {
-                pieChartInstance = new Chart(el('manufacturerPieChart'), {
-                    type: 'doughnut', data: { labels: Object.keys(mCounts), datasets: [{ data: Object.values(mCounts), backgroundColor: ['#6366f1','#ec4899','#10b981','#f59e0b','#3b82f6','#a855f7','#64748b'], borderWidth: 2, borderColor: '#ffffff', cutout: '50%' }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {position:'right', labels:{boxWidth:12, font:{size:11, weight:'bold'}}}, datalabels: { color:'#fff', font:{weight:'bold', size:11}, formatter:(val)=>(val + '\n(' + (val*100/totalM).toFixed(1) + '%)') } } }
-                });
-            }
-
+            if(el('manufacturerPieChart')) pieChartInstance = new Chart(el('manufacturerPieChart'), { type: 'doughnut', data: { labels: Object.keys(mCounts), datasets: [{ data: Object.values(mCounts), backgroundColor: ['#6366f1','#ec4899','#10b981','#f59e0b','#3b82f6','#a855f7','#64748b'], borderWidth: 2, borderColor: '#ffffff', cutout: '50%' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {position:'right', labels:{boxWidth:12, font:{size:11, weight:'bold'}}}, datalabels: { color:'#fff', font:{weight:'bold', size:11}, formatter:(val)=>(val + '\n(' + (val*100/totalM).toFixed(1) + '%)') } } } });
             const gCounts={'Nam':0,'Nữ':0}; entries.forEach(e=>(String(e.gender||'M').toUpperCase()==='M'||String(e.gender||'').toUpperCase()==='NAM')?gCounts['Nam']++:gCounts['Nữ']++);
             const totalG=gCounts['Nam']+gCounts['Nữ'];
             if(genderPieChartInstance) genderPieChartInstance.destroy();
-            // Check if canvas exists before init chart
-            if(el('genderPieChart')) {
-                genderPieChartInstance = new Chart(el('genderPieChart'), {
-                    type: 'pie',
-                    data: { labels: ['Nam', 'Nữ'], datasets: [{ data: [gCounts['Nam'], gCounts['Nữ']], backgroundColor: ['#3b82f6', '#ec4899'] }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {position:'bottom'}, datalabels: { color:'#fff', font:{weight:'bold'}, formatter:(val)=>(totalG>0?val+' ('+(val*100/totalG).toFixed(1)+'%)':'') } } }
-                });
-            }
+            if(el('genderPieChart')) genderPieChartInstance = new Chart(el('genderPieChart'), { type: 'pie', data: { labels: ['Nam', 'Nữ'], datasets: [{ data: [gCounts['Nam'], gCounts['Nữ']], backgroundColor: ['#3b82f6', '#ec4899'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {position:'bottom'}, datalabels: { color:'#fff', font:{weight:'bold'}, formatter:(val)=>(totalG>0?val+' ('+(val*100/totalG).toFixed(1)+'%)':'') } } } });
         };
 
-        // --- INIT ---
         window.onload = async () => {
-            setTimeout(() => { const l=el('globalLoader'); if(l) l.style.display='none'; }, 1000);
+            setTimeout(() => { if(el('globalLoader')) el('globalLoader').style.display='none'; }, 1000);
             Chart.register(ChartDataLabels);
-
             const fill = (id, list) => { const s=el(id); if(!s)return; list.forEach(i=>{ s.innerHTML+=`<option value="${typeof i==='string'?i:i.name}">${typeof i==='string'?i:i.name}</option>` }); };
             fill('protocol', THAI_DRL_PROTOCOLS); fill('sliceCount', SLICE_COUNTS);
             renderHospitalSelect();
-
-            // Setup Auth Listener
             onAuthStateChanged(auth, async(u) => {
-                user = u;
-                checkLoginStatus(); // Will trigger setupDataListeners if valid
-                if(!u) await signInAnonymously(auth); // Keep connection alive
-                
-                // Heartbeat Logic
-                if (u && !u.isAnonymous) {
-                    updateUserHeartbeat(u);
-                    if (heartbeatInterval) clearInterval(heartbeatInterval);
-                    heartbeatInterval = setInterval(() => updateUserHeartbeat(u), 30000);
-                } else if (heartbeatInterval) {
-                    clearInterval(heartbeatInterval);
-                }
+                user = u; checkLoginStatus();
+                if(!u) await signInAnonymously(auth);
+                if (u && !u.isAnonymous) { updateUserHeartbeat(u); if (heartbeatInterval) clearInterval(heartbeatInterval); heartbeatInterval = setInterval(() => updateUserHeartbeat(u), 30000); }
+                else if (heartbeatInterval) clearInterval(heartbeatInterval);
             });
-
-            // UI Listeners
             on('hospitalSelect', 'onchange', (e) => el('customHospitalName').classList.toggle('hidden', e.target.value !== 'other'));
             on('btnToggleRef', 'onclick', () => { el('refConfigContent').classList.toggle('hidden'); el('refChevron').classList.toggle('rotate-180'); });
-            
-            // Login Handlers
             on('authForm', 'onsubmit', async(e) => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, el('authEmail').value, el('authPassword').value); el('authModal').classList.add('hidden'); } catch(err){ alert(err.message); } });
-            
-            on('navLogoutBtn', 'onclick', () => {
-                 isAdmin = false; localStorage.removeItem('vnDrlAdmin');
-                 signOut(auth); location.reload(); // Hard reload to clear state
-            });
-
-            const userBtn = el('userMenuBtn'); const userDrop = el('userDropdown');
+            on('navLogoutBtn', 'onclick', () => { isAdmin = false; localStorage.removeItem('vnDrlAdmin'); signOut(auth); location.reload(); });
+            const userBtn = el('userMenuBtn'), userDrop = el('userDropdown');
             if(userBtn) userBtn.onclick = (e) => { e.stopPropagation(); userDrop.classList.toggle('hidden'); };
             document.addEventListener('click', (e) => { if (userBtn && !userBtn.contains(e.target) && userDrop) userDrop.classList.add('hidden'); });
-
-            // Admin Logic
             on('openAdminLogin', 'onclick', () => { el('authModal').classList.add('hidden'); el('adminAuthModal').classList.remove('hidden'); el('adminPassInput').focus(); });
             on('requestAdminBtn', 'onclick', () => { el('adminAuthModal').classList.remove('hidden'); userDrop.classList.add('hidden'); el('adminPassInput').focus(); });
-            on('closeAdminAuth', 'onclick', () => el('adminAuthModal').classList.add('hidden'));
-            
-            on('btnAdminAccess', 'onclick', () => {
-                if (el('authModal')) el('authModal').classList.add('hidden'); 
-                if (el('adminAuthModal')) {
-                     el('adminAuthModal').classList.remove('hidden'); 
-                     const input = el('adminPassInput');
-                     if(input) input.focus();
-                }
-            });
-
-            on('adminAuthForm', 'onsubmit', (e) => {
-                e.preventDefault(); 
-                if (el('adminPassInput').value === ADMIN_PASSWORD) { 
-                    isAdmin = true; localStorage.setItem('vnDrlAdmin', 'true');
-                    checkLoginStatus(); // Re-check immediately
-                    showToast("Đã kích hoạt quyền ADMIN!"); 
-                    el('adminAuthModal').classList.add('hidden'); 
-                    el('adminPassInput').value = '';
-                } else { showToast("Sai mã!"); }
-            });
-
-            // Google Login
-            on('googleLoginBtn', 'onclick', async () => {
-                const provider = new GoogleAuthProvider();
-                try { await setPersistence(auth, browserLocalPersistence); await signInWithPopup(auth, provider); el('authModal').classList.add('hidden'); } 
-                catch (err) { console.error(err); if (err.code === 'auth/popup-closed-by-user') showToast("Đã đóng cửa sổ đăng nhập."); else showToast("Lỗi: " + err.message); }
-            });
-
-            // Manage Buttons - UPDATED LOGIC TO ALWAYS ALLOW CLICK -> PROMPT LOGIN IF NEEDED
-            on('btnManageHospitals', 'onclick', () => { 
-                if(!isAdmin) {
-                    el('authModal').classList.add('hidden'); el('adminAuthModal').classList.remove('hidden'); el('adminPassInput').focus();
-                    return;
-                }
-                renderHospitalManagementModal(); el('hospitalManageModal').classList.remove('hidden'); 
-            });
-            on('btnManageManufacturers', 'onclick', () => { 
-                if(!isAdmin) {
-                    el('authModal').classList.add('hidden'); el('adminAuthModal').classList.remove('hidden'); el('adminPassInput').focus();
-                    return;
-                }
-                renderManufacturerManagementModal(); el('manufacturerManageModal').classList.remove('hidden'); 
-            });
-
+            on('btnAdminAccess', 'onclick', () => { el('authModal').classList.add('hidden'); el('adminAuthModal').classList.remove('hidden'); el('adminPassInput').focus(); });
+            on('adminAuthForm', 'onsubmit', (e) => { e.preventDefault(); if (el('adminPassInput').value === ADMIN_PASSWORD) { isAdmin = true; localStorage.setItem('vnDrlAdmin', 'true'); checkLoginStatus(); showToast("Đã kích hoạt quyền ADMIN!"); el('adminAuthModal').classList.add('hidden'); el('adminPassInput').value = ''; } else { showToast("Sai mã!"); } });
+            on('googleLoginBtn', 'onclick', async () => { const provider = new GoogleAuthProvider(); try { await setPersistence(auth, browserLocalPersistence); await signInWithPopup(auth, provider); el('authModal').classList.add('hidden'); } catch (err) { if (err.code !== 'auth/popup-closed-by-user') showToast("Lỗi: " + err.message); } });
+            on('btnManageHospitals', 'onclick', () => { if(!isAdmin) { el('authModal').classList.add('hidden'); el('adminAuthModal').classList.remove('hidden'); el('adminPassInput').focus(); return; } renderHospitalManagementModal(); el('hospitalManageModal').classList.remove('hidden'); });
+            on('btnManageManufacturers', 'onclick', () => { if(!isAdmin) { el('authModal').classList.add('hidden'); el('adminAuthModal').classList.remove('hidden'); el('adminPassInput').focus(); return; } renderManufacturerManagementModal(); el('manufacturerManageModal').classList.remove('hidden'); });
             on('addHospitalForm', 'onsubmit', async (e) => { e.preventDefault(); const n=el('newHospitalName').value.trim(); if(n && !getActiveList('hospital').includes(n)) { customHospitals.add(n); await saveHospConfig(); el('newHospitalName').value=''; renderHospitalManagementModal(); renderHospitalSelect(); } });
             on('addManufacturerForm', 'onsubmit', async (e) => { e.preventDefault(); const n=el('newManufacturerName').value.trim(); if(n && !getActiveList('manufacturer').includes(n)) { customManufacturers.add(n); await saveManuConfig(); el('newManufacturerName').value=''; renderManufacturerManagementModal(); renderHospitalSelect(); } });
-
             on('protocol', 'onchange', () => { updateRefStandardTable(); renderDashboard(); });
-            
-            // Fixed Age/YOB sync with on helper
             on('age', 'oninput', function() { if(this.value) el('yob').value = currentYear - this.value; });
             on('yob', 'oninput', function() { if(this.value) el('age').value = currentYear - this.value; });
             const updateBMI = () => { const w=parseFloat(el('weight').value), h=parseFloat(el('height').value)/100; if(w>0&&h>0) el('bmi').value=(w/(h*h)).toFixed(1); else el('bmi').value=''; };
             el('weight').addEventListener('input',updateBMI); el('height').addEventListener('input',updateBMI);
-
-            // Import
             on('importExcelInput', 'onchange', (e) => {
                 if(!isAdmin && (!user || user.isAnonymous)) return showToast("Cần đăng nhập!");
-                const r = new FileReader();
-                r.onload = async(evt) => {
-                    const wb = XLSX.read(evt.target.result, {type:'array'});
-                    const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                    for(const row of data) {
-                        await addDoc(collection(db,'artifacts',appId,'public','data','drl_entries'), {
-                            hospitalName: row['Bệnh viện']||'Imported', protocol: row['Protocol']||'Sọ não (Head)',
-                            manufacturer: row['Hãng máy']||'', patientId: String(row['ID Bệnh nhân']||Date.now()),
-                            age: row['Tuổi']||0, gender: row['Giới tính']||'M', weight: row['Cân nặng']||0, height: row['Chiều cao']||0,
-                            doseModulation: row['Modulation']||'Có', ctdi: row['CTDIvol']||0, dlp: row['DLP']||0,
-                            userId: user ? user.uid : 'admin', userEmail: user ? user.email : 'Administrator', createdAt: new Date().toISOString()
-                        });
-                    }
+                const r = new FileReader(); r.onload = async(evt) => {
+                    const wb = XLSX.read(evt.target.result, {type:'array'}), data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                    for(const row of data) { await addDoc(collection(db,'artifacts',appId,'public','data','drl_entries'), { hospitalName: row['Bệnh viện']||'Imported', protocol: row['Protocol']||'Sọ não (Head)', manufacturer: row['Hãng máy']||'', patientId: String(row['ID Bệnh nhân']||Date.now()), age: row['Tuổi']||0, gender: row['Giới tính']||'M', weight: row['Cân nặng']||0, height: row['Chiều cao']||0, doseModulation: row['Modulation']||'Có', ctdi: row['CTDIvol']||0, dlp: row['DLP']||0, userId: user ? user.uid : 'admin', userEmail: user ? user.email : 'Administrator', createdAt: new Date().toISOString() }); }
                     showToast("Đã import!");
-                };
-                r.readAsArrayBuffer(e.target.files[0]);
+                }; r.readAsArrayBuffer(e.target.files[0]);
             });
-
-            // Submit - UPDATED WITH SECURITY CHECK
             on('drlForm', 'onsubmit', async(e) => {
                 e.preventDefault();
-                
-                // --- SECURITY CHECK START ---
-                // Only allow Admins OR Approved users to submit data
-                if (!isAdmin && currentUserStatus !== 'approved') {
-                    showToast("Tài khoản chưa được cấp quyền nhập liệu! Vui lòng liên hệ Admin.");
-                    return; // Stop submission
-                }
-                if (user && user.isAnonymous) {
-                    showToast("Vui lòng đăng nhập để nhập liệu!");
-                    return;
-                }
-                // --- SECURITY CHECK END ---
-
+                if (!isAdmin && currentUserStatus !== 'approved') return showToast("Tài khoản chưa được cấp quyền nhập liệu!");
                 const hVal = el('hospitalSelect').value;
-                await addDoc(collection(db,'artifacts',appId,'public','data','drl_entries'), {
-                    hospitalName: hVal==='other'?el('customHospitalName').value:hVal,
-                    manufacturer: el('manufacturer').value, protocol: el('protocol').value,
-                    patientId: el('patientId').value, scanDate: el('scanDate').value,
-                    age: el('age').value, gender: el('gender').value, weight: el('weight').value, height: el('height').value,
-                    doseModulation: document.querySelector('input[name="doseModulation"]:checked').value,
-                    ctdi: el('ctdi').value, dlp: el('dlp').value, kvp: el('kvp').value, mas: el('mas').value,
-                    userId: user ? user.uid : 'admin-override', userEmail: user && !user.isAnonymous ? user.email : 'Administrator',
-                    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
-                });
+                await addDoc(collection(db,'artifacts',appId,'public','data','drl_entries'), { hospitalName: hVal==='other'?el('customHospitalName').value:hVal, manufacturer: el('manufacturer').value, protocol: el('protocol').value, patientId: el('patientId').value, scanDate: el('scanDate').value, age: el('age').value, gender: el('gender').value, weight: el('weight').value, height: el('height').value, doseModulation: document.querySelector('input[name="doseModulation"]:checked').value, ctdi: el('ctdi').value, dlp: el('dlp').value, kvp: el('kvp').value, mas: el('mas').value, userId: user ? user.uid : 'admin-override', userEmail: user && !user.isAnonymous ? user.email : 'Administrator', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
                 showToast("Đã lưu dữ liệu thành công!");
-                ['patientId','age','yob','weight','height','bmi','ctdi','dlp','kvp','mas'].forEach(id=>{const elem=el(id); if(elem) elem.value='';});
+                ['patientId','age','yob','weight','height','bmi','ctdi','dlp','kvp','mas'].forEach(id=>{if(el(id)) el(id).value='';});
             });
-            lucide.createIcons();
             
-            // Build Protocol Cards UI - GENERATED DYNAMICALLY
+            // --- NEW: Add LocalStorage Listeners & Restoration ---
+            ['hospitalSelect', 'manufacturer', 'protocol', 'sliceCount', 'scanDate'].forEach(id => {
+                if(el(id)) on(id, 'change', (e) => localStorage.setItem('drl_saved_' + id, e.target.value));
+            });
+            
+            ['protocol', 'sliceCount', 'scanDate'].forEach(id => {
+                const saved = localStorage.getItem('drl_saved_' + id);
+                if(saved && el(id)) el(id).value = saved;
+            });
+            if(!el('scanDate').value) el('scanDate').valueAsDate = new Date();
+
             const cardContainer = el('protocolCardsContainer');
             if(cardContainer) {
-                 const names = ['Sọ não không thuốc', 'Ngực không thuốc', 'Bụng không thuốc', 'Phổi liều thấp (LDCT)'];
-                 const ids = ['head', 'chest', 'abd', 'ldct'];
-                 const colors = ['indigo', 'blue', 'orange', 'teal'];
-                 
-                 cardContainer.innerHTML = ids.map((id, idx) => `
-                    <div class="glass-card p-4 md:p-5 rounded-[2rem] shadow-xl border border-${colors[idx]}-50 flex flex-col h-full">
-                        <div class="flex justify-between items-center mb-3 pb-2 border-b border-${colors[idx]}-50">
-                            <div class="flex items-center gap-2"><div class="w-1.5 h-6 bg-${colors[idx]}-500 rounded-full"></div><h4 class="text-base md:text-lg font-black text-${colors[idx]}-900 uppercase tracking-widest">${names[idx]}</h4></div>
-                            <span id="${id}Count" class="text-[10px] md:text-xs font-bold text-${colors[idx]}-500 bg-${colors[idx]}-50 px-2 md:px-3 py-1 md:py-1.5 rounded-xl border border-${colors[idx]}-100">n=0</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3 md:gap-6 flex-1">
-                            <div class="flex flex-col gap-2 items-center">
-                                <p class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">CTDIvol</p>
-                                <div class="bg-slate-50/50 rounded-2xl p-2 w-full text-center border border-slate-100 shadow-sm">
-                                    <span class="text-[9px] font-bold text-slate-400 block mb-0.5">MEDIAN</span><span id="${id}CtdiMed" class="text-2xl md:text-3xl font-black text-${colors[idx]}-700 block leading-none tracking-tighter">--</span>
-                                    <div class="mt-1 pt-1 border-t border-slate-200/50 text-[8px] font-bold text-slate-400 flex justify-center gap-1">Ref: <span id="${id}CtdiRef50">--</span></div>
-                                </div>
-                                <div class="text-center w-full"><span class="text-[9px] font-bold text-slate-400 uppercase">Mean ± SD</span><span id="${id}CtdiMean" class="block text-xs md:text-sm font-black text-slate-700">--</span></div>
-                                <div class="bg-amber-50 rounded-xl p-2 w-full text-center border border-amber-100">
-                                    <div class="flex justify-between items-end"><span class="text-[9px] font-bold text-amber-700/70">75th</span><span id="${id}Ctdi75" class="text-lg md:text-xl font-black text-amber-600 leading-none">--</span></div>
-                                    <div class="mt-1 pt-1 border-t border-amber-200/50 text-[9px] text-amber-700/70 font-bold flex justify-between"><span>Ref:</span> <span id="${id}CtdiRef">--</span></div>
-                                </div>
-                                <div class="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full mt-1">p = <span id="${id}CtdiP">--</span></div>
-                            </div>
-                            <div class="flex flex-col gap-2 items-center border-l border-slate-100 pl-3 md:pl-6">
-                                <p class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">DLP</p>
-                                <div class="bg-slate-50/50 rounded-2xl p-2 w-full text-center border border-slate-100 shadow-sm">
-                                    <span class="text-[9px] font-bold text-slate-400 block mb-0.5">MEDIAN</span><span id="${id}DlpMed" class="text-2xl md:text-3xl font-black text-${colors[idx]}-700 block leading-none tracking-tighter">--</span>
-                                    <div class="mt-1 pt-1 border-t border-slate-200/50 text-[8px] font-bold text-slate-400 flex justify-center gap-1">Ref: <span id="${id}DlpRef50">--</span></div>
-                                </div>
-                                <div class="text-center w-full"><span class="text-[9px] font-bold text-slate-400 uppercase">Mean ± SD</span><span id="${id}DlpMean" class="block text-xs md:text-sm font-black text-slate-700">--</span></div>
-                                <div class="bg-amber-50 rounded-xl p-2 w-full text-center border border-amber-100">
-                                    <div class="flex justify-between items-end"><span class="text-[9px] font-bold text-amber-700/70">75th</span><span id="${id}Dlp75" class="text-lg md:text-xl font-black text-amber-600 leading-none">--</span></div>
-                                    <div class="mt-1 pt-1 border-t border-amber-200/50 text-[9px] text-amber-700/70 font-bold flex justify-between"><span>Ref:</span> <span id="${id}DlpRef">--</span></div>
-                                </div>
-                                <div class="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full mt-1">p = <span id="${id}DlpP">--</span></div>
-                            </div>
-                        </div>
-                    </div>`).join('');
+                 const names = ['Sọ não không thuốc', 'Ngực không thuốc', 'Bụng không thuốc', 'Phổi liều thấp (LDCT)'], ids = ['head', 'chest', 'abd', 'ldct'], colors = ['indigo', 'blue', 'orange', 'teal'];
+                 cardContainer.innerHTML = ids.map((id, idx) => `<div class="glass-card p-4 md:p-5 rounded-[2rem] shadow-xl border border-${colors[idx]}-50 flex flex-col h-full"><div class="flex justify-between items-center mb-3 pb-2 border-b border-${colors[idx]}-50"><div class="flex items-center gap-2"><div class="w-1.5 h-6 bg-${colors[idx]}-500 rounded-full"></div><h4 class="text-base md:text-lg font-black text-${colors[idx]}-900 uppercase tracking-widest">${names[idx]}</h4></div><span id="${id}Count" class="text-[10px] md:text-xs font-bold text-${colors[idx]}-500 bg-${colors[idx]}-50 px-2 md:px-3 py-1 md:py-1.5 rounded-xl border border-${colors[idx]}-100">n=0</span></div><div class="grid grid-cols-2 gap-3 md:gap-6 flex-1"><div class="flex flex-col gap-2 items-center"><p class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">CTDIvol</p><div class="bg-slate-50/50 rounded-2xl p-2 w-full text-center border border-slate-100 shadow-sm"><span class="text-[9px] font-bold text-slate-400 block mb-0.5">MEDIAN</span><span id="${id}CtdiMed" class="text-2xl md:text-3xl font-black text-${colors[idx]}-700 block leading-none tracking-tighter">--</span><div class="mt-1 pt-1 border-t border-slate-200/50 text-[8px] font-bold text-slate-400 flex justify-center gap-1">Ref: <span id="${id}CtdiRef50">--</span></div></div><div class="text-center w-full"><span class="text-[9px] font-bold text-slate-400 uppercase">Mean ± SD</span><span id="${id}CtdiMean" class="block text-xs md:text-sm font-black text-slate-700">--</span></div><div class="bg-amber-50 rounded-xl p-2 w-full text-center border border-amber-100"><div class="flex justify-between items-end"><span class="text-[9px] font-bold text-amber-700/70">75th</span><span id="${id}Ctdi75" class="text-lg md:text-xl font-black text-amber-600 leading-none">--</span></div><div class="mt-1 pt-1 border-t border-amber-200/50 text-[9px] text-amber-700/70 font-bold flex justify-between"><span>Ref:</span> <span id="${id}CtdiRef">--</span></div></div><div class="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full mt-1">p = <span id="${id}CtdiP">--</span></div></div><div class="flex flex-col gap-2 items-center border-l border-slate-100 pl-3 md:pl-6"><p class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">DLP</p><div class="bg-slate-50/50 rounded-2xl p-2 w-full text-center border border-slate-100 shadow-sm"><span class="text-[9px] font-bold text-slate-400 block mb-0.5">MEDIAN</span><span id="${id}DlpMed" class="text-2xl md:text-3xl font-black text-${colors[idx]}-700 block leading-none tracking-tighter">--</span><div class="mt-1 pt-1 border-t border-slate-200/50 text-[8px] font-bold text-slate-400 flex justify-center gap-1">Ref: <span id="${id}DlpRef50">--</span></div></div><div class="text-center w-full"><span class="text-[9px] font-bold text-slate-400 uppercase">Mean ± SD</span><span id="${id}DlpMean" class="block text-xs md:text-sm font-black text-slate-700">--</span></div><div class="bg-amber-50 rounded-xl p-2 w-full text-center border border-amber-100"><div class="flex justify-between items-end"><span class="text-[9px] font-bold text-amber-700/70">75th</span><span id="${id}Dlp75" class="text-lg md:text-xl font-black text-amber-600 leading-none">--</span></div><div class="mt-1 pt-1 border-t border-amber-200/50 text-[9px] text-amber-700/70 font-bold flex justify-between"><span>Ref:</span> <span id="${id}DlpRef">--</span></div></div><div class="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full mt-1">p = <span id="${id}DlpP">--</span></div></div></div></div>`).join('');
                  lucide.createIcons();
             }
+            if (el('userSearchInput')) on('userSearchInput', 'input', () => renderUserMonitor(latestUserRegistryData));
+            lucide.createIcons();
         };
-        
-        // Setup Search Listener
-        if (el('userSearchInput')) {
-            on('userSearchInput', 'input', () => {
-                // When searching, re-render using cached data
-                renderUserMonitor(latestUserRegistryData);
-            });
-        }
     </script>
 </body>
 </html>
