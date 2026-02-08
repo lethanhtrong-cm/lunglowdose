@@ -291,7 +291,7 @@
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 md:gap-3">
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-2 md:gap-3">
                         <div class="col-span-1 lg:col-span-1"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Bệnh viện</label><select id="fHosp" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"><option value="all">Tất cả</option></select></div>
                         <div class="col-span-1 lg:col-span-1"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Protocol</label><select id="fProt" class="w-full p-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs font-bold text-indigo-700 dark:text-indigo-300 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all shadow-sm"><option value="all">Tất cả</option></select></div>
                         <div class="col-span-1 lg:col-span-1"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Hãng máy</label><select id="fManu" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"><option value="all">Tất cả</option></select></div>
@@ -316,6 +316,20 @@
                         </div>
                         
                         <div class="col-span-1 lg:col-span-1"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Tìm kiếm</label><div class="relative"><input id="fSearch" type="text" placeholder="ID, BV..." class="w-full p-2 pl-7 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:border-indigo-500"><i data-lucide="search" class="w-3 h-3 absolute left-2 top-2.5 text-slate-400"></i></div></div>
+
+                        <!-- New Quality Filter -->
+                        <div class="col-span-1 lg:col-span-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Chất lượng DL</label>
+                            <select id="fQuality" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:border-indigo-500 text-slate-600 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300">
+                                <option value="all" class="text-slate-700 dark:text-slate-200">Tất cả</option>
+                                <option value="valid_drl" class="text-emerald-600 font-bold">Đủ điều kiện DRL (>=60kg, <=80kg)</option>
+                                <option value="any_issue" class="text-red-500">⚠ Có bất thường</option>
+                                <option value="missing_id">Thiếu ID bệnh nhân</option>
+                                <option value="missing_account">Thiếu tài khoản</option>
+                                <option value="missing_protocol">Thiếu Protocol</option>
+                                <option value="missing_dose">Thiếu Liều (CTDI/DLP)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 
@@ -655,6 +669,10 @@
 
         const el = (id) => document.getElementById(id);
 
+        // Global variable for anonymization map
+        let hospitalAliasMap = {};
+
+        // --- GLOBAL FUNCTIONS ---
         window.updateUserStatus = async (uid, newStatus) => {
             try {
                 if(!uid || uid === 'undefined') throw new Error("Invalid User ID");
@@ -799,7 +817,6 @@
                 window.showConfirm("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất?", () => {
                      signOut(auth).then(() => {
                         isAdminKey = false;
-                        // Updated: Remove from sessionStorage
                         sessionStorage.removeItem('vnrad_admin_key');
                         userDocData = null;
                         updateAuthUI();
@@ -991,8 +1008,71 @@
             return p;
         };
 
+        // NEW: Helper to group protocols for filter dropdown consistency
+        const getProtocolGroup = (p) => {
+            if (!p) return 'Khác';
+            const lower = p.toLowerCase();
+            // 1. Sọ não (Head) - Consolidate all variants
+            if (lower.includes('sọ') || lower.includes('head') || lower.includes('brain') || lower.includes('não')) return 'Sọ não (Head Routine)';
+            
+            // 2. Ngực (Chest)
+            if ((lower.includes('ngực') || lower.includes('chest') || lower.includes('thorax') || lower.includes('phổi')) && !lower.includes('low') && !lower.includes('thấp') && !lower.includes('ldct')) return 'Ngực (Chest Routine)';
+            
+            // 3. Bụng (Abdomen)
+            if (lower.includes('bụng') || lower.includes('abdomen') || lower.includes('abd')) return 'Bụng (Abdomen Routine)';
+            
+            // 4. Phổi liều thấp (LDCT)
+            if (lower.includes('low') || lower.includes('thấp') || lower.includes('ldct')) return 'Phổi liều thấp (LDCT)';
+            
+            // 5. Spine - Explicitly identify but will be filtered out
+            if (lower.includes('spine') || lower.includes('cột sống')) return 'Spine';
+            
+            return p; // Fallback
+        };
+
+        const getProtocolClass = (p) => {
+            const prot = (p || '').toLowerCase();
+            if (prot.includes('head') || prot.includes('sọ') || prot.includes('não')) return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800';
+            if (prot.includes('chest') || prot.includes('ngực') || prot.includes('phổi')) return 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/40 dark:text-cyan-300 dark:border-cyan-800';
+            if (prot.includes('abdomen') || prot.includes('bụng')) return 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800';
+            if (prot.includes('spine') || prot.includes('cột sống')) return 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-800';
+            if (prot.includes('low') || prot.includes('thấp')) return 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800';
+            return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
+        };
+
+        // Function to generate aliases
+        function generateHospitalAliases(data) {
+            const allHosps = [...new Set(data.map(e => e.hospitalName).filter(Boolean))].sort();
+            hospitalAliasMap = {};
+            
+            // Determine user's hospitals (if logged in as normal user)
+            const myHosps = new Set();
+            if (user && !user.isAnonymous && !isAdminKey) {
+                // Assuming standard user: they "own" data where userId matches
+                data.forEach(e => {
+                    if (e.userId === user.uid) myHosps.add(e.hospitalName);
+                });
+            }
+
+            const isSuperAdmin = isAdminKey || (user && user.email === 'admin@vnrad.tech');
+
+            allHosps.forEach((h, idx) => {
+                if (isSuperAdmin) {
+                    // Admin sees real names
+                    hospitalAliasMap[h] = h;
+                } else if (myHosps.has(h)) {
+                    // User sees their own hospital name
+                    hospitalAliasMap[h] = h;
+                } else {
+                    // Everyone else sees alias
+                    hospitalAliasMap[h] = `Cơ sở ẩn danh #${idx + 1}`;
+                }
+            });
+        }
+
         onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), (snap) => {
             entries = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            generateHospitalAliases(entries); // Generate aliases on data load
             populateFilters();
             if (typeof window.renderTable === 'function') window.renderTable();
         });
@@ -1035,15 +1115,17 @@
                 const sortedHospitals = hospitals.sort((a,b) => (hospMap[b]||0) - (hospMap[a]||0));
                 sortedHospitals.forEach((h, index) => {
                     const count = hospMap[h] || 0;
+                    const displayName = hospitalAliasMap[h] || h; // Use Alias
                     const li = document.createElement('li');
                     li.className = 'p-3 md:p-4 flex items-center justify-between cursor-pointer transition-colors hover:bg-emerald-50/50 dark:hover:bg-slate-700 group border-b border-slate-50 dark:border-slate-700 last:border-b-0';
                     li.innerHTML = `
                         <div class="flex items-center gap-3 min-w-0 flex-1">
                             <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 font-bold text-[10px] flex-shrink-0 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">${index + 1}</span>
-                            <span class="font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors truncate block w-full pr-2 text-xs md:text-sm">${h}</span>
+                            <span class="font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors truncate block w-full pr-2 text-xs md:text-sm">${displayName}</span>
                         </div>
                         <span class="text-[10px] md:text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-600 px-2 py-1 rounded-full flex-shrink-0">${count} ca</span>
                     `;
+                    // Pass real name to filter, even if alias shown
                     li.onclick = () => window.selectHospitalFromModal(h);
                     listEl.appendChild(li);
                 });
@@ -1075,51 +1157,42 @@
             setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200);
         };
 
-        // NEW: Helper to group protocols for filter dropdown consistency
-        const getProtocolGroup = (p) => {
-            if (!p) return 'Khác';
-            const lower = p.toLowerCase();
-            // 1. Sọ não (Head) - Consolidate all variants
-            if (lower.includes('sọ') || lower.includes('head') || lower.includes('brain') || lower.includes('não')) return 'Sọ não (Head Routine)';
-            
-            // 2. Ngực (Chest)
-            if ((lower.includes('ngực') || lower.includes('chest') || lower.includes('thorax') || lower.includes('phổi')) && !lower.includes('low') && !lower.includes('thấp') && !lower.includes('ldct')) return 'Ngực (Chest Routine)';
-            
-            // 3. Bụng (Abdomen)
-            if (lower.includes('bụng') || lower.includes('abdomen') || lower.includes('abd')) return 'Bụng (Abdomen Routine)';
-            
-            // 4. Phổi liều thấp (LDCT)
-            if (lower.includes('low') || lower.includes('thấp') || lower.includes('ldct')) return 'Phổi liều thấp (LDCT)';
-            
-            // 5. Spine - Explicitly identify but will be filtered out
-            if (lower.includes('spine') || lower.includes('cột sống')) return 'Spine';
-            
-            return p; // Fallback
-        };
-
         function populateFilters() {
+            // Need to update map before populating filters
+            generateHospitalAliases(entries);
+
             const h = [...new Set(entries.map(e => e.hospitalName).filter(Boolean))].sort();
             const m = [...new Set(entries.map(e => e.manufacturer).filter(Boolean))].sort();
             
-            // UPDATED: Logic for Protocol Filter
             const protocolGroups = new Set();
             entries.forEach(e => {
                 const group = getProtocolGroup(e.protocol);
-                // Exclude 'Spine' from the dropdown list
                 if (group !== 'Spine' && !group.toLowerCase().includes('spine')) {
                     protocolGroups.add(group);
                 }
             });
             const p = [...protocolGroups].sort();
 
+            const fillHosps = (id, arr) => { 
+                const s = el(id); const v = s.value; 
+                s.innerHTML = '<option value="all">Tất cả</option>'; 
+                arr.forEach(i => {
+                    const displayName = hospitalAliasMap[i] || i;
+                    s.innerHTML += `<option value="${i}">${displayName}</option>`;
+                }); 
+                if (arr.includes(v)) s.value = v; else s.value = 'all';
+            };
+
             const fill = (id, arr) => { 
                 const s = el(id); const v = s.value; 
                 s.innerHTML = '<option value="all">Tất cả</option>'; 
                 arr.forEach(i => s.innerHTML += `<option value="${i}">${i}</option>`); 
-                // Preserve selection if valid, else reset
                 if (arr.includes(v)) s.value = v; else s.value = 'all';
             };
-            fill('fHosp', h); fill('fManu', m); fill('fProt', p);
+            
+            fillHosps('fHosp', h); // Use special fill for hospitals to mask names
+            fill('fManu', m); 
+            fill('fProt', p);
         }
         
         function calcStats(arr) {
@@ -1182,39 +1255,34 @@
                  else if (p.includes('abdomen') || p.includes('abd') || p.includes('bụng')) abd++;
              });
              el('countHead').innerText = head; el('countChest').innerText = chest; el('countAbd').innerText = abd; el('countLow').innerText = ldct;
+             
+             // Top Contributors Logic (Masked)
              const hospMap = {}; activeData.forEach(e => { if(e.hospitalName) hospMap[e.hospitalName] = (hospMap[e.hospitalName] || 0) + 1; });
              const sortedHosps = Object.entries(hospMap).sort((a,b) => b[1] - a[1]).slice(0, 3);
              const topListEl = el('topHospitalsList');
              if(topListEl) {
-                 topListEl.innerHTML = sortedHosps.map(([name, count], idx) => `
-                    <div class="flex justify-between items-center text-[9px] md:text-[10px] font-bold text-slate-500 dark:text-slate-400 gap-2 md:gap-3" title="${name}">
+                 topListEl.innerHTML = sortedHosps.map(([name, count], idx) => {
+                    const displayName = hospitalAliasMap[name] || name; // Use Alias
+                    return `
+                    <div class="flex justify-between items-center text-[9px] md:text-[10px] font-bold text-slate-500 dark:text-slate-400 gap-2 md:gap-3" title="${displayName}">
                         <div class="flex items-center gap-1.5 min-w-0 flex-1">
                             <div class="w-1.5 h-1.5 rounded-full flex-shrink-0 ${idx===0?'bg-emerald-500':idx===1?'bg-emerald-400':'bg-emerald-300'}"></div>
-                            <span class="truncate block w-full">${name}</span>
+                            <span class="truncate block w-full">${displayName}</span>
                         </div>
                         <span class="text-slate-800 dark:text-white bg-slate-100 dark:bg-slate-700 px-1.5 rounded flex-shrink-0">${count}</span>
                     </div>
-                 `).join('');
+                 `}).join('');
              }
         }
 
         window.clearFilters = () => {
             el('fHosp').value = 'all'; el('fProt').value = 'all'; el('fManu').value = 'all';
             el('fGender').value = 'all'; el('fMod').value = 'all'; el('fSort').value = 'date_desc'; el('fSearch').value = '';
+            el('fQuality').value = 'all'; 
             currentPage = 1; window.renderTable(); window.showToast("Đã xóa bộ lọc!");
         };
 
         window.changeRowsPerPage = () => { rowsPerPage = parseInt(el('rowsPerPage').value); currentPage = 1; window.renderTable(); }
-
-        const getProtocolClass = (p) => {
-            const prot = (p || '').toLowerCase();
-            if (prot.includes('head') || prot.includes('sọ') || prot.includes('não')) return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800';
-            if (prot.includes('chest') || prot.includes('ngực') || prot.includes('phổi')) return 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/40 dark:text-cyan-300 dark:border-cyan-800';
-            if (prot.includes('abdomen') || prot.includes('bụng')) return 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800';
-            if (prot.includes('spine') || prot.includes('cột sống')) return 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-800';
-            if (prot.includes('low') || prot.includes('thấp')) return 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800';
-            return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
-        };
 
         window.renderTable = () => {
             const isSuperAdmin = isAdminKey || (user && user.email === 'admin@vnrad.tech');
@@ -1223,6 +1291,7 @@
 
             const fH = el('fHosp').value, fP = el('fProt').value, fM = el('fManu').value;
             const fG = el('fGender').value, fMod = el('fMod').value, search = el('fSearch').value.toLowerCase(), sort = el('fSort').value;
+            const fQ = el('fQuality').value;
 
             // Filter Trash Mode
             filtered = entries.filter(e => isTrashMode ? e.isDeleted : !e.isDeleted);
@@ -1246,6 +1315,23 @@
                     if (fMod === 'on' && mod !== 'on' && mod !== 'true' && mod !== 'có') return false;
                     if (fMod === 'off' && mod !== 'off' && mod !== 'false' && mod !== 'không') return false;
                 }
+                
+                if (fQ !== 'all') {
+                    const isMissingId = !e.patientId || String(e.patientId).trim() === '';
+                    const isMissingAcc = !e.userEmail || e.userEmail === 'Unknown';
+                    const isMissingProt = !e.protocol;
+                    const isMissingDose = (!e.ctdi || parseFloat(e.ctdi) === 0) || (!e.dlp || parseFloat(e.dlp) === 0);
+                    const weight = parseFloat(e.weight);
+                    const isStandardWeight = !isNaN(weight) && weight >= 60 && weight <= 80;
+
+                    if (fQ === 'valid_drl') { if (isMissingId || isMissingProt || isMissingDose || !isStandardWeight) return false; }
+                    else if (fQ === 'any_issue' && !(isMissingId || isMissingAcc || isMissingProt || isMissingDose)) return false;
+                    else if (fQ === 'missing_id' && !isMissingId) return false;
+                    else if (fQ === 'missing_account' && !isMissingAcc) return false;
+                    else if (fQ === 'missing_protocol' && !isMissingProt) return false;
+                    else if (fQ === 'missing_dose' && !isMissingDose) return false;
+                }
+
                 if (search && !JSON.stringify(e).toLowerCase().includes(search)) return false;
                 return true;
             });
@@ -1288,6 +1374,9 @@
                 const row = document.createElement('tr');
                 row.className = `hover:bg-indigo-50/50 dark:hover:bg-slate-700 border-b border-slate-50 dark:border-slate-700 group transition-colors even:bg-slate-50/50 dark:even:bg-slate-800/50 ${isSel ? 'row-selected' : ''}`;
                 
+                // --- MASKING LOGIC FOR ROW ---
+                const displayHospital = hospitalAliasMap[e.hospitalName] || e.hospitalName;
+
                 let actionButtons = '';
                 if (canEdit) {
                     if (isTrashMode) {
@@ -1311,7 +1400,7 @@
                         <span class="text-[9px] md:text-[10px] text-slate-400 font-normal font-mono select-all block mt-1">ID: ${e.patientId}</span>
                     </td>
                     <td class="p-3 md:p-4 font-medium text-slate-600 dark:text-slate-300 text-[10px] md:text-[11px]">
-                        <span class="block font-bold text-slate-700 dark:text-slate-200 truncate max-w-[100px] md:max-w-none">${e.hospitalName}</span>
+                        <span class="block font-bold text-slate-700 dark:text-slate-200 truncate max-w-[100px] md:max-w-none">${displayHospital}</span>
                         <span class="text-slate-400 truncate max-w-[100px] md:max-w-none block">${e.manufacturer}</span>
                     </td>
                     <td class="p-3 md:p-4 text-[10px] md:text-[11px] text-slate-500 dark:text-slate-400 font-medium">
@@ -1442,7 +1531,7 @@
             const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "VN_DRL_Data");
             XLSX.writeFile(wb, `VN_DRL_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
         };
-        ['fHosp','fProt','fManu','fSort','fGender','fMod'].forEach(i => el(i).onchange = () => { currentPage=1; renderTable(); });
+        ['fHosp','fProt','fManu','fSort','fGender','fMod', 'fQuality'].forEach(i => el(i).onchange = () => { currentPage=1; renderTable(); });
         el('fSearch').onkeyup = () => { currentPage=1; renderTable(); };
         
         // Add Enter key listeners for login
