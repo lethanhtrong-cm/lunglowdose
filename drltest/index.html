@@ -16,7 +16,8 @@
     <style>
         body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #1e293b; overflow-x: hidden; -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; min-height: 100vh; }
         .mesh-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(at 0% 0%, hsla(220,100%,95%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(260,100%,92%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(190,100%,92%,1) 0, transparent 50%), radial-gradient(at 0% 100%, hsla(260,100%,92%,1) 0, transparent 50%); }
-        .app-layout { margin-top: 1rem; padding: 0 1rem 1rem 1rem; max-width: 80rem; width: 100%; margin-left: auto; margin-right: auto; display: flex; flex-direction: column; gap: 2rem; flex: 1; }
+        /* Adjusted .app-layout to use flex gap utilities instead of fixed gap in CSS for better responsive control */
+        .app-layout { margin-top: 1rem; padding: 0 1rem 1rem 1rem; max-width: 80rem; width: 100%; margin-left: auto; margin-right: auto; display: flex; flex-direction: column; flex: 1; }
         .glass-card { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05); }
         .glass-input { background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.08); color: #1e293b; transition: all 0.3s ease; }
         .glass-input:focus { border-color: #4f46e5; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); outline: none; }
@@ -28,7 +29,10 @@
         .top-grid { display: flex; gap: 1.5rem; align-items: stretch; }
         .sidebar-form { width: 380px; min-width: 380px; }
         .dashboard-main { flex: 1; display: flex; flex-direction: column; gap: 2rem; position: relative; }
-        @media (max-width: 1024px) { .top-grid { flex-direction: column; } .sidebar-form { width: 100%; min-width: 100%; } }
+        @media (max-width: 1024px) { .top-grid { flex-direction: column; } .sidebar-form { width: 100%; min-width: 100%; } .dashboard-main { gap: 1rem; } }
+        /* Optimized gap for mobile */
+        @media (max-width: 768px) { .top-grid { gap: 1rem; } } 
+        
         #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f8fafc; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease-out, visibility 0.5s ease-out; }
         .loader-spinner { width: 48px; height: 48px; border: 5px solid #e2e8f0; border-bottom-color: #4f46e5; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite; }
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -55,7 +59,7 @@
 
     <!-- Auth Modal -->
     <div id="authModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md hidden p-4">
-        <div class="bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl transform transition-all border border-slate-100 relative">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-md p-8 md:p-10 shadow-2xl transform transition-all border border-slate-100 relative">
             <button id="closeAuthModal" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
             <div class="text-center mb-8">
                 <div class="bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white shadow-xl rotate-3"><i data-lucide="shield-check" class="w-8 h-8"></i></div>
@@ -85,9 +89,45 @@
         </div>
     </div>
 
+    <!-- User Monitor Modal (New) -->
+    <div id="userMonitorModal" class="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-2xl p-6 md:p-8 shadow-2xl border border-indigo-100 h-[80vh] flex flex-col">
+            <div class="text-center mb-6 flex-none">
+                <div class="bg-indigo-600 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 text-white shadow-lg"><i data-lucide="users" class="w-6 h-6"></i></div>
+                <h3 class="text-lg font-black text-slate-900 uppercase">Giám sát Người dùng</h3>
+                <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Trạng thái Online & Danh sách tài khoản</p>
+                <div class="flex justify-center gap-2 mt-4">
+                    <button onclick="switchUserTab('online')" id="btn-user-online" class="px-4 py-2 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center gap-2"><span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> Đang Online</button>
+                    <button onclick="switchUserTab('all')" id="btn-user-all" class="px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-500 border border-slate-100 hover:bg-slate-50">Tất cả tài khoản</button>
+                </div>
+            </div>
+            <div id="user-tab-online" class="flex-1 overflow-hidden flex flex-col gap-4">
+                <div class="p-3 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-xl border border-emerald-100 mb-2 flex items-center gap-2">
+                    <i data-lucide="activity" class="w-3 h-3"></i> Tự động cập nhật mỗi 30 giây.
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar border border-slate-100 rounded-2xl p-2">
+                    <div id="onlineUsersList" class="space-y-2">
+                        <!-- User items will be injected here -->
+                    </div>
+                </div>
+            </div>
+            <div id="user-tab-all" class="flex-1 overflow-hidden flex-col gap-4 hidden">
+                <div class="p-3 bg-slate-50 text-slate-600 text-[10px] font-bold rounded-xl border border-slate-100 mb-2">
+                    <i data-lucide="database" class="w-3 h-3 inline mr-1"></i> Danh sách toàn bộ tài khoản từng đăng nhập.
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar border border-slate-100 rounded-2xl p-2">
+                    <div id="allUsersList" class="space-y-2"></div>
+                </div>
+            </div>
+            <div class="pt-4 border-t border-slate-100 flex justify-end mt-4 flex-none">
+                <button onclick="document.getElementById('userMonitorModal').classList.add('hidden')" class="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl text-xs font-black uppercase hover:bg-slate-200">Đóng</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Bulk Edit Modal -->
     <div id="bulkEditModal" class="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
-        <div class="bg-white rounded-[2.5rem] w-full max-w-lg p-8 shadow-2xl border border-indigo-100">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-lg p-6 md:p-8 shadow-2xl border border-indigo-100">
             <div class="text-center mb-6">
                 <div class="bg-indigo-600 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 text-white shadow-lg"><i data-lucide="layers" class="w-6 h-6"></i></div>
                 <h3 class="text-lg font-black text-slate-900 uppercase">Chỉnh sửa hàng loạt</h3>
@@ -115,7 +155,7 @@
 
     <!-- Hospital Management Modal (Admin Only) -->
     <div id="hospitalManageModal" class="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
-        <div class="bg-white rounded-[2.5rem] w-full max-w-2xl p-8 shadow-2xl border border-indigo-100 h-[80vh] flex flex-col">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-2xl p-6 md:p-8 shadow-2xl border border-indigo-100 h-[80vh] flex flex-col">
             <div class="text-center mb-6 flex-none">
                 <div class="bg-indigo-600 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 text-white shadow-lg"><i data-lucide="building-2" class="w-6 h-6"></i></div>
                 <h3 class="text-lg font-black text-slate-900 uppercase">Quản lý Bệnh viện</h3>
@@ -144,7 +184,7 @@
 
     <!-- Manufacturer Management Modal (Admin Only) -->
     <div id="manufacturerManageModal" class="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
-        <div class="bg-white rounded-[2.5rem] w-full max-w-2xl p-8 shadow-2xl border border-indigo-100 h-[80vh] flex flex-col">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-2xl p-6 md:p-8 shadow-2xl border border-indigo-100 h-[80vh] flex flex-col">
             <div class="text-center mb-6 flex-none">
                 <div class="bg-indigo-600 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 text-white shadow-lg"><i data-lucide="factory" class="w-6 h-6"></i></div>
                 <h3 class="text-lg font-black text-slate-900 uppercase">Quản lý Hãng Máy</h3>
@@ -188,24 +228,33 @@
     </div>
 
     <!-- Header -->
-    <header class="relative z-50 px-2 md:px-4 pt-4 md:pt-10 max-w-7xl mx-auto w-full">
+    <header class="relative z-50 px-2 md:px-4 pt-2 md:pt-10 max-w-7xl mx-auto w-full">
         <nav class="glass-card rounded-2xl md:rounded-[2rem] px-4 md:px-8 py-2 md:py-4 flex flex-wrap justify-between items-center shadow-lg border-white text-slate-900 gap-y-2">
             <div class="flex items-center gap-2 md:gap-4">
                 <div class="bg-indigo-600 p-2 md:p-2.5 rounded-xl md:rounded-2xl text-white shadow-lg"><i data-lucide="activity" class="w-4 h-4 md:w-6 md:h-6"></i></div>
                 <div><h1 class="text-xs md:text-xl font-black tracking-tighter text-slate-900 uppercase">VN-DRL <span class="text-indigo-600">STUDY</span></h1></div>
             </div>
-            <div class="flex items-center gap-1 md:gap-4 overflow-x-auto">
-                <a href="index.html" class="tab-btn active px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2">
+            <div class="flex items-center gap-1 md:gap-4 overflow-x-auto no-scrollbar">
+                <a href="index.html" class="tab-btn active px-1 md:px-2 py-2 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2 whitespace-nowrap">
                     <i data-lucide="layout-dashboard" class="w-3 h-3 md:w-4 md:h-4"></i> Dashboard & Nhập
                 </a>
-                <a href="https://vnrad.tech/drldata" class="tab-btn px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2 text-slate-500 hover:text-indigo-600">
+                <a href="https://vnrad.tech/drldata" class="tab-btn px-1 md:px-2 py-2 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2 text-slate-500 hover:text-indigo-600 whitespace-nowrap">
                     <i data-lucide="table-2" class="w-3 h-3 md:w-4 md:h-4"></i> Dữ liệu
                 </a>
-                <a href="https://vnrad.tech/chart/" target="_blank" class="tab-btn px-1 md:px-2 py-3 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2 text-slate-500 hover:text-indigo-600">
+                <a href="https://vnrad.tech/chart/" target="_blank" class="tab-btn px-1 md:px-2 py-2 md:py-4 text-[9px] md:text-xs font-black uppercase tracking-widest flex items-center gap-1 md:gap-2 text-slate-500 hover:text-indigo-600 whitespace-nowrap">
                     <i data-lucide="pie-chart" class="w-3 h-3 md:w-4 md:h-4"></i> Biểu đồ
                 </a>
             </div>
             <div class="flex items-center gap-2">
+                <!-- User Monitor Button (Visible to everyone for now or restricted) -->
+                <button id="btnUserMonitor" onclick="document.getElementById('userMonitorModal').classList.remove('hidden')" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm" title="Người dùng Online">
+                    <div class="relative flex items-center justify-center w-2.5 h-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </div>
+                    <span id="headerOnlineCount">0</span>
+                </button>
+
                 <button id="btnAdminAccess" class="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase hover:bg-slate-800 transition-all shadow-lg"><i data-lucide="lock" class="w-3 h-3"></i> ADMIN ACCESS</button>
                 <div class="relative">
                     <button id="userMenuBtn" class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 hover:bg-slate-50 transition-colors">
@@ -235,7 +284,7 @@
         </nav>
     </header>
 
-    <div class="app-layout">
+    <div class="app-layout gap-4 md:gap-8">
         <div class="section-container">
             <!-- Lock Screen Content (Hidden by default) -->
             <div id="lockScreen" class="lock-container hidden px-4">
@@ -257,7 +306,7 @@
             <!-- Main App Content (Wrapped) -->
             <div id="secureContent" class="hidden">
                 <!-- REPLACED Progress Table Section -->
-                <div id="progressChartSection" class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-slate-100 bg-white">
+                <div id="progressChartSection" class="glass-card p-4 md:p-6 rounded-[2.5rem] shadow-xl border border-slate-100 bg-white">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <div class="bg-indigo-600 p-2 rounded-xl text-white"><i data-lucide="bar-chart-horizontal" class="w-5 h-5"></i></div>
@@ -283,7 +332,7 @@
                 <div class="top-grid mt-6">
                     <!-- Sidebar Input Form -->
                     <aside class="sidebar-form glass-card rounded-[2.5rem] flex flex-col overflow-hidden relative">
-                        <div class="p-6 md:p-8 border-b border-slate-100 bg-white/40 z-20 flex justify-between items-center">
+                        <div class="p-4 md:p-8 border-b border-slate-100 bg-white/40 z-20 flex justify-between items-center">
                             <h2 id="formTitle" class="font-black text-slate-900 flex items-center gap-3 uppercase tracking-widest text-xs"><i data-lucide="plus-circle" class="text-indigo-600 w-5 h-5"></i> Nhập dữ liệu</h2>
                             <div class="flex items-center gap-2">
                                 <button onclick="downloadTemplate()" class="px-2 py-1 bg-slate-50 text-slate-600 rounded-lg text-[8px] font-black uppercase hover:bg-slate-100 transition-colors flex items-center gap-1" title="Tải mẫu Excel">
@@ -297,15 +346,15 @@
                             </div>
                         </div>
                         <form id="drlForm" class="flex flex-col flex-1 relative h-full">
-                            <div class="p-6 md:p-8 space-y-8 text-slate-900 flex-1">
+                            <div class="p-4 md:p-8 space-y-6 md:space-y-8 text-slate-900 flex-1">
                                 <input type="hidden" id="editEntryId" value="">
                                 <div class="space-y-4">
                                     <label class="section-label flex items-center gap-2 font-bold"><i data-lucide="hospital" class="w-3 h-3 text-indigo-500"></i> Cơ sở & Thiết bị</label>
                                     <div class="space-y-3">
                                         <!-- Hospital Select Row with Admin Button -->
                                         <div class="flex gap-2 items-center">
-                                            <select id="hospitalSelect" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium flex-1"></select>
-                                            <button id="btnManageHospitals" type="button" class="p-3 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm" title="Quản lý Bệnh viện">
+                                            <select id="hospitalSelect" class="w-full px-3 py-2.5 md:px-4 md:py-3 glass-input rounded-xl text-xs md:text-sm font-medium flex-1"></select>
+                                            <button id="btnManageHospitals" type="button" class="p-2.5 md:p-3 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm" title="Quản lý Bệnh viện">
                                                 <i data-lucide="settings" class="w-4 h-4"></i>
                                             </button>
                                         </div>
@@ -314,12 +363,12 @@
                                         <div class="grid grid-cols-2 gap-3">
                                             <!-- Manufacturer Select Row with Admin Button -->
                                             <div class="flex gap-2 items-center">
-                                                <select id="manufacturer" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium flex-1"></select>
-                                                <button id="btnManageManufacturers" type="button" class="p-3 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm" title="Quản lý Hãng máy">
+                                                <select id="manufacturer" class="w-full px-3 py-2.5 md:px-4 md:py-3 glass-input rounded-xl text-xs md:text-sm font-medium flex-1"></select>
+                                                <button id="btnManageManufacturers" type="button" class="p-2.5 md:p-3 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm" title="Quản lý Hãng máy">
                                                     <i data-lucide="settings" class="w-4 h-4"></i>
                                                 </button>
                                             </div>
-                                            <select id="sliceCount" class="px-4 py-3 glass-input rounded-xl text-sm font-medium"></select>
+                                            <select id="sliceCount" class="px-3 py-2.5 md:px-4 md:py-3 glass-input rounded-xl text-xs md:text-sm font-medium"></select>
                                         </div>
                                         <div class="p-3 bg-white/50 rounded-xl border border-slate-100">
                                             <label class="text-[8px] font-black text-slate-400 uppercase block mb-2">Kiểm soát liều (Modulation)</label>
@@ -332,31 +381,31 @@
                                 </div>
                                 <div class="space-y-4">
                                     <label class="section-label flex items-center gap-2 font-bold"><i data-lucide="user" class="w-3 h-3 text-indigo-500"></i> Bệnh nhân & Protocol</label>
-                                    <select id="protocol" class="w-full px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl text-sm font-black text-indigo-700"></select>
+                                    <select id="protocol" class="w-full px-3 py-2.5 md:px-4 md:py-3 bg-indigo-50 border border-indigo-100 rounded-xl text-xs md:text-sm font-black text-indigo-700"></select>
                                     <div class="grid grid-cols-2 gap-3">
-                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">ID BN</label><input type="text" id="patientId" placeholder="ID Bệnh nhân" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium"><p id="idWarning" class="text-[9px] font-bold text-amber-600 mt-1 hidden flex items-center gap-1"><i data-lucide="alert-circle" class="w-3 h-3"></i> <span>ID đã tồn tại</span></p></div>
-                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Ngày chụp</label><input type="date" id="scanDate" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-black text-slate-600"></div>
+                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">ID BN</label><input type="text" id="patientId" placeholder="ID Bệnh nhân" class="w-full px-3 py-2.5 md:px-4 md:py-3 glass-input rounded-xl text-xs md:text-sm font-medium"><p id="idWarning" class="text-[9px] font-bold text-amber-600 mt-1 hidden flex items-center gap-1"><i data-lucide="alert-circle" class="w-3 h-3"></i> <span>ID đã tồn tại</span></p></div>
+                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Ngày chụp</label><input type="date" id="scanDate" class="w-full px-3 py-2.5 md:px-4 md:py-3 glass-input rounded-xl text-xs md:text-sm font-black text-slate-600"></div>
                                     </div>
                                     <div class="grid grid-cols-3 gap-2 md:gap-3">
-                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">YOB</label><input type="number" id="yob" placeholder="YYYY" class="w-full px-1 py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold" min="1900" max="2100"></div>
-                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Tuổi</label><input type="number" id="age" placeholder="Tuổi" class="w-full px-1 py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold" min="0"></div>
-                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Phái</label><select id="gender" class="w-full px-1 py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold"><option value="M">Nam</option><option value="F">Nữ</option></select></div>
+                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">YOB</label><input type="number" id="yob" placeholder="YYYY" class="w-full px-1 py-2.5 md:py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold" min="1900" max="2100"></div>
+                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Tuổi</label><input type="number" id="age" placeholder="Tuổi" class="w-full px-1 py-2.5 md:py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold" min="0"></div>
+                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Phái</label><select id="gender" class="w-full px-1 py-2.5 md:py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold"><option value="M">Nam</option><option value="F">Nữ</option></select></div>
                                     </div>
                                     <div class="grid grid-cols-3 gap-2 md:gap-3">
-                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Kg</label><input type="number" id="weight" placeholder="Kg" class="w-full px-1 py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold" min="0" step="0.1"></div>
-                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Chiều cao</label><input type="number" id="height" placeholder="cm" class="w-full px-1 py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold" min="0"></div>
-                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">BMI</label><input type="text" id="bmi" placeholder="-" readonly class="w-full px-1 py-3 bg-slate-100 border border-slate-200 rounded-xl text-[10px] md:text-sm text-center font-bold text-slate-500 cursor-not-allowed"></div>
+                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Kg</label><input type="number" id="weight" placeholder="Kg" class="w-full px-1 py-2.5 md:py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold" min="0" step="0.1"></div>
+                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">Chiều cao</label><input type="number" id="height" placeholder="cm" class="w-full px-1 py-2.5 md:py-3 glass-input rounded-xl text-[10px] md:text-sm text-center font-bold" min="0"></div>
+                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">BMI</label><input type="text" id="bmi" placeholder="-" readonly class="w-full px-1 py-2.5 md:py-3 bg-slate-100 border border-slate-200 rounded-xl text-[10px] md:text-sm text-center font-bold text-slate-500 cursor-not-allowed"></div>
                                     </div>
                                     <div class="grid grid-cols-2 gap-3">
-                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">kVp</label><input type="number" id="kvp" placeholder="kVp" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium text-center"></div>
-                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">mAs / Ref. mAs</label><input type="number" id="mas" placeholder="mAs" class="w-full px-4 py-3 glass-input rounded-xl text-sm font-medium text-center"></div>
+                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">kVp</label><input type="number" id="kvp" placeholder="kVp" class="w-full px-3 py-2.5 md:px-4 md:py-3 glass-input rounded-xl text-xs md:text-sm font-medium text-center"></div>
+                                        <div><label class="text-[8px] font-bold text-slate-400 uppercase ml-1">mAs / Ref. mAs</label><input type="number" id="mas" placeholder="mAs" class="w-full px-3 py-2.5 md:px-4 md:py-3 glass-input rounded-xl text-xs md:text-sm font-medium text-center"></div>
                                     </div>
                                 </div>
-                                <div class="space-y-4 dose-highlight-box p-6 rounded-[2.5rem]">
+                                <div class="space-y-4 dose-highlight-box p-4 md:p-6 rounded-[2.5rem]">
                                     <label class="text-[10px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-2"><i data-lucide="zap" class="w-3 h-3 fill-amber-500"></i> Thông số liều</label>
                                     <div class="space-y-4">
-                                        <div class="space-y-1.5"><label class="text-[9px] md:text-[10px] font-black text-amber-600 uppercase ml-2">CTDIvol (mGy)</label><input type="number" step="0.01" id="ctdi" placeholder="0.00" class="w-full px-4 py-3 bg-white border-2 border-amber-300 rounded-xl text-2xl font-black text-amber-600 text-center focus:border-amber-500 outline-none transition-all" min="0"></div>
-                                        <div class="space-y-1.5"><label class="text-[9px] md:text-[10px] font-black text-amber-600 uppercase ml-2">DLP (mGy.cm)</label><input type="number" step="0.1" id="dlp" placeholder="0.0" class="w-full px-4 py-3 bg-white border-2 border-amber-300 rounded-xl text-2xl font-black text-amber-600 text-center focus:border-amber-500 outline-none transition-all" min="0"></div>
+                                        <div class="space-y-1.5"><label class="text-[9px] md:text-[10px] font-black text-amber-600 uppercase ml-2">CTDIvol (mGy)</label><input type="number" step="0.01" id="ctdi" placeholder="0.00" class="w-full px-4 py-3 bg-white border-2 border-amber-300 rounded-xl text-xl md:text-2xl font-black text-amber-600 text-center focus:border-amber-500 outline-none transition-all" min="0"></div>
+                                        <div class="space-y-1.5"><label class="text-[9px] md:text-[10px] font-black text-amber-600 uppercase ml-2">DLP (mGy.cm)</label><input type="number" step="0.1" id="dlp" placeholder="0.0" class="w-full px-4 py-3 bg-white border-2 border-amber-300 rounded-xl text-xl md:text-2xl font-black text-amber-600 text-center focus:border-amber-500 outline-none transition-all" min="0"></div>
                                     </div>
                                 </div>
                             </div>
@@ -406,7 +455,7 @@
                             <!-- Cards will be injected here by JS -->
                         </div>
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div class="lg:col-span-2 glass-card p-8 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center justify-center min-h-[300px]"><h3 class="section-label font-black text-slate-900 text-sm mb-6">Phân bố theo Hãng máy (n)</h3><div class="w-full h-[300px]"><canvas id="manufacturerPieChart"></canvas></div></div>
+                            <div class="lg:col-span-2 glass-card p-8 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center justify-center min-h-[300px]"><h3 class="section-label font-black text-slate-900 text-sm mb-6">Phân bố theo Hãng máy (n)</h3><div class="w-full h-[250px] md:h-[300px]"><canvas id="manufacturerPieChart"></canvas></div></div>
                             <div class="lg:col-span-1 glass-card p-8 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center justify-center min-h-[300px]"><h3 class="section-label font-black text-slate-900 text-sm mb-6">Phân bố theo Giới tính (n)</h3><div class="w-full h-[250px]"><canvas id="genderPieChart"></canvas></div></div>
                         </div>
                     </main>
@@ -460,6 +509,7 @@
         let customManufacturers = new Set(), deletedManufacturers = new Set(), manufacturerOrder = [];
         let currentStandardName = 'Thailand 2019'; let editingHospitalName = null, editingManufacturerName = null;
         let isDataListenerSetup = false;
+        let heartbeatInterval = null;
         const currentYear = new Date().getFullYear();
 
         // 1. DATA SETUP
@@ -471,6 +521,12 @@
                 onSnapshot(collection(db,'artifacts',appId,'public','data','drl_entries'), (snap) => {
                     entries = snap.docs.map(d=>d.data()).filter(e => !e.isDeleted);
                     renderDashboard();
+                });
+                
+                // Monitor User Registry
+                onSnapshot(collection(db,'artifacts',appId,'public','data','user_registry'), (snap) => {
+                    const allUsers = snap.docs.map(d => d.data());
+                    renderUserMonitor(allUsers);
                 });
             });
         }
@@ -534,7 +590,100 @@
         async function saveHospConfig(){ await setDoc(doc(db,'artifacts',appId,'public','data','app_settings','hospital_config'),{customHospitals:[...customHospitals],deletedHospitals:[...deletedHospitals],hospitalOrder}); }
         async function saveManuConfig(){ await setDoc(doc(db,'artifacts',appId,'public','data','app_settings','manufacturer_config'),{customManufacturers:[...customManufacturers],deletedManufacturers:[...deletedManufacturers],manufacturerOrder}); }
 
+        // --- USER PRESENCE & MONITOR ---
+        async function updateUserHeartbeat(currentUser) {
+            if (!currentUser || currentUser.isAnonymous) return;
+            const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_registry', currentUser.uid);
+            await setDoc(userRef, {
+                email: currentUser.email,
+                lastActive: new Date().toISOString(),
+                uid: currentUser.uid
+            }, { merge: true });
+        }
+
+        window.switchUserTab = (tab) => {
+            el('user-tab-online').classList.toggle('hidden', tab !== 'online');
+            el('user-tab-all').classList.toggle('hidden', tab !== 'all');
+            el('btn-user-online').className = tab === 'online' ? "px-4 py-2 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center gap-2" : "px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-500 border border-slate-100 hover:bg-slate-50 flex items-center gap-2";
+            el('btn-user-all').className = tab === 'all' ? "px-4 py-2 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100" : "px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-500 border border-slate-100 hover:bg-slate-50";
+        }
+
+        function renderUserMonitor(allUsers) {
+            const onlineList = el('onlineUsersList');
+            const allList = el('allUsersList');
+            const onlineCountSpan = el('headerOnlineCount');
+            
+            if(!onlineList || !allList) return;
+            
+            onlineList.innerHTML = '';
+            allList.innerHTML = '';
+
+            const now = new Date();
+            const onlineThreshold = 2 * 60 * 1000; // 2 minutes
+
+            let onlineCount = 0;
+
+            // Sort by last active desc
+            allUsers.sort((a,b) => new Date(b.lastActive) - new Date(a.lastActive));
+
+            allUsers.forEach(u => {
+                const lastActiveDate = new Date(u.lastActive);
+                const isOnline = (now - lastActiveDate) < onlineThreshold;
+                
+                if (isOnline) onlineCount++;
+
+                const timeStr = lastActiveDate.toLocaleString('vi-VN');
+                const emailDisplay = u.email || 'Ẩn danh';
+                
+                // Render for Online Tab
+                if (isOnline) {
+                    const div = document.createElement('div');
+                    div.className = "flex items-center justify-between p-3 bg-emerald-50/50 rounded-xl border border-emerald-100";
+                    div.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-xs">${emailDisplay.charAt(0).toUpperCase()}</div>
+                            <div>
+                                <p class="text-xs font-bold text-slate-700">${emailDisplay}</p>
+                                <p class="text-[9px] text-emerald-600 font-medium">Đang hoạt động</p>
+                            </div>
+                        </div>
+                        <span class="text-[9px] font-bold text-slate-400">${timeStr.split(' ')[1]}</span>
+                    `;
+                    onlineList.appendChild(div);
+                }
+
+                // Render for All Users Tab
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100";
+                row.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full ${isOnline ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'} flex items-center justify-center font-bold text-xs">${emailDisplay.charAt(0).toUpperCase()}</div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-700">${emailDisplay}</p>
+                            <p class="text-[9px] ${isOnline ? 'text-emerald-500' : 'text-slate-400'} font-medium">${isOnline ? 'Online' : 'Offline'}</p>
+                        </div>
+                    </div>
+                    <span class="text-[9px] font-bold text-slate-400">${timeStr}</span>
+                `;
+                allList.appendChild(row);
+            });
+
+            if (onlineCountSpan) onlineCountSpan.textContent = onlineCount;
+        }
+
         // --- NEW: Modal Renderers ---
+        function updateAdminUI() {
+             const ctrls = document.querySelectorAll('.admin-control');
+             ctrls.forEach(c => c.classList.toggle('hidden', !isAdmin));
+             const badge = el('adminBadge'); if(badge) badge.classList.toggle('hidden', !isAdmin);
+             const dot = el('adminStatusDot'); if(dot) dot.classList.toggle('hidden', !isAdmin);
+             const btn = el('btnAdminAccess');
+             if(btn) {
+                 if(isAdmin) { btn.classList.remove('bg-slate-900','hover:bg-slate-800'); btn.classList.add('bg-red-600','hover:bg-red-700'); }
+                 else { btn.classList.add('bg-slate-900','hover:bg-slate-800'); btn.classList.remove('bg-red-600','hover:bg-red-700'); }
+             }
+        }
+
         function renderHospitalManagementModal() {
             const activeDiv = el('activeHospitalsList');
             const trashDiv = el('trashHospitalsList');
@@ -740,6 +889,143 @@
             renderHospitalSelect();
         }
 
+        // --- NEW: Select Standard Logic ---
+        window.selectRefStandard = (standardName) => {
+            currentStandardName = standardName;
+            const activeProt = el('protocol').value;
+            const stdData = DRL_STANDARDS[standardName];
+            if (stdData && stdData[activeProt]) {
+                const vals = stdData[activeProt];
+                el('manualRefCtdi').value = vals.ctdi75; el('manualRefDlp').value = vals.dlp75;
+                document.querySelectorAll('.drl-row').forEach(r => r.classList.remove('active'));
+                const row = Array.from(document.querySelectorAll('.drl-row')).find(r => r.dataset.std === standardName);
+                if(row) row.classList.add('active');
+                renderDashboard();
+            }
+        };
+
+        function updateRefStandardTable() {
+            const activeProt = el('protocol').value;
+            const tbody = el('refStandardTableBody'); 
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            Object.entries(DRL_STANDARDS).forEach(([name, data]) => {
+                const vals = data[activeProt] || { ctdi75: '-', ctdi50: '-', dlp75: '-', dlp50: '-' };
+                const tr = document.createElement('tr');
+                tr.className = `drl-row hover:bg-indigo-50 cursor-pointer transition-colors ${name === currentStandardName ? 'active' : ''}`;
+                tr.dataset.std = name;
+                tr.onclick = () => window.selectRefStandard(name);
+                tr.innerHTML = `<td class="px-3 py-2 font-bold border-r border-indigo-50">${name}</td><td class="px-2 py-2 text-center text-slate-500 border-r border-indigo-50 bg-slate-50/30">${vals.ctdi50}</td><td class="px-2 py-2 text-center text-indigo-600 font-black border-r border-indigo-50 bg-indigo-50/30">${vals.ctdi75}</td><td class="px-2 py-2 text-center text-slate-500 border-r border-indigo-50 bg-slate-50/30">${vals.dlp50}</td><td class="px-2 py-2 text-center text-amber-600 font-black bg-amber-50/30">${vals.dlp75}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- CHARTS & STATS (Moved outside onload for global access) ---
+        const renderDashboard = () => {
+            if(!el('cardTotalCount')) return; // Guard clause if DOM not ready
+            setText('cardTotalCount', entries.length);
+            const ages = entries.map(e=>parseFloat(e.age)||0).filter(n=>n>0);
+            const weights = entries.map(e=>parseFloat(e.weight)||0).filter(n=>n>0);
+            setText('cardAvgAge', calcStats(ages).mean.toFixed(1));
+            setText('cardAvgWeight', calcStats(weights).mean.toFixed(1));
+
+            const updateCard = (name, prefix) => {
+                // FIXED FILTERING LOGIC: Match both old 'Head' and new 'Head'
+                let keyword = '';
+                // Using the `key` from THAI_DRL_PROTOCOLS object for safer mapping
+                if(name.includes('Head')) keyword = 'Head';
+                else if(name.includes('Chest')) keyword = 'Chest';
+                else if(name.includes('Abdomen')) keyword = 'Abdomen';
+                else if(name.includes('LDCT')) keyword = 'LDCT';
+
+                // Robust filtering: Check if protocol field exists and contains keyword (case insensitive ideally, but data is likely capitalized)
+                const sub = entries.filter(e => e.protocol && e.protocol.includes(keyword));
+                
+                const dlps = sub.map(e=>parseFloat(e.dlp)||0);
+                const ctdis = sub.map(e=>parseFloat(e.ctdi)||0);
+                
+                const stdData = DRL_STANDARDS[currentStandardName];
+                const ref = stdData ? stdData[name] : null;
+                const manC = parseFloat(el('manualRefCtdi').value); const manD = parseFloat(el('manualRefDlp').value);
+                const rC75 = (el('protocol').value===name && !isNaN(manC)) ? manC : (ref?.ctdi75 || 0);
+                const rD75 = (el('protocol').value===name && !isNaN(manD)) ? manD : (ref?.dlp75 || 0);
+                const rC50 = ref?.ctdi50 || 0; const rD50 = ref?.dlp50 || 0;
+
+                setText(prefix+'CtdiRef', rC75>0?rC75:'--'); setText(prefix+'DlpRef', rD75>0?rD75:'--');
+                setText(prefix+'CtdiRef50', rC50>0?rC50:'--'); setText(prefix+'DlpRef50', rD50>0?rD50:'--');
+
+                const sDlp = calcStats(dlps, rD75); const sCtdi = calcStats(ctdis, rC75);
+                setText(prefix+'Count', `n=${sub.length}`);
+                setText(prefix+'CtdiMean', `${sCtdi.mean.toFixed(1)}±${sCtdi.sd.toFixed(1)}`);
+                setText(prefix+'CtdiMed', sCtdi.median.toFixed(1));
+                setText(prefix+'Ctdi75', sCtdi.p75.toFixed(1));
+                setText(prefix+'CtdiP', sCtdi.p<0.001?'<0.001':sCtdi.p.toFixed(3));
+                setText(prefix+'DlpMean', `${sDlp.mean.toFixed(1)}±${sDlp.sd.toFixed(1)}`);
+                setText(prefix+'DlpMed', sDlp.median.toFixed(1));
+                setText(prefix+'Dlp75', sDlp.p75.toFixed(1));
+                setText(prefix+'DlpP', sDlp.p<0.001?'<0.001':sDlp.p.toFixed(3));
+            };
+            
+            // Map the defined protocols to their UI ID prefixes
+            updateCard('Sọ não không thuốc (Head)', 'head'); 
+            updateCard('Ngực không thuốc (Chest)', 'chest');
+            updateCard('Bụng không thuốc (Abdomen)', 'abd'); 
+            updateCard('Phổi liều thấp (LDCT)', 'ldct');
+
+            // Progress Table
+            const tbody = el('progressTableBody');
+            if (tbody) {
+                tbody.innerHTML = '';
+                let activeHospitals = getActiveList('hospital');
+                const hospitalStats = activeHospitals.map(h => ({ name: h, total: entries.filter(e => e.hospitalName === h).length })).sort((a, b) => a.total - b.total);
+
+                hospitalStats.forEach(item => {
+                    const h = item.name;
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-slate-50 transition-colors border-b border-slate-50";
+                    let html = `<td class="p-3 font-bold text-slate-700 text-xs border-r border-slate-50 sticky left-0 bg-white z-10">${h}</td>`;
+                    THAI_DRL_PROTOCOLS.forEach(p => {
+                        let keyword = '';
+                        if(p.name.includes('Head')) keyword = 'Head';
+                        else if(p.name.includes('Chest')) keyword = 'Chest';
+                        else if(p.name.includes('Abdomen')) keyword = 'Abdomen';
+                        else if(p.name.includes('LDCT')) keyword = 'LDCT';
+
+                        const count = entries.filter(e => e.hospitalName === h && e.protocol && e.protocol.includes(keyword)).length;
+                        const target = 30; const pct = Math.min((count/target)*100, 100);
+                        const clr = count >= target ? 'bg-emerald-500' : 'bg-red-500';
+                        const txt = count >= target ? 'text-emerald-600' : 'text-red-500';
+                        html += `<td class="p-3 border-r border-slate-50 align-middle"><div class="flex flex-col gap-1 items-center"><span class="text-[10px] font-black ${txt}">${count}/30</span><div class="w-full bg-slate-100 rounded-full h-1.5 min-w-[60px]"><div class="${clr} h-1.5 rounded-full" style="width:${pct}%"></div></div></div></td>`;
+                    });
+                    row.innerHTML = html; tbody.appendChild(row);
+                });
+            }
+
+            // Charts
+            const mCounts={}; entries.forEach(e=>{ let m=e.manufacturer||'Unk'; if(m.toLowerCase().startsWith('ge')) m='GE HealthCare'; mCounts[m]=(mCounts[m]||0)+1; });
+            const totalM = Object.values(mCounts).reduce((a,b)=>a+b,0);
+            if(pieChartInstance) pieChartInstance.destroy();
+            // Check if canvas exists before init chart
+            if(el('manufacturerPieChart')) {
+                pieChartInstance = new Chart(el('manufacturerPieChart'), {
+                    type: 'doughnut', data: { labels: Object.keys(mCounts), datasets: [{ data: Object.values(mCounts), backgroundColor: ['#6366f1','#ec4899','#10b981','#f59e0b','#3b82f6','#a855f7','#64748b'], borderWidth: 2, borderColor: '#ffffff', cutout: '50%' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {position:'right', labels:{boxWidth:12, font:{size:11, weight:'bold'}}}, datalabels: { color:'#fff', font:{weight:'bold', size:11}, formatter:(val)=>(val + '\n(' + (val*100/totalM).toFixed(1) + '%)') } } }
+                });
+            }
+
+            const gCounts={'Nam':0,'Nữ':0}; entries.forEach(e=>(String(e.gender||'M').toUpperCase()==='M'||String(e.gender||'').toUpperCase()==='NAM')?gCounts['Nam']++:gCounts['Nữ']++);
+            const totalG=gCounts['Nam']+gCounts['Nữ'];
+            if(genderPieChartInstance) genderPieChartInstance.destroy();
+            // Check if canvas exists before init chart
+            if(el('genderPieChart')) {
+                genderPieChartInstance = new Chart(el('genderPieChart'), {
+                    type: 'pie',
+                    data: { labels: ['Nam', 'Nữ'], datasets: [{ data: [gCounts['Nam'], gCounts['Nữ']], backgroundColor: ['#3b82f6', '#ec4899'] }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {position:'bottom'}, datalabels: { color:'#fff', font:{weight:'bold'}, formatter:(val)=>(totalG>0?val+' ('+(val*100/totalG).toFixed(1)+'%)':'') } } }
+                });
+            }
+        };
+
         // --- INIT ---
         window.onload = async () => {
             setTimeout(() => { const l=el('globalLoader'); if(l) l.style.display='none'; }, 1000);
@@ -754,6 +1040,15 @@
                 user = u;
                 checkLoginStatus(); // Will trigger setupDataListeners if valid
                 if(!u) await signInAnonymously(auth); // Keep connection alive
+                
+                // Heartbeat Logic
+                if (u && !u.isAnonymous) {
+                    updateUserHeartbeat(u);
+                    if (heartbeatInterval) clearInterval(heartbeatInterval);
+                    heartbeatInterval = setInterval(() => updateUserHeartbeat(u), 30000);
+                } else if (heartbeatInterval) {
+                    clearInterval(heartbeatInterval);
+                }
             });
 
             // UI Listeners
@@ -879,34 +1174,34 @@
                  const colors = ['indigo', 'blue', 'orange', 'teal'];
                  
                  cardContainer.innerHTML = ids.map((id, idx) => `
-                    <div class="glass-card p-5 rounded-[2rem] shadow-xl border border-${colors[idx]}-50 flex flex-col h-full">
+                    <div class="glass-card p-4 md:p-5 rounded-[2rem] shadow-xl border border-${colors[idx]}-50 flex flex-col h-full">
                         <div class="flex justify-between items-center mb-3 pb-2 border-b border-${colors[idx]}-50">
-                            <div class="flex items-center gap-2"><div class="w-1.5 h-6 bg-${colors[idx]}-500 rounded-full"></div><h4 class="text-lg font-black text-${colors[idx]}-900 uppercase tracking-widest">${names[idx]}</h4></div>
-                            <span id="${id}Count" class="text-xs font-bold text-${colors[idx]}-500 bg-${colors[idx]}-50 px-3 py-1.5 rounded-xl border border-${colors[idx]}-100">n=0</span>
+                            <div class="flex items-center gap-2"><div class="w-1.5 h-6 bg-${colors[idx]}-500 rounded-full"></div><h4 class="text-base md:text-lg font-black text-${colors[idx]}-900 uppercase tracking-widest">${names[idx]}</h4></div>
+                            <span id="${id}Count" class="text-[10px] md:text-xs font-bold text-${colors[idx]}-500 bg-${colors[idx]}-50 px-2 md:px-3 py-1 md:py-1.5 rounded-xl border border-${colors[idx]}-100">n=0</span>
                         </div>
-                        <div class="grid grid-cols-2 gap-6 flex-1">
+                        <div class="grid grid-cols-2 gap-3 md:gap-6 flex-1">
                             <div class="flex flex-col gap-2 items-center">
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">CTDIvol</p>
+                                <p class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">CTDIvol</p>
                                 <div class="bg-slate-50/50 rounded-2xl p-2 w-full text-center border border-slate-100 shadow-sm">
-                                    <span class="text-[9px] font-bold text-slate-400 block mb-0.5">MEDIAN</span><span id="${id}CtdiMed" class="text-3xl font-black text-${colors[idx]}-700 block leading-none tracking-tighter">--</span>
+                                    <span class="text-[9px] font-bold text-slate-400 block mb-0.5">MEDIAN</span><span id="${id}CtdiMed" class="text-2xl md:text-3xl font-black text-${colors[idx]}-700 block leading-none tracking-tighter">--</span>
                                     <div class="mt-1 pt-1 border-t border-slate-200/50 text-[8px] font-bold text-slate-400 flex justify-center gap-1">Ref: <span id="${id}CtdiRef50">--</span></div>
                                 </div>
-                                <div class="text-center w-full"><span class="text-[9px] font-bold text-slate-400 uppercase">Mean ± SD</span><span id="${id}CtdiMean" class="block text-sm font-black text-slate-700">--</span></div>
+                                <div class="text-center w-full"><span class="text-[9px] font-bold text-slate-400 uppercase">Mean ± SD</span><span id="${id}CtdiMean" class="block text-xs md:text-sm font-black text-slate-700">--</span></div>
                                 <div class="bg-amber-50 rounded-xl p-2 w-full text-center border border-amber-100">
-                                    <div class="flex justify-between items-end"><span class="text-[9px] font-bold text-amber-700/70">75th</span><span id="${id}Ctdi75" class="text-xl font-black text-amber-600 leading-none">--</span></div>
+                                    <div class="flex justify-between items-end"><span class="text-[9px] font-bold text-amber-700/70">75th</span><span id="${id}Ctdi75" class="text-lg md:text-xl font-black text-amber-600 leading-none">--</span></div>
                                     <div class="mt-1 pt-1 border-t border-amber-200/50 text-[9px] text-amber-700/70 font-bold flex justify-between"><span>Ref:</span> <span id="${id}CtdiRef">--</span></div>
                                 </div>
                                 <div class="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full mt-1">p = <span id="${id}CtdiP">--</span></div>
                             </div>
-                            <div class="flex flex-col gap-2 items-center border-l border-slate-100 pl-6">
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">DLP</p>
+                            <div class="flex flex-col gap-2 items-center border-l border-slate-100 pl-3 md:pl-6">
+                                <p class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">DLP</p>
                                 <div class="bg-slate-50/50 rounded-2xl p-2 w-full text-center border border-slate-100 shadow-sm">
-                                    <span class="text-[9px] font-bold text-slate-400 block mb-0.5">MEDIAN</span><span id="${id}DlpMed" class="text-3xl font-black text-${colors[idx]}-700 block leading-none tracking-tighter">--</span>
+                                    <span class="text-[9px] font-bold text-slate-400 block mb-0.5">MEDIAN</span><span id="${id}DlpMed" class="text-2xl md:text-3xl font-black text-${colors[idx]}-700 block leading-none tracking-tighter">--</span>
                                     <div class="mt-1 pt-1 border-t border-slate-200/50 text-[8px] font-bold text-slate-400 flex justify-center gap-1">Ref: <span id="${id}DlpRef50">--</span></div>
                                 </div>
-                                <div class="text-center w-full"><span class="text-[9px] font-bold text-slate-400 uppercase">Mean ± SD</span><span id="${id}DlpMean" class="block text-sm font-black text-slate-700">--</span></div>
+                                <div class="text-center w-full"><span class="text-[9px] font-bold text-slate-400 uppercase">Mean ± SD</span><span id="${id}DlpMean" class="block text-xs md:text-sm font-black text-slate-700">--</span></div>
                                 <div class="bg-amber-50 rounded-xl p-2 w-full text-center border border-amber-100">
-                                    <div class="flex justify-between items-end"><span class="text-[9px] font-bold text-amber-700/70">75th</span><span id="${id}Dlp75" class="text-xl font-black text-amber-600 leading-none">--</span></div>
+                                    <div class="flex justify-between items-end"><span class="text-[9px] font-bold text-amber-700/70">75th</span><span id="${id}Dlp75" class="text-lg md:text-xl font-black text-amber-600 leading-none">--</span></div>
                                     <div class="mt-1 pt-1 border-t border-amber-200/50 text-[9px] text-amber-700/70 font-bold flex justify-between"><span>Ref:</span> <span id="${id}DlpRef">--</span></div>
                                 </div>
                                 <div class="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full mt-1">p = <span id="${id}DlpP">--</span></div>
