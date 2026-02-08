@@ -581,8 +581,18 @@
             const val = (s.value && s.value !== '-- Chọn --') ? s.value : savedHosp;
             
             s.innerHTML = `<option disabled ${!val ? 'selected' : ''}>-- Chọn --</option>`;
-            // Dropdown always shows REAL names for input
-            getActiveList('hospital').forEach(h => s.innerHTML+=`<option value="${h}" ${h===val?'selected':''}>${h}</option>`);
+            
+            let displayList = [];
+            if (isAdmin) {
+                // Admin sees everything
+                displayList = getActiveList('hospital');
+            } else {
+                // User sees only their own hospitals
+                const myHospitals = getMyHospitals(); // Returns Set of names
+                displayList = Array.from(myHospitals).sort((a,b) => a.localeCompare(b));
+            }
+
+            displayList.forEach(h => s.innerHTML+=`<option value="${h}" ${h===val?'selected':''}>${h}</option>`);
             s.innerHTML += `<option value="other">➕ Thêm bệnh viện</option>`;
             
             if(val === 'other') el('customHospitalName').classList.remove('hidden');
