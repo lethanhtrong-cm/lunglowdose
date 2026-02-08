@@ -265,6 +265,7 @@
                     </div>
                     <span id="headerOnlineCount">0</span>
                 </button>
+                <button id="btnAdminAccess" class="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase hover:bg-slate-800 transition-all shadow-lg"><i data-lucide="lock" class="w-3 h-3"></i> ADMIN ACCESS</button>
                 <div class="relative">
                     <button id="userMenuBtn" class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 hover:bg-slate-50 transition-colors">
                         <i data-lucide="user" class="w-4 h-4 text-slate-600"></i>
@@ -279,6 +280,7 @@
                                 <span id="adminBadge" class="hidden px-1.5 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded text-[7px] font-black uppercase">Admin</span>
                             </div>
                         </div>
+                        <button id="requestAdminBtn" class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold text-slate-600 hover:bg-slate-50 rounded-lg text-left"><i data-lucide="shield" class="w-3 h-3"></i> Quyền Admin</button>
                         <button id="navLogoutBtn" class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 rounded-lg text-left mt-1 hidden"><i data-lucide="log-out" class="w-3 h-3"></i> Đăng xuất</button>
                     </div>
                 </div>
@@ -528,8 +530,6 @@
             if (el('navLoginBtn')) el('navLoginBtn').classList.toggle('hidden', hasAccess);
             if (el('navLogoutBtn')) el('navLogoutBtn').classList.toggle('hidden', !hasAccess);
 
-            // UPDATED: Check for isAdmin flag set via Key OR simple check for specific email if needed.
-            // But per request "xóa hết email là admin", we rely solely on Key or localStorage.
             if (isAdmin) { 
                 setText('userEmailDisplay', 'Administrator'); 
                 setText('dropdownEmail', 'Administrator');
@@ -654,33 +654,7 @@
         async function updateUserHeartbeat(currentUser) {
             if (!currentUser || currentUser.isAnonymous) return;
             const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_registry', currentUser.uid);
-            
-            // Check if user exists first to preserve status
-            let statusToSet = 'pending';
-            try {
-                const snap = await getDoc(userRef);
-                if (snap.exists()) {
-                    statusToSet = snap.data().status || 'pending';
-                }
-            } catch (e) { console.error("Error checking user status", e); }
-
-            // Use setDoc with merge to ensure fields exist
-            await setDoc(userRef, { 
-                email: currentUser.email, 
-                displayName: currentUser.displayName || currentUser.email, 
-                lastActive: new Date().toISOString(), 
-                uid: currentUser.uid,
-                status: statusToSet
-            }, { merge: true });
-        }
-
-        // NEW: Reload user list manually
-        window.reloadUserList = async () => {
-             // Re-fetch logic or just let the snapshot handle it. Since snapshot is real-time, this might be redundant but good for UX.
-             // We can just re-render with current data to clear search
-             if(el('userSearchInput')) el('userSearchInput').value = '';
-             renderUserMonitor(latestUserRegistryData);
-             showToast("Đã làm mới danh sách!");
+            await setDoc(userRef, { email: currentUser.email, displayName: currentUser.displayName || currentUser.email, lastActive: new Date().toISOString(), uid: currentUser.uid }, { merge: true });
         }
 
         window.setUserStatus = async (targetUid, newStatus) => {
