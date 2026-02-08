@@ -149,6 +149,8 @@
                     </button>
                 </div>
             </div>
+
+            <!-- Removed Admin Tabs Section as requested -->
         </div>
     </header>
 
@@ -613,6 +615,37 @@
         };
 
         // --- GLOBAL FUNCTIONS ---
+        window.updateUserStatus = async (uid, newStatus, btnElement) => {
+            if(!auth.currentUser && isAdminKey) {
+                 await signInAnonymously(auth); // Ensure we have a token
+            }
+            
+            // UI Feedback
+            let originalContent = '';
+            if (btnElement) {
+                originalContent = btnElement.innerHTML;
+                btnElement.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>';
+                btnElement.disabled = true;
+            }
+
+            try {
+                if(!uid || uid === 'undefined') throw new Error("Invalid User ID");
+                // Use setDoc with merge: true to update or create if missing, more robust than updateDoc
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_users', uid), { status: newStatus }, { merge: true });
+                window.showToast(`Đã cập nhật trạng thái: ${newStatus}`);
+            } catch (err) {
+                console.error(err);
+                let msg = err.message;
+                if(msg.includes("permission")) msg = "Bạn không có quyền thực hiện thao tác này.";
+                window.showAlert("Lỗi", msg, 'error');
+            } finally {
+                if (btnElement) {
+                    btnElement.innerHTML = originalContent;
+                    btnElement.disabled = false;
+                }
+            }
+        };
+
         function showDialog(type, title, message, onConfirm = null) {
             const dialog = el('globalDialog');
             const iconEl = el('dialogIcon');
@@ -688,6 +721,7 @@
         let selected = new Set();
         let currentPage = 1;
         let rowsPerPage = 20;
+        let currentTab = 'dashboard';
         let isTrashMode = false;
 
         signInAnonymously(auth).catch(console.error);
@@ -749,6 +783,7 @@
                         sessionStorage.removeItem('vnrad_admin_key');
                         userDocData = null;
                         updateAuthUI();
+                        switchTab('dashboard');
                     });
                 });
             } else {
@@ -768,7 +803,9 @@
                 btn.className = "px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold text-[10px] md:text-xs flex items-center gap-1.5 md:gap-2 border transition-all duration-300 shadow-md shadow-red-500/30 transform active:scale-95 bg-red-600 text-white border-red-500 hover:bg-red-700 hover:shadow-red-500/50";
                 el('btnExport').classList.remove('hidden'); el('btnExport').classList.add('flex');
             } else if (isLoggedIn) {
-                btn.innerHTML = `<i data-lucide="user" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="uppercase tracking-wide hidden xs:inline">Thành viên</span><span class="uppercase tracking-wide inline xs:hidden">User</span>`;
+                // CHANGED: Display Email instead of "Thành viên"
+                const displayEmail = user.email.length > 20 ? user.email.substring(0, 18) + '...' : user.email;
+                btn.innerHTML = `<i data-lucide="user" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden xs:inline" title="${user.email}">${displayEmail}</span><span class="inline xs:hidden">User</span>`;
                 btn.className = "px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold text-[10px] md:text-xs flex items-center gap-1.5 md:gap-2 border transition-all duration-300 shadow-md shadow-indigo-500/30 transform active:scale-95 bg-indigo-600 text-white border-indigo-500 hover:bg-indigo-700 hover:shadow-indigo-500/50";
                 if(true) { // All users auto approved
                     el('btnExport').classList.remove('hidden'); el('btnExport').classList.add('flex');
@@ -942,6 +979,13 @@
             renderTable();
         };
 
+        window.sendApprovalRequestEmail = () => {
+            if(!user) return;
+            const subject = encodeURIComponent(`Yêu cầu phê duyệt tài khoản VN-DRL: ${user.email}`);
+            const body = encodeURIComponent(`Kính gửi Admin,\n\nVui lòng xem xét và phê duyệt tài khoản của tôi.\n\nEmail: ${user.email}\nUID: ${user.uid}\n\nXin cảm ơn.`);
+            window.location.href = `mailto:admin@vnrad.tech?subject=${subject}&body=${body}`;
+        };
+
         window.showHospitalModal = () => {
             const hospitals = [...new Set(entries.map(e => e.hospitalName).filter(Boolean))].sort();
             const listEl = el('hospitalList');
@@ -953,7 +997,7 @@
                 entries.forEach(e => { if(e.hospitalName) hospMap[e.hospitalName] = (hospMap[e.hospitalName] || 0) + 1; });
                 const sortedHospitals = hospitals.sort((a,b) => (hospMap[b]||0) - (hospMap[a]||0));
                 sortedHospitals.forEach((h, index) => {
-                    if (h === 'Khác') return; // Filter out 'Khác'
+                    if (h === 'Khác' || h === '-- Chọn --') return; // Filter out 'Khác' and '-- Chọn --'
                     const count = hospMap[h] || 0;
                     const displayName = hospitalAliasMap[h] || h; // Use Alias
                     const li = document.createElement('li');
@@ -1017,7 +1061,7 @@
                 const s = el(id); const v = s.value; 
                 s.innerHTML = '<option value="all">Tất cả</option>'; 
                 arr.forEach(i => {
-                    if (i === 'Khác') return; // Filter out 'Khác'
+                    if (i === 'Khác' || i === '-- Chọn --') return; // Filter out 'Khác' and '-- Chọn --'
                     const displayName = hospitalAliasMap[i] || i;
                     s.innerHTML += `<option value="${i}">${displayName}</option>`;
                 }); 
@@ -1100,7 +1144,7 @@
              // Top Contributors Logic (Masked)
              const hospMap = {}; 
              activeData.forEach(e => { 
-                if(e.hospitalName && e.hospitalName !== 'Khác') hospMap[e.hospitalName] = (hospMap[e.hospitalName] || 0) + 1; 
+                if(e.hospitalName && e.hospitalName !== 'Khác' && e.hospitalName !== '-- Chọn --') hospMap[e.hospitalName] = (hospMap[e.hospitalName] || 0) + 1; 
              });
              const sortedHosps = Object.entries(hospMap).sort((a,b) => b[1] - a[1]).slice(0, 3);
              const topListEl = el('topHospitalsList');
@@ -1221,7 +1265,9 @@
                 // --- MASKING LOGIC FOR ROW ---
                 const displayHospital = hospitalAliasMap[e.hospitalName] || e.hospitalName;
                 
-                // MASKING LOGIC FOR EMAIL
+                // MASKING LOGIC FOR EMAIL (NEW)
+                // If I am owner OR I am admin -> Show real email
+                // Else -> Show "Thành viên khác"
                 const displayEmail = (isOwner || isSuperAdmin) ? (e.userEmail || 'Unknown') : 'Thành viên khác';
                 const displayInitial = (isOwner || isSuperAdmin) ? (e.userEmail || '?').charAt(0).toUpperCase() : '?';
 
