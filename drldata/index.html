@@ -902,6 +902,8 @@
                 }
             }
 
+            // Force alias regeneration on auth state change to ensure correct view
+            generateHospitalAliases(entries);
             if (!viewDashboard.classList.contains('hidden')) window.renderTable();
             lucide.createIcons();
         }
@@ -1388,6 +1390,8 @@
                 const displayHospital = hospitalAliasMap[e.hospitalName] || e.hospitalName;
                 
                 // MASKING LOGIC FOR EMAIL (NEW)
+                // If I am owner OR I am admin -> Show real email
+                // Else -> Show "Thành viên khác"
                 const displayEmail = (isOwner || isSuperAdmin) ? (e.userEmail || 'Unknown') : 'Thành viên khác';
                 const displayInitial = (isOwner || isSuperAdmin) ? (e.userEmail || '?').charAt(0).toUpperCase() : '?';
 
@@ -1477,7 +1481,7 @@
             const e = entries.find(x => x.id === id); if (!e) return;
             el('eId').value = id; el('eHosp').innerText = e.hospitalName || 'N/A'; el('eDate').innerText = new Date(e.createdAt).toLocaleString('vi-VN');
             el('eProt').value = e.protocol || 'Head Routine'; el('eCTDI').value = e.ctdi || 0; el('eDLP').value = e.dlp || 0; el('eAge').value = e.age || ''; el('eGender').value = e.gender || 'M'; el('eWeight').value = e.weight || ''; el('eMod').value = e.modulation ? e.modulation.toLowerCase() : '';
-            const isSuperAdmin = checkIsAdmin(user); const canEdit = (user && user.uid === e.userId) || isSuperAdmin;
+            const isOwner = user && !user.isAnonymous && (user.uid === e.userId); const isSuperAdmin = checkIsAdmin(user); const canEdit = isOwner || isSuperAdmin;
             el('btnSave').style.display = canEdit ? 'flex' : 'none'; el('modalTitle').innerText = canEdit ? 'Chỉnh sửa ca chụp' : 'Chi tiết ca chụp';
             ['eProt', 'eCTDI', 'eDLP', 'eAge', 'eGender', 'eWeight', 'eMod'].forEach(i => el(i).disabled = !canEdit);
             const modal = el('editModal'); const content = el('modalContent');
