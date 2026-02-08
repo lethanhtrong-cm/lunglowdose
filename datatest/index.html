@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="vi" class="scroll-smooth">
 <head>
@@ -202,6 +201,9 @@
                     <div class="font-bold text-slate-800 dark:text-white" id="pendingUserEmail">...</div>
                 </div>
             </div>
+            <button onclick="sendApprovalRequestEmail()" class="mt-4 text-xs font-bold text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 flex items-center gap-2 hover:underline">
+                <i data-lucide="mail" class="w-3 h-3"></i> Nhắc nhở Admin qua Email
+            </button>
         </div>
 
         <!-- MAIN DASHBOARD VIEW -->
@@ -267,6 +269,11 @@
                     <div class="flex flex-wrap items-center justify-between gap-4 mb-5 border-b border-slate-100 dark:border-slate-700 pb-4">
                         <h2 class="text-sm font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-2"><i data-lucide="filter" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i> Bộ lọc dữ liệu</h2>
                         <div class="flex gap-2">
+                            <!-- Trash Button (New) -->
+                            <button onclick="toggleTrashMode()" id="btnTrash" class="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-lg text-[11px] font-bold uppercase hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-700 hover:border-slate-300 transition-all flex items-center gap-2 active:scale-95" title="Thùng rác">
+                                <i data-lucide="trash-2" class="w-3 h-3"></i> Thùng rác
+                            </button>
+
                             <button onclick="clearFilters()" class="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-lg text-[11px] font-bold uppercase hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-red-500 hover:border-red-200 transition-all flex items-center gap-2 active:scale-95" title="Xóa tất cả bộ lọc">
                                 <i data-lucide="filter-x" class="w-3 h-3"></i> Xóa lọc
                             </button>
@@ -502,7 +509,15 @@
                 </div>
                 <div class="space-y-4">
                     <h4 class="text-xs font-black text-indigo-900 dark:text-indigo-300 uppercase border-b border-indigo-50 dark:border-indigo-900 pb-2">Thông số kỹ thuật</h4>
-                    <div><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">Protocol</label><select id="eProt" class="w-full p-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-semibold outline-none focus:border-indigo-500"><option value="Head Routine">Head Routine</option><option value="Chest Routine">Chest Routine</option><option value="Abdomen Routine">Abdomen Routine</option><option value="Spine">Spine</option></select></div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">Protocol</label>
+                        <select id="eProt" class="w-full p-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-semibold outline-none focus:border-indigo-500">
+                            <option value="Head Routine">Head Routine (Sọ não)</option>
+                            <option value="Chest Routine">Chest Routine (Ngực)</option>
+                            <option value="Abdomen Routine">Abdomen Routine (Bụng)</option>
+                            <option value="Low Dose Lung">Low Dose Lung (Phổi liều thấp)</option>
+                        </select>
+                    </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">CTDIvol</label><input type="number" step="0.01" id="eCTDI" class="w-full p-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-bold text-slate-800 dark:text-white outline-none"></div>
                         <div><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">DLP</label><input type="number" step="0.1" id="eDLP" class="w-full p-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-bold text-emerald-600 dark:text-emerald-400 outline-none"></div>
@@ -722,10 +737,12 @@
         let currentPage = 1;
         let rowsPerPage = 20;
         let currentTab = 'dashboard';
+        let isTrashMode = false;
 
         signInAnonymously(auth).catch(console.error);
 
-        if (localStorage.getItem('vnrad_admin_key') === 'true') isAdminKey = true;
+        // Updated: Use sessionStorage to only persist for current session (refresh ok, new tab/close not ok)
+        if (sessionStorage.getItem('vnrad_admin_key') === 'true') isAdminKey = true;
 
         window.toggleAdminForm = () => {
             el('normalLoginForm').classList.toggle('hidden');
@@ -758,7 +775,8 @@
             const key = el('adminKeyInput').value;
             if (key === 'gm@191223') {
                 isAdminKey = true;
-                localStorage.setItem('vnrad_admin_key', 'true');
+                // Updated: Use sessionStorage
+                sessionStorage.setItem('vnrad_admin_key', 'true');
                 updateAuthUI();
                 el('authModal').classList.add('hidden');
                 el('adminKeyInput').value = '';
@@ -774,7 +792,8 @@
                 window.showConfirm("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất?", () => {
                      signOut(auth).then(() => {
                         isAdminKey = false;
-                        localStorage.removeItem('vnrad_admin_key');
+                        // Updated: Remove from sessionStorage
+                        sessionStorage.removeItem('vnrad_admin_key');
                         userDocData = null;
                         updateAuthUI();
                         switchTab('dashboard');
@@ -942,6 +961,7 @@
                             <div class="flex items-center justify-end gap-2">
                                 ${u.status !== 'approved' ? `<button onclick="window.updateUserStatus('${u.id}', 'approved')" class="p-1.5 bg-emerald-100 text-emerald-600 rounded hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer" title="Duyệt"><i data-lucide="check" class="w-4 h-4"></i></button>` : ''}
                                 ${u.status !== 'rejected' ? `<button onclick="window.updateUserStatus('${u.id}', 'rejected')" class="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-600 hover:text-white transition-colors cursor-pointer" title="Khóa"><i data-lucide="ban" class="w-4 h-4"></i></button>` : ''}
+                                <a href="mailto:${u.email}" class="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-600 hover:text-white transition-colors cursor-pointer" title="Gửi Email"><i data-lucide="mail" class="w-4 h-4"></i></a>
                             </div>
                         </td>
                      `;
@@ -965,9 +985,36 @@
         };
 
         onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), (snap) => {
-            entries = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(e => !e.isDeleted);
+            entries = snap.docs.map(d => ({id: d.id, ...d.data()}));
             populateFilters();
+            if (typeof window.renderTable === 'function') window.renderTable();
         });
+
+        window.toggleTrashMode = () => {
+            isTrashMode = !isTrashMode;
+            const btn = el('btnTrash');
+            if (isTrashMode) {
+                btn.classList.remove('bg-white', 'dark:bg-slate-800', 'text-slate-500', 'dark:text-slate-400');
+                btn.classList.add('bg-red-100', 'text-red-600', 'border-red-200', 'dark:bg-red-900/30', 'dark:text-red-400', 'dark:border-red-800');
+                btn.innerHTML = `<i data-lucide="trash-2" class="w-3 h-3"></i> Đang xem thùng rác`;
+            } else {
+                btn.classList.add('bg-white', 'dark:bg-slate-800', 'text-slate-500', 'dark:text-slate-400');
+                btn.classList.remove('bg-red-100', 'text-red-600', 'border-red-200', 'dark:bg-red-900/30', 'dark:text-red-400', 'dark:border-red-800');
+                btn.innerHTML = `<i data-lucide="trash-2" class="w-3 h-3"></i> Thùng rác`;
+            }
+            currentPage = 1;
+            selected.clear();
+            el('checkAll').checked = false;
+            updateBulkUI();
+            renderTable();
+        };
+
+        window.sendApprovalRequestEmail = () => {
+            if(!user) return;
+            const subject = encodeURIComponent(`Yêu cầu phê duyệt tài khoản VN-DRL: ${user.email}`);
+            const body = encodeURIComponent(`Kính gửi Admin,\n\nVui lòng xem xét và phê duyệt tài khoản của tôi.\n\nEmail: ${user.email}\nUID: ${user.uid}\n\nXin cảm ơn.`);
+            window.location.href = `mailto:admin@vnrad.tech?subject=${subject}&body=${body}`;
+        };
 
         window.showHospitalModal = () => {
             const hospitals = [...new Set(entries.map(e => e.hospitalName).filter(Boolean))].sort();
@@ -1021,15 +1068,49 @@
             setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200);
         };
 
+        // NEW: Helper to group protocols for filter dropdown consistency
+        const getProtocolGroup = (p) => {
+            if (!p) return 'Khác';
+            const lower = p.toLowerCase();
+            // 1. Sọ não (Head) - Consolidate all variants
+            if (lower.includes('sọ') || lower.includes('head') || lower.includes('brain') || lower.includes('não')) return 'Sọ não (Head Routine)';
+            
+            // 2. Ngực (Chest)
+            if ((lower.includes('ngực') || lower.includes('chest') || lower.includes('thorax') || lower.includes('phổi')) && !lower.includes('low') && !lower.includes('thấp') && !lower.includes('ldct')) return 'Ngực (Chest Routine)';
+            
+            // 3. Bụng (Abdomen)
+            if (lower.includes('bụng') || lower.includes('abdomen') || lower.includes('abd')) return 'Bụng (Abdomen Routine)';
+            
+            // 4. Phổi liều thấp (LDCT)
+            if (lower.includes('low') || lower.includes('thấp') || lower.includes('ldct')) return 'Phổi liều thấp (LDCT)';
+            
+            // 5. Spine - Explicitly identify but will be filtered out
+            if (lower.includes('spine') || lower.includes('cột sống')) return 'Spine';
+            
+            return p; // Fallback
+        };
+
         function populateFilters() {
             const h = [...new Set(entries.map(e => e.hospitalName).filter(Boolean))].sort();
             const m = [...new Set(entries.map(e => e.manufacturer).filter(Boolean))].sort();
-            const p = [...new Set(entries.map(e => e.protocol).filter(Boolean))].sort();
+            
+            // UPDATED: Logic for Protocol Filter
+            const protocolGroups = new Set();
+            entries.forEach(e => {
+                const group = getProtocolGroup(e.protocol);
+                // Exclude 'Spine' from the dropdown list
+                if (group !== 'Spine' && !group.toLowerCase().includes('spine')) {
+                    protocolGroups.add(group);
+                }
+            });
+            const p = [...protocolGroups].sort();
+
             const fill = (id, arr) => { 
                 const s = el(id); const v = s.value; 
                 s.innerHTML = '<option value="all">Tất cả</option>'; 
                 arr.forEach(i => s.innerHTML += `<option value="${i}">${i}</option>`); 
-                s.value = v; 
+                // Preserve selection if valid, else reset
+                if (arr.includes(v)) s.value = v; else s.value = 'all';
             };
             fill('fHosp', h); fill('fManu', m); fill('fProt', p);
         }
@@ -1081,11 +1162,12 @@
         }
 
         function updateGlobalStats(data) {
-             el('statTotal').innerText = data.length.toLocaleString();
-             const hosps = new Set(data.map(e => e.hospitalName).filter(Boolean));
+             const activeData = data.filter(e => !e.isDeleted);
+             el('statTotal').innerText = activeData.length.toLocaleString();
+             const hosps = new Set(activeData.map(e => e.hospitalName).filter(Boolean));
              el('statHosp').innerText = hosps.size;
              let head = 0, chest = 0, abd = 0, ldct = 0;
-             data.forEach(e => {
+             activeData.forEach(e => {
                  const p = (e.protocol || '').toLowerCase();
                  if(p.includes('low dose') || p.includes('ldct') || p.includes('liều thấp')) ldct++;
                  else if (p.includes('head') || p.includes('brain') || p.includes('sọ') || p.includes('não')) head++;
@@ -1093,7 +1175,7 @@
                  else if (p.includes('abdomen') || p.includes('abd') || p.includes('bụng')) abd++;
              });
              el('countHead').innerText = head; el('countChest').innerText = chest; el('countAbd').innerText = abd; el('countLow').innerText = ldct;
-             const hospMap = {}; data.forEach(e => { if(e.hospitalName) hospMap[e.hospitalName] = (hospMap[e.hospitalName] || 0) + 1; });
+             const hospMap = {}; activeData.forEach(e => { if(e.hospitalName) hospMap[e.hospitalName] = (hospMap[e.hospitalName] || 0) + 1; });
              const sortedHosps = Object.entries(hospMap).sort((a,b) => b[1] - a[1]).slice(0, 3);
              const topListEl = el('topHospitalsList');
              if(topListEl) {
@@ -1135,9 +1217,18 @@
             const fH = el('fHosp').value, fP = el('fProt').value, fM = el('fManu').value;
             const fG = el('fGender').value, fMod = el('fMod').value, search = el('fSearch').value.toLowerCase(), sort = el('fSort').value;
 
-            filtered = entries.filter(e => {
+            // Filter Trash Mode
+            filtered = entries.filter(e => isTrashMode ? e.isDeleted : !e.isDeleted);
+
+            // Apply other filters
+            filtered = filtered.filter(e => {
                 if (fH !== 'all' && e.hospitalName !== fH) return false;
-                if (fP !== 'all' && e.protocol !== fP) return false;
+                
+                // UPDATED: Use grouped protocol for filtering
+                if (fP !== 'all') {
+                    if (getProtocolGroup(e.protocol) !== fP) return false;
+                }
+                
                 if (fM !== 'all' && e.manufacturer !== fM) return false;
                 if (fG !== 'all') {
                     if (fG === 'M' && e.gender !== 'M' && e.gender !== 'Nam') return false;
@@ -1154,7 +1245,7 @@
             
             updateGlobalStats(entries); 
             const statsDiv = el('dynamicStats'); const placeholderDiv = el('statsPlaceholder');
-            if (fP === 'all') { statsDiv.classList.add('hidden'); placeholderDiv.classList.remove('hidden'); }
+            if (fP === 'all' && !isTrashMode) { statsDiv.classList.add('hidden'); placeholderDiv.classList.remove('hidden'); }
             else { placeholderDiv.classList.add('hidden'); statsDiv.classList.remove('hidden'); updateDynamicStats(filtered); }
 
             if (sort === 'date_desc') filtered.sort((a,b) => (b.createdAt||'').localeCompare(a.createdAt||''));
@@ -1189,6 +1280,22 @@
                 const timeStr = createdDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
                 const row = document.createElement('tr');
                 row.className = `hover:bg-indigo-50/50 dark:hover:bg-slate-700 border-b border-slate-50 dark:border-slate-700 group transition-colors even:bg-slate-50/50 dark:even:bg-slate-800/50 ${isSel ? 'row-selected' : ''}`;
+                
+                let actionButtons = '';
+                if (canEdit) {
+                    if (isTrashMode) {
+                        actionButtons = `
+                            <button onclick="window.restoreItemAction('${e.id}')" class="p-2 text-emerald-500 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-lg transition-all" title="Khôi phục"><i data-lucide="rotate-ccw" class="w-4 h-4"></i></button>
+                            <button onclick="window.showConfirm('Xóa vĩnh viễn', 'Dữ liệu sẽ bị xóa hoàn toàn khỏi cơ sở dữ liệu và KHÔNG THỂ khôi phục. Bạn có chắc chắn?', () => window.permDeleteAction('${e.id}'))" class="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all" title="Xóa vĩnh viễn"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
+                        `;
+                    } else {
+                        actionButtons = `
+                            <button onclick="editItem('${e.id}')" class="p-2 text-indigo-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-lg transition-all" title="Sửa"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                            <button onclick="window.showConfirm('Xóa dữ liệu', 'Bạn có chắc chắn muốn chuyển bản ghi này vào thùng rác?', () => window.delItemAction('${e.id}'))" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all" title="Xóa"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        `;
+                    }
+                }
+
                 row.innerHTML = `
                     <td class="p-4 text-center"><input type="checkbox" class="custom-checkbox" onchange="toggleSel('${e.id}')" ${isSel ? 'checked' : ''}></td>
                     <td class="p-4 font-bold text-slate-700 dark:text-slate-200">
@@ -1223,8 +1330,7 @@
                     <td class="p-4 text-center"><span class="${parseFloat(e.dlp) > 1000 ? 'badge-dose-high' : 'badge-dose'}">${e.dlp}</span></td>
                     <td class="p-4 text-right">
                         <div class="flex items-center justify-end gap-1.5">
-                            ${canEdit ? `<button onclick="editItem('${e.id}')" class="p-2 text-indigo-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-lg transition-all" title="Sửa"><i data-lucide="edit-3" class="w-4 h-4"></i></button>` : ''}
-                            ${canEdit ? `<button onclick="window.showConfirm('Xóa dữ liệu', 'Bạn có chắc chắn muốn xóa bản ghi này? Hành động không thể hoàn tác.', () => window.delItemAction('${e.id}'))" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all" title="Xóa"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
+                            ${actionButtons}
                         </div>
                     </td>
                 `;
@@ -1237,7 +1343,23 @@
             renderPagination(totalPages); updateBulkUI(); lucide.createIcons();
         };
 
-        window.delItemAction = async (id) => { await deleteDoc(doc(db,'artifacts',appId,'public', 'data', 'drl_entries',id)); window.showToast("Đã xóa bản ghi!"); };
+        // Soft Delete
+        window.delItemAction = async (id) => { 
+            await updateDoc(doc(db,'artifacts',appId,'public', 'data', 'drl_entries',id), { isDeleted: true }); 
+            window.showToast("Đã chuyển vào thùng rác!"); 
+        };
+
+        // Restore
+        window.restoreItemAction = async (id) => {
+            await updateDoc(doc(db,'artifacts',appId,'public', 'data', 'drl_entries',id), { isDeleted: false });
+            window.showToast("Đã khôi phục bản ghi!");
+        };
+
+        // Hard Delete
+        window.permDeleteAction = async (id) => {
+            await deleteDoc(doc(db,'artifacts',appId,'public', 'data', 'drl_entries',id));
+            window.showToast("Đã xóa vĩnh viễn!");
+        };
 
         window.editItem = (id) => {
             const e = entries.find(x => x.id === id); if (!e) return;
@@ -1287,10 +1409,18 @@
         }
         window.clearSelection = () => { selected.clear(); el('checkAll').checked=false; renderTable(); };
         window.deleteSelected = () => {
-            window.showConfirm('Xóa hàng loạt', `CẢNH BÁO: Bạn đang xóa ${selected.size} dòng dữ liệu. Hành động này không thể hoàn tác!`, async () => {
+            const actionText = isTrashMode ? 'XÓA VĨNH VIỄN' : 'xóa';
+            window.showConfirm('Xóa hàng loạt', `CẢNH BÁO: Bạn đang ${actionText} ${selected.size} dòng dữ liệu. Hành động này không thể hoàn tác!`, async () => {
                 const batch = writeBatch(db);
-                selected.forEach(id => batch.delete(doc(db,'artifacts',appId,'public', 'data', 'drl_entries',id)));
-                await batch.commit(); selected.clear(); updateBulkUI(); window.showToast("Đã xóa dữ liệu thành công!");
+                selected.forEach(id => {
+                    const ref = doc(db,'artifacts',appId,'public', 'data', 'drl_entries',id);
+                    if (isTrashMode) {
+                        batch.delete(ref);
+                    } else {
+                        batch.update(ref, { isDeleted: true });
+                    }
+                });
+                await batch.commit(); selected.clear(); updateBulkUI(); window.showToast("Đã xử lý dữ liệu thành công!");
             });
         };
         el('btnExport').onclick = () => {
@@ -1305,6 +1435,11 @@
         };
         ['fHosp','fProt','fManu','fSort','fGender','fMod'].forEach(i => el(i).onchange = () => { currentPage=1; renderTable(); });
         el('fSearch').onkeyup = () => { currentPage=1; renderTable(); };
+        
+        // Add Enter key listeners for login
+        el('adminKeyInput').addEventListener('keyup', (e) => { if(e.key === 'Enter') doAdminKeyLogin(); });
+        el('authPassword').addEventListener('keyup', (e) => { if(e.key === 'Enter') doEmailLogin(); });
+        
         lucide.createIcons();
     </script>
 </body>
