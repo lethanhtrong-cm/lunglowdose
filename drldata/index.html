@@ -95,19 +95,6 @@
         
         .badge-base { font-weight: 800; font-size: 0.65rem; padding: 0.25rem 0.5rem; border-radius: 0.375rem; text-transform: uppercase; letter-spacing: 0.025em; border: 1px solid transparent; }
 
-        /* Status Badge */
-        .status-pending { background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; }
-        .dark .status-pending { background: rgba(154, 52, 18, 0.2); color: #fdba74; border-color: rgba(154, 52, 18, 0.4); }
-        .status-approved { background: #f0fdf4; color: #15803d; border: 1px solid #dcfce7; }
-        .dark .status-approved { background: rgba(22, 101, 52, 0.2); color: #86efac; border-color: rgba(22, 101, 52, 0.4); }
-        .status-rejected { background: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2; }
-        .dark .status-rejected { background: rgba(153, 27, 27, 0.2); color: #fca5a5; border-color: rgba(153, 27, 27, 0.4); }
-
-        /* Tab Buttons */
-        .tab-btn { @apply px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wide transition-all; }
-        .tab-btn-active { background-color: #4f46e5; color: white; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3); }
-        .tab-btn-inactive { @apply text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200; }
-        
         /* Mobile Scroll Hide */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -162,12 +149,6 @@
                     </button>
                 </div>
             </div>
-
-            <!-- Admin Tabs (Visible only to Admin) -->
-            <div id="adminTabs" class="hidden mt-3 md:mt-4 pt-2 border-t border-slate-100 dark:border-slate-800 gap-2 overflow-x-auto no-scrollbar">
-                <button onclick="switchTab('dashboard')" id="tabDashboard" class="whitespace-nowrap px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-bold text-xs uppercase tracking-wide transition-all bg-indigo-600 text-white shadow-md shadow-indigo-500/30">Dashboard</button>
-                <button onclick="switchTab('users')" id="tabUsers" class="whitespace-nowrap px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-bold text-xs uppercase tracking-wide transition-all text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200">Quản lý tài khoản</button>
-            </div>
         </div>
     </header>
 
@@ -185,7 +166,7 @@
             </p>
 
             <p class="text-xs md:text-base text-slate-500 dark:text-slate-400 text-center max-w-md mb-8">
-                Vì lý do bảo mật, hệ thống VN-DRL Study yêu cầu xác thực để xem và nhập liệu dữ liệu đa trung tâm. Vui lòng đăng nhập và chờ phê duyệt để tiếp tục.
+                Vì lý do bảo mật, hệ thống VN-DRL Study yêu cầu xác thực để xem và nhập liệu dữ liệu đa trung tâm. Vui lòng đăng nhập để tiếp tục.
             </p>
             <button onclick="document.getElementById('authModal').classList.remove('hidden')" class="px-6 py-2.5 md:px-8 md:py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs md:text-sm shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 hover:shadow-indigo-500/50 transition-all transform hover:-translate-y-1">
                 Đăng nhập ngay
@@ -445,32 +426,6 @@
             </div>
         </div>
 
-        <!-- USERS MANAGEMENT VIEW -->
-        <div id="viewUsers" class="hidden glass-card p-4 md:p-6 animate-in slide-in-from-right duration-300">
-             <div class="flex justify-between items-center mb-4 md:mb-6 border-b border-slate-100 dark:border-slate-700 pb-4">
-                <div>
-                    <h2 class="text-base md:text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Quản lý tài khoản</h2>
-                    <p class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">Phê duyệt hoặc khóa quyền truy cập dữ liệu của thành viên.</p>
-                </div>
-                <button onclick="loadUserManagement()" class="px-2 md:px-3 py-1.5 md:py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] md:text-xs font-bold flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-600"><i data-lucide="refresh-cw" class="w-3 h-3"></i> <span class="hidden xs:inline">Tải lại</span></button>
-             </div>
-             
-             <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs whitespace-nowrap md:whitespace-normal">
-                    <thead class="bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 uppercase font-bold">
-                        <tr>
-                            <th class="p-3 rounded-tl-lg">Email / Tên</th>
-                            <th class="p-3">Trạng thái</th>
-                            <th class="p-3">Đăng nhập cuối</th>
-                            <th class="p-3 text-right rounded-tr-lg">Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody id="usersTableBody" class="divide-y divide-slate-100 dark:divide-slate-700">
-                    </tbody>
-                </table>
-             </div>
-        </div>
-
     </main>
 
     <!-- Global Dialog -->
@@ -658,35 +613,6 @@
         };
 
         // --- GLOBAL FUNCTIONS ---
-        window.updateUserStatus = async (uid, newStatus, btnElement) => {
-            if(!auth.currentUser && isAdminKey) {
-                 await signInAnonymously(auth); 
-            }
-            
-            let originalContent = '';
-            if (btnElement) {
-                originalContent = btnElement.innerHTML;
-                btnElement.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>';
-                btnElement.disabled = true;
-            }
-
-            try {
-                if(!uid || uid === 'undefined') throw new Error("Invalid User ID");
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_users', uid), { status: newStatus }, { merge: true });
-                window.showToast(`Đã cập nhật trạng thái: ${newStatus}`);
-            } catch (err) {
-                console.error(err);
-                let msg = err.message;
-                if(msg.includes("permission")) msg = "Bạn không có quyền thực hiện thao tác này.";
-                window.showAlert("Lỗi", msg, 'error');
-            } finally {
-                if (btnElement) {
-                    btnElement.innerHTML = originalContent;
-                    btnElement.disabled = false;
-                }
-            }
-        };
-
         function showDialog(type, title, message, onConfirm = null) {
             const dialog = el('globalDialog');
             const iconEl = el('dialogIcon');
@@ -762,7 +688,6 @@
         let selected = new Set();
         let currentPage = 1;
         let rowsPerPage = 20;
-        let currentTab = 'dashboard';
         let isTrashMode = false;
 
         signInAnonymously(auth).catch(console.error);
@@ -811,7 +736,6 @@
                 el('authModal').classList.add('hidden');
                 el('adminKeyInput').value = '';
                 window.showToast("Đã kích hoạt quyền Admin!");
-                loadUserManagement();
             } else {
                 window.showAlert("Lỗi xác thực", "Mã khóa không đúng!", 'error');
             }
@@ -825,7 +749,6 @@
                         sessionStorage.removeItem('vnrad_admin_key');
                         userDocData = null;
                         updateAuthUI();
-                        switchTab('dashboard');
                     });
                 });
             } else {
@@ -839,9 +762,6 @@
             
             // Use helper checkIsAdmin
             const isSuperAdmin = checkIsAdmin(user);
-            
-            // REMOVED PENDING CHECK - ALL USERS ARE APPROVED BY DEFAULT
-            const isApproved = true; 
 
             if (isSuperAdmin) {
                 btn.innerHTML = `<i data-lucide="shield-check" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="uppercase tracking-wide hidden xs:inline">Admin (Active)</span><span class="uppercase tracking-wide inline xs:hidden">Admin</span>`;
@@ -850,8 +770,9 @@
             } else if (isLoggedIn) {
                 btn.innerHTML = `<i data-lucide="user" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="uppercase tracking-wide hidden xs:inline">Thành viên</span><span class="uppercase tracking-wide inline xs:hidden">User</span>`;
                 btn.className = "px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold text-[10px] md:text-xs flex items-center gap-1.5 md:gap-2 border transition-all duration-300 shadow-md shadow-indigo-500/30 transform active:scale-95 bg-indigo-600 text-white border-indigo-500 hover:bg-indigo-700 hover:shadow-indigo-500/50";
-                // ALWAYS SHOW EXPORT IF LOGGED IN
-                el('btnExport').classList.remove('hidden'); el('btnExport').classList.add('flex');
+                if(true) { // All users auto approved
+                    el('btnExport').classList.remove('hidden'); el('btnExport').classList.add('flex');
+                }
             } else {
                 btn.innerHTML = `<i data-lucide="log-in" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="uppercase tracking-wide hidden xs:inline">Đăng nhập</span><span class="uppercase tracking-wide inline xs:hidden">Login</span>`;
                 btn.className = "px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold text-[10px] md:text-xs flex items-center gap-1.5 md:gap-2 border transition-all duration-300 shadow-md transform active:scale-95 bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 hover:text-white dark:bg-slate-700 dark:border-slate-600 dark:hover:bg-slate-600";
@@ -859,37 +780,20 @@
             }
 
             const viewDashboard = el('viewDashboard');
-            // const viewPending = el('viewPending'); // REMOVED
             const viewLock = el('viewLock');
-            const viewUsers = el('viewUsers');
-            const navTabs = el('mainNav');
-            const adminTabs = el('adminTabs');
+            const navLinks = el('mainNav');
 
             viewDashboard.classList.add('hidden');
-            // viewPending.classList.add('hidden'); // REMOVED
             viewLock.classList.add('hidden');
-            viewUsers.classList.add('hidden');
-            navTabs.classList.add('hidden');
-            adminTabs.classList.add('hidden');
+            navLinks.classList.add('hidden');
 
             if (!isLoggedIn && !isAdminKey) {
                 viewLock.classList.remove('hidden');
-            } else if (isSuperAdmin) {
-                adminTabs.classList.remove('hidden');
-                adminTabs.classList.add('flex');
-                navTabs.classList.remove('hidden');
-                navTabs.classList.add('flex');
-                if (currentTab === 'dashboard') {
-                    viewDashboard.classList.remove('hidden');
-                } else {
-                    viewUsers.classList.remove('hidden');
-                    loadUserManagement();
-                }
             } else {
-                // NORMAL USER -> ALWAYS DASHBOARD
+                // NORMAL USER & ADMIN -> ALWAYS DASHBOARD
                 viewDashboard.classList.remove('hidden');
-                navTabs.classList.remove('hidden');
-                navTabs.classList.add('flex');
+                navLinks.classList.remove('hidden');
+                navLinks.classList.add('flex');
             }
 
             // Force alias regeneration on auth state change to ensure correct view
@@ -905,40 +809,27 @@
         async function checkUserStatus(currentUser) {
             if(!currentUser || currentUser.isAnonymous) return;
             const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'drl_users', currentUser.uid);
-            onSnapshot(userRef, async (snap) => {
-                if (snap.exists()) {
-                    userDocData = snap.data();
-                    if (!userDocData.lastLogin || Date.now() - userDocData.lastLogin.toMillis() > 86400000) {
-                        await updateDoc(userRef, { lastLogin: serverTimestamp() });
-                    }
-                } else {
-                    const isSuperAdmin = checkIsAdmin(currentUser);
-                    const newUser = {
-                        email: currentUser.email,
-                        displayName: currentUser.displayName || currentUser.email.split('@')[0],
-                        photoURL: currentUser.photoURL,
-                        createdAt: serverTimestamp(),
-                        lastLogin: serverTimestamp(),
-                        status: 'approved', // AUTO APPROVE EVERYONE
-                        role: isSuperAdmin ? 'admin' : 'user'
-                    };
-                    await setDoc(userRef, newUser);
-                    userDocData = newUser;
-                }
-                updateAuthUI();
-            }, (error) => {
-                console.error("User Status Error:", error);
-                if (error.code === 'permission-denied') {
-                    // User is likely pending/new and can't read DB yet
-                    // Keep them in pending state
-                }
-            });
+            // Just update last login, no need to check status as everyone is approved
+            // Or create if not exists
+            const isSuperAdmin = checkIsAdmin(currentUser);
+            const newUser = {
+                email: currentUser.email,
+                displayName: currentUser.displayName || currentUser.email.split('@')[0],
+                photoURL: currentUser.photoURL,
+                createdAt: serverTimestamp(),
+                lastLogin: serverTimestamp(),
+                status: 'approved', // AUTO APPROVE EVERYONE
+                role: isSuperAdmin ? 'admin' : 'user'
+            };
+            // Use set with merge to create or update
+            await setDoc(userRef, newUser, { merge: true });
+            updateAuthUI();
         }
 
         onAuthStateChanged(auth, async (u) => {
             if (u) {
                 user = u;
-                // Immediate update to show "Pending" state while loading
+                // Immediate update
                 if (!u.isAnonymous) {
                     updateAuthUI(); 
                     await checkUserStatus(u);
@@ -951,69 +842,6 @@
             }
         });
         
-        window.switchTab = (tab) => {
-            currentTab = tab;
-            const btnDash = el('tabDashboard');
-            const btnUsers = el('tabUsers');
-            if (tab === 'dashboard') {
-                btnDash.classList.remove('tab-btn-inactive', 'bg-white', 'text-slate-500');
-                btnDash.classList.add('bg-indigo-600', 'text-white', 'shadow-md');
-                btnUsers.classList.remove('bg-indigo-600', 'text-white', 'shadow-md');
-                btnUsers.classList.add('tab-btn-inactive');
-            } else {
-                btnUsers.classList.remove('tab-btn-inactive', 'bg-white', 'text-slate-500');
-                btnUsers.classList.add('bg-indigo-600', 'text-white', 'shadow-md');
-                btnDash.classList.remove('bg-indigo-600', 'text-white', 'shadow-md');
-                btnDash.classList.add('tab-btn-inactive');
-            }
-            updateAuthUI();
-        };
-
-        window.loadUserManagement = () => {
-             const isSuperAdmin = checkIsAdmin(user);
-             if (!isSuperAdmin) return;
-             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'drl_users'), (snap) => {
-                 const users = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                 const tbody = el('usersTableBody');
-                 tbody.innerHTML = '';
-                 let pendingCount = 0;
-                 users.sort((a,b) => {
-                     if (a.status === 'pending' && b.status !== 'pending') return -1;
-                     if (a.status !== 'pending' && b.status === 'pending') return 1;
-                     return (b.lastLogin?.seconds || 0) - (a.lastLogin?.seconds || 0);
-                 });
-                 users.forEach(u => {
-                     if(u.status === 'pending') pendingCount++;
-                     const lastLogin = u.lastLogin ? new Date(u.lastLogin.seconds * 1000).toLocaleDateString('vi-VN') : 'N/A';
-                     const statusBadge = u.status === 'approved' 
-                        ? `<span class="px-2 py-1 rounded text-[10px] font-bold uppercase status-approved">Đã duyệt</span>`
-                        : (u.status === 'rejected' 
-                            ? `<span class="px-2 py-1 rounded text-[10px] font-bold uppercase status-rejected">Đã khóa</span>`
-                            : `<span class="px-2 py-1 rounded text-[10px] font-bold uppercase status-pending animate-pulse">Chờ duyệt</span>`);
-                     const row = document.createElement('tr');
-                     row.className = 'border-b border-slate-50 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors';
-                     row.innerHTML = `
-                        <td class="p-3">
-                            <div class="font-bold text-slate-700 dark:text-slate-200 text-xs">${u.email}</div>
-                            <div class="text-[9px] text-slate-400">${u.displayName || 'No Name'}</div>
-                        </td>
-                        <td class="p-3">${statusBadge}</td>
-                        <td class="p-3 font-mono text-slate-500 text-[10px]">${lastLogin}</td>
-                        <td class="p-3 text-right">
-                            <div class="flex items-center justify-end gap-2">
-                                ${u.status !== 'approved' ? `<button onclick="window.updateUserStatus('${u.id}', 'approved', this)" class="p-1.5 bg-emerald-100 text-emerald-600 rounded hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer" title="Duyệt"><i data-lucide="check" class="w-3 h-3 md:w-4 md:h-4"></i></button>` : ''}
-                                ${u.status !== 'rejected' ? `<button onclick="window.updateUserStatus('${u.id}', 'rejected', this)" class="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-600 hover:text-white transition-colors cursor-pointer" title="Khóa"><i data-lucide="ban" class="w-3 h-3 md:w-4 md:h-4"></i></button>` : ''}
-                                <a href="mailto:${u.email}" class="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-600 hover:text-white transition-colors cursor-pointer" title="Gửi Email"><i data-lucide="mail" class="w-3 h-3 md:w-4 md:h-4"></i></a>
-                            </div>
-                        </td>
-                     `;
-                     tbody.appendChild(row);
-                 });
-                 // REMOVED PENDING BADGE UPDATE
-                 lucide.createIcons();
-             });
-        };
-
         const getDisplayProtocol = (p) => {
             if (!p) return '';
             const lowerP = p.toLowerCase();
@@ -1114,13 +942,6 @@
             renderTable();
         };
 
-        window.sendApprovalRequestEmail = () => {
-            if(!user) return;
-            const subject = encodeURIComponent(`Yêu cầu phê duyệt tài khoản VN-DRL: ${user.email}`);
-            const body = encodeURIComponent(`Kính gửi Admin,\n\nVui lòng xem xét và phê duyệt tài khoản của tôi.\n\nEmail: ${user.email}\nUID: ${user.uid}\n\nXin cảm ơn.`);
-            window.location.href = `mailto:admin@vnrad.tech?subject=${subject}&body=${body}`;
-        };
-
         window.showHospitalModal = () => {
             const hospitals = [...new Set(entries.map(e => e.hospitalName).filter(Boolean))].sort();
             const listEl = el('hospitalList');
@@ -1132,6 +953,7 @@
                 entries.forEach(e => { if(e.hospitalName) hospMap[e.hospitalName] = (hospMap[e.hospitalName] || 0) + 1; });
                 const sortedHospitals = hospitals.sort((a,b) => (hospMap[b]||0) - (hospMap[a]||0));
                 sortedHospitals.forEach((h, index) => {
+                    if (h === 'Khác') return; // Filter out 'Khác'
                     const count = hospMap[h] || 0;
                     const displayName = hospitalAliasMap[h] || h; // Use Alias
                     const li = document.createElement('li');
@@ -1195,6 +1017,7 @@
                 const s = el(id); const v = s.value; 
                 s.innerHTML = '<option value="all">Tất cả</option>'; 
                 arr.forEach(i => {
+                    if (i === 'Khác') return; // Filter out 'Khác'
                     const displayName = hospitalAliasMap[i] || i;
                     s.innerHTML += `<option value="${i}">${displayName}</option>`;
                 }); 
@@ -1398,9 +1221,7 @@
                 // --- MASKING LOGIC FOR ROW ---
                 const displayHospital = hospitalAliasMap[e.hospitalName] || e.hospitalName;
                 
-                // MASKING LOGIC FOR EMAIL (NEW)
-                // If I am owner OR I am admin -> Show real email
-                // Else -> Show "Thành viên khác"
+                // MASKING LOGIC FOR EMAIL
                 const displayEmail = (isOwner || isSuperAdmin) ? (e.userEmail || 'Unknown') : 'Thành viên khác';
                 const displayInitial = (isOwner || isSuperAdmin) ? (e.userEmail || '?').charAt(0).toUpperCase() : '?';
 
