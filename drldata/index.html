@@ -166,6 +166,20 @@
 
     <main class="flex-1 max-w-7xl mx-auto w-full p-4 md:p-8 space-y-6">
         
+        <!-- LOCK SCREEN (Default View for Guest) -->
+        <div id="viewLock" class="flex flex-col items-center justify-center py-20 animate-in fade-in duration-500">
+            <div class="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6 shadow-xl">
+                <i data-lucide="lock" class="w-10 h-10 text-slate-400"></i>
+            </div>
+            <h2 class="text-2xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tight">Yêu cầu đăng nhập</h2>
+            <p class="text-slate-500 dark:text-slate-400 text-center max-w-md mb-8">
+                Vì lý do bảo mật, hệ thống VN-DRL Study yêu cầu xác thực để xem và nhập liệu dữ liệu đa trung tâm. Vui lòng đăng nhập và chờ phê duyệt để tiếp tục.
+            </p>
+            <button onclick="document.getElementById('authModal').classList.remove('hidden')" class="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 hover:shadow-indigo-500/50 transition-all transform hover:-translate-y-1">
+                Đăng nhập ngay
+            </button>
+        </div>
+
         <!-- PENDING APPROVAL VIEW -->
         <div id="viewPending" class="hidden flex flex-col items-center justify-center py-20 animate-in fade-in duration-500">
             <div class="w-24 h-24 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-6 shadow-xl shadow-amber-200/50 dark:shadow-none">
@@ -639,6 +653,25 @@
 
         const el = (id) => document.getElementById(id);
 
+        // --- GLOBAL FUNCTIONS EXPORTED FROM MODULE ---
+        
+        // 1. Explicitly export updateUserStatus to window so HTML onClick can see it
+        window.updateUserStatus = async (uid, newStatus) => {
+            try {
+                if(!uid || uid === 'undefined') throw new Error("Invalid User ID");
+                
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_users', uid), {
+                    status: newStatus
+                });
+                window.showToast(`Đã cập nhật trạng thái: ${newStatus}`);
+            } catch (err) {
+                console.error(err);
+                let msg = err.message;
+                if(msg.includes("permission")) msg = "Bạn không có quyền thực hiện thao tác này.";
+                window.showAlert("Lỗi", msg, 'error');
+            }
+        };
+
         // --- Custom Global Dialog ---
         function showDialog(type, title, message, onConfirm = null) {
             const dialog = el('globalDialog');
@@ -826,6 +859,7 @@
             // 2. View Visibility Logic
             const viewDashboard = el('viewDashboard');
             const viewPending = el('viewPending');
+            const viewLock = el('viewLock');
             const viewUsers = el('viewUsers');
             const navTabs = el('mainNav');
             const adminTabs = el('adminTabs');
@@ -833,16 +867,21 @@
             // Reset all first
             viewDashboard.classList.add('hidden');
             viewPending.classList.add('hidden');
+            viewLock.classList.add('hidden');
             viewUsers.classList.add('hidden');
             navTabs.classList.add('hidden');
             adminTabs.classList.add('hidden');
 
-            if (isPending) {
+            if (!isLoggedIn && !isAdminKey) {
+                // Anonymous/Guest AND No Admin Key: Show Lock Screen
+                viewLock.classList.remove('hidden');
+            } else if (isPending && !isAdminKey) {
+                // Pending AND No Admin Key: Show Pending Screen
                 viewPending.classList.remove('hidden');
                 el('pendingUserEmail').textContent = user.email || 'No Email';
                 el('pendingUserInitial').textContent = (user.email||'?').charAt(0).toUpperCase();
             } else if (isSuperAdmin) {
-                // Admin: Show Tabs, Show Current Tab content
+                // Admin (Key or Email): Show Tabs & Current Tab content
                 adminTabs.classList.remove('hidden');
                 adminTabs.classList.add('flex');
                 navTabs.classList.remove('hidden');
@@ -855,7 +894,7 @@
                     loadUserManagement(); // Ensure fresh list
                 }
             } else {
-                // Anonymous or Approved User: Show Dashboard
+                // Approved User: Show Dashboard
                 viewDashboard.classList.remove('hidden');
                 if(isApproved) {
                     navTabs.classList.remove('hidden');
@@ -980,8 +1019,8 @@
                         <td class="p-3 font-mono text-slate-500 text-[11px]">${lastLogin}</td>
                         <td class="p-3 text-right">
                             <div class="flex items-center justify-end gap-2">
-                                ${u.status !== 'approved' ? `<button onclick="updateUserStatus('${u.id}', 'approved')" class="p-1.5 bg-emerald-100 text-emerald-600 rounded hover:bg-emerald-600 hover:text-white transition-colors" title="Duyệt"><i data-lucide="check" class="w-4 h-4"></i></button>` : ''}
-                                ${u.status !== 'rejected' ? `<button onclick="updateUserStatus('${u.id}', 'rejected')" class="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-600 hover:text-white transition-colors" title="Khóa"><i data-lucide="ban" class="w-4 h-4"></i></button>` : ''}
+                                ${u.status !== 'approved' ? `<button onclick="window.updateUserStatus('${u.id}', 'approved')" class="p-1.5 bg-emerald-100 text-emerald-600 rounded hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer" title="Duyệt"><i data-lucide="check" class="w-4 h-4"></i></button>` : ''}
+                                ${u.status !== 'rejected' ? `<button onclick="window.updateUserStatus('${u.id}', 'rejected')" class="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-600 hover:text-white transition-colors cursor-pointer" title="Khóa"><i data-lucide="ban" class="w-4 h-4"></i></button>` : ''}
                             </div>
                         </td>
                      `;
@@ -998,17 +1037,6 @@
                  }
                  lucide.createIcons();
              });
-        };
-
-        window.updateUserStatus = async (uid, newStatus) => {
-            try {
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_users', uid), {
-                    status: newStatus
-                });
-                window.showToast(`Đã cập nhật trạng thái: ${newStatus}`);
-            } catch (err) {
-                window.showAlert("Lỗi", err.message, 'error');
-            }
         };
 
         // Data Listener - Moved outside to run once
