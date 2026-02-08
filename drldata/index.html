@@ -166,7 +166,7 @@
             <!-- Admin Tabs (Visible only to Admin) -->
             <div id="adminTabs" class="hidden mt-3 md:mt-4 pt-2 border-t border-slate-100 dark:border-slate-800 gap-2 overflow-x-auto no-scrollbar">
                 <button onclick="switchTab('dashboard')" id="tabDashboard" class="whitespace-nowrap px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-bold text-xs uppercase tracking-wide transition-all bg-indigo-600 text-white shadow-md shadow-indigo-500/30">Dashboard</button>
-                <button onclick="switchTab('users')" id="tabUsers" class="whitespace-nowrap px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-bold text-xs uppercase tracking-wide transition-all text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200">Quản lý tài khoản <span id="pendingCount" class="ml-1 px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[9px] hidden">0</span></button>
+                <button onclick="switchTab('users')" id="tabUsers" class="whitespace-nowrap px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-bold text-xs uppercase tracking-wide transition-all text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200">Quản lý tài khoản</button>
             </div>
         </div>
     </header>
@@ -189,27 +189,6 @@
             </p>
             <button onclick="document.getElementById('authModal').classList.remove('hidden')" class="px-6 py-2.5 md:px-8 md:py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs md:text-sm shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 hover:shadow-indigo-500/50 transition-all transform hover:-translate-y-1">
                 Đăng nhập ngay
-            </button>
-        </div>
-
-        <!-- PENDING APPROVAL VIEW -->
-        <div id="viewPending" class="hidden flex flex-col items-center justify-center py-10 md:py-20 animate-in fade-in duration-500 px-4">
-            <div class="w-20 h-20 md:w-24 md:h-24 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-6 shadow-xl shadow-amber-200/50 dark:shadow-none">
-                <i data-lucide="clock" class="w-8 h-8 md:w-10 md:h-10 text-amber-600 dark:text-amber-400"></i>
-            </div>
-            <h2 class="text-xl md:text-2xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tight text-center">Tài khoản chờ phê duyệt</h2>
-            <p class="text-xs md:text-base text-slate-500 dark:text-slate-400 text-center max-w-md mb-8">
-                Cảm ơn bạn đã đăng ký tham gia VN-DRL Study. Tài khoản của bạn đang được xem xét. Vui lòng liên hệ quản trị viên để được kích hoạt quyền truy cập dữ liệu.
-            </p>
-            <div class="p-4 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300" id="pendingUserInitial">?</div>
-                <div>
-                    <div class="text-xs font-bold text-slate-400 uppercase">Tài khoản hiện tại</div>
-                    <div class="font-bold text-slate-800 dark:text-white text-sm" id="pendingUserEmail">...</div>
-                </div>
-            </div>
-            <button onclick="sendApprovalRequestEmail()" class="mt-4 text-xs font-bold text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 flex items-center gap-2 hover:underline">
-                <i data-lucide="mail" class="w-3 h-3"></i> Nhắc nhở Admin qua Email
             </button>
         </div>
 
@@ -675,18 +654,15 @@
         // --- AUTH & PERMISSION LOGIC ---
         // Helper to check if a user is a hardcoded Super Admin or has the key
         const checkIsAdmin = (u) => {
-            const adminEmails = ['admin@vnrad.tech', 'thanhtrong.yds@gmail.com', 'kythuatvien3mien@gmail.com'];
-            return isAdminKey || (u && adminEmails.includes(u.email));
+            return isAdminKey;
         };
 
         // --- GLOBAL FUNCTIONS ---
-        // FIX: Update User Status with setDoc merge and better error handling
         window.updateUserStatus = async (uid, newStatus, btnElement) => {
             if(!auth.currentUser && isAdminKey) {
-                 await signInAnonymously(auth); // Ensure we have a token
+                 await signInAnonymously(auth); 
             }
             
-            // UI Feedback
             let originalContent = '';
             if (btnElement) {
                 originalContent = btnElement.innerHTML;
@@ -696,7 +672,6 @@
 
             try {
                 if(!uid || uid === 'undefined') throw new Error("Invalid User ID");
-                // Use setDoc with merge: true to update or create if missing, more robust than updateDoc
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_users', uid), { status: newStatus }, { merge: true });
                 window.showToast(`Đã cập nhật trạng thái: ${newStatus}`);
             } catch (err) {
@@ -865,8 +840,8 @@
             // Use helper checkIsAdmin
             const isSuperAdmin = checkIsAdmin(user);
             
-            const isApproved = isSuperAdmin || (userDocData && userDocData.status === 'approved');
-            const isPending = !isSuperAdmin && isLoggedIn && (!userDocData || userDocData.status === 'pending');
+            // REMOVED PENDING CHECK - ALL USERS ARE APPROVED BY DEFAULT
+            const isApproved = true; 
 
             if (isSuperAdmin) {
                 btn.innerHTML = `<i data-lucide="shield-check" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="uppercase tracking-wide hidden xs:inline">Admin (Active)</span><span class="uppercase tracking-wide inline xs:hidden">Admin</span>`;
@@ -875,11 +850,8 @@
             } else if (isLoggedIn) {
                 btn.innerHTML = `<i data-lucide="user" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="uppercase tracking-wide hidden xs:inline">Thành viên</span><span class="uppercase tracking-wide inline xs:hidden">User</span>`;
                 btn.className = "px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold text-[10px] md:text-xs flex items-center gap-1.5 md:gap-2 border transition-all duration-300 shadow-md shadow-indigo-500/30 transform active:scale-95 bg-indigo-600 text-white border-indigo-500 hover:bg-indigo-700 hover:shadow-indigo-500/50";
-                if(isApproved) {
-                    el('btnExport').classList.remove('hidden'); el('btnExport').classList.add('flex');
-                } else {
-                    el('btnExport').classList.add('hidden'); el('btnExport').classList.remove('flex');
-                }
+                // ALWAYS SHOW EXPORT IF LOGGED IN
+                el('btnExport').classList.remove('hidden'); el('btnExport').classList.add('flex');
             } else {
                 btn.innerHTML = `<i data-lucide="log-in" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="uppercase tracking-wide hidden xs:inline">Đăng nhập</span><span class="uppercase tracking-wide inline xs:hidden">Login</span>`;
                 btn.className = "px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold text-[10px] md:text-xs flex items-center gap-1.5 md:gap-2 border transition-all duration-300 shadow-md transform active:scale-95 bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 hover:text-white dark:bg-slate-700 dark:border-slate-600 dark:hover:bg-slate-600";
@@ -887,14 +859,14 @@
             }
 
             const viewDashboard = el('viewDashboard');
-            const viewPending = el('viewPending');
+            // const viewPending = el('viewPending'); // REMOVED
             const viewLock = el('viewLock');
             const viewUsers = el('viewUsers');
             const navTabs = el('mainNav');
             const adminTabs = el('adminTabs');
 
             viewDashboard.classList.add('hidden');
-            viewPending.classList.add('hidden');
+            // viewPending.classList.add('hidden'); // REMOVED
             viewLock.classList.add('hidden');
             viewUsers.classList.add('hidden');
             navTabs.classList.add('hidden');
@@ -902,10 +874,6 @@
 
             if (!isLoggedIn && !isAdminKey) {
                 viewLock.classList.remove('hidden');
-            } else if (isPending && !isAdminKey) {
-                viewPending.classList.remove('hidden');
-                el('pendingUserEmail').textContent = user.email || 'No Email';
-                el('pendingUserInitial').textContent = (user.email||'?').charAt(0).toUpperCase();
             } else if (isSuperAdmin) {
                 adminTabs.classList.remove('hidden');
                 adminTabs.classList.add('flex');
@@ -918,16 +886,19 @@
                     loadUserManagement();
                 }
             } else {
+                // NORMAL USER -> ALWAYS DASHBOARD
                 viewDashboard.classList.remove('hidden');
-                if(isApproved) {
-                    navTabs.classList.remove('hidden');
-                    navTabs.classList.add('flex');
-                }
+                navTabs.classList.remove('hidden');
+                navTabs.classList.add('flex');
             }
 
             // Force alias regeneration on auth state change to ensure correct view
             generateHospitalAliases(entries);
-            if (!viewDashboard.classList.contains('hidden')) window.renderTable();
+            if (!viewDashboard.classList.contains('hidden')) {
+                // Call populateFilters to refresh dropdown options with unmasked names if applicable
+                populateFilters();
+                window.renderTable();
+            }
             lucide.createIcons();
         }
 
@@ -948,13 +919,19 @@
                         photoURL: currentUser.photoURL,
                         createdAt: serverTimestamp(),
                         lastLogin: serverTimestamp(),
-                        status: isSuperAdmin ? 'approved' : 'pending',
+                        status: 'approved', // AUTO APPROVE EVERYONE
                         role: isSuperAdmin ? 'admin' : 'user'
                     };
                     await setDoc(userRef, newUser);
                     userDocData = newUser;
                 }
                 updateAuthUI();
+            }, (error) => {
+                console.error("User Status Error:", error);
+                if (error.code === 'permission-denied') {
+                    // User is likely pending/new and can't read DB yet
+                    // Keep them in pending state
+                }
             });
         }
 
@@ -1032,9 +1009,7 @@
                      `;
                      tbody.appendChild(row);
                  });
-                 const badge = el('pendingCount');
-                 if(pendingCount > 0) { badge.textContent = pendingCount; badge.classList.remove('hidden'); }
-                 else { badge.classList.add('hidden'); }
+                 // REMOVED PENDING BADGE UPDATE
                  lucide.createIcons();
              });
         };
@@ -1089,9 +1064,11 @@
             // Determine user's hospitals (if logged in as normal user)
             const myHosps = new Set();
             if (user && !user.isAnonymous && !isAdminKey) {
-                // Assuming standard user: they "own" data where userId matches
+                // Assuming standard user: they "own" data where userId matches OR email matches
                 data.forEach(e => {
-                    if (e.userId === user.uid) myHosps.add(e.hospitalName);
+                    if (e.userId === user.uid || (e.userEmail && e.userEmail === user.email)) {
+                         myHosps.add(e.hospitalName);
+                    }
                 });
             }
 
@@ -1298,7 +1275,10 @@
              el('countHead').innerText = head; el('countChest').innerText = chest; el('countAbd').innerText = abd; el('countLow').innerText = ldct;
              
              // Top Contributors Logic (Masked)
-             const hospMap = {}; activeData.forEach(e => { if(e.hospitalName) hospMap[e.hospitalName] = (hospMap[e.hospitalName] || 0) + 1; });
+             const hospMap = {}; 
+             activeData.forEach(e => { 
+                if(e.hospitalName && e.hospitalName !== 'Khác') hospMap[e.hospitalName] = (hospMap[e.hospitalName] || 0) + 1; 
+             });
              const sortedHosps = Object.entries(hospMap).sort((a,b) => b[1] - a[1]).slice(0, 3);
              const topListEl = el('topHospitalsList');
              if(topListEl) {
