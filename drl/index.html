@@ -422,7 +422,22 @@
             });
 
             // Handlers
-            on('hospitalSelect','change',(e)=>{el('customHospitalContainer').classList.toggle('hidden',e.target.value!=='other');localStorage.setItem('drl_saved_hospitalSelect',e.target.value)});
+            on('hospitalSelect', 'change', (e) => {
+                const isOther = e.target.value === 'other';
+                const customContainer = el('customHospitalContainer');
+                const customInput = el('customHospitalName');
+                
+                customContainer.classList.toggle('hidden', !isOther);
+                
+                if (isOther) {
+                    // Blur select to ensure native picker closes on some devices
+                    e.target.blur();
+                    // Focus the input to bring up keyboard
+                    setTimeout(() => customInput.focus(), 100); 
+                }
+                
+                localStorage.setItem('drl_saved_hospitalSelect', e.target.value);
+            });
             on('manufacturer','change',(e)=>localStorage.setItem('drl_saved_manufacturer',e.target.value));
             on('protocol','change',(e)=>localStorage.setItem('drl_saved_protocol',e.target.value));
             on('scanDate','change',(e)=>localStorage.setItem('drl_saved_scanDate',e.target.value));
