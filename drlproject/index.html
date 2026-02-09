@@ -1,1 +1,343 @@
 
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VN-DRL Study - Cổng thông tin Nghiên cứu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --grid-line: rgba(255, 255, 255, 0.05);
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.05);
+            --card-hover-bg: rgba(255, 255, 255, 0.08);
+            --nav-bg: rgba(15, 23, 42, 0.8);
+            --glass-shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f0f4f8;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --grid-line: rgba(0, 0, 0, 0.05);
+            --card-bg: rgba(255, 255, 255, 0.6);
+            --card-border: rgba(255, 255, 255, 0.4);
+            --card-hover-bg: rgba(255, 255, 255, 0.9);
+            --nav-bg: rgba(240, 244, 248, 0.8);
+            --glass-shadow: rgba(148, 163, 184, 0.2);
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            overflow-x: hidden; 
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        /* Scientific Grid Background */
+        .sci-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background-color: var(--bg-color);
+            transition: background-color 0.5s ease;
+        }
+        
+        /* Dark Mode Gradients */
+        html:not([data-theme="light"]) .sci-bg {
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+        }
+
+        /* Light Mode Gradients */
+        [data-theme="light"] .sci-bg {
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(210, 100%, 96%, 1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(220, 100%, 94%, 1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(230, 100%, 97%, 1) 0, transparent 50%);
+        }
+
+        .sci-grid {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(var(--grid-line) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+            -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+        }
+
+        /* Glassmorphism Card */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 4px 30px var(--glass-shadow);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            transform: translateY(-5px);
+            background: var(--card-hover-bg);
+            border-color: var(--card-border);
+            box-shadow: 0 20px 40px var(--glass-shadow);
+        }
+
+        /* Gradient Text */
+        .text-gradient {
+            background: linear-gradient(to right, #818cf8, #c084fc, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* Specific text overrides for light mode */
+        [data-theme="light"] .text-slate-400 { color: #64748b; }
+        [data-theme="light"] .text-slate-500 { color: #475569; }
+        [data-theme="light"] .text-white { color: #1e293b; } /* Invert white text to dark in light mode */
+        [data-theme="light"] .text-slate-200 { color: #334155; } /* Fix: Chuyển màu chữ tiêu đề sang xám đậm trong Bright Mode */
+        [data-theme="light"] .border-white\/5 { border-color: rgba(0,0,0,0.1); }
+        [data-theme="light"] .border-white\/10 { border-color: rgba(0,0,0,0.1); }
+        [data-theme="light"] .bg-white\/5 { background-color: rgba(0,0,0,0.05); }
+
+        /* Card Gradients - Subtler in light mode */
+        .card-gradient-1 { background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05)); }
+        .card-gradient-2 { background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05)); }
+        .card-gradient-3 { background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05)); }
+        .card-gradient-4 { background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.05)); }
+
+        .font-serif-custom {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .gold-text {
+            background: linear-gradient(to right, #fbbf24, #d97706, #fbbf24);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: shine 4s linear infinite;
+        }
+        
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen transition-colors duration-500">
+    
+    <div class="sci-bg"><div class="sci-grid"></div></div>
+
+    <!-- Navigation -->
+    <nav class="w-full px-6 py-6 flex justify-between items-center z-50 sticky top-0 backdrop-blur-md" style="background-color: var(--nav-bg); border-bottom: 1px solid var(--card-border);">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-500/20 p-2.5 rounded-xl border border-indigo-500/30 text-indigo-400">
+                <i data-lucide="atom" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-black tracking-tighter uppercase" style="color: var(--text-main);">VN-DRL <span class="text-indigo-400">STUDY</span></h1>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-6">
+            <!-- Theme Toggle Button -->
+            <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-white/10 transition-colors text-slate-400 hover:text-indigo-400 focus:outline-none" aria-label="Toggle Dark Mode">
+                <i data-lucide="moon" class="w-5 h-5" id="moon-icon"></i>
+                <i data-lucide="sun" class="w-5 h-5 hidden" id="sun-icon"></i>
+            </button>
+
+            <!-- Updated Contact Info -->
+            <div class="hidden md:flex flex-col items-end text-xs">
+                <span class="font-bold text-slate-500 uppercase tracking-wider text-[10px] mb-0.5">Liên hệ</span>
+                <a href="tel:0944406507" class="font-bold hover:text-indigo-400 transition-colors flex items-center gap-1" style="color: var(--text-main);">
+                    Lê Thanh Trọng - 0944 406 507
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col items-center justify-center p-6 relative z-10 w-full max-w-7xl mx-auto">
+        
+        <!-- Hero Section -->
+        <div class="text-center max-w-4xl mx-auto mb-16 space-y-4">
+            
+            <!-- ORGANIZATION NAME - PROMINENT POSITION -->
+            <div class="mb-8 animate-fade-in-down">
+                <p class="text-[10px] font-bold tracking-[0.2em] text-slate-500 uppercase mb-2">Đơn vị chủ trì & thực hiện</p>
+                <!-- Reduced size significantly: text-2xl -> text-sm, md:text-4xl -> md:text-lg -->
+                <h1 class="text-sm md:text-lg font-serif-custom font-bold uppercase tracking-widest text-slate-200 leading-relaxed">
+                    Nhóm KTV Hình ảnh y học 3 Miền
+                </h1>
+                <!-- Adjusted separator line to match smaller size -->
+                <div class="w-12 h-px bg-indigo-400/50 mx-auto mt-3"></div>
+            </div>
+
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-indigo-400 mb-4 mt-4">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Dự án Nghiên cứu Đa trung tâm 2024 - 2026
+            </div>
+            
+            <h2 class="text-4xl md:text-6xl font-black tracking-tight leading-tight" style="color: var(--text-main);">
+                Xây dựng mức liều tham chiếu
+                <span class="block mt-6 text-gradient">Chẩn đoán quốc gia</span>
+                <span class="block mt-3 text-lg md:text-2xl font-bold tracking-wide transition-colors" style="color: var(--text-main);">Diagnosis Reference Level Project (DRLs)</span>
+            </h2>
+            
+            <p class="text-slate-400 text-sm md:text-lg leading-relaxed max-w-2xl mx-auto font-light mt-6">
+                Nghiên cứu đánh giá mức liều chiếu xạ y tế tham chiếu (DRL) trên các thiết bị Cắt lớp vi tính (CT Scanner). 
+                Dữ liệu được thu thập, phân tích và so sánh với các chuẩn mực quốc tế (ICRP, EU, Nhật Bản) nhằm tối ưu hóa an toàn bức xạ cho người bệnh tại Việt Nam.
+            </p>
+        </div>
+
+        <!-- Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
+            
+            <!-- Card 1: Nhập liệu -->
+            <a href="index.html" class="glass-card card-gradient-1 p-8 rounded-[2rem] flex flex-col gap-4 group relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i data-lucide="keyboard" class="w-24 h-24 text-blue-500"></i>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-400 mb-2 border border-blue-500/30 group-hover:scale-110 transition-transform">
+                    <i data-lucide="keyboard" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-2" style="color: var(--text-main);">Nhập liệu</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                        Hệ thống nhập dữ liệu ẩn danh cho các ca chụp CT. Hỗ trợ tính toán BMI và cảnh báo liều tự động.
+                    </p>
+                </div>
+                <div class="mt-auto pt-4 flex items-center text-xs font-black text-blue-400 uppercase tracking-wider group-hover:gap-2 transition-all">
+                    Truy cập ngay <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+                </div>
+            </a>
+
+            <!-- Card 2: Thống kê -->
+            <a href="https://vnrad.tech/thongke" class="glass-card card-gradient-2 p-8 rounded-[2rem] flex flex-col gap-4 group relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i data-lucide="pie-chart" class="w-24 h-24 text-violet-500"></i>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-violet-500/20 flex items-center justify-center text-violet-400 mb-2 border border-violet-500/30 group-hover:scale-110 transition-transform">
+                    <i data-lucide="pie-chart" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-2" style="color: var(--text-main);">Thống kê</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                        Báo cáo phân tích dữ liệu tập trung. So sánh mức liều trung vị với các tiêu chuẩn tham chiếu quốc tế.
+                    </p>
+                </div>
+                <div class="mt-auto pt-4 flex items-center text-xs font-black text-violet-400 uppercase tracking-wider group-hover:gap-2 transition-all">
+                    Xem báo cáo <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+                </div>
+            </a>
+
+            <!-- Card 3: Dữ liệu -->
+            <a href="https://vnrad.tech/drldata" class="glass-card card-gradient-3 p-8 rounded-[2rem] flex flex-col gap-4 group relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i data-lucide="database" class="w-24 h-24 text-emerald-500"></i>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 mb-2 border border-emerald-500/30 group-hover:scale-110 transition-transform">
+                    <i data-lucide="database" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-2" style="color: var(--text-main);">Dữ liệu</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                        Kho lưu trữ dữ liệu thô (Raw Data) của dự án. Hỗ trợ trích xuất và quản lý hồ sơ nghiên cứu.
+                    </p>
+                </div>
+                <div class="mt-auto pt-4 flex items-center text-xs font-black text-emerald-400 uppercase tracking-wider group-hover:gap-2 transition-all">
+                    Truy cập kho <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+                </div>
+            </a>
+
+            <!-- Card 4: Biểu đồ -->
+            <a href="https://vnrad.tech/chart" class="glass-card card-gradient-4 p-8 rounded-[2rem] flex flex-col gap-4 group relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i data-lucide="bar-chart-2" class="w-24 h-24 text-amber-500"></i>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-amber-500/20 flex items-center justify-center text-amber-400 mb-2 border border-amber-500/30 group-hover:scale-110 transition-transform">
+                    <i data-lucide="bar-chart-2" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-2" style="color: var(--text-main);">Biểu đồ</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                        Trực quan hóa dữ liệu đa chiều. Biểu diễn phân bố liều theo thiết bị, độ tuổi và kỹ thuật chụp.
+                    </p>
+                </div>
+                <div class="mt-auto pt-4 flex items-center text-xs font-black text-amber-400 uppercase tracking-wider group-hover:gap-2 transition-all">
+                    Xem biểu đồ <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+                </div>
+            </a>
+
+        </div>
+
+        <!-- Footer Stats -->
+        <div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-16 text-center border-t border-white/5 pt-12 w-full">
+            <div>
+                <h4 class="text-3xl font-black" style="color: var(--text-main);">63</h4>
+                <p class="text-xs font-bold text-slate-500 uppercase mt-1">Tỉnh thành</p>
+            </div>
+            <div>
+                <h4 class="text-3xl font-black" style="color: var(--text-main);">50+</h4>
+                <p class="text-xs font-bold text-slate-500 uppercase mt-1">Bệnh viện</p>
+            </div>
+            <div>
+                <h4 class="text-3xl font-black" style="color: var(--text-main);">10k+</h4>
+                <p class="text-xs font-bold text-slate-500 uppercase mt-1">Mẫu dữ liệu</p>
+            </div>
+            <div>
+                <h4 class="text-3xl font-black" style="color: var(--text-main);">2026</h4>
+                <p class="text-xs font-bold text-slate-500 uppercase mt-1">Năm hoàn thành</p>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="w-full py-6 text-center border-t border-white/5 mt-auto">
+        <p class="text-[10px] text-slate-600 font-medium">
+            © 2024 - 2026 VN-DRL Study Project. All rights reserved.<br>
+            <span class="opacity-50">Designed for Scientific Research.</span>
+        </p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // Theme Toggle Logic
+        const html = document.documentElement;
+        const moonIcon = document.getElementById('moon-icon');
+        const sunIcon = document.getElementById('sun-icon');
+        
+        function toggleTheme() {
+            // Logic đảo ngược: Hiện tại đang là Light (có attribute) -> Bấm vào sẽ thành Dark (xóa attribute)
+            if (html.hasAttribute('data-theme')) {
+                html.removeAttribute('data-theme');
+                moonIcon.classList.add('hidden');
+                sunIcon.classList.remove('hidden');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                html.setAttribute('data-theme', 'light');
+                moonIcon.classList.remove('hidden');
+                sunIcon.classList.add('hidden');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Check Local Storage on Load (Default is Light now)
+        // Chỉ chuyển sang Dark nếu LocalStorage lưu 'dark', ngược lại giữ nguyên mặc định là Light
+        if (localStorage.getItem('theme') === 'dark') {
+            html.removeAttribute('data-theme');
+            moonIcon.classList.add('hidden');
+            sunIcon.classList.remove('hidden');
+        } else {
+            // Đảm bảo icon đúng trạng thái Light mode mặc định
+            moonIcon.classList.remove('hidden');
+            sunIcon.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
