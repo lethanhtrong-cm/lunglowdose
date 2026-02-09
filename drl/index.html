@@ -11,7 +11,6 @@
     <style>
         body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #1e293b; overflow-x: hidden; -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; min-height: 100vh; }
         .mesh-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(at 0% 0%, hsla(220,100%,95%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(260,100%,92%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(190,100%,92%,1) 0, transparent 50%), radial-gradient(at 0% 100%, hsla(260,100%,92%,1) 0, transparent 50%); }
-        /* Max width 90% */
         .app-layout { margin-top: 1rem; padding: 0 1rem 1rem 1rem; max-width: 90%; width: 100%; margin-left: auto; margin-right: auto; display: flex; flex-direction: column; flex: 1; }
         .glass-card { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05); }
         .glass-input { background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.08); color: #1e293b; transition: all 0.3s ease; }
@@ -26,7 +25,8 @@
         #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f8fafc; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease-out, visibility 0.5s ease-out; }
         .loader-spinner { width: 48px; height: 48px; border: 5px solid #e2e8f0; border-bottom-color: #4f46e5; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite; }
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 150; pointer-events: none; transition: all 0.3s; }
+        /* Toast Z-Index increased to 300 to be on top of everything */
+        #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 300; pointer-events: none; transition: all 0.3s; }
         .hidden { display: none !important; }
         #bannedOverlay { backdrop-filter: blur(8px); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -46,7 +46,7 @@
     <div id="globalLoader"><div class="flex flex-col items-center gap-4"><span class="loader-spinner"></span><p class="text-xs font-black text-indigo-900 tracking-widest uppercase animate-pulse">Đang tải ứng dụng...</p></div></div>
     <div class="mesh-bg"></div>
 
-    <!-- Modals (Banned, Auth, Confirm, Input, Manage) -->
+    <!-- Modals -->
     <div id="bannedOverlay" class="fixed inset-0 z-[200] bg-slate-900/80 hidden flex flex-col items-center justify-center text-white p-8 text-center"></div>
     <div id="authModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md hidden p-4"><div class="bg-white rounded-[2.5rem] w-full max-w-md p-8 md:p-10 shadow-2xl relative"><button id="closeAuthModal" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button><h2 class="text-2xl font-black text-indigo-900 text-center mb-6">Đăng Nhập</h2><form id="authForm" class="space-y-4"><input type="email" id="authEmail" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Email" required><input type="password" id="authPassword" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Mật khẩu" required><div class="flex items-center gap-2 px-1"><input type="checkbox" id="rememberMe" class="custom-checkbox w-4 h-4" checked><label for="rememberMe" class="text-[11px] font-bold text-slate-500 cursor-pointer select-none">Ghi nhớ đăng nhập</label></div><button type="submit" id="authSubmitBtn" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black uppercase active:scale-95">Vào Hệ Thống</button></form><div class="relative my-6"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-100"></div></div><div class="relative flex justify-center text-xs uppercase"><span class="bg-white px-2 text-slate-400">Hoặc</span></div></div><button id="googleLoginBtn" class="bg-white text-slate-900 border border-slate-200 w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-50 shadow-sm transition-all"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.79 2.71v2.24h2.91c1.71-1.57 2.68-3.88 2.68-6.58z" fill="#4285F4"/><path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.24c-.8.54-1.84.85-3.05.85-2.34 0-4.32-1.58-5.03-3.71H.95v2.3C2.43 15.89 5.5 18 9 18z" fill="#34A853"/><path d="M3.97 10.72c-.18-.54-.28-1.11-.28-1.72s.1-1.18.28-1.72V4.98H.95C.34 6.19 0 7.56 0 9s.34 2.81.95 4.02l3.02-2.3z" fill="#FBBC05"/><path d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.47.89 11.43 0 9 0 5.5 0 2.43 2.11.95 5.12l3.02 2.3c.71-2.13 2.69-3.71 5.03-3.71z" fill="#EA4335"/></svg>Tiếp tục với Google</button><div class="mt-4 text-center border-t border-slate-50 pt-4"><button id="openAdminLogin" class="text-[9px] font-black text-slate-300 hover:text-indigo-500 uppercase tracking-widest">Admin Access</button></div></div></div>
     <div id="adminAuthModal" class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4"><div class="bg-white rounded-[2rem] w-full max-w-xs p-8 shadow-2xl relative"><button onclick="document.getElementById('adminAuthModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-300 hover:text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button><h3 class="text-lg font-black text-slate-900 uppercase text-center mb-4">Admin Key</h3><form id="adminAuthForm" class="space-y-4"><input type="password" id="adminPassInput" class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-center tracking-widest outline-none focus:ring-2 focus:ring-red-500" placeholder="••••••••" required><button type="submit" class="w-full py-3 bg-red-500 text-white rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-red-600">Xác nhận</button></form></div></div>
@@ -272,6 +272,12 @@
         </div>
     </div>
 
+    <!-- Toast -->
+    <div id="toast" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 p-6 bg-white border-2 border-indigo-100 rounded-[2rem] shadow-2xl z-[300] opacity-0 scale-90 pointer-events-none transition-all duration-300 flex flex-col items-center gap-3 text-slate-900 font-black min-w-[200px]">
+        <div class="p-4 rounded-full bg-emerald-100 text-emerald-600 shadow-sm mb-1"><i data-lucide="check" class="w-8 h-8"></i></div>
+        <p id="toastMessage" class="text-sm uppercase tracking-wider text-center"></p>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -288,13 +294,32 @@
         const el = (id) => document.getElementById(id);
         const on = (id, ev, fn) => { const e = el(id); if(e) e.addEventListener(ev, fn); };
         const setText = (id, val) => { const e = el(id); if(e) e.textContent = val; };
+        
+        let toastTimeout;
         const showToast = (msg, type='success') => { 
+            const t = el('toast'); 
+            if(!t) return;
+            
+            // Clear existing timeout to handle rapid clicks
+            if(toastTimeout) clearTimeout(toastTimeout);
+            
             setText('toastMessage', msg); 
-            const t = el('toast'); const i = t.querySelector('i'); const d = t.querySelector('div');
-            d.className = type==='error' ? "p-4 rounded-full bg-red-100 text-red-600 shadow-sm mb-1" : "p-4 rounded-full bg-emerald-100 text-emerald-600 shadow-sm mb-1";
+            const d = t.querySelector('div');
+            
+            // Update Icon & Color based on Type
+            if(type === 'error') {
+                d.className = "p-4 rounded-full bg-red-100 text-red-600 shadow-sm mb-1";
+                d.innerHTML = '<i data-lucide="alert-circle" class="w-8 h-8"></i>';
+            } else {
+                d.className = "p-4 rounded-full bg-emerald-100 text-emerald-600 shadow-sm mb-1";
+                d.innerHTML = '<i data-lucide="check" class="w-8 h-8"></i>';
+            }
+            lucide.createIcons();
+
             t.classList.remove('opacity-0', 'scale-90', 'pointer-events-none'); 
-            setTimeout(() => t.classList.add('opacity-0', 'scale-90', 'pointer-events-none'), 2000); 
+            toastTimeout = setTimeout(() => t.classList.add('opacity-0', 'scale-90', 'pointer-events-none'), 2000); 
         };
+
         const ADMIN_PASSWORD = "gm@191223";
         let user = null, isAdmin = false, entries = [], customHospitals = new Set(), deletedHospitals = new Set(), hospitalOrder = [];
         let customManufacturers = new Set(), deletedManufacturers = new Set(), manufacturerOrder = [];
@@ -574,20 +599,32 @@
                 if (isNaN(ctdi) || ctdi <= 0) return showToast("CTDIvol phải lớn hơn 0!", 'error');
                 if (isNaN(dlp) || dlp <= 0) return showToast("DLP phải lớn hơn 0!", 'error');
                 if (isNaN(age) || age < 0) return showToast("Tuổi không hợp lệ!", 'error');
-                if (age < 16) if(!confirm("Cảnh báo: Bệnh nhân dưới 16 tuổi. Bạn có chắc muốn nhập?")) return;
+                
+                // Custom confirm modal
+                if (age < 16) {
+                    window.showConfirm("Cảnh báo: Bệnh nhân dưới 16 tuổi. Bạn có chắc muốn nhập?", async () => {
+                         await submitData(h, m);
+                    });
+                    return;
+                }
+
                 if (isNaN(weight) || weight <= 0) return showToast("Cân nặng không hợp lệ!", 'error');
 
-                try{
+                await submitData(h, m);
+            });
+
+            async function submitData(h, m) {
+                 try{
                     await addDoc(collection(db,'artifacts',appId,'public','data','drl_entries'),{
                         hospitalName:h, manufacturer:m, protocol:el('protocol').value, patientId:el('patientId').value, 
                         scanDate:el('scanDate').value, age:el('age').value, gender:el('gender').value, weight:el('weight').value, height:el('height').value,
                         doseModulation:document.querySelector('input[name="doseModulation"]:checked').value, ctdi:el('ctdi').value, dlp:el('dlp').value,
                         kvp:el('kvp').value, mas:el('mas').value, userId:user?user.uid:'admin', createdAt:new Date().toISOString()
                     });
-                    showToast("Đã lưu!");
+                    showToast("Đã lưu thành công!");
                     ['patientId','age','yob','weight','height','bmi','ctdi','dlp','kvp','mas'].forEach(i=>el(i).value='');
                 }catch(e){if(e.code==='resource-exhausted')handleQuotaError();else showToast(e.message,'error')}
-            });
+            }
 
             // Import
             on('importExcelInput','change',(e)=>{
