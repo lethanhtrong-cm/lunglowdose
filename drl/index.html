@@ -46,7 +46,7 @@
     <div id="globalLoader"><div class="flex flex-col items-center gap-4"><span class="loader-spinner"></span><p class="text-xs font-black text-indigo-900 tracking-widest uppercase animate-pulse">Đang tải ứng dụng...</p></div></div>
     <div class="mesh-bg"></div>
 
-    <!-- Modals -->
+    <!-- Modals (Banned, Auth, Confirm, Input, Manage) -->
     <div id="bannedOverlay" class="fixed inset-0 z-[200] bg-slate-900/80 hidden flex flex-col items-center justify-center text-white p-8 text-center"></div>
     <div id="authModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md hidden p-4"><div class="bg-white rounded-[2.5rem] w-full max-w-md p-8 md:p-10 shadow-2xl relative"><button id="closeAuthModal" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button><h2 class="text-2xl font-black text-indigo-900 text-center mb-6">Đăng Nhập</h2><form id="authForm" class="space-y-4"><input type="email" id="authEmail" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Email" required><input type="password" id="authPassword" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Mật khẩu" required><div class="flex items-center gap-2 px-1"><input type="checkbox" id="rememberMe" class="custom-checkbox w-4 h-4" checked><label for="rememberMe" class="text-[11px] font-bold text-slate-500 cursor-pointer select-none">Ghi nhớ đăng nhập</label></div><button type="submit" id="authSubmitBtn" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black uppercase active:scale-95">Vào Hệ Thống</button></form><div class="relative my-6"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-100"></div></div><div class="relative flex justify-center text-xs uppercase"><span class="bg-white px-2 text-slate-400">Hoặc</span></div></div><button id="googleLoginBtn" class="bg-white text-slate-900 border border-slate-200 w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-50 shadow-sm transition-all"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.79 2.71v2.24h2.91c1.71-1.57 2.68-3.88 2.68-6.58z" fill="#4285F4"/><path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.24c-.8.54-1.84.85-3.05.85-2.34 0-4.32-1.58-5.03-3.71H.95v2.3C2.43 15.89 5.5 18 9 18z" fill="#34A853"/><path d="M3.97 10.72c-.18-.54-.28-1.11-.28-1.72s.1-1.18.28-1.72V4.98H.95C.34 6.19 0 7.56 0 9s.34 2.81.95 4.02l3.02-2.3z" fill="#FBBC05"/><path d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.47.89 11.43 0 9 0 5.5 0 2.43 2.11.95 5.12l3.02 2.3c.71-2.13 2.69-3.71 5.03-3.71z" fill="#EA4335"/></svg>Tiếp tục với Google</button><div class="mt-4 text-center border-t border-slate-50 pt-4"><button id="openAdminLogin" class="text-[9px] font-black text-slate-300 hover:text-indigo-500 uppercase tracking-widest">Admin Access</button></div></div></div>
     <div id="adminAuthModal" class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4"><div class="bg-white rounded-[2rem] w-full max-w-xs p-8 shadow-2xl relative"><button onclick="document.getElementById('adminAuthModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-300 hover:text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button><h3 class="text-lg font-black text-slate-900 uppercase text-center mb-4">Admin Key</h3><form id="adminAuthForm" class="space-y-4"><input type="password" id="adminPassInput" class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-center tracking-widest outline-none focus:ring-2 focus:ring-red-500" placeholder="••••••••" required><button type="submit" class="w-full py-3 bg-red-500 text-white rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-red-600">Xác nhận</button></form></div></div>
@@ -138,6 +138,45 @@
                     </thead>
                     <tbody id="progressTableBody" class="divide-y divide-slate-100"></tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- NEW: Unified Row for Summary Cards -->
+        <div id="summaryCardsSection" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+            <!-- Card 1: Samples -->
+            <div class="glass-card p-4 rounded-[2rem] shadow-md flex flex-col justify-between bg-white border border-slate-100 relative overflow-hidden h-full">
+                <div class="relative z-10">
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tổng số mẫu</p>
+                    <h3 id="summaryTotalSamples" class="text-3xl font-black text-slate-900">0</h3>
+                </div>
+                <div class="absolute right-2 bottom-2 text-slate-100"><i data-lucide="database" class="w-10 h-10"></i></div>
+            </div>
+
+            <!-- Card 2: Facilities -->
+            <div class="glass-card p-4 rounded-[2rem] shadow-md flex flex-col justify-between bg-white border border-slate-100 relative overflow-hidden h-full">
+                 <div class="relative z-10">
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Cơ sở tham gia</p>
+                    <h3 id="summaryTotalFacilities" class="text-3xl font-black text-slate-900">0</h3>
+                </div>
+                <div class="absolute right-2 bottom-2 text-slate-100"><i data-lucide="building-2" class="w-10 h-10"></i></div>
+            </div>
+
+            <!-- Protocol Cards -->
+            <div class="glass-card p-4 rounded-[2rem] bg-indigo-50/50 border border-indigo-100 flex flex-col justify-center text-center shadow-sm h-full">
+                <span class="text-[10px] font-black uppercase text-indigo-400 mb-1 tracking-wider">Sọ não</span>
+                <h4 id="sumHead" class="text-2xl font-black text-indigo-700">0</h4>
+            </div>
+            <div class="glass-card p-4 rounded-[2rem] bg-blue-50/50 border border-blue-100 flex flex-col justify-center text-center shadow-sm h-full">
+                <span class="text-[10px] font-black uppercase text-blue-400 mb-1 tracking-wider">Ngực</span>
+                <h4 id="sumChest" class="text-2xl font-black text-blue-700">0</h4>
+            </div>
+            <div class="glass-card p-4 rounded-[2rem] bg-orange-50/50 border border-orange-100 flex flex-col justify-center text-center shadow-sm h-full">
+                <span class="text-[10px] font-black uppercase text-orange-400 mb-1 tracking-wider">Bụng</span>
+                <h4 id="sumAbd" class="text-2xl font-black text-orange-700">0</h4>
+            </div>
+            <div class="glass-card p-4 rounded-[2rem] bg-teal-50/50 border border-teal-100 flex flex-col justify-center text-center shadow-sm h-full">
+                <span class="text-[10px] font-black uppercase text-teal-400 mb-1 tracking-wider">LDCT</span>
+                <h4 id="sumLdct" class="text-2xl font-black text-teal-700">0</h4>
             </div>
         </div>
 
@@ -265,6 +304,21 @@
         window.showConfirm = (msg, cb) => { setText('confirmMessage',msg); el('confirmModal').classList.remove('hidden'); el('confirmOkBtn').onclick=()=>{el('confirmModal').classList.add('hidden');if(cb)cb();}; el('confirmCancelBtn').onclick=()=>{el('confirmModal').classList.add('hidden');}; };
         window.showInput = (t, v, cb) => { setText('inputModalTitle',t); el('inputModalValue').value=v||''; el('inputModal').classList.remove('hidden'); el('inputModalValue').focus(); el('inputSaveBtn').onclick=()=>{const val=el('inputModalValue').value.trim();if(val){el('inputModal').classList.add('hidden');if(cb)cb(val);}else el('inputModalValue').classList.add('warning')}; el('inputCancelBtn').onclick=()=>{el('inputModal').classList.add('hidden');}; };
         function handleQuotaError(){ const o=el('bannedOverlay'); o.innerHTML=`<div class="bg-amber-500 p-4 rounded-full mb-6 shadow-2xl"><i data-lucide="alert-octagon" class="w-12 h-12 text-white"></i></div><h2 class="text-2xl font-black uppercase text-white mb-2">Hệ thống tạm ngưng</h2><p class="text-sm text-slate-200">Hết hạn mức miễn phí trong ngày (Reset: 15h00).</p>`; o.classList.remove('hidden'); lucide.createIcons(); }
+
+        // NEW: Render Summary Cards
+        function renderSummary() {
+            const total = entries.length;
+            const uniqueHospitals = new Set(entries.map(e => e.hospitalName)).size;
+            
+            setText('summaryTotalSamples', total);
+            setText('summaryTotalFacilities', uniqueHospitals);
+            
+            const count = (key) => entries.filter(e => e.protocol && e.protocol.includes(key)).length;
+            setText('sumHead', count('Head'));
+            setText('sumChest', count('Chest'));
+            setText('sumAbd', count('Abdomen'));
+            setText('sumLdct', count('LDCT'));
+        }
 
         // Update User Monitor UI & Local 30s Loop
         function renderUserMonitor(allUsers) {
@@ -411,7 +465,12 @@
                     const hC=await getDoc(doc(db,'artifacts',appId,'public','data','app_settings','hospital_config')); if(hC.exists()){const d=hC.data();customHospitals=new Set(d.customHospitals||[]);deletedHospitals=new Set(d.deletedHospitals||[]);hospitalOrder=d.hospitalOrder||[];}
                     const mC=await getDoc(doc(db,'artifacts',appId,'public','data','app_settings','manufacturer_config')); if(mC.exists()){const d=mC.data();customManufacturers=new Set(d.customManufacturers||[]);deletedManufacturers=new Set(d.deletedManufacturers||[]);manufacturerOrder=d.manufacturerOrder||[];}
                     
-                    onSnapshot(collection(db,'artifacts',appId,'public','data','drl_entries'),(s)=>{entries=s.docs.map(d=>d.data()).filter(e=>!e.isDeleted); renderHospitalSelect(); renderProgress();},(e)=>{if(e.code==='resource-exhausted')handleQuotaError();});
+                    onSnapshot(collection(db,'artifacts',appId,'public','data','drl_entries'),(s)=>{
+                        entries=s.docs.map(d=>d.data()).filter(e=>!e.isDeleted); 
+                        renderHospitalSelect(); 
+                        renderProgress();
+                        renderSummary(); // Update new cards
+                    },(e)=>{if(e.code==='resource-exhausted')handleQuotaError();});
                     
                     onSnapshot(collection(db,'artifacts',appId,'public','data','user_registry'),(s)=>{
                         latestUserRegistryData = s.docs.map(d=>d.data());
