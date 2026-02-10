@@ -1211,10 +1211,23 @@
                 return true;
             });
             
+            // Calculate stats data
+            let statsData = filtered;
+            // If logged in and NOT super admin, filter stats to only show user's data
+            if (user && !user.isAnonymous && !isSuperAdmin) {
+                statsData = filtered.filter(e => e.userId === user.uid || (e.userEmail && e.userEmail === user.email));
+            }
+
             updateGlobalStats(entries); 
             const statsDiv = el('dynamicStats'); const placeholderDiv = el('statsPlaceholder');
-            if (fP === 'all' && !isTrashMode) { statsDiv.classList.add('hidden'); placeholderDiv.classList.remove('hidden'); }
-            else { placeholderDiv.classList.add('hidden'); statsDiv.classList.remove('hidden'); updateDynamicStats(filtered); }
+            if (fP === 'all' && !isTrashMode) { 
+                statsDiv.classList.add('hidden'); 
+                placeholderDiv.classList.remove('hidden'); 
+            } else { 
+                placeholderDiv.classList.add('hidden'); 
+                statsDiv.classList.remove('hidden'); 
+                updateDynamicStats(statsData); // Changed from filtered to statsData
+            }
 
             if (sort === 'date_desc') filtered.sort((a,b) => (b.createdAt||'').localeCompare(a.createdAt||''));
             else if (sort === 'date_asc') filtered.sort((a,b) => (a.createdAt||'').localeCompare(b.createdAt||''));
