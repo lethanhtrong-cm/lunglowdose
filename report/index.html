@@ -1,494 +1,480 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Calendar, 
-  Activity, 
-  FileText, 
-  Save, 
-  Printer, 
-  ChevronLeft, 
-  ChevronRight, 
-  AlertCircle,
-  CheckCircle,
-  Search,
-  LayoutDashboard,
-  Stethoscope,
-  Pill
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo Trực CĐHA 2026</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel để biên dịch JSX ngay trong trình duyệt -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-// --- Cấu hình & Dữ liệu mẫu ---
-const YEAR = 2026;
-const MODALITIES = [
-  { id: 'xray', name: 'X-Quang', color: 'bg-blue-500', icon: Activity },
-  { id: 'ct', name: 'CT Scanner', color: 'bg-teal-500', icon: Stethoscope },
-  { id: 'mri', name: 'MRI', color: 'bg-indigo-500', icon: LayoutDashboard },
-];
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-const MACHINE_STATUS = [
-  { value: 'normal', label: 'Hoạt động tốt', color: 'text-green-600' },
-  { value: 'warning', label: 'Cảnh báo/Lỗi nhẹ', color: 'text-yellow-600' },
-  { value: 'error', label: 'Hỏng/Bảo trì', color: 'text-red-600' },
-];
-
-const MONTHS = [
-  'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
-  'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'
-];
-
-// Hàm hỗ trợ ngày tháng
-const getDaysInMonth = (monthIndex, year) => {
-  return new Date(year, monthIndex + 1, 0).getDate();
-};
-
-const formatDate = (day, month, year) => {
-  return `${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/${year}`;
-};
-
-// --- Components Con ---
-
-// 1. Component Thẻ trạng thái máy (Icon nhỏ)
-const StatusBadge = ({ status }) => {
-  if (status === 'error') return <div className="w-3 h-3 rounded-full bg-red-500" title="Hỏng" />;
-  if (status === 'warning') return <div className="w-3 h-3 rounded-full bg-yellow-500" title="Cảnh báo" />;
-  return <div className="w-3 h-3 rounded-full bg-green-500" title="Tốt" />;
-};
-
-// --- Main App Component ---
-export default function App() {
-  // State
-  const [currentView, setCurrentView] = useState('dashboard'); // dashboard, calendar, report, print
-  const [selectedMonth, setSelectedMonth] = useState(0);
-  const [selectedDay, setSelectedDay] = useState(1);
-  
-  // Dữ liệu báo cáo: Cấu trúc { "M-D": { xray: {...}, ct: {...}, mri: {...} } }
-  const [reports, setReports] = useState(() => {
-    const saved = localStorage.getItem('radiology_reports_2026');
-    return saved ? JSON.parse(saved) : {};
-  });
-
-  // Lưu dữ liệu khi thay đổi
-  useEffect(() => {
-    localStorage.setItem('radiology_reports_2026', JSON.stringify(reports));
-  }, [reports]);
-
-  // Key để truy xuất dữ liệu
-  const getDataKey = (m, d) => `${m}-${d}`;
-
-  // Xử lý lưu báo cáo
-  const handleSaveReport = (data) => {
-    const key = getDataKey(selectedMonth, selectedDay);
-    setReports(prev => ({
-      ...prev,
-      [key]: data
-    }));
-    alert("Đã lưu báo cáo thành công!");
-  };
-
-  // --- Views ---
-
-  // 1. Dashboard View
-  const DashboardView = () => {
-    // Tính toán thống kê nhanh
-    let totalXray = 0, totalCT = 0, totalMRI = 0;
-    Object.values(reports).forEach(dayReport => {
-      totalXray += parseInt(dayReport.xray?.cases || 0);
-      totalCT += parseInt(dayReport.ct?.cases || 0);
-      totalMRI += parseInt(dayReport.mri?.cases || 0);
-    });
-
-    return (
-      <div className="space-y-6 animate-fade-in">
-        <header className="mb-8">
-          <h2 className="text-3xl font-bold text-slate-800">Tổng quan năm {YEAR}</h2>
-          <p className="text-slate-500">Hệ thống báo cáo trực Chẩn đoán hình ảnh</p>
-        </header>
-
-        {/* Thống kê Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
-            <div className="p-4 bg-blue-100 text-blue-600 rounded-xl">
-              <Activity size={32} />
-            </div>
-            <div>
-              <p className="text-sm text-slate-500 font-medium">Tổng ca X-Quang</p>
-              <p className="text-3xl font-bold text-slate-800">{totalXray.toLocaleString()}</p>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
-            <div className="p-4 bg-teal-100 text-teal-600 rounded-xl">
-              <Stethoscope size={32} />
-            </div>
-            <div>
-              <p className="text-sm text-slate-500 font-medium">Tổng ca CT Scanner</p>
-              <p className="text-3xl font-bold text-slate-800">{totalCT.toLocaleString()}</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
-            <div className="p-4 bg-indigo-100 text-indigo-600 rounded-xl">
-              <LayoutDashboard size={32} />
-            </div>
-            <div>
-              <p className="text-sm text-slate-500 font-medium">Tổng ca MRI</p>
-              <p className="text-3xl font-bold text-slate-800">{totalMRI.toLocaleString()}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Action */}
-        <div className="mt-8">
-            <h3 className="text-lg font-semibold text-slate-700 mb-4">Chọn tháng báo cáo</h3>
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {MONTHS.map((m, idx) => (
-                    <button
-                        key={idx}
-                        onClick={() => {
-                            setSelectedMonth(idx);
-                            setCurrentView('calendar');
-                        }}
-                        className="p-4 bg-white border border-slate-200 hover:border-teal-500 hover:shadow-md rounded-xl transition-all text-center group"
-                    >
-                        <span className="block text-lg font-medium text-slate-700 group-hover:text-teal-600">{m}</span>
-                        <span className="text-xs text-slate-400">{getDaysInMonth(idx, YEAR)} ngày</span>
-                    </button>
-                ))}
-            </div>
-        </div>
-      </div>
-    );
-  };
-
-  // 2. Calendar View (Chọn ngày trong tháng)
-  const CalendarView = () => {
-    const daysInMonth = getDaysInMonth(selectedMonth, YEAR);
-    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-
-    return (
-      <div className="animate-fade-in">
-        <div className="flex items-center justify-between mb-6">
-          <button onClick={() => setCurrentView('dashboard')} className="flex items-center text-slate-500 hover:text-teal-600">
-            <ChevronLeft size={20} /> Trở về Dashboard
-          </button>
-          <h2 className="text-2xl font-bold text-slate-800">{MONTHS[selectedMonth]} - {YEAR}</h2>
-          <div className="w-24"></div> 
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-4">
-          {days.map(day => {
-            const key = getDataKey(selectedMonth, day);
-            const hasData = reports[key];
-            const isToday = new Date().getDate() === day && new Date().getMonth() === selectedMonth && new Date().getFullYear() === YEAR;
-
-            return (
-              <button
-                key={day}
-                onClick={() => {
-                  setSelectedDay(day);
-                  setCurrentView('report');
-                }}
-                className={`
-                  relative h-32 p-4 rounded-xl border flex flex-col justify-between transition-all text-left
-                  ${hasData ? 'bg-teal-50 border-teal-200' : 'bg-white border-slate-200 hover:border-teal-400'}
-                  ${isToday ? 'ring-2 ring-blue-400 ring-offset-2' : ''}
-                `}
-              >
-                <div className="flex justify-between w-full">
-                  <span className={`text-xl font-bold ${hasData ? 'text-teal-700' : 'text-slate-400'}`}>
-                    {day}
-                  </span>
-                  {hasData && <CheckCircle size={18} className="text-teal-500" />}
-                </div>
-                
-                {hasData ? (
-                  <div className="space-y-1 mt-2">
-                    <div className="flex items-center justify-between text-xs text-slate-600">
-                      <span>X: {hasData.xray.cases}</span>
-                      <StatusBadge status={hasData.xray.machineStatus} />
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-slate-600">
-                      <span>CT: {hasData.ct.cases}</span>
-                      <StatusBadge status={hasData.ct.machineStatus} />
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-slate-600">
-                      <span>MRI: {hasData.mri.cases}</span>
-                      <StatusBadge status={hasData.mri.machineStatus} />
-                    </div>
-                  </div>
-                ) : (
-                  <span className="text-xs text-slate-400 mt-auto">Chưa có dữ liệu</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  // 3. Report Form View
-  const ReportForm = () => {
-    const key = getDataKey(selectedMonth, selectedDay);
-    const initialData = reports[key] || {
-      xray: { cases: '', machineStatus: 'normal', consumables: '' },
-      ct: { cases: '', machineStatus: 'normal', consumables: '' },
-      mri: { cases: '', machineStatus: 'normal', consumables: '' },
-    };
-
-    const [formData, setFormData] = useState(initialData);
-
-    const handleChange = (modality, field, value) => {
-      setFormData(prev => ({
-        ...prev,
-        [modality]: {
-          ...prev[modality],
-          [field]: value
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Hiệu ứng Fade-in nhẹ nhàng */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-      }));
-    };
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        
+        /* Cấu hình khi in ấn */
+        @media print {
+            .print-hidden { display: none !important; }
+            body { background: white !important; }
+            #print-area { padding: 0 !important; margin: 0 !important; box-shadow: none !important; }
+            @page { margin: 10mm; size: A4 portrait; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
 
-    return (
-      <div className="max-w-4xl mx-auto animate-fade-in pb-20">
-        <div className="flex items-center justify-between mb-6 sticky top-0 bg-slate-50 py-4 z-10">
-          <button onClick={() => setCurrentView('calendar')} className="flex items-center text-slate-500 hover:text-teal-600">
-            <ChevronLeft size={20} /> Quay lại lịch
-          </button>
-          <h2 className="text-2xl font-bold text-slate-800">
-            Báo cáo ngày {formatDate(selectedDay, selectedMonth, YEAR)}
-          </h2>
-          <button 
-            onClick={() => handleSaveReport(formData)}
-            className="flex items-center space-x-2 bg-teal-600 text-white px-6 py-2 rounded-lg hover:bg-teal-700 shadow-md transition-colors"
-          >
-            <Save size={18} />
-            <span>Lưu báo cáo</span>
-          </button>
-        </div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-        <div className="space-y-8">
-          {MODALITIES.map((mod) => (
-            <div key={mod.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className={`px-6 py-4 border-b border-slate-100 flex items-center justify-between ${mod.id === 'xray' ? 'bg-blue-50' : mod.id === 'ct' ? 'bg-teal-50' : 'bg-indigo-50'}`}>
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg text-white ${mod.color}`}>
-                    <mod.icon size={20} />
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-800">{mod.name}</h3>
-                </div>
-              </div>
+        // --- 1. ICON COMPONENTS (SVG Trực tiếp) ---
+        const Icon = ({ children, className, size = 24, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{children}</svg>
+        );
 
-              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Số ca trực */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Số ca trực</label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Nhập số ca..."
-                    value={formData[mod.id].cases}
-                    onChange={(e) => handleChange(mod.id, 'cases', e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
-                  />
-                </div>
+        const Activity = (props) => <Icon {...props}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></Icon>;
+        const Stethoscope = (props) => <Icon {...props}><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v6"/><path d="M9 21h6a3 3 0 0 0 3-3v-6"/></Icon>;
+        const LayoutDashboard = (props) => <Icon {...props}><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></Icon>;
+        const Save = (props) => <Icon {...props}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></Icon>;
+        const Printer = (props) => <Icon {...props}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></Icon>;
+        const ChevronLeft = (props) => <Icon {...props}><path d="m15 18-6-6 6-6"/></Icon>;
+        const AlertCircle = (props) => <Icon {...props}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></Icon>;
+        const CheckCircle = (props) => <Icon {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></Icon>;
+        const Pill = (props) => <Icon {...props}><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></Icon>;
 
-                {/* Tình trạng máy */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Tình trạng máy</label>
-                  <select
-                    value={formData[mod.id].machineStatus}
-                    onChange={(e) => handleChange(mod.id, 'machineStatus', e.target.value)}
-                    className={`w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 outline-none
-                      ${formData[mod.id].machineStatus === 'error' ? 'text-red-600 bg-red-50 font-medium' : ''}
-                      ${formData[mod.id].machineStatus === 'warning' ? 'text-yellow-600 bg-yellow-50 font-medium' : ''}
-                    `}
-                  >
-                    {MACHINE_STATUS.map(status => (
-                      <option key={status.value} value={status.value}>{status.label}</option>
-                    ))}
-                  </select>
-                </div>
+        // --- 2. CẤU HÌNH & DỮ LIỆU ---
+        const YEAR = 2026;
+        const MODALITIES = [
+            { id: 'xray', name: 'X-Quang', color: 'bg-blue-500', icon: Activity },
+            { id: 'ct', name: 'CT Scanner', color: 'bg-teal-500', icon: Stethoscope },
+            { id: 'mri', name: 'MRI', color: 'bg-indigo-500', icon: LayoutDashboard },
+        ];
 
-                {/* Vật tư tiêu hao */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
-                    <Pill size={16} />
-                    Vật tư / Phim / Thuốc đã dùng
-                  </label>
-                  <textarea
-                    rows="3"
-                    placeholder="Ghi chú chi tiết về phim, thuốc cản quang, bơm tiêm..."
-                    value={formData[mod.id].consumables}
-                    onChange={(e) => handleChange(mod.id, 'consumables', e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
+        const MACHINE_STATUS = [
+            { value: 'normal', label: 'Hoạt động tốt', color: 'text-green-600' },
+            { value: 'warning', label: 'Cảnh báo/Lỗi nhẹ', color: 'text-yellow-600' },
+            { value: 'error', label: 'Hỏng/Bảo trì', color: 'text-red-600' },
+        ];
 
-  // 4. Print View (Xuất PDF)
-  const PrintView = () => {
-    const daysInMonth = getDaysInMonth(selectedMonth, YEAR);
-    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+        const MONTHS = [
+            'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
+            'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'
+        ];
 
-    return (
-      <div className="bg-white min-h-screen animate-fade-in">
-        <div className="print-hidden p-4 border-b flex justify-between items-center bg-slate-100 sticky top-0">
-          <button onClick={() => setCurrentView('dashboard')} className="text-slate-600 hover:text-teal-600 font-medium">
-             &larr; Quay lại
-          </button>
-          <div className="flex gap-4">
-             <div className="text-sm text-slate-500 italic flex items-center">
-                <AlertCircle size={16} className="mr-1"/>
-                Nhấn nút in và chọn "Lưu dưới dạng PDF"
-             </div>
-             <button 
-                onClick={() => window.print()}
-                className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 flex items-center gap-2"
-             >
-                <Printer size={18} /> In / Xuất PDF
-             </button>
-          </div>
-        </div>
+        // Hàm tiện ích
+        const getDaysInMonth = (monthIndex, year) => new Date(year, monthIndex + 1, 0).getDate();
+        const formatDate = (day, month, year) => `${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/${year}`;
+        const getDataKey = (m, d) => `${m}-${d}`;
 
-        <div className="p-8 max-w-[210mm] mx-auto bg-white" id="print-area">
-          <div className="text-center mb-8 border-b pb-4">
-            <h1 className="text-2xl font-bold uppercase text-slate-900">Báo Cáo Trực Hàng Ngày</h1>
-            <p className="text-lg font-medium text-slate-700">Khoa Chẩn Đoán Hình Ảnh - Năm {YEAR}</p>
-            <p className="text-slate-500 mt-1">Báo cáo tổng hợp {MONTHS[selectedMonth]}</p>
-          </div>
+        // Component Badge trạng thái
+        const StatusBadge = ({ status }) => {
+            if (status === 'error') return <div className="w-3 h-3 rounded-full bg-red-500 border border-white shadow-sm" title="Hỏng"></div>;
+            if (status === 'warning') return <div className="w-3 h-3 rounded-full bg-yellow-500 border border-white shadow-sm" title="Cảnh báo"></div>;
+            return <div className="w-3 h-3 rounded-full bg-green-500 border border-white shadow-sm" title="Tốt"></div>;
+        };
 
-          <table className="w-full text-xs border-collapse border border-slate-300">
-            <thead>
-              <tr className="bg-slate-100 text-slate-700">
-                <th className="border border-slate-300 p-2 w-10">Ngày</th>
-                <th className="border border-slate-300 p-2" colSpan={3}>X-Quang</th>
-                <th className="border border-slate-300 p-2" colSpan={3}>CT Scanner</th>
-                <th className="border border-slate-300 p-2" colSpan={3}>MRI</th>
-              </tr>
-              <tr className="bg-slate-50 text-slate-600 font-normal">
-                <th className="border border-slate-300 p-1"></th>
-                
-                <th className="border border-slate-300 p-1 w-10">Ca</th>
-                <th className="border border-slate-300 p-1 w-16">Máy</th>
-                <th className="border border-slate-300 p-1">Vật tư</th>
+        // --- 3. APP COMPONENT CHÍNH ---
+        function App() {
+            const [currentView, setCurrentView] = useState('dashboard'); 
+            const [selectedMonth, setSelectedMonth] = useState(0);
+            const [selectedDay, setSelectedDay] = useState(1);
+            
+            // Load dữ liệu từ LocalStorage
+            const [reports, setReports] = useState(() => {
+                const saved = localStorage.getItem('radiology_reports_2026');
+                return saved ? JSON.parse(saved) : {};
+            });
 
-                <th className="border border-slate-300 p-1 w-10">Ca</th>
-                <th className="border border-slate-300 p-1 w-16">Máy</th>
-                <th className="border border-slate-300 p-1">Vật tư</th>
+            // Auto Save khi reports thay đổi
+            useEffect(() => {
+                localStorage.setItem('radiology_reports_2026', JSON.stringify(reports));
+            }, [reports]);
 
-                <th className="border border-slate-300 p-1 w-10">Ca</th>
-                <th className="border border-slate-300 p-1 w-16">Máy</th>
-                <th className="border border-slate-300 p-1">Vật tư</th>
-              </tr>
-            </thead>
-            <tbody>
-              {days.map(day => {
-                const key = getDataKey(selectedMonth, day);
-                const data = reports[key];
-                
-                if (!data) {
-                    return (
-                        <tr key={day}>
-                            <td className="border border-slate-300 p-2 text-center font-bold">{day}</td>
-                            <td className="border border-slate-300 p-2 text-center text-slate-300" colSpan={9}>-</td>
-                        </tr>
-                    )
-                }
+            const handleSaveReport = (data) => {
+                const key = getDataKey(selectedMonth, selectedDay);
+                setReports(prev => ({ ...prev, [key]: data }));
+                // Sử dụng custom alert thay vì native alert để trải nghiệm tốt hơn (ở đây dùng native cho đơn giản)
+                alert("Đã lưu báo cáo thành công!");
+            };
+
+            // --- VIEW: DASHBOARD ---
+            const DashboardView = () => {
+                let totalXray = 0, totalCT = 0, totalMRI = 0;
+                Object.values(reports).forEach(dayReport => {
+                    totalXray += parseInt(dayReport.xray?.cases || 0);
+                    totalCT += parseInt(dayReport.ct?.cases || 0);
+                    totalMRI += parseInt(dayReport.mri?.cases || 0);
+                });
 
                 return (
-                  <tr key={day} className="hover:bg-slate-50">
-                    <td className="border border-slate-300 p-2 text-center font-bold">{day}</td>
-                    
-                    {/* XRAY */}
-                    <td className="border border-slate-300 p-2 text-center">{data.xray.cases}</td>
-                    <td className={`border border-slate-300 p-2 text-center ${data.xray.machineStatus === 'error' ? 'text-red-600 font-bold' : ''}`}>
-                        {data.xray.machineStatus === 'normal' ? 'OK' : data.xray.machineStatus === 'warning' ? 'Lỗi nhẹ' : 'Hỏng'}
-                    </td>
-                    <td className="border border-slate-300 p-2 truncate max-w-[100px]">{data.xray.consumables}</td>
+                    <div className="space-y-6 animate-fade-in">
+                        <header className="mb-8 border-b pb-6">
+                            <h2 className="text-3xl font-bold text-slate-800">Tổng quan năm {YEAR}</h2>
+                            <p className="text-slate-500">Hệ thống báo cáo trực Chẩn đoán hình ảnh</p>
+                        </header>
 
-                    {/* CT */}
-                    <td className="border border-slate-300 p-2 text-center">{data.ct.cases}</td>
-                     <td className={`border border-slate-300 p-2 text-center ${data.ct.machineStatus === 'error' ? 'text-red-600 font-bold' : ''}`}>
-                        {data.ct.machineStatus === 'normal' ? 'OK' : data.ct.machineStatus === 'warning' ? 'Lỗi nhẹ' : 'Hỏng'}
-                    </td>
-                    <td className="border border-slate-300 p-2 truncate max-w-[100px]">{data.ct.consumables}</td>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {[
+                                { title: 'Tổng ca X-Quang', count: totalXray, color: 'text-blue-600', bg: 'bg-blue-50', icon: Activity },
+                                { title: 'Tổng ca CT Scanner', count: totalCT, color: 'text-teal-600', bg: 'bg-teal-50', icon: Stethoscope },
+                                { title: 'Tổng ca MRI', count: totalMRI, color: 'text-indigo-600', bg: 'bg-indigo-50', icon: LayoutDashboard },
+                            ].map((stat, idx) => (
+                                <div key={idx} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
+                                    <div className={`p-4 ${stat.bg} ${stat.color} rounded-xl`}>
+                                        <stat.icon size={32} />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-slate-500 font-medium">{stat.title}</p>
+                                        <p className="text-3xl font-bold text-slate-800">{stat.count.toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
 
-                    {/* MRI */}
-                    <td className="border border-slate-300 p-2 text-center">{data.mri.cases}</td>
-                     <td className={`border border-slate-300 p-2 text-center ${data.mri.machineStatus === 'error' ? 'text-red-600 font-bold' : ''}`}>
-                        {data.mri.machineStatus === 'normal' ? 'OK' : data.mri.machineStatus === 'warning' ? 'Lỗi nhẹ' : 'Hỏng'}
-                    </td>
-                    <td className="border border-slate-300 p-2 truncate max-w-[100px]">{data.mri.consumables}</td>
-                  </tr>
+                        <div className="mt-8">
+                            <h3 className="text-lg font-semibold text-slate-700 mb-4">Chọn tháng báo cáo</h3>
+                            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                {MONTHS.map((m, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => { setSelectedMonth(idx); setCurrentView('calendar'); }}
+                                        className="p-4 bg-white border border-slate-200 hover:border-teal-500 hover:shadow-md rounded-xl transition-all text-center group"
+                                    >
+                                        <span className="block text-lg font-medium text-slate-700 group-hover:text-teal-600">{m}</span>
+                                        <span className="text-xs text-slate-400">{getDaysInMonth(idx, YEAR)} ngày</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                 );
-              })}
-            </tbody>
-          </table>
-          
-          <div className="mt-8 flex justify-end gap-20 px-8">
-            <div className="text-center">
-                <p className="font-bold text-slate-700">Người lập bảng</p>
-                <p className="text-slate-400 mt-16">(Ký tên)</p>
-            </div>
-             <div className="text-center">
-                <p className="font-bold text-slate-700">Trưởng Khoa</p>
-                <p className="text-slate-400 mt-16">(Ký tên)</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
+            };
 
-  // --- Main Render ---
-  return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-      <style>{`
-        @media print {
-          .print-hidden { display: none !important; }
-          body { background: white; }
-          @page { margin: 10mm; }
+            // --- VIEW: CALENDAR ---
+            const CalendarView = () => {
+                const daysInMonth = getDaysInMonth(selectedMonth, YEAR);
+                const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+                return (
+                    <div className="animate-fade-in">
+                        <div className="flex items-center justify-between mb-6">
+                            <button onClick={() => setCurrentView('dashboard')} className="flex items-center text-slate-500 hover:text-teal-600 transition-colors">
+                                <ChevronLeft size={20} className="mr-1" /> Dashboard
+                            </button>
+                            <h2 className="text-2xl font-bold text-slate-800">{MONTHS[selectedMonth]} - {YEAR}</h2>
+                            <div className="w-24"></div> 
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-4">
+                            {days.map(day => {
+                                const key = getDataKey(selectedMonth, day);
+                                const hasData = reports[key];
+                                const isToday = new Date().getDate() === day && new Date().getMonth() === selectedMonth && new Date().getFullYear() === YEAR;
+
+                                return (
+                                    <button
+                                        key={day}
+                                        onClick={() => { setSelectedDay(day); setCurrentView('report'); }}
+                                        className={`
+                                            relative h-32 p-3 rounded-xl border flex flex-col justify-between transition-all text-left shadow-sm
+                                            ${hasData ? 'bg-teal-50 border-teal-200' : 'bg-white border-slate-200 hover:border-teal-400'}
+                                            ${isToday ? 'ring-2 ring-blue-400 ring-offset-2' : ''}
+                                        `}
+                                    >
+                                        <div className="flex justify-between w-full">
+                                            <span className={`text-xl font-bold ${hasData ? 'text-teal-700' : 'text-slate-400'}`}>{day}</span>
+                                            {hasData && <CheckCircle size={18} className="text-teal-500" />}
+                                        </div>
+                                        
+                                        {hasData ? (
+                                            <div className="space-y-1 mt-2">
+                                                {['xray', 'ct', 'mri'].map(type => (
+                                                    <div key={type} className="flex items-center justify-between text-xs text-slate-600">
+                                                        <span className="uppercase font-semibold text-[10px] w-8">{type}</span>
+                                                        <span>{hasData[type].cases}</span>
+                                                        <StatusBadge status={hasData[type].machineStatus} />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-slate-400 mt-auto">Trống</span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            };
+
+            // --- VIEW: REPORT FORM ---
+            const ReportForm = () => {
+                const key = getDataKey(selectedMonth, selectedDay);
+                const initialData = reports[key] || {
+                    xray: { cases: '', machineStatus: 'normal', consumables: '' },
+                    ct: { cases: '', machineStatus: 'normal', consumables: '' },
+                    mri: { cases: '', machineStatus: 'normal', consumables: '' },
+                };
+                const [formData, setFormData] = useState(initialData);
+
+                const handleChange = (modality, field, value) => {
+                    setFormData(prev => ({
+                        ...prev,
+                        [modality]: { ...prev[modality], [field]: value }
+                    }));
+                };
+
+                return (
+                    <div className="max-w-4xl mx-auto animate-fade-in pb-20">
+                        <div className="flex items-center justify-between mb-6 sticky top-0 bg-slate-50 py-4 z-10 border-b border-slate-200/50 backdrop-blur-sm">
+                            <button onClick={() => setCurrentView('calendar')} className="flex items-center text-slate-500 hover:text-teal-600">
+                                <ChevronLeft size={20} className="mr-1" /> Lịch tháng
+                            </button>
+                            <h2 className="text-xl md:text-2xl font-bold text-slate-800">
+                                Báo cáo ngày {formatDate(selectedDay, selectedMonth, YEAR)}
+                            </h2>
+                            <button 
+                                onClick={() => handleSaveReport(formData)}
+                                className="flex items-center space-x-2 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 shadow-md transition-all active:scale-95"
+                            >
+                                <Save size={18} />
+                                <span className="hidden sm:inline">Lưu</span>
+                            </button>
+                        </div>
+
+                        <div className="space-y-6">
+                            {MODALITIES.map((mod) => (
+                                <div key={mod.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden group hover:shadow-md transition-shadow">
+                                    <div className={`px-6 py-4 border-b border-slate-100 flex items-center justify-between ${mod.id === 'xray' ? 'bg-blue-50/50' : mod.id === 'ct' ? 'bg-teal-50/50' : 'bg-indigo-50/50'}`}>
+                                        <div className="flex items-center space-x-3">
+                                            <div className={`p-2 rounded-lg text-white shadow-sm ${mod.color}`}>
+                                                <mod.icon size={20} />
+                                            </div>
+                                            <h3 className="text-lg font-bold text-slate-800">{mod.name}</h3>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-2">Số ca trực</label>
+                                            <input
+                                                type="number" min="0" placeholder="0"
+                                                value={formData[mod.id].cases}
+                                                onChange={(e) => handleChange(mod.id, 'cases', e.target.value)}
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-2">Tình trạng máy</label>
+                                            <select
+                                                value={formData[mod.id].machineStatus}
+                                                onChange={(e) => handleChange(mod.id, 'machineStatus', e.target.value)}
+                                                className={`w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 outline-none cursor-pointer
+                                                    ${formData[mod.id].machineStatus === 'error' ? 'text-red-600 bg-red-50 font-medium border-red-200' : ''}
+                                                    ${formData[mod.id].machineStatus === 'warning' ? 'text-yellow-600 bg-yellow-50 font-medium border-yellow-200' : ''}
+                                                `}
+                                            >
+                                                {MACHINE_STATUS.map(status => (
+                                                    <option key={status.value} value={status.value}>{status.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                                                <Pill size={16} className="text-slate-400" />
+                                                Vật tư / Phim / Thuốc
+                                            </label>
+                                            <textarea
+                                                rows="2"
+                                                placeholder="VD: 5 lọ thuốc cản quang, 2 phim 35x43..."
+                                                value={formData[mod.id].consumables}
+                                                onChange={(e) => handleChange(mod.id, 'consumables', e.target.value)}
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all resize-none"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            };
+
+            // --- VIEW: PRINT (PDF) ---
+            const PrintView = () => {
+                const daysInMonth = getDaysInMonth(selectedMonth, YEAR);
+                const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+                return (
+                    <div className="bg-white min-h-screen animate-fade-in">
+                        <div className="print-hidden p-4 border-b flex justify-between items-center bg-slate-100 sticky top-0 z-50">
+                            <button onClick={() => setCurrentView('dashboard')} className="text-slate-600 hover:text-teal-600 font-medium flex items-center">
+                                <ChevronLeft size={16} className="mr-1"/> Quay lại
+                            </button>
+                            <div className="flex gap-4 items-center">
+                                <div className="text-sm text-slate-500 italic flex items-center bg-yellow-50 px-3 py-1 rounded-full border border-yellow-100">
+                                    <AlertCircle size={14} className="mr-2 text-yellow-600"/>
+                                    Chọn "Lưu dưới dạng PDF" khi cửa sổ in hiện ra
+                                </div>
+                                <button 
+                                    onClick={() => window.print()}
+                                    className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 flex items-center gap-2 transition-colors font-medium"
+                                >
+                                    <Printer size={18} /> In Báo Cáo
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="p-8 max-w-[210mm] mx-auto bg-white" id="print-area">
+                            <div className="text-center mb-8 border-b-2 border-slate-800 pb-4">
+                                <h1 className="text-2xl font-bold uppercase text-slate-900 tracking-wide">Báo Cáo Trực Hàng Ngày</h1>
+                                <p className="text-lg font-medium text-slate-700 mt-1">Khoa Chẩn Đoán Hình Ảnh - Năm {YEAR}</p>
+                                <p className="text-slate-500 mt-2 italic font-serif">Tổng hợp số liệu {MONTHS[selectedMonth]}</p>
+                            </div>
+
+                            <table className="w-full text-[11px] border-collapse border border-slate-400">
+                                <thead>
+                                    <tr className="bg-slate-200 text-slate-900 font-bold uppercase">
+                                        <th className="border border-slate-400 p-2 w-8">Ngày</th>
+                                        <th className="border border-slate-400 p-1" colSpan={3}>X-Quang</th>
+                                        <th className="border border-slate-400 p-1" colSpan={3}>CT Scanner</th>
+                                        <th className="border border-slate-400 p-1" colSpan={3}>MRI</th>
+                                    </tr>
+                                    <tr className="bg-slate-100 text-slate-700 font-semibold text-[10px]">
+                                        <th className="border border-slate-400 p-1"></th>
+                                        
+                                        <th className="border border-slate-400 p-1 w-8">Ca</th>
+                                        <th className="border border-slate-400 p-1 w-14">Máy</th>
+                                        <th className="border border-slate-400 p-1">Vật tư</th>
+
+                                        <th className="border border-slate-400 p-1 w-8">Ca</th>
+                                        <th className="border border-slate-400 p-1 w-14">Máy</th>
+                                        <th className="border border-slate-400 p-1">Vật tư</th>
+
+                                        <th className="border border-slate-400 p-1 w-8">Ca</th>
+                                        <th className="border border-slate-400 p-1 w-14">Máy</th>
+                                        <th className="border border-slate-400 p-1">Vật tư</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {days.map(day => {
+                                        const key = getDataKey(selectedMonth, day);
+                                        const data = reports[key];
+                                        const rowClass = day % 2 === 0 ? 'bg-slate-50' : 'bg-white';
+                                        
+                                        if (!data) {
+                                            return (
+                                                <tr key={day} className={rowClass}>
+                                                    <td className="border border-slate-400 p-1 text-center font-bold">{day}</td>
+                                                    <td className="border border-slate-400 p-1 text-center text-slate-300" colSpan={9}>-</td>
+                                                </tr>
+                                            )
+                                        }
+
+                                        return (
+                                            <tr key={day} className={rowClass}>
+                                                <td className="border border-slate-400 p-1 text-center font-bold">{day}</td>
+                                                
+                                                {/* XRAY */}
+                                                <td className="border border-slate-400 p-1 text-center">{data.xray.cases}</td>
+                                                <td className={`border border-slate-400 p-1 text-center ${data.xray.machineStatus === 'error' ? 'text-red-600 font-bold' : ''}`}>
+                                                    {data.xray.machineStatus === 'normal' ? 'OK' : data.xray.machineStatus === 'warning' ? 'Lỗi' : 'Hỏng'}
+                                                </td>
+                                                <td className="border border-slate-400 p-1 truncate max-w-[80px]">{data.xray.consumables}</td>
+
+                                                {/* CT */}
+                                                <td className="border border-slate-400 p-1 text-center">{data.ct.cases}</td>
+                                                <td className={`border border-slate-400 p-1 text-center ${data.ct.machineStatus === 'error' ? 'text-red-600 font-bold' : ''}`}>
+                                                    {data.ct.machineStatus === 'normal' ? 'OK' : data.ct.machineStatus === 'warning' ? 'Lỗi' : 'Hỏng'}
+                                                </td>
+                                                <td className="border border-slate-400 p-1 truncate max-w-[80px]">{data.ct.consumables}</td>
+
+                                                {/* MRI */}
+                                                <td className="border border-slate-400 p-1 text-center">{data.mri.cases}</td>
+                                                <td className={`border border-slate-400 p-1 text-center ${data.mri.machineStatus === 'error' ? 'text-red-600 font-bold' : ''}`}>
+                                                    {data.mri.machineStatus === 'normal' ? 'OK' : data.mri.machineStatus === 'warning' ? 'Lỗi' : 'Hỏng'}
+                                                </td>
+                                                <td className="border border-slate-400 p-1 truncate max-w-[80px]">{data.mri.consumables}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                            
+                            <div className="mt-12 flex justify-end gap-24 px-8 print:mt-8">
+                                <div className="text-center break-inside-avoid">
+                                    <p className="font-bold text-slate-800 text-sm uppercase">Người lập bảng</p>
+                                    <p className="text-slate-400 mt-16 text-xs italic">(Ký và ghi rõ họ tên)</p>
+                                </div>
+                                <div className="text-center break-inside-avoid">
+                                    <p className="font-bold text-slate-800 text-sm uppercase">Trưởng Khoa</p>
+                                    <p className="text-slate-400 mt-16 text-xs italic">(Ký và đóng dấu)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // Main App Layout
+            return (
+                <div className="min-h-screen font-sans text-slate-900 bg-slate-50">
+                    {/* Header */}
+                    <nav className="fixed top-0 left-0 w-full h-16 bg-white/90 backdrop-blur-md shadow-sm z-50 flex items-center justify-between px-6 print-hidden border-b border-slate-100">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-gradient-to-br from-teal-500 to-teal-600 text-white p-2 rounded-xl shadow-teal-200 shadow-md">
+                                <Activity size={24} />
+                            </div>
+                            <h1 className="text-xl font-bold text-slate-800 hidden sm:block tracking-tight">Radiology Report {YEAR}</h1>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => setCurrentView('dashboard')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${currentView === 'dashboard' ? 'bg-teal-50 text-teal-700' : 'text-slate-500 hover:text-teal-600 hover:bg-slate-50'}`}
+                            >
+                                Tổng quan
+                            </button>
+                            <div className="h-6 w-px bg-slate-200 mx-1"></div>
+                            <button 
+                                onClick={() => {
+                                    if (currentView === 'print') setCurrentView('calendar');
+                                    else setCurrentView('print');
+                                }}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${currentView === 'print' ? 'bg-teal-600 text-white shadow-md' : 'text-slate-500 hover:text-teal-600 hover:bg-slate-50'}`}
+                            >
+                                <Printer size={16}/> Xuất báo cáo
+                            </button>
+                        </div>
+                    </nav>
+
+                    <main className="pt-24 px-4 md:px-8 max-w-7xl mx-auto pb-10 print:pt-0 print:px-0 print:max-w-none">
+                        {currentView === 'dashboard' && <DashboardView />}
+                        {currentView === 'calendar' && <CalendarView />}
+                        {currentView === 'report' && <ReportForm />}
+                        {currentView === 'print' && <PrintView />}
+                    </main>
+                </div>
+            );
         }
-      `}</style>
-      
-      {/* Sidebar / Navigation */}
-      <nav className="fixed top-0 left-0 w-full h-16 bg-white shadow-sm z-50 flex items-center justify-between px-6 print-hidden">
-        <div className="flex items-center gap-3">
-          <div className="bg-teal-600 text-white p-2 rounded-lg">
-            <Activity size={24} />
-          </div>
-          <h1 className="text-xl font-bold text-teal-800 hidden sm:block">Radiology Report {YEAR}</h1>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setCurrentView('dashboard')}
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${currentView === 'dashboard' ? 'bg-teal-50 text-teal-700' : 'text-slate-500 hover:text-teal-600'}`}
-          >
-            Tổng quan
-          </button>
-           <button 
-            onClick={() => {
-                if (currentView === 'print') setCurrentView('calendar'); // Toggle logic if needed
-                else setCurrentView('print');
-            }}
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${currentView === 'print' ? 'bg-teal-50 text-teal-700' : 'text-slate-500 hover:text-teal-600'}`}
-          >
-            <Printer size={16}/> Xuất báo cáo
-          </button>
-        </div>
-      </nav>
 
-      <main className="pt-24 px-4 md:px-8 max-w-7xl mx-auto pb-10">
-        {currentView === 'dashboard' && <DashboardView />}
-        {currentView === 'calendar' && <CalendarView />}
-        {currentView === 'report' && <ReportForm />}
-        {currentView === 'print' && <PrintView />}
-      </main>
-    </div>
-  );
-}
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
