@@ -427,6 +427,25 @@
                 catch (e) { if (e.code === 'resource-exhausted') handleQuotaError(); else showToast("Lỗi: " + e.message, 'error'); }
             });
         };
+        
+        // Define switchUserTab function
+        window.switchUserTab = (tab) => {
+            const isOnline = tab === 'online';
+            el('user-tab-online').classList.toggle('hidden', !isOnline);
+            el('user-tab-all').classList.toggle('hidden', isOnline);
+            
+            // Update button styles
+            const btnOnline = el('btn-user-online');
+            const btnAll = el('btn-user-all');
+            
+            if (isOnline) {
+                btnOnline.className = "px-4 py-2 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center gap-2";
+                btnAll.className = "px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-500 border border-slate-100 hover:bg-slate-50";
+            } else {
+                btnOnline.className = "px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-500 border border-slate-100 hover:bg-slate-50 flex items-center gap-2";
+                btnAll.className = "px-4 py-2 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100";
+            }
+        };
 
         // Logic
         function getActiveList(type) {
@@ -621,6 +640,13 @@
                 if(!m||m==='-- Chọn --') return showToast("Chưa chọn Hãng máy!",'error');
                 
                 // VALIDATION ADDED HERE
+                
+                // Required: Protocol, Slice Count, Scan Date, Gender
+                if (!el('protocol').value) return showToast("Chưa chọn Protocol!", 'error');
+                if (!el('sliceCount').value) return showToast("Chưa chọn Số lát cắt!", 'error');
+                if (!el('scanDate').value) return showToast("Chưa chọn Ngày chụp!", 'error');
+                if (!el('gender').value) return showToast("Chưa chọn Giới tính!", 'error');
+
                 const ctdi = parseFloat(el('ctdi').value);
                 const dlp = parseFloat(el('dlp').value);
                 const age = parseFloat(el('age').value);
@@ -633,12 +659,14 @@
                 // Custom confirm modal
                 if (age < 16) {
                     window.showConfirm("Cảnh báo: Bệnh nhân dưới 16 tuổi. Bạn có chắc muốn nhập?", async () => {
-                         await submitData(h, m);
+                          await submitData(h, m);
                     });
                     return;
                 }
 
                 if (isNaN(weight) || weight <= 0) return showToast("Cân nặng không hợp lệ!", 'error');
+                
+                // Optional: PatientId, Height, kVp, mAs - NO Checks here.
 
                 await submitData(h, m);
             });
@@ -649,7 +677,9 @@
                     document.activeElement.blur();
                     
                     await addDoc(collection(db,'artifacts',appId,'public','data','drl_entries'),{
-                        hospitalName:h, manufacturer:m, protocol:el('protocol').value, patientId:el('patientId').value, 
+                        hospitalName:h, manufacturer:m, protocol:el('protocol').value, 
+                        sliceCount: el('sliceCount').value, // Fixed: Added missing field
+                        patientId:el('patientId').value, 
                         scanDate:el('scanDate').value, age:el('age').value, gender:el('gender').value, weight:el('weight').value, height:el('height').value,
                         doseModulation:document.querySelector('input[name="doseModulation"]:checked').value, ctdi:el('ctdi').value, dlp:el('dlp').value,
                         kvp:el('kvp').value, mas:el('mas').value, userId:user?user.uid:'admin', createdAt:new Date().toISOString()
