@@ -7,7 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FIX FONT: Đã thêm ;900 vào cuối chuỗi wght để hỗ trợ font-black chuẩn xác -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -50,6 +51,10 @@
         .error-msg { display: none; font-size: 10px; color: #ef4444; margin-top: 4px; font-weight: 600; padding-left: 4px; }
         .input-error + .error-msg { display: block; animation: slideDown 0.2s ease-out; }
 
+        /* Highlight Row Style */
+        .highlight-row { background-color: rgba(254, 243, 199, 0.5) !important; border-left: 4px solid #f59e0b !important; }
+        .dark .highlight-row { background-color: rgba(120, 53, 15, 0.3) !important; border-left: 4px solid #f59e0b !important; }
+        
         @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
         .section-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: #64748b; }
@@ -419,6 +424,8 @@
         let user = null, isAdmin = false, entries = [], customHospitals = new Set(), deletedHospitals = new Set(), hospitalOrder = [];
         let customManufacturers = new Set(), deletedManufacturers = new Set(), manufacturerOrder = [];
         let latestUserRegistryData = [];
+        // State cho việc sắp xếp bảng: Mặc định sắp xếp theo Tổng số ca (Total) tăng dần (asc)
+        let currentSort = { key: 'Total', dir: 'asc' };
 
         // UI Helpers
         window.showConfirm = (msg, cb) => { setText('confirmMessage',msg); el('confirmModal').classList.remove('hidden'); el('confirmOkBtn').onclick=()=>{el('confirmModal').classList.add('hidden');if(cb)cb();}; el('confirmCancelBtn').onclick=()=>{el('confirmModal').classList.add('hidden');}; };
@@ -673,29 +680,137 @@
             const mVal = (m.value && m.value !== '-- Chọn --') ? m.value : savedM;
             m.innerHTML = `<option disabled ${!mVal?'selected':''}>-- Chọn --</option>`;
             getActiveList('manufacturer').forEach(i => m.innerHTML+=`<option value="${i}" ${i===mVal?'selected':''}>${i}</option>`);
+            
+            // Trigger highlight khi render xong select
+            renderProgress();
         }
 
         function renderProgress() {
             const tbody = el('progressTableBody'); if (!tbody) return;
+            
+            // Re-render Header để gắn sự kiện sort
+            const thead = document.querySelector('#progressChartSection thead tr');
+            if(thead) {
+                thead.innerHTML = `
+                    <th class="p-3 rounded-tl-xl text-indigo-900 dark:text-indigo-200 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors" onclick="window.handleSort('hospitalName')">
+                        Bệnh viện ${currentSort.key==='hospitalName' ? (currentSort.dir==='asc'?'↑':'↓') : ''}
+                    </th>
+                    <th class="p-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors" onclick="window.handleSort('Head')">
+                        Sọ não ${currentSort.key==='Head' ? (currentSort.dir==='asc'?'↑':'↓') : ''}
+                    </th>
+                    <th class="p-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors" onclick="window.handleSort('Chest')">
+                        Ngực ${currentSort.key==='Chest' ? (currentSort.dir==='asc'?'↑':'↓') : ''}
+                    </th>
+                    <th class="p-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors" onclick="window.handleSort('Abdomen')">
+                        Bụng ${currentSort.key==='Abdomen' ? (currentSort.dir==='asc'?'↑':'↓') : ''}
+                    </th>
+                    <th class="p-3 text-center rounded-tr-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors" onclick="window.handleSort('LDCT')">
+                        LDCT ${currentSort.key==='LDCT' ? (currentSort.dir==='asc'?'↑':'↓') : ''}
+                    </th>`;
+            }
+
             tbody.innerHTML = ''; 
             const active = getActiveList('hospital');
             const aliasMap = getHospitalAliasMap();
             const myHospitals = new Set(entries.filter(e=>e.userId===user?.uid).map(e=>e.hospitalName));
+            
+            // Lấy bệnh viện đang chọn để highlight
+            const selectedHospital = el('hospitalSelect') ? el('hospitalSelect').value : null;
 
-            active.map(h => ({ name: h, total: entries.filter(e => e.hospitalName === h).length })).sort((a,b)=>a.total-b.total).forEach(item => {
-                const row = document.createElement('tr'); row.className = "hover:bg-slate-50 border-b border-slate-50 dark:hover:bg-slate-700 dark:border-slate-700";
-                let dn = aliasMap[item.name] || item.name;
-                if (isAdmin || myHospitals.has(item.name)) { dn = item.name; if(isAdmin && aliasMap[item.name]) dn += ` <span class="text-[9px] text-slate-400">(${aliasMap[item.name]})</span>`; }
+            // Chuẩn bị dữ liệu
+            let data = active.map(h => {
+                const getCount = (kw) => entries.filter(e => e.hospitalName === h && e.protocol && e.protocol.includes(kw)).length;
+                const hCount = getCount('Head');
+                const cCount = getCount('Chest');
+                const aCount = getCount('Abdomen');
+                const lCount = getCount('LDCT');
                 
-                let html = `<td class="p-3 font-bold text-slate-700 dark:text-slate-300 text-xs border-r border-slate-50 dark:border-slate-700 sticky left-0 bg-white dark:bg-slate-800 z-10 min-w-[150px]">${dn}</td>`;
+                return {
+                    hospitalName: h, 
+                    Head: hCount,
+                    Chest: cCount,
+                    Abdomen: aCount,
+                    LDCT: lCount,
+                    Total: hCount + cCount + aCount + lCount // Tính tổng để sắp xếp
+                };
+            });
+
+            // Logic sắp xếp
+            data.sort((a,b) => {
+                let valA = a[currentSort.key];
+                let valB = b[currentSort.key];
+                
+                // Nếu sort theo tên thì dùng localeCompare
+                if (currentSort.key === 'hospitalName') {
+                    // Safe guard strings
+                    const strA = String(valA || '');
+                    const strB = String(valB || '');
+                    return currentSort.dir === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
+                }
+                // Sort theo số lượng (bao gồm cả Total)
+                return currentSort.dir === 'asc' ? (valA||0) - (valB||0) : (valB||0) - (valA||0);
+            });
+
+            data.forEach(item => {
+                const isSelected = item.hospitalName === selectedHospital; // FIXED
+                const row = document.createElement('tr'); 
+                // Thêm class highlight-row nếu trùng tên bệnh viện đang chọn
+                row.className = `hover:bg-slate-50 border-b border-slate-50 dark:hover:bg-slate-700 dark:border-slate-700 transition-colors ${isSelected ? 'highlight-row' : ''}`;
+                
+                let dn = aliasMap[item.hospitalName] || item.hospitalName; // FIXED
+                if (isAdmin || myHospitals.has(item.hospitalName)) { // FIXED
+                    dn = item.hospitalName; // FIXED
+                    if(isAdmin && aliasMap[item.hospitalName]) dn += ` <span class="text-[9px] text-slate-400">(${aliasMap[item.hospitalName]})</span>`; // FIXED
+                }
+                
+                let html = `<td class="p-3 font-bold text-slate-700 dark:text-slate-300 text-xs border-r border-slate-50 dark:border-slate-700 sticky left-0 bg-white dark:bg-slate-800 z-10 min-w-[150px] ${isSelected ? 'bg-amber-50 dark:bg-amber-900/20' : ''}">${dn}</td>`;
+                
                 ['Head','Chest','Abdomen','LDCT'].forEach(kw => {
-                    const count = entries.filter(e => e.hospitalName === item.name && e.protocol && e.protocol.includes(kw)).length;
-                    const pct = Math.min((count/30)*100, 100), isDone = count >= 30;
-                    html += `<td class="p-3 border-r border-slate-50 dark:border-slate-700 align-middle"><div class="flex flex-col gap-1 items-center"><span class="text-[10px] font-black ${isDone?'text-emerald-600 dark:text-emerald-400':'text-red-500'}">${count}/30</span><div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 min-w-[60px]"><div class="${isDone?'bg-emerald-500':'bg-red-500'} h-1.5 rounded-full" style="width:${pct}%"></div></div></div></td>`;
+                    const count = item[kw];
+                    const pct = Math.min((count/30)*100, 100);
+                    
+                    // Logic màu sắc (Traffic Light)
+                    let colorClass = 'bg-red-500'; // Mặc định đỏ (<10)
+                    let textClass = 'text-red-500';
+                    
+                    if (count >= 30) {
+                        colorClass = 'bg-emerald-500'; // Xanh (>=30)
+                        textClass = 'text-emerald-600 dark:text-emerald-400';
+                    } else if (count >= 10) {
+                        colorClass = 'bg-amber-400'; // Vàng (10-29)
+                        textClass = 'text-amber-600 dark:text-amber-400';
+                    }
+
+                    html += `<td class="p-3 border-r border-slate-50 dark:border-slate-700 align-middle">
+                        <div class="flex flex-col gap-1 items-center">
+                            <span class="text-[10px] font-black ${textClass}">${count}/30</span>
+                            <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 min-w-[60px]">
+                                <div class="${colorClass} h-1.5 rounded-full transition-all duration-500" style="width:${pct}%"></div>
+                            </div>
+                        </div>
+                    </td>`;
                 });
                 row.innerHTML = html; tbody.appendChild(row);
+                
+                // Scroll tới dòng được highlight nếu có
+                if(isSelected && !window.hasScrolledToHighlight) {
+                    // row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // window.hasScrolledToHighlight = true; // Tránh scroll liên tục gây phiền
+                }
             });
         }
+        
+        // Hàm xử lý click sort
+        window.handleSort = (key) => {
+            if (currentSort.key === key) {
+                currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.key = key;
+                currentSort.dir = 'desc'; // Mặc định giảm dần cho số liệu để thấy cái nhiều nhất trước
+                if (key === 'hospitalName') currentSort.dir = 'asc';
+            }
+            renderProgress();
+        };
 
         window.onload = async () => {
             setTimeout(() => el('globalLoader').style.display='none', 1000);
@@ -746,6 +861,9 @@
                 customContainer.classList.toggle('hidden', !isOther);
                 if (isOther) { e.target.blur(); setTimeout(() => customInput.focus(), 100); }
                 localStorage.setItem('drl_saved_hospitalSelect', e.target.value);
+                
+                // Cập nhật lại bảng để highlight dòng mới chọn
+                renderProgress();
             });
             on('manufacturer','change',(e)=>localStorage.setItem('drl_saved_manufacturer',e.target.value));
             on('protocol','change',(e)=>localStorage.setItem('drl_saved_protocol',e.target.value));
