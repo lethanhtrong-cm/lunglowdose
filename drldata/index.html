@@ -267,8 +267,10 @@
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 border-b border-slate-100 dark:border-slate-700 pb-4">
                         <h2 class="text-xs md:text-sm font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-2"><i data-lucide="filter" class="w-3 h-3 md:w-4 md:h-4 text-indigo-600 dark:text-indigo-400"></i> Bộ lọc dữ liệu</h2>
                         <div class="flex flex-wrap gap-2">
-                             <!-- NEW: Add Button -->
-                             <button onclick="addNewItem()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1.5 md:px-3 rounded-lg transition-all text-xs font-bold flex items-center gap-2" title="Thêm mới"><i data-lucide="plus" class="w-3 h-3"></i> <span class="hidden xs:inline">Thêm mới</span></button>
+                             <!-- NEW: Filter My Data Button -->
+                             <button onclick="toggleMyData()" id="btnMyData" class="px-2.5 py-1.5 md:px-3 rounded-lg transition-all text-xs font-bold flex items-center gap-2 border bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/30 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700" title="Lọc dữ liệu của tôi">
+                                 <i data-lucide="user" class="w-3 h-3"></i> <span class="hidden xs:inline">Lọc ca của tôi</span>
+                             </button>
                              <div class="w-px h-6 bg-slate-700 mx-1"></div>
 
                             <!-- Bulk Edit Button -->
@@ -710,6 +712,7 @@
         let currentPage = 1;
         let rowsPerPage = 20;
         let isTrashMode = false;
+        let isMyDataMode = false; // NEW: Toggle state for My Data
         let user = null;
         let userDocData = null;
         let isAdminKey = false;
@@ -1063,6 +1066,18 @@
                 }
             });
         }
+        
+        const myDataActiveClasses = ['bg-purple-800', 'text-white', 'border-purple-800', 'ring-2', 'ring-purple-400', 'shadow-inner'];
+        const myDataInactiveClasses = ['bg-purple-600', 'text-white', 'border-purple-600', 'shadow-md', 'shadow-purple-500/30', 'hover:bg-purple-700', 'dark:bg-purple-600', 'dark:hover:bg-purple-700'];
+
+        // NEW: Toggle My Data Filter
+        window.toggleMyData = () => {
+            isMyDataMode = !isMyDataMode;
+            updateMyDataBtnUI();
+            if (isMyDataMode) window.showToast("Đã bật chế độ lọc dữ liệu của bạn");
+            currentPage = 1;
+            renderTable();
+        };
 
         window.toggleTrashMode = () => {
             isTrashMode = !isTrashMode;
@@ -1334,6 +1349,8 @@
             el('fHosp').value = 'all'; el('fProt').value = 'all'; el('fManu').value = 'all';
             el('fGender').value = 'all'; el('fMod').value = 'all'; el('fSort').value = 'date_desc'; el('fSearch').value = '';
             el('fQuality').value = 'all'; 
+            isMyDataMode = false;
+            updateMyDataBtnUI();
             currentPage = 1; window.renderTable(); window.showToast("Đã xóa bộ lọc!");
         };
 
@@ -1341,7 +1358,7 @@
 
         window.renderTable = () => {
             const isSuperAdmin = checkIsAdmin(user);
-            const isApproved = true; // Auto-approve everyone for display logic if logged in
+            const isApproved = true; 
             if(user && !user.isAnonymous && !isApproved && !isSuperAdmin) return;
 
             const fH = el('fHosp').value, fP = el('fProt').value, fM = el('fManu').value;
@@ -1351,11 +1368,15 @@
             // Filter Trash Mode
             filtered = entries.filter(e => isTrashMode ? e.isDeleted : !e.isDeleted);
 
+            // NEW: Filter My Data Mode
+            if (isMyDataMode && user && !user.isAnonymous) {
+                filtered = filtered.filter(e => e.userId === user.uid || (e.userEmail && e.userEmail === user.email));
+            }
+
             // Apply other filters
             filtered = filtered.filter(e => {
                 if (fH !== 'all' && e.hospitalName !== fH) return false;
                 
-                // UPDATED: Use grouped protocol for filtering
                 if (fP !== 'all') {
                     if (getProtocolGroup(e.protocol) !== fP) return false;
                 }
@@ -1392,22 +1413,23 @@
                 return true;
             });
             
-            // Calculate stats data
-            let statsData = filtered;
-            // If logged in and NOT super admin, filter stats to only show user's data
-            if (user && !user.isAnonymous && !isSuperAdmin) {
-                statsData = filtered.filter(e => e.userId === user.uid || (e.userEmail && e.userEmail === user.email));
-            }
-
+            // Calculate stats based on filtered data (If My Data Mode is ON, stats reflect only my data)
             updateGlobalStats(entries); 
             const statsDiv = el('dynamicStats'); const placeholderDiv = el('statsPlaceholder');
-            if (fP === 'all' && !isTrashMode) { 
+            
+            // Logic for showing stats:
+            // 1. If My Data Mode is ON -> Show Stats (for my data)
+            // 2. If Protocol Filter is ON -> Show Stats (for that protocol)
+            // 3. Otherwise -> Hide Stats (show placeholder asking to filter)
+            // UNLESS Trash Mode is ON, then show whatever
+            
+            if (!isMyDataMode && fP === 'all' && !isTrashMode) { 
                 statsDiv.classList.add('hidden'); 
                 placeholderDiv.classList.remove('hidden'); 
             } else { 
                 placeholderDiv.classList.add('hidden'); 
                 statsDiv.classList.remove('hidden'); 
-                updateDynamicStats(statsData); // Changed from filtered to statsData
+                updateDynamicStats(filtered); 
             }
 
             if (sort === 'date_desc') filtered.sort((a,b) => (b.createdAt||'').localeCompare(a.createdAt||''));
@@ -1443,12 +1465,14 @@
                 const row = document.createElement('tr');
                 row.className = `hover:bg-indigo-50/50 dark:hover:bg-slate-700 border-b border-slate-50 dark:border-slate-700 group transition-colors even:bg-slate-50/50 dark:even:bg-slate-800/50 ${isSel ? 'row-selected' : ''}`;
                 
+                // Check if this row is pending sync
+                const isPending = pendingQueue.some(p => p.id === e.id);
+                if(isPending) row.classList.add('row-pending');
+                
                 // --- MASKING LOGIC FOR ROW ---
                 const displayHospital = hospitalAliasMap[e.hospitalName] || e.hospitalName;
                 
                 // MASKING LOGIC FOR EMAIL (NEW)
-                // If I am owner OR I am admin -> Show real email
-                // Else -> Show "Thành viên khác"
                 const displayEmail = (isOwner || isSuperAdmin) ? (e.userEmail || 'Unknown') : 'Thành viên khác';
                 const displayInitial = (isOwner || isSuperAdmin) ? (e.userEmail || '?').charAt(0).toUpperCase() : '?';
 
@@ -1472,28 +1496,33 @@
                     ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-800' 
                     : 'bg-slate-50 dark:bg-slate-700 text-slate-400 border-slate-200 dark:border-slate-600';
 
+                // Proactive handling of undefined values for cleaner display
+                const displayAge = e.age ? `${e.age}t` : '--';
+                const displayGender = e.gender ? e.gender : '--';
+                const displayWeight = e.weight ? `${e.weight}kg` : '--';
+
                 row.innerHTML = `
                     <td class="p-3 md:p-4 text-center"><input type="checkbox" class="custom-checkbox" onchange="toggleSel('${e.id}')" ${isSel ? 'checked' : ''}></td>
                     <td class="p-3 md:p-4 font-bold text-slate-700 dark:text-slate-200">
                         ${dateStr}<br>
                         <span class="text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 font-medium block">${timeStr}</span>
-                        <span class="text-[9px] md:text-[10px] text-slate-400 font-normal font-mono select-all block mt-1">ID: ${e.patientId}</span>
+                        <span class="text-[9px] md:text-[10px] text-slate-400 font-normal font-mono select-all block mt-1">ID: ${e.patientId || '--'}</span>
                     </td>
                     <td class="p-3 md:p-4 font-medium text-slate-600 dark:text-slate-300 text-[10px] md:text-[11px]">
-                        <span class="block font-bold text-slate-700 dark:text-slate-200 truncate max-w-[100px] md:max-w-none">${displayHospital}</span>
-                        <span class="text-slate-400 truncate max-w-[100px] md:max-w-none block">${e.manufacturer}</span>
+                        <span class="block font-bold text-slate-700 dark:text-slate-200 truncate max-w-[100px] md:max-w-none">${displayHospital || '--'}</span>
+                        <span class="text-slate-400 truncate max-w-[100px] md:max-w-none block">${e.manufacturer || '--'}</span>
                     </td>
                     <td class="p-3 md:p-4 text-[10px] md:text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                         <div class="flex flex-col md:flex-row items-start md:items-center gap-1 md:gap-2">
-                            <span class="bg-slate-100 dark:bg-slate-700 px-1.5 rounded text-slate-600 dark:text-slate-300">${e.age}t</span>
+                            <span class="bg-slate-100 dark:bg-slate-700 px-1.5 rounded text-slate-600 dark:text-slate-300">${displayAge}</span>
                             <div class="flex gap-1">
-                                <span class="bg-slate-100 dark:bg-slate-700 px-1.5 rounded text-slate-600 dark:text-slate-300 font-bold ${e.gender==='F'?'text-pink-500 dark:text-pink-400':'text-blue-500 dark:text-blue-400'}">${e.gender}</span>
-                                <span class="bg-slate-100 dark:bg-slate-700 px-1.5 rounded text-slate-600 dark:text-slate-300">${e.weight}kg</span>
+                                <span class="bg-slate-100 dark:bg-slate-700 px-1.5 rounded text-slate-600 dark:text-slate-300 font-bold ${e.gender==='F'?'text-pink-500 dark:text-pink-400':(e.gender==='M'?'text-blue-500 dark:text-blue-400':'')}">${displayGender}</span>
+                                <span class="bg-slate-100 dark:bg-slate-700 px-1.5 rounded text-slate-600 dark:text-slate-300">${displayWeight}</span>
                             </div>
                         </div>
                     </td>
                     <td class="p-3 md:p-4">
-                        <span class="badge-base ${protocolClass} block md:inline max-w-[120px] truncate">${getDisplayProtocol(e.protocol)}</span>
+                        <span class="badge-base ${protocolClass} block md:inline max-w-[120px] truncate">${getDisplayProtocol(e.protocol) || '--'}</span>
                         ${e.modulation ? `<span class="mt-1 md:mt-0 md:ml-1 text-[9px] border px-1 rounded block md:inline w-fit ${modColor}">${e.modulation}</span>` : ''}
                     </td>
                     <td class="p-3 md:p-4 text-[10px]">
@@ -1504,8 +1533,8 @@
                             <span class="truncate max-w-[80px] md:max-w-[120px] text-blue-600 dark:text-blue-400 font-medium">${displayEmail}</span>
                         </div>
                     </td>
-                    <td class="p-3 md:p-4 text-center font-bold text-slate-700 dark:text-slate-200">${e.ctdi}</td>
-                    <td class="p-3 md:p-4 text-center"><span class="${parseFloat(e.dlp) > 1000 ? 'badge-dose-high' : 'badge-dose'}">${e.dlp}</span></td>
+                    <td class="p-3 md:p-4 text-center font-bold text-slate-700 dark:text-slate-200">${e.ctdi !== undefined ? e.ctdi : '--'}</td>
+                    <td class="p-3 md:p-4 text-center"><span class="${parseFloat(e.dlp) > 1000 ? 'badge-dose-high' : 'badge-dose'}">${e.dlp !== undefined ? e.dlp : '--'}</span></td>
                     <td class="p-3 md:p-4 text-right">
                         <div class="flex items-center justify-end gap-1.5">
                             ${actionButtons}
@@ -1521,27 +1550,57 @@
             renderPagination(totalPages); updateBulkUI(); lucide.createIcons();
         };
 
-        // NEW: Add New Item
-        window.addNewItem = () => {
-            el('eId').value = "";
-            el('modalTitle').innerText = "Thêm mới ca chụp";
-            el('eHosp').innerText = "N/A (Sẽ tự động điền)";
-            el('eDate').innerText = new Date().toLocaleString('vi-VN');
-            el('eProt').value = "Head Routine";
-            el('eCTDI').value = 0;
-            el('eDLP').value = 0;
-            el('eAge').value = "";
-            el('eGender').value = "M";
-            el('eWeight').value = "";
-            el('eMod').value = "on";
+        // ... (Existing helper functions: saveEntry, editItem, etc. remain unchanged but saveEntry no longer handles CREATE)
+        // ... (Actually saveEntry still needs to handle updates, so I'll keep the update part)
+        
+        window.saveEntry = async () => {
+            if((!user || user.isAnonymous) && !isAdminKey) return;
+            const id = el('eId').value;
+            // Update mode only now
+            const updateData = { 
+                protocol: el('eProt').value, 
+                ctdi: parseFloat(el('eCTDI').value), 
+                dlp: parseFloat(el('eDLP').value), 
+                age: parseInt(el('eAge').value), 
+                gender: el('eGender').value, 
+                weight: parseFloat(el('eWeight').value), 
+                modulation: el('eMod').value,
+                updatedAt: new Date().toISOString()
+            };
             
-            ['eProt', 'eCTDI', 'eDLP', 'eAge', 'eGender', 'eWeight', 'eMod'].forEach(i => el(i).disabled = false);
-            el('btnSave').style.display = 'flex';
-            
-            const modal = el('editModal'); const content = el('modalContent');
-            modal.classList.remove('hidden'); modal.classList.add('flex');
-            setTimeout(() => { content.classList.remove('scale-95', 'opacity-0'); content.classList.add('scale-100', 'opacity-100'); }, 10);
+            try { 
+                if (id) {
+                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id), updateData);
+                     window.showToast("Đã cập nhật dữ liệu!");
+                     window.closeModal(); 
+                     fetchData(true);
+                } 
+            } catch(err) { 
+                if (err.code === 'resource-exhausted') {
+                    if (id) {
+                        addToQueue('update', id, updateData);
+                        window.closeModal();
+                    }
+                } else {
+                    window.showAlert("Lỗi lưu trữ", err.message, 'error'); 
+                }
+            }
         };
+        
+        function updateMyDataBtnUI() {
+             const btn = el('btnMyData');
+             if(!btn) return;
+             if (isMyDataMode) {
+                btn.classList.remove(...myDataInactiveClasses);
+                btn.classList.add(...myDataActiveClasses);
+                btn.innerHTML = `<i data-lucide="user-check" class="w-3 h-3"></i> <span class="hidden xs:inline">Đang lọc của tôi</span>`;
+            } else {
+                btn.classList.remove(...myDataActiveClasses);
+                btn.classList.add(...myDataInactiveClasses);
+                btn.innerHTML = `<i data-lucide="user" class="w-3 h-3"></i> <span class="hidden xs:inline">Lọc ca của tôi</span>`;
+            }
+            lucide.createIcons();
+        }
 
         // Soft Delete
         window.delItemAction = async (id) => { 
@@ -1595,65 +1654,6 @@
             setTimeout(() => { content.classList.remove('scale-95', 'opacity-0'); content.classList.add('scale-100', 'opacity-100'); }, 10);
         };
 
-        window.saveEntry = async () => {
-            if((!user || user.isAnonymous) && !isAdminKey) return;
-            const id = el('eId').value;
-            const updateData = { 
-                protocol: el('eProt').value, 
-                ctdi: parseFloat(el('eCTDI').value), 
-                dlp: parseFloat(el('eDLP').value), 
-                age: parseInt(el('eAge').value), 
-                gender: el('eGender').value, 
-                weight: parseFloat(el('eWeight').value), 
-                modulation: el('eMod').value,
-                updatedAt: new Date().toISOString()
-            };
-            
-            try { 
-                if (id) {
-                     // Update existing
-                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id), updateData);
-                     window.showToast("Đã cập nhật dữ liệu!");
-                } else {
-                     // Create new
-                     // Auto-fill metadata for new item
-                     updateData.createdAt = new Date().toISOString();
-                     updateData.userId = user.uid;
-                     updateData.userEmail = user.email;
-                     // For demo purposes, we might not have hospital info if user object is simple, default to 'Unknown Hospital' or prompting
-                     // In real app, user profile has hospital info. Here we use email domain or placeholder
-                     updateData.hospitalName = user.email ? (user.email.split('@')[1] || 'Bệnh viện X') : 'Bệnh viện X';
-                     updateData.manufacturer = 'Unknown'; // Default
-                     
-                     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'), updateData);
-                     window.showToast("Đã thêm mới thành công!");
-                }
-                
-                window.closeModal(); 
-                fetchData(true);
-            } catch(err) { 
-                if (err.code === 'resource-exhausted') {
-                    if (id) {
-                        addToQueue('update', id, updateData);
-                    } else {
-                        // For create, generate a temp ID
-                        const tempId = 'temp_' + Date.now();
-                        // Complete the data object for local display
-                        updateData.createdAt = new Date().toISOString();
-                        updateData.userId = user.uid;
-                        updateData.userEmail = user.email;
-                        updateData.hospitalName = user.email ? (user.email.split('@')[1] || 'Bệnh viện X') : 'Bệnh viện X';
-                        updateData.manufacturer = 'Unknown';
-                        
-                        addToQueue('create', tempId, updateData);
-                    }
-                    window.closeModal();
-                } else {
-                    window.showAlert("Lỗi lưu trữ", err.message, 'error'); 
-                }
-            }
-        };
-
         window.closeModal = () => {
             const modal = el('editModal'); const content = el('modalContent');
             content.classList.remove('scale-100', 'opacity-100'); content.classList.add('scale-95', 'opacity-0');
@@ -1695,8 +1695,19 @@
                         batch.update(ref, { isDeleted: true });
                     }
                 });
-                await batch.commit(); selected.clear(); updateBulkUI(); window.showToast("Đã xử lý dữ liệu thành công!");
-                fetchData(true);
+                try {
+                    await batch.commit(); 
+                    selected.clear(); 
+                    updateBulkUI(); 
+                    window.showToast("Đã xử lý dữ liệu thành công!");
+                    fetchData(true);
+                } catch(err) {
+                    if (err.code === 'resource-exhausted') {
+                        selected.forEach(id => addToQueue(isTrashMode ? 'delete' : 'soft-delete', id));
+                        selected.clear();
+                        updateBulkUI();
+                    }
+                }
             });
         };
         el('btnExport').onclick = () => {
