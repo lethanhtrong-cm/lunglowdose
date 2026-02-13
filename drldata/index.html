@@ -115,6 +115,10 @@
         /* Pending Sync Row */
         .row-pending { background: #fef3c7 !important; }
         .dark .row-pending { background: rgba(217, 119, 6, 0.2) !important; }
+
+        /* My Data Button Active */
+        .btn-my-data-active { @apply bg-purple-800 text-white border-purple-800 ring-2 ring-purple-400 shadow-inner; }
+        .btn-my-data-inactive { @apply bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/30 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700; }
     </style>
     <script>
         // Init Theme
@@ -1041,8 +1045,14 @@
             return 'unknown';
         };
 
+        // NEW: Filter out "gmail" and "imported" hospitals
         function generateHospitalAliases(data) {
-            const allHosps = [...new Set(data.map(e => e.hospitalName).filter(n => n && !n.toLowerCase().includes('chọn')))].sort();
+            const allHosps = [...new Set(data.map(e => e.hospitalName).filter(n => 
+                n && 
+                !n.toLowerCase().includes('chọn') && 
+                !n.toLowerCase().includes('gmail') && 
+                !n.toLowerCase().includes('imported')
+            ))].sort();
             hospitalAliasMap = {};
             
             const myHosps = new Set();
@@ -1065,6 +1075,44 @@
                     hospitalAliasMap[h] = `Cơ sở ẩn danh #${idx + 1}`;
                 }
             });
+        }
+        
+        // NEW: Delete Hospital Tool
+        window.deleteHospital = async (name) => {
+             // Confirm dialog
+             window.showConfirm('Xóa bệnh viện', `Bạn có chắc chắn muốn xóa toàn bộ dữ liệu của "${name}"? Hành động này không thể hoàn tác.`, async () => {
+                 // Get IDs to delete
+                 const idsToDelete = entries.filter(e => e.hospitalName === name).map(e => e.id);
+                 
+                 if (idsToDelete.length === 0) {
+                     window.showToast("Không tìm thấy dữ liệu để xóa.");
+                     return;
+                 }
+
+                 const batch = writeBatch(db);
+                 const BATCH_SIZE = 500;
+                 
+                 // Batch delete
+                 for (let i = 0; i < idsToDelete.length; i += BATCH_SIZE) {
+                    const chunk = idsToDelete.slice(i, i + BATCH_SIZE);
+                    const currentBatch = writeBatch(db);
+                    chunk.forEach(id => {
+                        const ref = doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id);
+                        currentBatch.delete(ref);
+                    });
+                    
+                    try {
+                        await currentBatch.commit();
+                    } catch(e) {
+                         if (e.code === 'resource-exhausted') {
+                             chunk.forEach(id => addToQueue('delete', id));
+                         }
+                    }
+                }
+                window.showToast(`Đã xóa bệnh viện ${name}`);
+                closeHospitalModal();
+                fetchData(true);
+             });
         }
         
         const myDataActiveClasses = ['bg-purple-800', 'text-white', 'border-purple-800', 'ring-2', 'ring-purple-400', 'shadow-inner'];
@@ -1099,7 +1147,14 @@
         };
 
         window.showHospitalModal = () => {
-            const hospitals = [...new Set(entries.map(e => e.hospitalName).filter(n => n && !n.toLowerCase().includes('chọn')))].sort();
+            // Apply strict filtering for display list too
+            const hospitals = [...new Set(entries.map(e => e.hospitalName).filter(n => 
+                n && 
+                !n.toLowerCase().includes('chọn') &&
+                !n.toLowerCase().includes('gmail') && 
+                !n.toLowerCase().includes('imported')
+            ))].sort();
+            
             const listEl = el('hospitalList');
             listEl.innerHTML = '';
             if (hospitals.length === 0) {
@@ -1113,12 +1168,19 @@
                     const displayName = hospitalAliasMap[h] || h; 
                     const li = document.createElement('li');
                     li.className = 'p-3 md:p-4 flex items-center justify-between cursor-pointer transition-colors hover:bg-emerald-50/50 dark:hover:bg-slate-700 group border-b border-slate-50 dark:border-slate-700 last:border-b-0';
+                    
+                    // Add Delete Button if Admin
+                    const deleteBtn = `<button onclick="event.stopPropagation(); deleteHospital('${h}')" class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors ml-2" title="Xóa toàn bộ dữ liệu bệnh viện này"><i data-lucide="trash-2" class="w-3 h-3"></i></button>`;
+                    
                     li.innerHTML = `
                         <div class="flex items-center gap-3 min-w-0 flex-1">
                             <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 font-bold text-[10px] flex-shrink-0 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">${index + 1}</span>
                             <span class="font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors truncate block w-full pr-2 text-xs md:text-sm">${displayName}</span>
                         </div>
-                        <span class="text-[10px] md:text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-600 px-2 py-1 rounded-full flex-shrink-0">${count} ca</span>
+                        <div class="flex items-center">
+                            <span class="text-[10px] md:text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-600 px-2 py-1 rounded-full flex-shrink-0">${count} ca</span>
+                            ${isAdminKey ? deleteBtn : ''}
+                        </div>
                     `;
                     li.onclick = () => window.selectHospitalFromModal(h);
                     listEl.appendChild(li);
@@ -1228,7 +1290,13 @@
         function populateFilters() {
             generateHospitalAliases(entries);
 
-            const h = [...new Set(entries.map(e => e.hospitalName).filter(n => n && !n.toLowerCase().includes('chọn')))].sort();
+            const h = [...new Set(entries.map(e => e.hospitalName).filter(n => 
+                n && 
+                !n.toLowerCase().includes('chọn') && 
+                !n.toLowerCase().includes('gmail') && 
+                !n.toLowerCase().includes('imported')
+            ))].sort();
+            
             const m = [...new Set(entries.map(e => e.manufacturer).filter(n => n && !n.toLowerCase().includes('chọn')))].sort();
             
             const protocolGroups = new Set();
@@ -1402,6 +1470,7 @@
                     const isStandardWeight = !isNaN(weight) && weight >= 50 && weight <= 70; // UPDATED range to 50-70
 
                     if (fQ === 'valid_drl') { if (isMissingId || isMissingProt || isMissingDose || !isStandardWeight) return false; }
+                    else if (fQ === 'weight_40_80') { if (!isNaN(weight) && weight >= 40 && weight <= 80) return true; else return false; }
                     else if (fQ === 'any_issue' && !(isMissingId || isMissingAcc || isMissingProt || isMissingDose)) return false;
                     else if (fQ === 'missing_id' && !isMissingId) return false;
                     else if (fQ === 'missing_account' && !isMissingAcc) return false;
@@ -1549,9 +1618,6 @@
             el('pageInfo').textContent = `Hiển thị ${displayStart}-${end} của ${filtered.length}`;
             renderPagination(totalPages); updateBulkUI(); lucide.createIcons();
         };
-
-        // ... (Existing helper functions: saveEntry, editItem, etc. remain unchanged but saveEntry no longer handles CREATE)
-        // ... (Actually saveEntry still needs to handle updates, so I'll keep the update part)
         
         window.saveEntry = async () => {
             if((!user || user.isAnonymous) && !isAdminKey) return;
@@ -1642,74 +1708,6 @@
             }
         };
 
-        window.editItem = (id) => {
-            const e = entries.find(x => x.id === id); if (!e) return;
-            el('eId').value = id; el('eHosp').innerText = e.hospitalName || 'N/A'; el('eDate').innerText = new Date(e.createdAt).toLocaleString('vi-VN');
-            el('eProt').value = e.protocol || 'Head Routine'; el('eCTDI').value = e.ctdi || 0; el('eDLP').value = e.dlp || 0; el('eAge').value = e.age || ''; el('eGender').value = e.gender || 'M'; el('eWeight').value = e.weight || ''; el('eMod').value = e.modulation ? e.modulation.toLowerCase() : '';
-            const isOwner = user && !user.isAnonymous && (user.uid === e.userId); const isSuperAdmin = checkIsAdmin(user); const canEdit = isOwner || isSuperAdmin;
-            el('btnSave').style.display = canEdit ? 'flex' : 'none'; el('modalTitle').innerText = canEdit ? 'Chỉnh sửa ca chụp' : 'Chi tiết ca chụp';
-            ['eProt', 'eCTDI', 'eDLP', 'eAge', 'eGender', 'eWeight', 'eMod'].forEach(i => el(i).disabled = !canEdit);
-            const modal = el('editModal'); const content = el('modalContent');
-            modal.classList.remove('hidden'); modal.classList.add('flex');
-            setTimeout(() => { content.classList.remove('scale-95', 'opacity-0'); content.classList.add('scale-100', 'opacity-100'); }, 10);
-        };
-
-        window.closeModal = () => {
-            const modal = el('editModal'); const content = el('modalContent');
-            content.classList.remove('scale-100', 'opacity-100'); content.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200);
-        };
-        
-        // ... (rest of pagination and other UI functions remain same)
-
-        function renderPagination(total) {
-            const c = el('pagination'); c.innerHTML = '';
-            const btn = (i, t, d) => `<button onclick="goToPage(${i})" class="page-btn ${d?'cursor-not-allowed opacity-50':''} ${i===currentPage?'active':''}" ${d?'disabled':''}>${t}</button>`;
-            c.innerHTML += btn(currentPage-1, '<i data-lucide="chevron-left" class="w-3 h-3"></i>', currentPage===1);
-            let range = []; for(let i=1; i<=total; i++) { if(i===1 || i===total || (i >= currentPage-1 && i <= currentPage+1)) range.push(i); }
-            let prev = 0; range.forEach(i => { if(i - prev > 1) c.innerHTML += `<span class="text-xs text-slate-400 dark:text-slate-500 px-1">...</span>`; c.innerHTML += btn(i, i, false); prev = i; });
-            c.innerHTML += btn(currentPage+1, '<i data-lucide="chevron-right" class="w-3 h-3"></i>', currentPage===total);
-        }
-        window.goToPage = (p) => { currentPage = p; renderTable(); };
-        window.toggleSel = (id) => { selected.has(id) ? selected.delete(id) : selected.add(id); renderTable(); };
-        el('checkAll').onchange = (e) => { 
-            const ids = filtered.slice((currentPage-1)*rowsPerPage, currentPage*rowsPerPage).map(x=>x.id);
-            e.target.checked ? ids.forEach(i=>selected.add(i)) : ids.forEach(i=>selected.delete(i));
-            renderTable();
-        };
-        function updateBulkUI() {
-            const b = el('bulkToolbar');
-            if(selected.size > 0) { b.classList.remove('hidden'); b.classList.add('flex'); el('selCount').innerText = selected.size; }
-            else { b.classList.add('hidden'); b.classList.remove('flex'); }
-        }
-        window.clearSelection = () => { selected.clear(); el('checkAll').checked=false; renderTable(); };
-        window.deleteSelected = () => {
-            const actionText = isTrashMode ? 'XÓA VĨNH VIỄN' : 'xóa';
-            window.showConfirm('Xóa hàng loạt', `CẢNH BÁO: Bạn đang ${actionText} ${selected.size} dòng dữ liệu. Hành động này không thể hoàn tác!`, async () => {
-                const batch = writeBatch(db);
-                selected.forEach(id => {
-                    const ref = doc(db,'artifacts',appId,'public', 'data', 'drl_entries',id);
-                    if (isTrashMode) {
-                        batch.delete(ref);
-                    } else {
-                        batch.update(ref, { isDeleted: true });
-                    }
-                });
-                try {
-                    await batch.commit(); 
-                    selected.clear(); 
-                    updateBulkUI(); 
-                    window.showToast("Đã xử lý dữ liệu thành công!");
-                    fetchData(true);
-                } catch(err) {
-                    if (err.code === 'resource-exhausted') {
-                        selected.forEach(id => addToQueue(isTrashMode ? 'delete' : 'soft-delete', id));
-                        selected.clear();
-                        updateBulkUI();
-                    }
-                }
-            });
-        };
         el('btnExport').onclick = () => {
             if(filtered.length===0) { window.showAlert("Thông báo", "Không có dữ liệu để xuất", 'info'); return; }
             const ws = XLSX.utils.json_to_sheet(filtered.map(e => ({
