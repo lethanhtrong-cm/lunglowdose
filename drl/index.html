@@ -265,15 +265,27 @@
                         <!-- Updated Modulation Section -->
                         <div class="flex flex-col gap-2 bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-2xl border-2 border-indigo-200 dark:border-indigo-800 shadow-sm relative overflow-hidden group">
                             <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"><i data-lucide="zap" class="w-12 h-12 text-indigo-500"></i></div>
-                            <span class="text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-wider z-10">Tùy biến liều tia (mA Modulation)</span>
-                            <div class="flex gap-6 z-10">
-                                <label class="flex items-center gap-2 cursor-pointer bg-white dark:bg-slate-700 px-4 py-2 rounded-xl border border-indigo-100 dark:border-indigo-800 shadow-sm hover:border-indigo-300 transition-all">
-                                    <input type="radio" name="doseModulation" value="Có" checked class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
-                                    <span class="text-xs font-bold text-indigo-900 dark:text-indigo-200">Có (On)</span>
+                            <span class="text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-wider z-10">Tùy biến liều tia (mA Modulation) <span class="text-red-500">*</span></span>
+                            <div class="flex gap-4 z-10">
+                                <!-- Option Có -->
+                                <label class="flex-1 cursor-pointer">
+                                    <input type="radio" name="doseModulation" value="Có" class="peer sr-only">
+                                    <div class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-indigo-100 dark:border-indigo-800 bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold text-xs transition-all peer-checked:border-indigo-500 peer-checked:bg-indigo-100 dark:peer-checked:bg-indigo-900/50 peer-checked:text-indigo-700 dark:peer-checked:text-indigo-300 peer-checked:shadow-md hover:bg-slate-50 dark:hover:bg-slate-600">
+                                        <div class="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center">
+                                            <div class="w-2 h-2 rounded-full bg-current opacity-0 peer-checked:opacity-100 transition-opacity"></div>
+                                        </div>
+                                        <span>Có (On)</span>
+                                    </div>
                                 </label>
-                                <label class="flex items-center gap-2 cursor-pointer bg-white dark:bg-slate-700 px-4 py-2 rounded-xl border border-indigo-100 dark:border-indigo-800 shadow-sm hover:border-indigo-300 transition-all">
-                                    <input type="radio" name="doseModulation" value="Không" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
-                                    <span class="text-xs font-bold text-indigo-900 dark:text-indigo-200">Không (Off)</span>
+                                <!-- Option Không -->
+                                <label class="flex-1 cursor-pointer">
+                                    <input type="radio" name="doseModulation" value="Không" class="peer sr-only">
+                                    <div class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-indigo-100 dark:border-indigo-800 bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold text-xs transition-all peer-checked:border-red-500 peer-checked:bg-red-50 dark:peer-checked:bg-red-900/20 peer-checked:text-red-700 dark:peer-checked:text-red-400 peer-checked:shadow-md hover:bg-slate-50 dark:hover:bg-slate-600">
+                                        <div class="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center">
+                                            <div class="w-2 h-2 rounded-full bg-current opacity-0 peer-checked:opacity-100 transition-opacity"></div>
+                                        </div>
+                                        <span>Không (Off)</span>
+                                    </div>
                                 </label>
                             </div>
                         </div>
@@ -916,6 +928,10 @@
                 });
                 if(hasError) return showToast("Vui lòng kiểm tra lại các trường báo đỏ", 'error');
 
+                // Check Radio Button (Bắt buộc chọn Modulation)
+                const doseMod = document.querySelector('input[name="doseModulation"]:checked');
+                if (!doseMod) return showToast("Vui lòng chọn trạng thái Dose Modulation (Có/Không)!", 'error');
+
                 let h=el('hospitalSelect').value, m=el('manufacturer').value;
                 if(!h||h==='-- Chọn --') return showToast("Chưa chọn Bệnh viện!",'error');
                 if(h==='other'){h=el('customHospitalName').value.trim();if(!h)return showToast("Nhập tên BV mới!",'error');}
@@ -954,8 +970,11 @@
                     // Batch Mode Logic
                     const isBatch = el('batchMode').checked;
                     const fieldsToClear = ['patientId','age','yob','weight','height','bmi','ctdi','dlp','kvp','mas'];
+                    
+                    // Nếu KHÔNG phải chế độ nhập liên tục, reset cả radio button
                     if(!isBatch) {
-                        fieldsToClear.push('protocol', 'sliceCount'); // 'scanDate' usually stays current day
+                        fieldsToClear.push('protocol', 'sliceCount'); 
+                        document.querySelectorAll('input[name="doseModulation"]').forEach(r => r.checked = false);
                     }
                     
                     fieldsToClear.forEach(i => { if(el(i)) el(i).value = ''; });
