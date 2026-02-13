@@ -186,9 +186,9 @@
             <!-- Scrollable Controls -->
             <div class="flex-1 overflow-y-auto custom-scroll px-4 pb-20 lg:pb-8 pt-2 space-y-2">
                 
-                <!-- Tool Selection Grid (Removed Layout Icon) -->
+                <!-- Tool Selection Grid -->
                 <div class="sticky top-0 bg-[#F2F2F7] z-10 py-2">
-                    <div class="ios-card grid grid-cols-3 sm:grid-cols-6 divide-x divide-y sm:divide-y-0 divide-gray-200/60 bg-white overflow-x-auto">
+                    <div class="ios-card grid grid-cols-4 sm:grid-cols-7 divide-x divide-y sm:divide-y-0 divide-gray-200/60 bg-white overflow-x-auto">
                         <button onclick="setMode('move')" id="btn-move" class="tool-btn active py-3 flex flex-col items-center justify-center gap-1 min-w-[45px]" title="Di chuyển">
                             <i class="fa-solid fa-arrow-pointer text-lg"></i>
                         </button>
@@ -214,7 +214,7 @@
                 <div>
                     <div class="ios-group-title">Bố cục & Màu sắc</div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <!-- Layout Button (Moved Here) -->
+                        <!-- Layout Button -->
                         <button onclick="setMode('layout')" id="btn-layout" class="flex items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-100 hover:bg-gray-50 transition-all text-left group">
                             <div class="w-10 h-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center text-lg group-[.active]:bg-orange-500 group-[.active]:text-white transition-colors shrink-0">
                                 <i class="fa-solid fa-table-cells-large"></i>
@@ -256,6 +256,25 @@
                     <button onclick="performCrop()" class="w-full mt-3 bg-[--ios-blue] text-white py-2.5 rounded-xl font-semibold shadow-md shadow-blue-200 active:scale-[0.98] transition-transform text-sm">
                         <i class="fa-solid fa-check mr-2"></i> Xác nhận Cắt
                     </button>
+                </div>
+                
+                <!-- NEW: Context: Selection (Arrow/Object) -->
+                <div id="selection-controls" class="hidden">
+                    <div class="ios-group-title">Đối tượng đang chọn</div>
+                    <div class="ios-card p-4 bg-white border border-blue-200 shadow-sm">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                                <i class="fa-solid fa-arrow-pointer"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-semibold text-gray-900">Mũi tên</div>
+                                <div class="text-[11px] text-gray-500">Đã chọn</div>
+                            </div>
+                        </div>
+                        <button onclick="deleteSelectedPath()" class="w-full py-2 bg-red-50 text-[--ios-red] rounded-lg text-xs font-semibold hover:bg-red-100 flex items-center justify-center gap-2 transition">
+                            <i class="fa-regular fa-trash-can"></i> Xóa Mũi tên này
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 2. Context: Adjust -->
@@ -572,7 +591,6 @@
         </aside>
 
         <!-- Main Workspace (Canvas) -->
-        <!-- Mobile: Top section (fixed height) | Desktop: Right fluid width -->
         <main class="w-full lg:flex-1 h-[50vh] lg:h-full relative bg-[#E5E5EA] flex flex-col overflow-hidden border-b lg:border-b-0 lg:border-l border-[#C6C6C8]">
             <!-- Zoom -->
             <div class="absolute top-6 left-1/2 -translate-x-1/2 z-30 bg-white/80 backdrop-blur-xl rounded-full shadow-lg border border-white/40 px-4 py-2 flex items-center gap-4 select-none">
@@ -644,6 +662,7 @@
         let drawingPaths = [];
         let textObjects = [];
         let selectedTextIndex = -1;
+        let selectedPathIndex = -1; // New: Track selected arrow/path
 
         let isDrawing = false;
         let cropStart = null, cropCurrent = null, isCropping = false;
@@ -679,6 +698,9 @@
 
         function setMode(mode) {
             currentMode = mode;
+            // Deselect path when changing modes
+            selectedPathIndex = -1;
+            
             ['move', 'draw', 'arrow', 'text', 'crop', 'layout', 'pan', 'adjust'].forEach(m => {
                 const btn = document.getElementById('btn-' + m);
                 if (btn) btn.classList.toggle('active', m === mode);
@@ -689,6 +711,9 @@
             toggleElement('draw-controls', mode === 'draw' || mode === 'arrow');
             toggleElement('text-tool-controls', mode === 'text');
             toggleElement('adjust-controls', mode === 'adjust');
+            
+            // Hide selection controls initially
+            document.getElementById('selection-controls').classList.add('hidden');
             
             // Show cell actions if in layout mode and cell selected
             if (mode === 'layout' && activeGridCellIndex !== -1 && gridState.active) {
@@ -1098,6 +1123,34 @@
             newImg.src = c.toDataURL();
         }
 
+        // --- Path/Arrow Selection Logic ---
+        function deleteSelectedPath() {
+            if (selectedPathIndex !== -1) {
+                drawingPaths.splice(selectedPathIndex, 1);
+                selectedPathIndex = -1;
+                document.getElementById('selection-controls').classList.add('hidden');
+                drawCanvas();
+            }
+        }
+
+        function undoLastPath() {
+            if (drawingPaths.length > 0) {
+                drawingPaths.pop();
+                drawCanvas();
+            }
+        }
+        
+        // Math helper: Point distance to line segment
+        function distToSegment(p, v, w) {
+            function sqr(x) { return x * x }
+            function dist2(v, w) { return sqr(v.x - w.x) + sqr(v.y - w.y) }
+            var l2 = dist2(v, w);
+            if (l2 == 0) return Math.sqrt(dist2(p, v));
+            var t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+            t = Math.max(0, Math.min(1, t));
+            return Math.sqrt(dist2(p, { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) }));
+        }
+
         // --- Drawing Logic ---
 
         function drawCanvas() {
@@ -1143,8 +1196,17 @@
             ctx.restore(); // Restore filter context for overlays
 
             // 2. Overlays
-            drawingPaths.forEach(path => {
+            drawingPaths.forEach((path, index) => {
                 if (path.points.length < 2) return;
+                
+                // Highlight if selected
+                if (index === selectedPathIndex) {
+                    ctx.shadowColor = "#007AFF";
+                    ctx.shadowBlur = 10;
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+                
                 ctx.beginPath(); ctx.lineWidth = path.size; ctx.strokeStyle = path.color;
                 ctx.lineCap = 'round'; ctx.lineJoin = 'round';
                 if (path.type === 'brush') {
@@ -1155,6 +1217,9 @@
                     const start = path.points[0], end = path.points[path.points.length-1];
                     drawArrow(ctx, start.x, start.y, end.x, end.y, path.size);
                 }
+                
+                // Reset shadow
+                ctx.shadowBlur = 0;
             });
 
             canvas.hitRects = { texts: [] };
@@ -1433,9 +1498,51 @@
                 return;
             }
 
-            // Standard Move/Text logic ...
+            // Standard handlers
             if (currentMode === 'move') {
                 const hits = canvas.hitRects || {};
+                
+                // Clear previous path selection first (priority to Text/Logo)
+                let newSelectedPathIndex = -1;
+                
+                // Check Drawing/Arrow Hits
+                // Iterate backwards to select top-most
+                for (let i = drawingPaths.length - 1; i >= 0; i--) {
+                    const path = drawingPaths[i];
+                    if (path.points.length < 2) continue;
+                    
+                    let isHit = false;
+                    if (path.type === 'arrow') {
+                        const start = path.points[0];
+                        const end = path.points[path.points.length - 1];
+                        // Hit test line segment with tolerance (e.g., 10px)
+                        // Scale tolerance by canvas scale if needed, but simple px usually works
+                        const dist = distToSegment(pos, start, end);
+                        if (dist < Math.max(10, path.size * 2)) {
+                            isHit = true;
+                        }
+                    } else if (path.type === 'brush') {
+                        // Simple brush hit test: check distance to any point (expensive but works for small strokes)
+                        // Optimization: check bounding box first? Let's skip brush selection for now or do simple point check
+                        // For this request: "xóa mũi tên" (delete arrow), so focus on arrow
+                    }
+                    
+                    if (isHit) {
+                        newSelectedPathIndex = i;
+                        break; // Found top-most
+                    }
+                }
+                
+                // Update selection state
+                selectedPathIndex = newSelectedPathIndex;
+                if (selectedPathIndex !== -1) {
+                    document.getElementById('selection-controls').classList.remove('hidden');
+                    drawCanvas();
+                    return; // Stop checking other things if we selected an arrow
+                } else {
+                    document.getElementById('selection-controls').classList.add('hidden');
+                }
+
                 for (let i = hits.texts.length - 1; i >= 0; i--) {
                     const r = hits.texts[i];
                     if (pos.x >= r.x && pos.x <= r.x + r.w && pos.y >= r.y && pos.y <= r.y + r.h) {
@@ -1469,6 +1576,8 @@
                 const size = parseInt(document.getElementById('brushSize').value) * (canvas.width / 1000);
                 drawingPaths.push({ type: currentMode === 'arrow'?'arrow':'brush', points: [pos], color: color, size: size });
                 drawCanvas();
+            } else if (currentMode === 'crop') {
+                isCropping = true; cropStart = pos; cropCurrent = pos; drawCanvas();
             }
         }
 
