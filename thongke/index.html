@@ -103,6 +103,18 @@
                             </label>
                         </div>
 
+                        <!-- Weight Filter 40-80kg Toggle Switch -->
+                        <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-emerald-100 shadow-sm" title="Chỉ lấy bệnh nhân cân nặng 40-80kg">
+                            <div class="flex flex-col items-end leading-none">
+                                <span class="text-[10px] font-black text-emerald-700 uppercase">Lọc cân nặng</span>
+                                <span class="text-[9px] font-medium text-slate-400">40-80kg</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="weightFilter" class="sr-only peer">
+                                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                            </label>
+                        </div>
+
                         <div class="h-8 w-px bg-indigo-100 mx-1"></div>
 
                         <!-- Standard Selector -->
@@ -339,12 +351,21 @@
         function renderStats() {
             // -- LOGIC LỌC DỮ LIỆU --
             let currentEntries = entries;
+            
             const stdFilterCheckbox = el('stdPatientFilter');
             if(stdFilterCheckbox && stdFilterCheckbox.checked) {
-                currentEntries = entries.filter(e => {
+                currentEntries = currentEntries.filter(e => {
                     const w = parseFloat(e.weight);
                     const a = parseFloat(e.age);
                     return (!isNaN(w) && w >= 50 && w <= 70) && (!isNaN(a) && a > 18);
+                });
+            }
+
+            const weightFilterCheckbox = el('weightFilter');
+            if(weightFilterCheckbox && weightFilterCheckbox.checked) {
+                currentEntries = currentEntries.filter(e => {
+                    const w = parseFloat(e.weight);
+                    return (!isNaN(w) && w >= 40 && w <= 80);
                 });
             }
             // -----------------------
@@ -530,6 +551,7 @@
             };
 
             el('stdPatientFilter').onchange = () => { renderStats(); };
+            el('weightFilter').onchange = () => { renderStats(); };
             
             updateRefTable();
             lucide.createIcons();
