@@ -207,6 +207,9 @@
                         <button onclick="setMode('crop')" id="btn-crop" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 min-w-[45px]" title="Cắt">
                             <i class="fa-solid fa-crop-simple text-lg"></i>
                         </button>
+                        <button onclick="setMode('layout')" id="btn-layout" class="tool-btn py-3 flex flex-col items-center justify-center gap-1 min-w-[45px]" title="Ghép">
+                            <i class="fa-solid fa-table-cells-large text-lg"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -1410,7 +1413,11 @@
 
         function drawArrow(ctx, x1, y1, x2, y2, size) {
             const angle = Math.atan2(y2-y1, x2-x1); const headLen = size * 4;
+            // Begin path for arrow shaft
+            ctx.beginPath();
             ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+            
+            // Begin path for arrow head
             ctx.beginPath(); ctx.moveTo(x2, y2);
             ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI/6), y2 - headLen * Math.sin(angle - Math.PI/6));
             ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI/6), y2 - headLen * Math.sin(angle + Math.PI/6));
@@ -1439,27 +1446,33 @@
                 // Annotations Priority check
                 if(currentMode === 'move' || currentMode === 'text') {
                     const hits = canvas.hitRects || {};
-                    if(hits.wm && hits.wm.angle) {
-                         const dx = pos.x - hits.wm.cx; const dy = pos.y - hits.wm.cy;
-                         const cos = Math.cos(-hits.wm.angle); const sin = Math.sin(-hits.wm.angle);
-                         const rx = dx * cos - dy * sin; const ry = dx * sin + dy * cos;
-                         if (rx >= -hits.wm.w/2 && rx <= hits.wm.w/2 && ry >= -hits.wm.h/2 && ry <= hits.wm.h/2) { watermarkState.isDragging = true; return; }
-                    } else if (hits.wm && hitTest(pos, hits.wm)) { watermarkState.isDragging = true; return; }
+                    // Check Global Watermark
+                    if(hits.wm) {
+                        if(hits.wm.angle) {
+                             const dx = pos.x - hits.wm.cx; const dy = pos.y - hits.wm.cy;
+                             const cos = Math.cos(-hits.wm.angle); const sin = Math.sin(-hits.wm.angle);
+                             const rx = dx * cos - dy * sin; const ry = dx * sin + dy * cos;
+                             if (rx >= -hits.wm.w/2 && rx <= hits.wm.w/2 && ry >= -hits.wm.h/2 && ry <= hits.wm.h/2) { watermarkState.isDragging = true; return; }
+                        } else if (hitTest(pos, hits.wm)) { watermarkState.isDragging = true; return; }
+                    }
+                    
+                    // Check Logo
                     if (hits.logo && hitTest(pos, hits.logo)) { logoState.isDragging = true; return; }
-                    // Annotations...
-                    for (let i = hits.texts.length - 1; i >= 0; i--) {
-                        const r = hits.texts[i];
-                        if (pos.x >= r.x && pos.x <= r.x + r.w && pos.y >= r.y && pos.y <= r.y + r.h) {
-                            selectedTextIndex = i; textObjects[i].isDragging = true; setMode('text'); updateTextPanelUI(); return;
+                    
+                    // Check Text Annotations (FIX: Add safe check for hits.texts)
+                    if (hits.texts && hits.texts.length > 0) {
+                        for (let i = hits.texts.length - 1; i >= 0; i--) {
+                            const r = hits.texts[i];
+                            if (pos.x >= r.x && pos.x <= r.x + r.w && pos.y >= r.y && pos.y <= r.y + r.h) {
+                                selectedTextIndex = i; textObjects[i].isDragging = true; setMode('text'); updateTextPanelUI(); return;
+                            }
                         }
                     }
                 }
                 
                 // Grid Selection / Interaction
-                // FIX: Chỉ cho phép chọn ô lưới khi KHÔNG phải là các chế độ vẽ/text
                 if (currentMode !== 'draw' && currentMode !== 'arrow' && currentMode !== 'text') {
                     if (handleGridClick(pos)) {
-                        // Check if we started dragging a selected filled cell
                         if (activeGridCellIndex !== -1 && gridState.images[activeGridCellIndex]) {
                             isDraggingGridImage = true;
                             lastGridDragPos = pos;
@@ -1470,7 +1483,6 @@
                 }
             }
 
-            // FIX: Cho phép vẽ khi đang dùng Grid (gridState.active) dù mainImg null
             if (!mainImg && !gridState.active && !pendingCropImg) return;
 
             // Crop Mode
@@ -1502,53 +1514,40 @@
             if (currentMode === 'move') {
                 const hits = canvas.hitRects || {};
                 
-                // Clear previous path selection first (priority to Text/Logo)
+                // 1. Arrow/Path Selection
                 let newSelectedPathIndex = -1;
-                
-                // Check Drawing/Arrow Hits
-                // Iterate backwards to select top-most
                 for (let i = drawingPaths.length - 1; i >= 0; i--) {
                     const path = drawingPaths[i];
                     if (path.points.length < 2) continue;
-                    
                     let isHit = false;
                     if (path.type === 'arrow') {
                         const start = path.points[0];
                         const end = path.points[path.points.length - 1];
-                        // Hit test line segment with tolerance (e.g., 10px)
-                        // Scale tolerance by canvas scale if needed, but simple px usually works
                         const dist = distToSegment(pos, start, end);
-                        if (dist < Math.max(10, path.size * 2)) {
-                            isHit = true;
-                        }
-                    } else if (path.type === 'brush') {
-                        // Simple brush hit test: check distance to any point (expensive but works for small strokes)
-                        // Optimization: check bounding box first? Let's skip brush selection for now or do simple point check
-                        // For this request: "xóa mũi tên" (delete arrow), so focus on arrow
+                        if (dist < Math.max(15, path.size * 3)) isHit = true; // Increased hit area
                     }
-                    
-                    if (isHit) {
-                        newSelectedPathIndex = i;
-                        break; // Found top-most
-                    }
+                    if (isHit) { newSelectedPathIndex = i; break; }
                 }
-                
-                // Update selection state
                 selectedPathIndex = newSelectedPathIndex;
                 if (selectedPathIndex !== -1) {
                     document.getElementById('selection-controls').classList.remove('hidden');
                     drawCanvas();
-                    return; // Stop checking other things if we selected an arrow
+                    return; 
                 } else {
                     document.getElementById('selection-controls').classList.add('hidden');
                 }
 
-                for (let i = hits.texts.length - 1; i >= 0; i--) {
-                    const r = hits.texts[i];
-                    if (pos.x >= r.x && pos.x <= r.x + r.w && pos.y >= r.y && pos.y <= r.y + r.h) {
-                        selectedTextIndex = i; textObjects[i].isDragging = true; setMode('text'); updateTextPanelUI(); return;
+                // 2. Text Annotations (FIX: Safe check)
+                if (hits.texts) {
+                    for (let i = hits.texts.length - 1; i >= 0; i--) {
+                        const r = hits.texts[i];
+                        if (pos.x >= r.x && pos.x <= r.x + r.w && pos.y >= r.y && pos.y <= r.y + r.h) {
+                            selectedTextIndex = i; textObjects[i].isDragging = true; setMode('text'); updateTextPanelUI(); return;
+                        }
                     }
                 }
+                
+                // 3. Watermark & Logo
                 if (hits.wm) {
                     if (hits.wm.angle) {
                         const dx = pos.x - hits.wm.cx; const dy = pos.y - hits.wm.cy;
@@ -1558,26 +1557,33 @@
                     } else if (hitTest(pos, hits.wm)) { watermarkState.isDragging = true; return; }
                 }
                 if (hits.logo && hitTest(pos, hits.logo)) { logoState.isDragging = true; return; }
+                
             } else if (currentMode === 'text') {
-                // ... (Text adding/selecting logic) ...
-                const hits = canvas.hitRects || {}; let hitFound = false;
-                for (let i = hits.texts.length - 1; i >= 0; i--) {
-                    const r = hits.texts[i];
-                    if (pos.x >= r.x && pos.x <= r.x + r.w && pos.y >= r.y && pos.y <= r.y + r.h) {
-                        selectedTextIndex = i; textObjects[i].isDragging = true; hitFound = true; updateTextPanelUI(); drawCanvas(); return;
+                const hits = canvas.hitRects || {}; 
+                let hitFound = false;
+                
+                // FIX: Safe check for texts array
+                if (hits.texts) {
+                    for (let i = hits.texts.length - 1; i >= 0; i--) {
+                        const r = hits.texts[i];
+                        if (pos.x >= r.x && pos.x <= r.x + r.w && pos.y >= r.y && pos.y <= r.y + r.h) {
+                            selectedTextIndex = i; textObjects[i].isDragging = true; hitFound = true; updateTextPanelUI(); drawCanvas(); return;
+                        }
                     }
                 }
+                
                 if (!hitFound) {
-                    textObjects.push({ x: pos.x/canvas.width, y: pos.y/canvas.height, text: "Text", color: "#FF3B30", font: "Arial", size: 40, bold: false, italic: false, isDragging: false });
+                    // Initialize font size based on current slider
+                    const initSize = parseInt(document.getElementById('annotationSize').value);
+                    textObjects.push({ x: pos.x/canvas.width, y: pos.y/canvas.height, text: "Text", color: "#FF3B30", font: "Arial", size: initSize, bold: false, italic: false, isDragging: false });
                     selectedTextIndex = textObjects.length - 1; updateTextPanelUI(); drawCanvas();
                 }
             } else if (currentMode === 'draw' || currentMode === 'arrow') {
-                isDrawing = true; const color = document.getElementById('drawColor').value;
-                const size = parseInt(document.getElementById('brushSize').value) * (canvas.width / 1000);
-                drawingPaths.push({ type: currentMode === 'arrow'?'arrow':'brush', points: [pos], color: color, size: size });
+                isDrawing = true; 
+                const color = document.getElementById('drawColor').value;
+                const size = parseInt(document.getElementById('brushSize').value) * (canvas.width / 1000); // Scale brush to canvas size
+                drawingPaths.push({ type: currentMode === 'arrow'?'arrow':'brush', points: [pos], color: color, size: Math.max(1, size) });
                 drawCanvas();
-            } else if (currentMode === 'crop') {
-                isCropping = true; cropStart = pos; cropCurrent = pos; drawCanvas();
             }
         }
 
