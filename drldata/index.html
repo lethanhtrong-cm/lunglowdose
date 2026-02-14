@@ -948,7 +948,7 @@
                         sessionStorage.removeItem('vnrad_admin_key');
                         userDocData = null;
                         updateAuthUI();
-                    });
+                     });
                 });
             } else {
                 el('authModal').classList.remove('hidden');
@@ -1204,6 +1204,57 @@
             content.classList.remove('scale-100', 'opacity-100');
             content.classList.add('scale-95', 'opacity-0');
             setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200);
+        };
+
+        // --- NEW: Added editItem function ---
+        window.editItem = (id) => {
+            const entry = entries.find(e => e.id === id);
+            if (!entry) return;
+
+            el('eId').value = entry.id;
+            el('eHosp').textContent = entry.hospitalName || '---';
+            
+            const d = new Date(entry.createdAt);
+            el('eDate').textContent = !isNaN(d) ? d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN') : '---';
+
+            // Technical params
+            el('eProt').value = entry.protocol || ''; 
+            el('eCTDI').value = entry.ctdi || 0;
+            el('eDLP').value = entry.dlp || 0;
+
+            // Patient info
+            el('eAge').value = entry.age || '';
+            el('eGender').value = entry.gender || '';
+            el('eWeight').value = entry.weight || '';
+
+            // Modulation
+            const modVal = entry.doseModulation || entry.modulation || '';
+            const modLower = String(modVal).toLowerCase();
+            if (['on', 'true', 'có', 'yes', '1'].some(x => modLower.includes(x))) el('eMod').value = 'Có';
+            else if (['off', 'false', 'không', 'no', '0'].some(x => modLower.includes(x))) el('eMod').value = 'Không';
+            else el('eMod').value = '';
+
+            // Show Modal
+            const modal = el('editModal');
+            const content = el('modalContent');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => { 
+                content.classList.remove('scale-95', 'opacity-0'); 
+                content.classList.add('scale-100', 'opacity-100'); 
+            }, 10);
+        };
+
+        // --- NEW: Added closeModal function ---
+        window.closeModal = () => {
+            const modal = el('editModal');
+            const content = el('modalContent');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { 
+                modal.classList.add('hidden'); 
+                modal.classList.remove('flex'); 
+            }, 200);
         };
 
         window.openBulkEditModal = () => {
@@ -1615,7 +1666,7 @@
             el('pageInfo').textContent = `Hiển thị ${displayStart}-${end} của ${filtered.length}`;
             renderPagination(totalPages); updateBulkUI(); lucide.createIcons();
         };
-        
+
         window.saveEntry = async () => {
             if((!user || user.isAnonymous) && !isAdminKey) return;
             const id = el('eId').value;
