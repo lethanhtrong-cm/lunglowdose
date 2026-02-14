@@ -17,19 +17,30 @@
         .glass-card { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05); }
         .tab-btn.active { color: #4f46e5; border-bottom-color: #4f46e5; }
         .section-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: #64748b; }
-        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f8fafc; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease-out, visibility 0.5s ease-out; }
-        .loader-spinner { width: 48px; height: 48px; border: 5px solid #e2e8f0; border-bottom-color: #4f46e5; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite; }
-        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(248, 250, 252, 0.9); backdrop-filter: blur(8px); z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease-out; }
+        .loader-ring { width: 80px; height: 80px; border-radius: 50%; border: 4px solid #e2e8f0; border-top-color: #4f46e5; border-bottom-color: #ec4899; animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .drl-row.active td { background-color: #e0e7ff; color: #4338ca; }
         .download-btn { opacity: 0; transition: opacity 0.2s; }
         .glass-card:hover .download-btn { opacity: 1; }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .card-animate { animation: slideUp 0.5s ease-out forwards; }
     </style>
 </head>
 <body class="antialiased font-inter text-slate-900">
-    <div id="globalLoader"><div class="flex flex-col items-center gap-4"><span class="loader-spinner"></span><p class="text-xs font-black text-indigo-900 tracking-widest uppercase animate-pulse">Đang tải báo cáo...</p></div></div>
+    <div id="globalLoader">
+        <div class="flex flex-col items-center gap-6">
+            <div class="loader-ring"></div>
+            <div class="text-center">
+                <p class="text-xs font-black text-indigo-900 tracking-widest uppercase mb-1">VN-DRL Analytics</p>
+                <p id="loaderStatus" class="text-[10px] font-bold text-slate-400 uppercase animate-pulse italic">Đang tải dữ liệu và khởi tạo...</p>
+            </div>
+        </div>
+    </div>
     
-    <!-- AUTHENTICATION MODAL -->
     <div id="authModal" class="fixed inset-0 z-[1000] bg-slate-50/90 backdrop-blur-xl flex flex-col items-center justify-center p-4 transition-opacity duration-500">
         <div class="bg-white p-8 rounded-[2rem] shadow-2xl border border-indigo-100 max-w-sm w-full text-center space-y-6 relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
@@ -41,21 +52,18 @@
                 <p class="text-xs text-slate-500 mt-2 font-medium">Dữ liệu nội bộ. Vui lòng nhập mật khẩu.</p>
             </div>
             <div class="space-y-3">
-                <input type="password" id="accessPass" class="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-center focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-50 transition-all outline-none text-slate-900 placeholder:text-slate-400" placeholder="Nhập mật khẩu..." autofocus>
-                <button onclick="verifyAccess()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-lg shadow-indigo-200 transition-all transform active:scale-95 flex items-center justify-center gap-2">
+                <input type="password" id="accessPass" class="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-center focus:border-indigo-500 focus:bg-white transition-all outline-none" placeholder="Nhập mật khẩu..." autofocus>
+                <button onclick="verifyAccess()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2">
                     <i data-lucide="key" class="w-4 h-4"></i> Mở khóa
                 </button>
             </div>
-            <p id="authError" class="text-xs font-black text-rose-500 hidden animate-pulse bg-rose-50 py-2 rounded-lg">Mật khẩu không đúng! Vui lòng thử lại.</p>
+            <p id="authError" class="text-xs font-black text-rose-500 hidden animate-pulse bg-rose-50 py-2 rounded-lg">Mật khẩu không đúng!</p>
         </div>
-        <p class="text-[10px] font-bold text-slate-400 mt-6 tracking-widest uppercase">VN-DRL STUDY SECURITY</p>
     </div>
 
-    <!-- MAIN APP WRAPPER (Hidden initially) -->
     <div id="mainApp" class="hidden opacity-0 transition-opacity duration-700">
         <div class="mesh-bg"></div>
 
-        <!-- Header -->
         <header class="relative z-50 px-2 md:px-4 pt-2 md:pt-6 max-w-7xl mx-auto w-full">
             <nav class="glass-card rounded-2xl px-4 py-3 flex flex-wrap justify-between items-center shadow-lg border-white text-slate-900 gap-y-2">
                 <div class="flex items-center gap-3">
@@ -63,18 +71,10 @@
                     <h1 class="text-lg font-black tracking-tighter uppercase">VN-DRL <span class="text-indigo-600">STUDY</span></h1>
                 </div>
                 <div class="flex items-center gap-2 overflow-x-auto no-scrollbar">
-                    <a href="https://vnrad.tech/drl" class="tab-btn px-3 py-2 text-xs font-black uppercase tracking-widest flex items-center gap-2 text-slate-500 hover:text-indigo-600">
-                        <i data-lucide="keyboard" class="w-4 h-4"></i> Nhập liệu
-                    </a>
-                    <a href="statistics.html" class="tab-btn active px-3 py-2 text-xs font-black uppercase tracking-widest flex items-center gap-2 text-indigo-600 border-b-2 border-indigo-600">
-                        <i data-lucide="pie-chart" class="w-4 h-4"></i> Thống kê
-                    </a>
-                    <a href="https://vnrad.tech/drldata" target="_blank" class="tab-btn px-3 py-2 text-xs font-black uppercase tracking-widest flex items-center gap-2 text-slate-500 hover:text-indigo-600">
-                        <i data-lucide="database" class="w-4 h-4"></i> Dữ liệu
-                    </a>
-                    <a href="https://vnrad.tech/chart" class="tab-btn px-3 py-2 text-xs font-black uppercase tracking-widest flex items-center gap-2 text-slate-500 hover:text-indigo-600">
-                        <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Biểu đồ
-                    </a>
+                    <a href="https://vnrad.tech/drl" class="tab-btn px-3 py-2 text-xs font-black uppercase tracking-widest flex items-center gap-2 text-slate-500 hover:text-indigo-600"><i data-lucide="keyboard" class="w-4 h-4"></i> Nhập liệu</a>
+                    <a href="statistics.html" class="tab-btn active px-3 py-2 text-xs font-black uppercase tracking-widest flex items-center gap-2 text-indigo-600 border-b-2 border-indigo-600"><i data-lucide="pie-chart" class="w-4 h-4"></i> Thống kê</a>
+                    <a href="https://vnrad.tech/drldata" target="_blank" class="tab-btn px-3 py-2 text-xs font-black uppercase tracking-widest flex items-center gap-2 text-slate-500 hover:text-indigo-600"><i data-lucide="database" class="w-4 h-4"></i> Dữ liệu</a>
+                    <a href="https://vnrad.tech/chart" class="tab-btn px-3 py-2 text-xs font-black uppercase tracking-widest flex items-center gap-2 text-slate-500 hover:text-indigo-600"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> Biểu đồ</a>
                 </div>
                 <div class="flex items-center gap-2">
                     <span id="userEmailDisplay" class="text-[10px] font-bold text-indigo-600 bg-white border px-3 py-1.5 rounded-xl truncate max-w-[100px]">Đang tải...</span>
@@ -82,8 +82,8 @@
             </nav>
         </header>
 
-        <main class="max-w-7xl mx-auto w-full p-4 mt-4 space-y-8">
-            <!-- Reference Standard Config -->
+        <main class="max-w-7xl mx-auto w-full p-4 mt-4 space-y-8 pb-12">
+            <!-- Cấu hình -->
             <div class="glass-card p-6 rounded-[2.5rem] shadow-xl border border-indigo-100 bg-white/80">
                 <div class="flex flex-wrap items-center justify-between mb-4 gap-3">
                     <div class="flex items-center gap-3">
@@ -91,48 +91,39 @@
                         <h3 class="section-label text-indigo-900 text-sm">Cấu hình & Bộ lọc</h3>
                     </div>
                     <div class="flex flex-wrap items-center gap-3">
-                        <!-- Standard Patient Filter Toggle Switch -->
-                        <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-indigo-100 shadow-sm" title="Chỉ lấy bệnh nhân >18 tuổi và cân nặng 50-70kg">
+                        <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-indigo-100 shadow-sm">
                             <div class="flex flex-col items-end leading-none">
                                 <span class="text-[10px] font-black text-indigo-700 uppercase">Lọc chuẩn</span>
                                 <span class="text-[9px] font-medium text-slate-400">50-70kg, >18t</span>
                             </div>
                             <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" id="stdPatientFilter" class="sr-only peer">
-                                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                                <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
                             </label>
                         </div>
-
-                        <!-- Weight Filter 40-80kg Toggle Switch -->
-                        <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-emerald-100 shadow-sm" title="Chỉ lấy bệnh nhân cân nặng 40-80kg">
+                        <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-emerald-100 shadow-sm">
                             <div class="flex flex-col items-end leading-none">
                                 <span class="text-[10px] font-black text-emerald-700 uppercase">Lọc cân nặng</span>
                                 <span class="text-[9px] font-medium text-slate-400">40-80kg</span>
                             </div>
                             <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" id="weightFilter" class="sr-only peer">
-                                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                                <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
                             </label>
                         </div>
-
                         <div class="h-8 w-px bg-indigo-100 mx-1"></div>
-
-                        <!-- Standard Selector -->
                         <div class="flex items-center gap-2">
                              <span class="text-[10px] font-black text-slate-400 uppercase">Bộ tiêu chuẩn:</span>
-                             <select id="standardSelect" class="px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-xl text-xs font-black text-indigo-700 outline-none hover:bg-indigo-100 transition-colors cursor-pointer min-w-[140px]">
-                                <!-- Options filled by JS -->
-                            </select>
+                             <select id="standardSelect" class="px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-xl text-xs font-black text-indigo-700 outline-none hover:bg-indigo-100 transition-colors cursor-pointer min-w-[140px]"></select>
                         </div>
                     </div>
                 </div>
                 <div class="grid md:grid-cols-1 gap-6">
-                    <!-- Reference Table -->
                     <div class="overflow-x-auto border border-indigo-50 rounded-2xl shadow-sm bg-white">
                         <table class="w-full text-left text-[10px]">
                             <thead class="bg-indigo-50 text-indigo-800 font-black uppercase">
                                 <tr>
-                                    <th class="px-4 py-3 align-middle border-b border-indigo-200">Protocol (Vùng chụp)</th>
+                                    <th class="px-4 py-3 align-middle border-b border-indigo-200">Protocol</th>
                                     <th class="px-4 py-3 text-center border-b border-indigo-200 bg-white">CTDIvol P50</th>
                                     <th class="px-4 py-3 text-center border-b border-indigo-200 bg-indigo-100 text-indigo-900">CTDIvol P75 (Ref)</th>
                                     <th class="px-4 py-3 text-center border-b border-indigo-200 bg-white">DLP P50</th>
@@ -147,48 +138,25 @@
 
             <!-- Summary Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Total Count -->
-                <div id="card-summary-total" class="glass-card p-6 rounded-[2rem] shadow-lg relative overflow-hidden group hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
-                    <div class="absolute right-4 top-4 z-20">
-                        <button onclick="downloadElement('card-summary-total', 'TotalCount')" class="download-btn p-1.5 bg-white/80 hover:bg-white text-indigo-600 rounded-lg shadow-sm border border-indigo-50 transition-all" title="Xuất ảnh">
-                            <i data-lucide="image-down" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                    <div class="absolute -right-6 -top-6 text-indigo-50 group-hover:text-indigo-100 transition-colors transform rotate-12 z-0">
-                        <i data-lucide="database" class="w-32 h-32 opacity-80"></i>
-                    </div>
+                <div id="card-summary-total" class="glass-card p-6 rounded-[2rem] shadow-lg relative overflow-hidden group hover:shadow-2xl transition-all duration-300">
+                    <div class="absolute right-4 top-4 z-20"><button onclick="downloadElement('card-summary-total', 'TotalCount')" class="download-btn p-1.5 bg-white/80 hover:bg-white text-indigo-600 rounded-lg shadow-sm border border-indigo-50 transition-all"><i data-lucide="image-down" class="w-4 h-4"></i></button></div>
+                    <div class="absolute -right-6 -top-6 text-indigo-50 transform rotate-12 z-0"><i data-lucide="database" class="w-32 h-32 opacity-80"></i></div>
                     <div class="relative z-10 flex flex-col h-28 justify-between">
                         <p class="section-label text-indigo-400 mb-1 flex items-center gap-2"><i data-lucide="users" class="w-3 h-3"></i> Tổng số mẫu</p>
                         <h3 id="cardTotalCount" class="text-5xl font-black text-indigo-900 tracking-tighter">0</h3>
                     </div>
                 </div>
-
-                <!-- Avg Age -->
                 <div id="card-summary-age" class="glass-card p-6 rounded-[2rem] shadow-lg relative overflow-hidden group hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border-b-4 border-cyan-400">
-                    <div class="absolute right-4 top-4 z-20">
-                        <button onclick="downloadElement('card-summary-age', 'AvgAge')" class="download-btn p-1.5 bg-white/80 hover:bg-white text-cyan-600 rounded-lg shadow-sm border border-cyan-50 transition-all" title="Xuất ảnh">
-                            <i data-lucide="image-down" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                    <div class="absolute -right-6 -top-6 text-cyan-50 group-hover:text-cyan-100 transition-colors transform rotate-12 z-0">
-                        <i data-lucide="user" class="w-32 h-32 opacity-80"></i>
-                    </div>
+                    <div class="absolute right-4 top-4 z-20"><button onclick="downloadElement('card-summary-age', 'AvgAge')" class="download-btn p-1.5 bg-white/80 hover:bg-white text-cyan-600 rounded-lg shadow-sm border border-cyan-50 transition-all"><i data-lucide="image-down" class="w-4 h-4"></i></button></div>
+                    <div class="absolute -right-6 -top-6 text-cyan-50 transform rotate-12 z-0"><i data-lucide="user" class="w-32 h-32 opacity-80"></i></div>
                     <div class="relative z-10 flex flex-col h-28 justify-between">
                         <p class="section-label text-cyan-600 mb-1 flex items-center gap-2"><i data-lucide="calendar" class="w-3 h-3"></i> Tuổi trung bình</p>
                         <h3 id="cardAvgAge" class="text-5xl font-black text-cyan-900 tracking-tighter">--</h3>
                     </div>
                 </div>
-
-                <!-- Avg Weight -->
                 <div id="card-summary-weight" class="glass-card p-6 rounded-[2rem] shadow-lg relative overflow-hidden group hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border-b-4 border-emerald-400">
-                    <div class="absolute right-4 top-4 z-20">
-                        <button onclick="downloadElement('card-summary-weight', 'AvgWeight')" class="download-btn p-1.5 bg-white/80 hover:bg-white text-emerald-600 rounded-lg shadow-sm border border-emerald-50 transition-all" title="Xuất ảnh">
-                            <i data-lucide="image-down" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                    <div class="absolute -right-6 -top-6 text-emerald-50 group-hover:text-emerald-100 transition-colors transform rotate-12 z-0">
-                        <i data-lucide="scale" class="w-32 h-32 opacity-80"></i>
-                    </div>
+                    <div class="absolute right-4 top-4 z-20"><button onclick="downloadElement('card-summary-weight', 'AvgWeight')" class="download-btn p-1.5 bg-white/80 hover:bg-white text-emerald-600 rounded-lg shadow-sm border border-emerald-50 transition-all"><i data-lucide="image-down" class="w-4 h-4"></i></button></div>
+                    <div class="absolute -right-6 -top-6 text-emerald-50 transform rotate-12 z-0"><i data-lucide="scale" class="w-32 h-32 opacity-80"></i></div>
                     <div class="relative z-10 flex flex-col h-28 justify-between">
                         <p class="section-label text-emerald-600 mb-1 flex items-center gap-2"><i data-lucide="weight" class="w-3 h-3"></i> Cân nặng TB (kg)</p>
                         <h3 id="cardAvgWeight" class="text-5xl font-black text-emerald-900 tracking-tighter">--</h3>
@@ -196,8 +164,34 @@
                 </div>
             </div>
 
-            <!-- Protocol Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="protocolCardsContainer"></div>
+            <!-- Khu vực 1: Facility Based -->
+            <div>
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="bg-indigo-100 p-1.5 rounded-lg text-indigo-700"><i data-lucide="building-2" class="w-4 h-4"></i></div>
+                    <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Thống kê theo Cơ sở Y tế (Facility DRLs)</h3>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="protocolCardsContainerFacility"></div>
+            </div>
+
+            <!-- Khu vực 2: Manufacturer Based -->
+            <div>
+                <div class="flex flex-wrap items-center justify-between mb-4 pt-4 border-t border-slate-200 gap-3">
+                    <div class="flex items-center gap-2">
+                        <div class="bg-emerald-100 p-1.5 rounded-lg text-emerald-700"><i data-lucide="cpu" class="w-4 h-4"></i></div>
+                        <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">Thống kê theo Hãng máy (Scanner DRLs)</h3>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Chọn Protocol:</span>
+                        <select id="manufacturerProtocolSelect" class="px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-lg text-xs font-black text-emerald-700 outline-none hover:bg-emerald-100 transition-colors cursor-pointer">
+                            <option value="Head">Sọ não (Head)</option>
+                            <option value="Chest">Ngực (Chest)</option>
+                            <option value="Abdomen">Bụng (Abdomen)</option>
+                            <option value="LDCT">Phổi liều thấp (LDCT)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="protocolCardsContainerManufacturer"></div>
+            </div>
 
             <!-- Charts -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -205,9 +199,7 @@
                     <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
                     <div class="flex justify-between w-full items-center mb-6">
                         <h3 class="section-label font-black text-slate-900 text-sm flex items-center gap-2"><i data-lucide="monitor" class="w-4 h-4"></i> Phân bố theo Hãng máy (n)</h3>
-                        <button onclick="downloadChart('manufacturerPieChart', 'Hãng máy')" class="p-2 bg-white/80 hover:bg-white text-indigo-600 rounded-xl shadow-sm hover:shadow-md transition-all border border-indigo-50" title="Xuất ảnh biểu đồ">
-                            <i data-lucide="image-down" class="w-4 h-4"></i>
-                        </button>
+                        <button onclick="downloadChart('manufacturerPieChart', 'Hãng máy')" class="p-2 bg-white/80 hover:bg-white text-indigo-600 rounded-xl shadow-sm hover:shadow-md transition-all border border-indigo-50"><i data-lucide="image-down" class="w-4 h-4"></i></button>
                     </div>
                     <div class="w-full h-[250px]"><canvas id="manufacturerPieChart"></canvas></div>
                 </div>
@@ -215,9 +207,7 @@
                     <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-pink-500"></div>
                     <div class="flex justify-between w-full items-center mb-6">
                         <h3 class="section-label font-black text-slate-900 text-sm flex items-center gap-2"><i data-lucide="users-2" class="w-4 h-4"></i> Phân bố theo Giới tính (n)</h3>
-                        <button onclick="downloadChart('genderPieChart', 'Giới tính')" class="p-2 bg-white/80 hover:bg-white text-indigo-600 rounded-xl shadow-sm hover:shadow-md transition-all border border-indigo-50" title="Xuất ảnh biểu đồ">
-                            <i data-lucide="image-down" class="w-4 h-4"></i>
-                        </button>
+                        <button onclick="downloadChart('genderPieChart', 'Giới tính')" class="p-2 bg-white/80 hover:bg-white text-indigo-600 rounded-xl shadow-sm hover:shadow-md transition-all border border-indigo-50"><i data-lucide="image-down" class="w-4 h-4"></i></button>
                     </div>
                     <div class="w-full h-[250px]"><canvas id="genderPieChart"></canvas></div>
                 </div>
@@ -228,7 +218,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, getDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const DRL_STANDARDS = {
             'Thailand 2019': {'Head':{ctdi75:65,ctdi50:58,dlp75:1000,dlp50:890},'Chest':{ctdi75:9,ctdi50:7,dlp75:350,dlp50:260},'Abdomen':{ctdi75:11,ctdi50:9,dlp75:500,dlp50:420},'LDCT':{ctdi75:3,ctdi50:2.2,dlp75:150,dlp50:110}},
@@ -242,337 +232,327 @@
         const el = (id) => document.getElementById(id);
         const setText = (id, val) => { const e = el(id); if(e) e.textContent = val; };
         
-        // Normal CDF
+        const getPercentile = (arr, q) => {
+            if (!arr.length) return 0;
+            const sorted = arr.slice().sort((a, b) => a - b);
+            const pos = (sorted.length - 1) * q;
+            const base = Math.floor(pos);
+            const rest = pos - base;
+            return sorted[base + 1] !== undefined ? sorted[base] + rest * (sorted[base + 1] - sorted[base]) : sorted[base];
+        };
+
         const normalCDF = (x) => { 
-            const t = 1/(1+.2316419*Math.abs(x)); 
-            const d = .3989423*Math.exp(-x*x/2); 
+            const t = 1/(1+.2316419*Math.abs(x)), d = .3989423*Math.exp(-x*x/2); 
             return x>=0 ? 1-(d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))))) : 1- (1-(d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274)))))); 
         };
 
-        // Stats Calculator
-        const calcStats = (arr, ref=0) => { 
-            if(!arr.length) return {mean:0, sd:0, median:0, p75:0, p:1}; 
-            const n=arr.length;
-            const s=arr.sort((a,b)=>a-b);
-            const mean=arr.reduce((a,b)=>a+b,0)/n; 
-            const sd=n>1?Math.sqrt(arr.reduce((a,b)=>a+Math.pow(b-mean,2),0)/(n-1)):0; 
-            const median = s[Math.floor(n*0.5)]; 
-            const p75 = s[Math.floor(n*0.75)]||s[n-1]; 
+        const calculateBootstrapStats = (data, nBootstraps = 10000) => {
+            if (data.length < 5) return { p50Low: null, p50High: null, p75Low: null, p75High: null }; 
+            const est50 = [], est75 = [];
+            for (let i = 0; i < nBootstraps; i++) {
+                const sample = [];
+                for (let j = 0; j < data.length; j++) sample.push(data[Math.floor(Math.random() * data.length)]);
+                est50.push(getPercentile(sample, 0.5)); est75.push(getPercentile(sample, 0.75));
+            }
+            est50.sort((a, b) => a - b); est75.sort((a, b) => a - b);
+            const lowIdx = Math.floor(0.025 * nBootstraps), highIdx = Math.floor(0.975 * nBootstraps);
+            return { p50Low: est50[lowIdx], p50High: est50[highIdx], p75Low: est75[lowIdx], p75High: est75[highIdx] };
+        };
 
+        const calcStats = (arr, ref=0) => { 
+            if(!arr.length) return {mean:0, sd:0, median:0, p75:0, p:1, ciLow:0, ciHigh:0, p50CiLow: null, p50CiHigh: null, p75CiLow: null, p75CiHigh: null, cv: 0}; 
+            const n=arr.length, mean=arr.reduce((a,b)=>a+b,0)/n; 
+            const sd=n>1?Math.sqrt(arr.reduce((a,b)=>a+Math.pow(b-mean,2),0)/(n-1)):0; 
+            const median = getPercentile(arr, 0.5), p75 = getPercentile(arr, 0.75);
+            const se = n > 0 ? sd / Math.sqrt(n) : 0;
+            const cv = mean > 0 ? (sd / mean) * 100 : 0; // Hệ số biến thiên (%)
+            
+            const boot = calculateBootstrapStats(arr);
             let p = 1;
-            if (ref > 0 && n >= 10) {
+            if (ref > 0 && n >= 5) {
                 const diffs = arr.map(x => x - ref).filter(x => x !== 0);
                 const N = diffs.length;
-                if (N >= 10) { 
+                if (N >= 5) { 
                     const abs = diffs.map(x => ({v: Math.abs(x), s: x > 0})).sort((a,b) => a.v - b.v);
                     let wPlus = 0;
                     for (let i = 0; i < N; ) {
-                        let j = i; 
-                        while (j < N && abs[j].v === abs[i].v) j++;
+                        let j = i; while (j < N && abs[j].v === abs[i].v) j++;
                         const rank = (i + 1 + j) / 2;
-                        for (let k = i; k < j; k++) {
-                            if (abs[k].s) wPlus += rank;
-                        }
+                        for (let k = i; k < j; k++) if (abs[k].s) wPlus += rank;
                         i = j;
                     }
-                    const wMinus = (N * (N + 1)) / 2 - wPlus;
-                    const W = Math.min(wPlus, wMinus);
-                    const E_W = (N * (N + 1)) / 4;
-                    const Var_W = (N * (N + 1) * (2 * N + 1)) / 24;
-                    const Z = (W - E_W) / Math.sqrt(Var_W);
+                    const wMinus = (N * (N + 1)) / 2 - wPlus, W = Math.min(wPlus, wMinus);
+                    const E_W = (N * (N + 1)) / 4, Var_W = (N * (N + 1) * (2 * N + 1)) / 24, Z = (W - E_W) / Math.sqrt(Var_W);
                     p = 2 * (1 - normalCDF(Math.abs(Z)));
                 }
             }
-            return { mean, sd, median, p75, p }; 
+            return { mean, sd, median, p75, p, cv, ciLow: Math.max(0, mean-1.96*se), ciHigh: mean+1.96*se, p50CiLow: boot.p50Low, p50CiHigh: boot.p50High, p75CiLow: boot.p75Low, p75CiHigh: boot.p75High }; 
         };
 
-        // Auth Logic
+        const getFacilityName = (e) => {
+            const val = e.hospitalName || e.facility || e.facilityName || e.hospital || e.institution || 'Unknown';
+            return typeof val === 'string' ? val.trim() : 'Unknown';
+        };
+
+        const normalizeManufacturer = (str) => {
+            if (!str) return 'Unknown';
+            const s = str.toLowerCase().trim();
+            if (s.startsWith('ge')) return 'GE HealthCare';
+            if (s.includes('siemens')) return 'Siemens';
+            if (s.includes('philips')) return 'Philips';
+            if (s.includes('canon') || s.includes('toshiba')) return 'Canon/Toshiba';
+            if (s.includes('fuji')) return 'Fujifilm';
+            if (s.includes('united')) return 'United Imaging';
+            return str; 
+        };
+
+        const getDataObj = (entries, groupKeyFn) => {
+            const groups = {};
+            const raw = { ctdi: [], dlp: [], age: [], weight: [] };
+            entries.forEach(e => {
+                const c=parseFloat(e.ctdi), d=parseFloat(e.dlp), a=parseFloat(e.age), w=parseFloat(e.weight);
+                if (!isNaN(c)) raw.ctdi.push(c); if (!isNaN(d)) raw.dlp.push(d); if (!isNaN(a)) raw.age.push(a); if (!isNaN(w)) raw.weight.push(w);
+                const key = groupKeyFn(e);
+                if (!groups[key]) groups[key] = { ctdis: [], dlps: [], ages: [], weights: [] };
+                if (!isNaN(c)) groups[key].ctdis.push(c); if (!isNaN(d)) groups[key].dlps.push(d); if (!isNaN(a)) groups[key].ages.push(a); if (!isNaN(w)) groups[key].weights.push(w);
+            });
+            const medians = { ctdi: [], dlp: [], age: [], weight: [] };
+            Object.values(groups).forEach(g => {
+                const mc = g.ctdis.length ? g.ctdis.sort((a,b)=>a-b)[Math.floor(g.ctdis.length * 0.5)] : null;
+                const md = g.dlps.length ? g.dlps.sort((a,b)=>a-b)[Math.floor(g.dlps.length * 0.5)] : null;
+                const ma = g.ages.length ? g.ages.reduce((a,b)=>a+b,0)/g.ages.length : null;
+                const mw = g.weights.length ? g.weights.reduce((a,b)=>a+b,0)/g.weights.length : null;
+                if (mc !== null) medians.ctdi.push(mc); if (md !== null) medians.dlp.push(md); if (ma !== null) medians.age.push(ma); if (mw !== null) medians.weight.push(mw);
+            });
+            return { raw, medians, count: Object.keys(groups).length };
+        };
+
         window.verifyAccess = () => {
-            const input = document.getElementById('accessPass');
+            const input = el('accessPass');
             if(input.value === 'gm@191223') {
-                const modal = document.getElementById('authModal');
-                const app = document.getElementById('mainApp');
-                
-                modal.style.opacity = '0';
-                modal.style.pointerEvents = 'none';
-                setTimeout(() => modal.remove(), 500); // Remove from DOM after fade
-                
-                app.classList.remove('hidden');
-                // Trigger re-render to ensure charts size correctly
-                setTimeout(() => {
-                    app.classList.remove('opacity-0');
-                    if(entries.length > 0) renderStats(); 
-                }, 50);
-                
+                const modal = el('authModal'), app = el('mainApp');
+                modal.style.opacity = '0'; modal.style.pointerEvents = 'none';
+                setTimeout(() => modal.remove(), 500); app.classList.remove('hidden');
+                setTimeout(() => { app.classList.remove('opacity-0'); if(entries.length > 0) renderStats(); }, 50);
             } else {
-                const err = document.getElementById('authError');
-                err.classList.remove('hidden');
-                input.classList.add('border-rose-300', 'bg-rose-50', 'text-rose-900');
-                input.value = '';
-                input.focus();
+                el('authError').classList.remove('hidden');
+                input.classList.add('border-rose-300', 'bg-rose-50'); input.value = ''; input.focus();
             }
         };
 
-        // Listen for Enter key on password input
-        document.getElementById('accessPass').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') verifyAccess();
-        });
-
         window.downloadElement = (id, filename) => {
-            const element = document.getElementById(id);
-            if (!element) return;
+            const element = el(id); if (!element) return;
             html2canvas(element, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `VN-DRL-${filename}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            }).catch(err => console.error('Lỗi khi chụp ảnh:', err));
+                const link = document.createElement('a'); link.download = `VN-DRL-${filename}.png`;
+                link.href = canvas.toDataURL('image/png'); link.click();
+            });
         };
 
         window.downloadChart = (id, filename) => {
-            const canvas = document.getElementById(id);
-            if (!canvas) return;
-            const link = document.createElement('a');
-            link.download = `VN-DRL-Chart-${filename}.png`;
-            const tempCanvas = document.createElement('canvas');
-            const context = tempCanvas.getContext('2d');
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            context.fillStyle = '#ffffff';
-            context.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-            context.drawImage(canvas, 0, 0);
-            link.href = tempCanvas.toDataURL('image/png');
-            link.click();
+            const canvas = el(id); if (!canvas) return;
+            const link = document.createElement('a'), tCanvas = document.createElement('canvas'), ctx = tCanvas.getContext('2d');
+            tCanvas.width = canvas.width; tCanvas.height = canvas.height;
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, tCanvas.width, tCanvas.height); ctx.drawImage(canvas, 0, 0);
+            link.download = `VN-DRL-Chart-${filename}.png`; link.href = tCanvas.toDataURL('image/png'); link.click();
         };
 
         let entries = [], pieChartInstance = null, genderPieChartInstance = null;
-        let currentStandardName = 'Thailand 2019';
+        let currentStandardName = 'Thailand 2019', currentMfgProtocol = 'Head';
 
         function renderStats() {
-            // -- LOGIC LỌC DỮ LIỆU --
-            let currentEntries = entries;
-            
-            const stdFilterCheckbox = el('stdPatientFilter');
-            if(stdFilterCheckbox && stdFilterCheckbox.checked) {
-                currentEntries = currentEntries.filter(e => {
-                    const w = parseFloat(e.weight);
-                    const a = parseFloat(e.age);
-                    return (!isNaN(w) && w >= 50 && w <= 70) && (!isNaN(a) && a > 18);
-                });
-            }
+            el('globalLoader').style.display = 'flex';
+            el('loaderStatus').textContent = 'Đang thực hiện kiểm định Bootstrap (10.000 mẫu)...';
 
-            const weightFilterCheckbox = el('weightFilter');
-            if(weightFilterCheckbox && weightFilterCheckbox.checked) {
-                currentEntries = currentEntries.filter(e => {
-                    const w = parseFloat(e.weight);
-                    return (!isNaN(w) && w >= 40 && w <= 80);
-                });
-            }
-            // -----------------------
+            setTimeout(() => {
+                let currentEntries = entries;
+                const stdFilter = el('stdPatientFilter'), weightFilter = el('weightFilter');
+                if(stdFilter && stdFilter.checked) currentEntries = currentEntries.filter(e => { const w = parseFloat(e.weight), a = parseFloat(e.age); return (w >= 50 && w <= 70) && (a > 18); });
+                if(weightFilter && weightFilter.checked) currentEntries = currentEntries.filter(e => { const w = parseFloat(e.weight); return (w >= 40 && w <= 80); });
 
-            setText('cardTotalCount', currentEntries.length);
-            const ages = currentEntries.map(e=>parseFloat(e.age)||0).filter(n=>n>0), weights = currentEntries.map(e=>parseFloat(e.weight)||0).filter(n=>n>0);
-            setText('cardAvgAge', calcStats(ages).mean.toFixed(1)); setText('cardAvgWeight', calcStats(weights).mean.toFixed(1));
+                setText('cardTotalCount', currentEntries.length);
+                const ages = currentEntries.map(e=>parseFloat(e.age)||0).filter(n=>n>0), weights = currentEntries.map(e=>parseFloat(e.weight)||0).filter(n=>n>0);
+                setText('cardAvgAge', calcStats(ages).mean.toFixed(1)); setText('cardAvgWeight', calcStats(weights).mean.toFixed(1));
 
-            // Protocol Cards
-            const container = el('protocolCardsContainer'); container.innerHTML = '';
-            const protocols = [
-                {key:'Head', label:'Sọ não', color:'indigo', icon:'brain-circuit'}, 
-                {key:'Chest', label:'Ngực', color:'sky', icon:'wind'},
-                {key:'Abdomen', label:'Bụng', color:'orange', icon:'cookie'}, 
-                {key:'LDCT', label:'LDCT', color:'teal', icon:'scan-line'}
-            ];
-            
-            protocols.forEach(p => {
-                const sub = currentEntries.filter(e => e.protocol && e.protocol.includes(p.key));
-                const dlps = sub.map(e=>parseFloat(e.dlp)||0), ctdis = sub.map(e=>parseFloat(e.ctdi)||0);
+                const containerFac = el('protocolCardsContainerFacility'), containerMfg = el('protocolCardsContainerManufacturer');
+                containerFac.innerHTML = ''; containerMfg.innerHTML = '';
+
+                const protocols = [
+                    {key:'Head', label:'Sọ não', color:'indigo', icon:'brain-circuit'}, {key:'Chest', label:'Ngực', color:'sky', icon:'wind'},
+                    {key:'Abdomen', label:'Bụng', color:'orange', icon:'cookie'}, {key:'LDCT', label:'LDCT', color:'teal', icon:'scan-line'}
+                ];
                 
-                // Calculate age and weight for specific protocol
-                const subAges = sub.map(e=>parseFloat(e.age)||0).filter(n=>n>0);
-                const subWeights = sub.map(e=>parseFloat(e.weight)||0).filter(n=>n>0);
-                const pStatsAge = calcStats(subAges);
-                const pStatsWeight = calcStats(subWeights);
+                const getReliabilityLabel = (low, high, value, groupK, cv) => {
+                    if (low === null || high === null || value <= 0) return { text: '[Dữ liệu thấp]', color: 'text-slate-400 bg-white/60', icon: 'alert-circle' };
+                    const width = high - low;
+                    const ratio = width / value;
+                    
+                    // Logic phân tích nguyên nhân
+                    let insight = '';
+                    if (groupK < 5) insight = " (Ít BV)";
+                    else if (cv > 35) insight = " (Dữ liệu lệch)";
 
-                const std = DRL_STANDARDS[currentStandardName][p.key];
-                const refC = std.ctdi75||0;
-                const refD = std.dlp75||0;
+                    if (ratio < 0.10) return { text: 'Tin cậy (CI < 10%)' + insight, color: 'text-emerald-700 bg-emerald-50 border-emerald-100 shadow-sm', icon: 'check-circle' };
+                    if (ratio <= 0.25) return { text: 'Chấp nhận được' + insight, color: 'text-amber-700 bg-amber-50 border-amber-100 shadow-sm', icon: 'help-circle' };
+                    return { text: 'Kém tin cậy' + insight, color: 'text-rose-700 bg-rose-50 border-rose-100 shadow-sm', icon: 'x-circle' };
+                };
 
-                const sDlp = calcStats(dlps, refD), sCtdi = calcStats(ctdis, refC);
-                const ctdiPct = refC > 0 ? Math.min((sCtdi.median/refC)*100, 100) : 0;
-                const dlpPct = refD > 0 ? Math.min((sDlp.median/refD)*100, 100) : 0;
-                
-                const html = `
-                <div id="card-${p.key}" class="glass-card p-6 rounded-[2rem] border border-${p.color}-100 hover:shadow-2xl hover:border-${p.color}-300 transition-all duration-300 relative overflow-hidden group">
-                    <div class="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity transform rotate-12">
-                        <i data-lucide="${p.icon}" class="w-32 h-32 text-${p.color}-900"></i>
-                    </div>
-                    <div class="relative z-10">
-                        <div class="flex justify-between items-center mb-4">
-                            <div>
-                                <h4 class="text-xs font-black text-${p.color}-600 uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                                    <i data-lucide="${p.icon}" class="w-3 h-3"></i> ${p.label}
-                                </h4>
-                                <span class="text-[10px] font-bold bg-slate-900 text-white px-2 py-0.5 rounded-full shadow-sm">n=${sub.length}</span>
+                const generateCardHTML = (key, label, color, icon, stats, groupCount, totalN, isUsingRawData, showCI) => {
+                    const refKey = protocols.find(p=>p.key===key) ? key : currentMfgProtocol;
+                    const std = DRL_STANDARDS[currentStandardName][refKey] || {}, refC = std.ctdi75||0, refD = std.dlp75||0;
+                    const dCtdi = isUsingRawData ? stats.raw.ctdi : stats.medians.ctdi, dDlp = isUsingRawData ? stats.raw.dlp : stats.medians.dlp;
+                    const dAge = isUsingRawData ? stats.raw.age : stats.medians.age, dWeight = isUsingRawData ? stats.raw.weight : stats.medians.weight;
+
+                    const sDlp = calcStats(dDlp, refD), sCtdi = calcStats(dCtdi, refC);
+                    const pAge = calcStats(dAge), pWeight = calcStats(dWeight);
+                    const cPct = refC > 0 ? Math.min((sCtdi.median/refC)*100, 100) : 0, dPct = refD > 0 ? Math.min((sDlp.median/refD)*100, 100) : 0;
+                    const srcLabel = isUsingRawData ? `<span class="text-[8px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 ml-1">Patients</span>` : `<span class="text-[8px] font-bold text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 ml-1">Facilities</span>`;
+                    
+                    const formatCIValue = (low, high) => (low !== null && high !== null) ? `[${low.toFixed(1)} - ${high.toFixed(1)}]` : '[Dữ liệu thấp]';
+
+                    const cP75R = getReliabilityLabel(sCtdi.p75CiLow, sCtdi.p75CiHigh, sCtdi.p75, groupCount, sCtdi.cv);
+                    const dP75R = getReliabilityLabel(sDlp.p75CiLow, sDlp.p75CiHigh, sDlp.p75, groupCount, sDlp.cv);
+                    const cP50R = getReliabilityLabel(sCtdi.p50CiLow, sCtdi.p50CiHigh, sCtdi.median, groupCount, sCtdi.cv);
+                    const dP50R = getReliabilityLabel(sDlp.p50CiLow, sDlp.p50CiHigh, sDlp.median, groupCount, sDlp.cv);
+
+                    return `
+                    <div id="card-${key}" class="glass-card p-6 rounded-[2rem] border border-${color}-100 hover:shadow-2xl transition-all duration-300 relative overflow-hidden group card-animate">
+                        <div class="absolute -right-4 -top-4 opacity-5 transform rotate-12"><i data-lucide="${icon}" class="w-32 h-32 text-${color}-900"></i></div>
+                        <div class="relative z-10">
+                            <div class="flex justify-between items-center mb-4">
+                                <div><h4 class="text-xs font-black text-${color}-600 uppercase tracking-widest mb-1 flex items-center gap-1.5"><i data-lucide="${icon}" class="w-3 h-3"></i> ${label}</h4>
+                                <div class="flex items-center gap-1"><span class="text-[10px] font-bold bg-slate-900 text-white px-2 py-0.5 rounded-full shadow-sm">n=${totalN}</span><span class="text-[9px] font-bold bg-white text-slate-500 border border-slate-200 px-2 py-0.5 rounded-full">k=${groupCount}</span>${srcLabel}</div></div>
+                                <button onclick="downloadElement('card-${key}', '${key}')" class="download-btn p-1.5 bg-white text-indigo-600 rounded-lg shadow-sm border border-indigo-50"><i data-lucide="image-down" class="w-4 h-4"></i></button>
                             </div>
-                            <button onclick="downloadElement('card-${p.key}', '${p.key}')" class="download-btn p-1.5 bg-white text-indigo-600 rounded-lg shadow-sm border border-indigo-50 hover:bg-indigo-50 transition-all" title="Xuất ảnh">
-                                <i data-lucide="image-down" class="w-4 h-4"></i>
-                            </button>
-                        </div>
-
-                        <!-- Age & Weight Stats (Highlighted with Color) -->
-                        <div class="flex gap-2 mb-6">
-                             <div class="flex-1 bg-${p.color}-50 rounded-xl px-3 py-2 border border-${p.color}-100 flex flex-col justify-center transition-colors hover:bg-${p.color}-100">
-                                <span class="text-[9px] text-${p.color}-500 font-bold uppercase mb-0.5">Tuổi TB</span>
-                                <div class="text-sm font-black text-${p.color}-900">${pStatsAge.mean > 0 ? pStatsAge.mean.toFixed(1) : '--'}</div>
-                             </div>
-                             <div class="flex-1 bg-${p.color}-50 rounded-xl px-3 py-2 border border-${p.color}-100 flex flex-col justify-center transition-colors hover:bg-${p.color}-100">
-                                <span class="text-[9px] text-${p.color}-500 font-bold uppercase mb-0.5">Cân nặng TB</span>
-                                <div class="text-sm font-black text-${p.color}-900">${pStatsWeight.mean > 0 ? pStatsWeight.mean.toFixed(1) : '--'} <span class="text-[9px] font-medium text-${p.color}-500">kg</span></div>
-                             </div>
-                        </div>
-
-                        <div class="space-y-6">
-                            <!-- CTDI Section -->
-                            <div>
-                                <div class="flex justify-between items-baseline mb-2">
-                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">CTDIvol</span>
-                                    <span class="text-[9px] font-bold ${sCtdi.p < 0.05 ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 bg-slate-100'} px-1.5 rounded" title="Wilcoxon Signed-Rank Test">p=${sCtdi.p < 0.001 ? '<0.001' : sCtdi.p.toFixed(3)}</span>
-                                </div>
-                                <div class="flex items-end justify-between mb-2">
-                                    <div class="flex items-baseline gap-1">
-                                        <span class="text-4xl font-black text-${p.color}-600 tracking-tight leading-none">${sCtdi.median.toFixed(1)}</span>
-                                        <span class="text-[10px] font-bold text-slate-400">mGy</span>
-                                    </div>
-                                    <div class="pb-1">
-                                         <span class="text-[10px] font-black text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-100" title="75th Percentile">P75: ${sCtdi.p75.toFixed(1)}</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="text-xs font-bold text-${p.color}-700 bg-${p.color}-50 px-3 py-2 rounded-xl mb-3 flex items-center gap-2 w-full border border-${p.color}-100 transition-colors hover:bg-${p.color}-100 shadow-sm">
-                                    <div class="bg-white p-1 rounded-md shadow-sm text-${p.color}-500"><i data-lucide="sigma" class="w-4 h-4"></i></div>
-                                    <div class="flex flex-col leading-none">
-                                        <span class="text-[9px] uppercase opacity-60 mb-0.5">Mean ± SD</span>
-                                        <span class="text-sm font-black">${sCtdi.mean.toFixed(1)} <span class="text-${p.color}-400 font-medium">±</span> ${sCtdi.sd.toFixed(1)}</span>
-                                    </div>
-                                </div>
-
-                                <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden flex items-center mb-1">
-                                    <div class="h-full bg-${p.color}-500 transition-all duration-1000 ease-out" style="width: ${ctdiPct}%"></div>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-[9px] text-slate-400 font-medium">Median</span>
-                                    <span class="text-[9px] font-bold text-${p.color}-600">Ref: ${refC||'-'}</span>
-                                </div>
+                            <div class="flex gap-2 mb-6">
+                                 <div class="flex-1 bg-${color}-50 rounded-xl px-3 py-2 border border-${color}-100 flex flex-col justify-center"><span class="text-[9px] text-${color}-500 font-bold uppercase mb-0.5">Tuổi TB</span><div class="text-sm font-black text-${color}-900">${pAge.mean > 0 ? pAge.mean.toFixed(1) : '--'}</div></div>
+                                 <div class="flex-1 bg-${color}-50 rounded-xl px-3 py-2 border border-${color}-100 flex flex-col justify-center"><span class="text-[9px] text-${color}-500 font-bold uppercase mb-0.5">Cân nặng TB</span><div class="text-sm font-black text-${color}-900">${pWeight.mean > 0 ? pWeight.mean.toFixed(1) : '--'} <span class="text-[9px] font-medium text-${color}-500">kg</span></div></div>
                             </div>
-
-                            <!-- DLP Section -->
-                            <div class="pt-4 border-t border-dashed border-slate-200">
-                                <div class="flex justify-between items-baseline mb-2">
-                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">DLP</span>
-                                    <span class="text-[9px] font-bold ${sDlp.p < 0.05 ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 bg-slate-100'} px-1.5 rounded" title="Wilcoxon Signed-Rank Test">p=${sDlp.p < 0.001 ? '<0.001' : sDlp.p.toFixed(3)}</span>
-                                </div>
-                                <div class="flex items-end justify-between mb-2">
-                                    <div class="flex items-baseline gap-1">
-                                        <span class="text-4xl font-black text-${p.color}-600 tracking-tight leading-none">${sDlp.median.toFixed(1)}</span>
-                                        <span class="text-[10px] font-bold text-slate-400">mGy.cm</span>
+                            <div class="space-y-6">
+                                <div>
+                                    <div class="flex justify-between items-baseline mb-2"><span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">CTDIvol</span><span class="text-[9px] font-bold ${sCtdi.p < 0.05 ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 bg-slate-100'} px-1.5 rounded">p=${sCtdi.p < 0.001 ? '<0.001' : sCtdi.p.toFixed(3)}</span></div>
+                                    <div class="flex items-end justify-between mb-3 gap-2">
+                                        <div class="flex flex-col">
+                                            <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-${color}-600 tracking-tight leading-none">${sCtdi.median.toFixed(1)}</span><span class="text-[10px] font-bold text-slate-400 uppercase">P50</span></div>
+                                            ${showCI ? `
+                                                <span class="text-[10px] font-black text-indigo-800 bg-indigo-50/80 px-2 py-1 rounded-lg border border-indigo-100 mt-2 inline-flex items-center gap-1.5 whitespace-nowrap shadow-sm"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> CI: ${formatCIValue(sCtdi.p50CiLow, sCtdi.p50CiHigh)}</span>
+                                                <span class="text-[9px] font-black px-2 py-0.5 rounded-full border mt-1.5 inline-block w-fit ${cP50R.color}">${cP50R.text}</span>
+                                            ` : ''}
+                                        </div>
+                                        <div class="flex flex-col items-end">
+                                             <div class="flex items-baseline gap-1"><span class="text-[10px] font-bold text-slate-400 uppercase">P75</span><span class="text-4xl font-black text-amber-700 tracking-tight leading-none">${sCtdi.p75.toFixed(1)}</span></div>
+                                             ${showCI ? `
+                                                <span class="text-[10px] font-black text-amber-900 bg-amber-50/80 px-2 py-1 rounded-lg border border-amber-200 mt-2 inline-flex items-center gap-1.5 whitespace-nowrap shadow-sm"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> CI: ${formatCIValue(sCtdi.p75CiLow, sCtdi.p75CiHigh)}</span>
+                                                <span class="text-[9px] font-black px-2 py-0.5 rounded-full border mt-1.5 inline-block w-fit ${cP75R.color}">${cP75R.text}</span>
+                                             ` : ''}
+                                        </div>
                                     </div>
-                                    <div class="pb-1">
-                                         <span class="text-[10px] font-black text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-100" title="75th Percentile">P75: ${sDlp.p75.toFixed(1)}</span>
+                                    <div class="flex gap-2 mb-2">
+                                        <div class="${showCI ? 'flex-1' : 'w-full'} text-xs font-bold text-${color}-700 bg-${color}-50 px-2 py-2 rounded-lg border border-${color}-100 flex flex-col justify-center min-h-[52px]">
+                                            <span class="text-[9px] uppercase opacity-60 block mb-0.5">Mean ± SD (CV: ${sCtdi.cv.toFixed(0)}%)</span>${sCtdi.mean.toFixed(1)} ± ${sCtdi.sd.toFixed(1)}
+                                        </div>
+                                        ${showCI ? `
+                                        <div class="flex-1 text-xs font-bold text-slate-600 bg-slate-50 px-2 py-2 rounded-lg border border-slate-100 flex flex-col justify-center min-h-[52px]">
+                                            <span class="text-[9px] uppercase opacity-60 block mb-0.5">Mean 95% CI</span>
+                                            <span class="text-sm font-black text-slate-900 leading-tight">${sCtdi.ciLow.toFixed(1)} - ${sCtdi.ciHigh.toFixed(1)}</span>
+                                        </div>` : ''}
                                     </div>
+                                    <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1"><div class="h-full bg-${color}-500 transition-all duration-1000" style="width: ${cPct}%"></div></div>
+                                    <div class="flex justify-between"><span class="text-[9px] text-slate-400 font-medium italic truncate">Diagnostic Reference Level (P75)</span><span class="text-[9px] font-bold text-${color}-600">Ref: ${refC||'-'}</span></div>
                                 </div>
-                                
-                                <div class="text-xs font-bold text-${p.color}-700 bg-${p.color}-50 px-3 py-2 rounded-xl mb-3 flex items-center gap-2 w-full border border-${p.color}-100 transition-colors hover:bg-${p.color}-100 shadow-sm">
-                                    <div class="bg-white p-1 rounded-md shadow-sm text-${p.color}-500"><i data-lucide="sigma" class="w-4 h-4"></i></div>
-                                    <div class="flex flex-col leading-none">
-                                        <span class="text-[9px] uppercase opacity-60 mb-0.5">Mean ± SD</span>
-                                        <span class="text-sm font-black">${sDlp.mean.toFixed(1)} <span class="text-${p.color}-400 font-medium">±</span> ${sDlp.sd.toFixed(1)}</span>
+                                <!-- DLP Section -->
+                                <div class="pt-4 border-t border-dashed border-slate-200">
+                                    <div class="flex justify-between items-baseline mb-2"><span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">DLP</span><span class="text-[9px] font-bold ${sDlp.p < 0.05 ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 bg-slate-100'} px-1.5 rounded">p=${sDlp.p < 0.001 ? '<0.001' : sDlp.p.toFixed(3)}</span></div>
+                                    <div class="flex items-end justify-between mb-3 gap-2">
+                                        <div class="flex flex-col">
+                                            <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-${color}-600 tracking-tight leading-none">${sDlp.median.toFixed(1)}</span><span class="text-[10px] font-bold text-slate-400 uppercase">P50</span></div>
+                                            ${showCI ? `
+                                                <span class="text-[10px] font-black text-indigo-700 bg-indigo-50/80 px-2 py-1 rounded-lg border border-indigo-100 mt-2 inline-flex items-center gap-1.5 whitespace-nowrap shadow-sm"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> CI: ${formatCIValue(sDlp.p50CiLow, sDlp.p50CiHigh)}</span>
+                                                <span class="text-[9px] font-black px-2 py-0.5 rounded-full border mt-1.5 inline-block w-fit ${dP50R.color}">${dP50R.text}</span>
+                                            ` : ''}
+                                        </div>
+                                        <div class="flex flex-col items-end">
+                                             <div class="flex items-baseline gap-1"><span class="text-[10px] font-bold text-slate-400 uppercase">P75</span><span class="text-4xl font-black text-amber-700 tracking-tight leading-none">${sDlp.p75.toFixed(1)}</span></div>
+                                             ${showCI ? `
+                                                <span class="text-[10px] font-black text-amber-800 bg-amber-50/80 px-2 py-1 rounded-lg border border-amber-100 mt-2 inline-flex items-center gap-1.5 whitespace-nowrap shadow-sm"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> CI: ${formatCIValue(sDlp.p75CiLow, sDlp.p75CiHigh)}</span>
+                                                <span class="text-[9px] font-black px-2 py-0.5 rounded-full border mt-1.5 inline-block w-fit ${dP75R.color}">${dP75R.text}</span>
+                                             ` : ''}
+                                        </div>
                                     </div>
-                                </div>
-
-                                <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden flex items-center mb-1">
-                                    <div class="h-full bg-${p.color}-500 transition-all duration-1000 ease-out" style="width: ${dlpPct}%"></div>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-[9px] text-slate-400 font-medium">Median</span>
-                                    <span class="text-[9px] font-bold text-${p.color}-600">Ref: ${refD||'-'}</span>
+                                    <div class="flex gap-2 mb-2">
+                                        <div class="${showCI ? 'flex-1' : 'w-full'} text-xs font-bold text-${color}-700 bg-${color}-50 px-2 py-2 rounded-lg border border-${color}-100 flex flex-col justify-center min-h-[52px]">
+                                            <span class="text-[9px] uppercase opacity-60 block mb-0.5">Mean ± SD (CV: ${sDlp.cv.toFixed(0)}%)</span>${sDlp.mean.toFixed(1)} ± ${sDlp.sd.toFixed(1)}
+                                        </div>
+                                        ${showCI ? `
+                                        <div class="flex-1 text-xs font-bold text-slate-600 bg-slate-50 px-2 py-2 rounded-lg border border-slate-100 flex flex-col justify-center min-h-[52px]">
+                                            <span class="text-[9px] uppercase opacity-60 block mb-0.5">Mean 95% CI</span>
+                                            <span class="text-sm font-black text-slate-900 leading-tight">${sDlp.ciLow.toFixed(1)} - ${sDlp.ciHigh.toFixed(1)}</span>
+                                        </div>` : ''}
+                                    </div>
+                                    <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1"><div class="h-full bg-${color}-500 transition-all duration-1000" style="width: ${dPct}%"></div></div>
+                                    <div class="flex justify-between"><span class="text-[9px] text-slate-400 font-medium italic">Diagnostic Reference Level (P75)</span><span class="text-[9px] font-bold text-${color}-600">Ref: ${refD||'-'}</span></div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>`;
-                container.innerHTML += html;
-            });
+                    </div>`;
+                };
 
-            lucide.createIcons();
+                protocols.forEach(p => {
+                    const sub = currentEntries.filter(e => e.protocol && e.protocol.includes(p.key));
+                    const stats = getDataObj(sub, e => getFacilityName(e));
+                    containerFac.innerHTML += generateCardHTML(p.key, p.label, p.color, p.icon, stats, stats.count, sub.length, stats.count < 5, true);
+                });
 
-            const mCounts={}; currentEntries.forEach(e=>{ let m=e.manufacturer||'Unk'; if(m.toLowerCase().startsWith('ge')) m='GE HealthCare'; mCounts[m]=(mCounts[m]||0)+1; });
-            if(pieChartInstance) pieChartInstance.destroy();
-            if(el('manufacturerPieChart')) pieChartInstance = new Chart(el('manufacturerPieChart'), { type: 'doughnut', data: { labels: Object.keys(mCounts), datasets: [{ data: Object.values(mCounts), backgroundColor: ['#6366f1','#ec4899','#10b981','#f59e0b','#3b82f6'], borderWidth: 0 }] }, options: { responsive:true, maintainAspectRatio:false, plugins: { legend: {position:'right', labels:{font:{size:10,weight:'bold',family:'Inter'},boxWidth:10}} } } });
+                const mfgSub = currentEntries.filter(e => e.protocol && e.protocol.includes(currentMfgProtocol));
+                const manufacturers = [...new Set(mfgSub.map(e => normalizeManufacturer(e.manufacturer)))];
+                const mfgStyles = { 'GE HealthCare': {c: 'indigo', i: 'zap'}, 'Siemens': {c: 'cyan', i: 'activity'}, 'Philips': {c: 'sky', i: 'shield'}, 'Canon/Toshiba': {c: 'red', i: 'aperture'}, 'Fujifilm': {c: 'emerald', i: 'image'}, 'United Imaging': {c: 'amber', i: 'circle-dot'}, 'Unknown': {c: 'slate', i: 'help-circle'} };
 
-            const gCounts={'Nam':0,'Nữ':0}; currentEntries.forEach(e=>(String(e.gender||'').toUpperCase()==='M'||String(e.gender||'').toUpperCase()==='NAM')?gCounts['Nam']++:gCounts['Nữ']++);
-            if(genderPieChartInstance) genderPieChartInstance.destroy();
-            if(el('genderPieChart')) genderPieChartInstance = new Chart(el('genderPieChart'), { type: 'pie', data: { labels: ['Nam', 'Nữ'], datasets: [{ data: [gCounts['Nam'], gCounts['Nữ']], backgroundColor: ['#3b82f6', '#ec4899'], borderWidth: 0 }] }, options: { responsive:true, maintainAspectRatio:false, plugins: { legend: {position:'bottom', labels:{font:{size:10,weight:'bold',family:'Inter'},boxWidth:10}} } } });
+                const mfgDataList = manufacturers.map(m => {
+                    const sub = mfgSub.filter(e => normalizeManufacturer(e.manufacturer) === m);
+                    const stats = getDataObj(sub, e => getFacilityName(e));
+                    const std = DRL_STANDARDS[currentStandardName][currentMfgProtocol] || {};
+                    const sCtdi = calcStats(stats.count < 5 ? stats.raw.ctdi : stats.medians.ctdi, std.ctdi75||0);
+                    const style = mfgStyles[m] || {c: 'slate', i: 'box'};
+                    return { name: m, stats: stats, med: sCtdi.median, count: stats.count, n: sub.length, color: style.c, icon: style.i, useRaw: stats.count < 5 };
+                });
+                mfgDataList.sort((a, b) => a.med - b.med);
+                mfgDataList.forEach(i => containerMfg.innerHTML += generateCardHTML(`mfg-${i.name.replace(/\s+/g, '')}`, i.name, i.color, i.icon, i.stats, i.count, i.n, i.useRaw, false));
+
+                lucide.createIcons();
+                el('globalLoader').style.display = 'none';
+            }, 50);
         }
 
         function updateRefTable() {
             const stdSelect = el('standardSelect');
             if(stdSelect.children.length === 0) {
-                Object.keys(DRL_STANDARDS).forEach(s => {
-                    const opt = document.createElement('option');
-                    opt.value = s; opt.textContent = s;
-                    stdSelect.appendChild(opt);
-                });
+                Object.keys(DRL_STANDARDS).forEach(s => { const opt = document.createElement('option'); opt.value = s; opt.textContent = s; stdSelect.appendChild(opt); });
                 stdSelect.value = currentStandardName;
             }
-
             const b = el('refTableBody'); b.innerHTML = '';
-            const protocols = [
-                {key:'Head', label:'Sọ não'}, {key:'Chest', label:'Ngực'},
-                {key:'Abdomen', label:'Bụng'}, {key:'LDCT', label:'LDCT'}
-            ];
-
+            const protocols = [{key:'Head', label:'Sọ não'}, {key:'Chest', label:'Ngực'}, {key:'Abdomen', label:'Bụng'}, {key:'LDCT', label:'LDCT'}];
             protocols.forEach(p => {
-                const row = document.createElement('tr');
                 const v = DRL_STANDARDS[currentStandardName][p.key] || {};
-                row.className = "hover:bg-indigo-50/50 transition-colors";
-                row.innerHTML = `
-                    <td class="px-4 py-3 font-bold text-slate-800 border-r border-indigo-50">${p.label}</td>
-                    <td class="px-4 py-3 text-center text-slate-500">${v.ctdi50 || '-'}</td>
-                    <td class="px-4 py-3 text-center text-indigo-700 font-bold bg-indigo-50/50">${v.ctdi75 || '-'}</td>
-                    <td class="px-4 py-3 text-center text-slate-500">${v.dlp50 || '-'}</td>
-                    <td class="px-4 py-3 text-center text-amber-700 font-bold bg-amber-50/50">${v.dlp75 || '-'}</td>
-                `;
+                const row = document.createElement('tr'); row.className = "hover:bg-indigo-50/50 transition-colors";
+                row.innerHTML = `<td class="px-4 py-3 font-bold text-slate-800 border-r border-indigo-50">${p.label}</td><td class="px-4 py-3 text-center text-slate-500">${v.ctdi50 || '-'}</td><td class="px-4 py-3 text-center text-indigo-700 font-bold bg-indigo-50/50">${v.ctdi75 || '-'}</td><td class="px-4 py-3 text-center text-slate-500">${v.dlp50 || '-'}</td><td class="px-4 py-3 text-center text-amber-700 font-bold bg-amber-50/50">${v.dlp75 || '-'}</td>`;
                 b.appendChild(row);
             });
         }
 
         window.onload = () => {
             Chart.register(ChartDataLabels);
-            setTimeout(() => el('globalLoader').style.display='none', 800);
-            
             onAuthStateChanged(auth, async (u) => {
                 if(!u) await signInAnonymously(auth);
                 setText('userEmailDisplay', u && !u.isAnonymous ? (u.displayName||u.email) : 'Khách');
                 onSnapshot(collection(db,'artifacts',appId,'public','data','drl_entries'), (snap) => {
                     entries = snap.docs.map(d=>d.data()).filter(e=>!e.isDeleted);
-                    // Only render if already authenticated, or if app is visible
-                    if(!document.getElementById('mainApp').classList.contains('hidden')) {
-                        renderStats();
-                    }
+                    if(!el('mainApp').classList.contains('hidden')) renderStats();
+                    else el('globalLoader').style.display = 'none';
                 });
             });
-
-            el('standardSelect').onchange = (e) => {
-                currentStandardName = e.target.value;
-                updateRefTable();
-                renderStats();
-            };
-
-            el('stdPatientFilter').onchange = () => { renderStats(); };
-            el('weightFilter').onchange = () => { renderStats(); };
-            
-            updateRefTable();
-            lucide.createIcons();
+            el('standardSelect').onchange = (e) => { currentStandardName = e.target.value; updateRefTable(); renderStats(); };
+            el('stdPatientFilter').onchange = renderStats; el('weightFilter').onchange = renderStats;
+            el('manufacturerProtocolSelect').onchange = (e) => { currentMfgProtocol = e.target.value; renderStats(); };
+            updateRefTable(); lucide.createIcons();
         };
     </script>
 </body>
