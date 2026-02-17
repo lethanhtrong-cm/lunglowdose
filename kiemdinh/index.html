@@ -1,1 +1,564 @@
 
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VN-DRL: Advanced Bootstrap Analysis (50-70kg)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 24px; height: 24px; animation: spin 2s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Custom scrollbar for table */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-black text-indigo-900 uppercase tracking-tight mb-2">Phân tích DRL Nâng cao</h1>
+                <div class="flex flex-col gap-1">
+                    <p class="text-sm text-slate-500 font-medium">Kỹ thuật Bootstrap (10.000 mẫu) & IQR Filtering cho nhóm 12 Bệnh viện chỉ định</p>
+                    <div class="inline-flex items-center gap-2 mt-1">
+                        <span class="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded border border-indigo-200">
+                            <i data-lucide="filter" class="w-3 h-3 inline mr-1"></i>
+                            Bộ lọc cân nặng: 50 - 70 kg
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                 <button id="btnExport" onclick="exportToCSV()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-md transition-all flex items-center gap-2 hidden">
+                    <i data-lucide="download" class="w-4 h-4"></i> Xuất Excel (CSV)
+                </button>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div id="statusIndicator" class="flex items-center gap-2 text-sm font-bold text-slate-400">
+                    <div class="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
+                    Chờ dữ liệu...
+                </div>
+            </div>
+            <button id="btnRun" onclick="runAnalysis()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <i data-lucide="play-circle" class="w-5 h-5"></i> Chạy Bootstrap (10k lần)
+            </button>
+        </div>
+
+        <!-- Target Hospitals List (Collapsible) -->
+        <div class="mb-6">
+            <details class="group bg-white rounded-xl border border-slate-200 open:shadow-md transition-all">
+                <summary class="flex items-center justify-between p-4 cursor-pointer list-none font-bold text-slate-700 hover:bg-slate-50 rounded-xl">
+                    <span>Danh sách 12 Viện nghiên cứu</span>
+                    <i data-lucide="chevron-down" class="w-4 h-4 transition-transform group-open:rotate-180"></i>
+                </summary>
+                <div class="p-4 border-t border-slate-100 text-xs grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-slate-600 bg-slate-50/50 rounded-b-xl">
+                    <div class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-green-500"></i> BV Vĩnh Phúc VPI</div>
+                    <div class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-green-500"></i> BV Việt Tiệp (Hải Phòng)</div>
+                    <div class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-green-500"></i> BVĐK Bắc Ninh số 1</div>
+                    <div class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-green-500"></i> BVĐK Bắc Ninh số 2</div>
+                    <div class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-green-500"></i> BVĐK Vân Đồn (Quảng Ninh)</div>
+                    <div class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-green-500"></i> BVĐK tỉnh Quảng Ninh</div>
+                    <div class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-green-500"></i> BVĐK Hùng Vương (Phú Thọ)</div>
+                    <div class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-green-500"></i> BV Việt Đức (Hà Nội)</div>
+                    <div class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-green-500"></i> BVĐK Gia Lâm (Hà Nội)</div>
+                    <div class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-green-500"></i> BCĐK Hải Dương</div>
+                    <div class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-green-500"></i> BV Lạc Việt</div>
+                    <div class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-green-500"></i> PKĐK 360 Lê Hoàn</div>
+                </div>
+            </details>
+        </div>
+
+        <!-- Result Tables Container -->
+        <div id="resultsContainer" class="space-y-8 hidden">
+            <!-- Template will be injected here via JS -->
+        </div>
+
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Config
+        const firebaseConfig = { apiKey: "AIzaSyAtQdmDbA1BgOrvwevrG6gwuFzlUmBTbfY", authDomain: "wb-idr.firebaseapp.com", projectId: "wb-idr", appId: "1:716649486328:web:340d7ae8dd0bafa1e0680d" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = 'wb-idr';
+
+        let rawData = [];
+        let analysisResults = null;
+        let isProcessing = false;
+
+        // --- 1. DATA FETCHING ---
+        async function init() {
+            const status = document.getElementById('statusIndicator');
+            const btn = document.getElementById('btnRun');
+            
+            try {
+                status.innerHTML = '<div class="loader border-indigo-200 border-t-indigo-600"></div> <span class="text-indigo-600">Đang tải dữ liệu...</span>';
+                await signInAnonymously(auth);
+                
+                const snap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'drl_entries'));
+                rawData = snap.docs.map(d => d.data());
+                
+                status.innerHTML = `<i data-lucide="check-circle" class="w-5 h-5 text-emerald-500"></i> <span class="text-emerald-600">Sẵn sàng (${rawData.length} bản ghi tổng)</span>`;
+                btn.disabled = false;
+                lucide.createIcons();
+            } catch (err) {
+                console.error(err);
+                status.innerHTML = `<span class="text-red-500">Lỗi kết nối: ${err.message}</span>`;
+            }
+        }
+
+        // --- 2. CORE STATISTICAL LOGIC ---
+
+        // Helper: Calculate Percentile from sorted array
+        function getPercentile(arr, p) {
+            if (arr.length === 0) return 0;
+            if (arr.length === 1) return arr[0];
+            const index = (arr.length - 1) * p / 100;
+            const lower = Math.floor(index);
+            const upper = Math.ceil(index);
+            const weight = index - lower;
+            return arr[lower] * (1 - weight) + arr[upper] * weight;
+        }
+
+        // Step 1: IQR Filtering (Remove Outliers)
+        function filterOutliersIQR(arr) {
+            if (arr.length < 4) return arr; // Too few to calculate IQR reliably
+            const sorted = [...arr].sort((a, b) => a - b);
+            const q1 = getPercentile(sorted, 25);
+            const q3 = getPercentile(sorted, 75);
+            const iqr = q3 - q1;
+            const lowerBound = q1 - 1.5 * iqr;
+            const upperBound = q3 + 1.5 * iqr;
+            return sorted.filter(x => x >= lowerBound && x <= upperBound);
+        }
+
+        // Step 4: Bootstrap CI Calculation (Modified to return distribution)
+        function calculateBootstrapCI(dataset, statisticFunc, iterations = 10000) {
+            if (dataset.length === 0) return { est: 0, lower: 0, upper: 0, distribution: [] };
+            
+            const n = dataset.length;
+            const bootstrappedStats = [];
+
+            for (let i = 0; i < iterations; i++) {
+                // Resample with replacement
+                const sample = [];
+                for (let j = 0; j < n; j++) {
+                    sample.push(dataset[Math.floor(Math.random() * n)]);
+                }
+                // Sort sample to calculate median/percentile
+                sample.sort((a, b) => a - b);
+                bootstrappedStats.push(statisticFunc(sample));
+            }
+
+            bootstrappedStats.sort((a, b) => a - b);
+            
+            // 95% CI means 2.5th and 97.5th percentiles
+            const lowerIndex = Math.floor(iterations * 0.025);
+            const upperIndex = Math.floor(iterations * 0.975);
+            
+            // Point estimate from original data
+            const originalSorted = [...dataset].sort((a,b) => a-b);
+            const estimate = statisticFunc(originalSorted);
+
+            return {
+                est: estimate,
+                lower: bootstrappedStats[lowerIndex],
+                upper: bootstrappedStats[upperIndex],
+                distribution: bootstrappedStats // Added for visualization
+            };
+        }
+
+        // --- 3. MAIN ANALYSIS WORKFLOW ---
+        window.runAnalysis = async () => {
+            if (isProcessing) return;
+            isProcessing = true;
+            const btn = document.getElementById('btnRun');
+            const originalBtnText = btn.innerHTML;
+            btn.innerHTML = '<div class="loader border-white border-t-transparent w-4 h-4"></div> Đang xử lý...';
+            btn.disabled = true;
+
+            // Allow UI to update before heavy calculation
+            setTimeout(() => {
+                try {
+                    performAnalysis();
+                } catch (e) {
+                    console.error(e);
+                    alert("Có lỗi xảy ra trong quá trình tính toán: " + e.message);
+                } finally {
+                    isProcessing = false;
+                    btn.innerHTML = originalBtnText;
+                    btn.disabled = false;
+                    document.getElementById('btnExport').classList.remove('hidden');
+                    lucide.createIcons();
+                }
+            }, 100);
+        };
+
+        function performAnalysis() {
+            // Target keywords derived from the user's image
+            const targetKeywords = [
+                ["vĩnh phúc", "vpi"], 
+                ["việt tiệp"], 
+                ["bắc ninh", "1"], 
+                ["bắc ninh", "số 1"], 
+                ["bắc ninh", "2"], 
+                ["bắc ninh", "số 2"], 
+                ["vân đồn"], 
+                ["tỉnh quảng ninh"], 
+                ["hùng vương"], 
+                ["việt đức"], 
+                ["gia lâm"], 
+                ["hải dương"], 
+                ["lạc việt"], 
+                ["lê hoàn"], ["360"]
+            ];
+
+            // Normalize and Filter Data (Hospital Name AND Weight 50-70kg)
+            const targetData = rawData.filter(e => {
+                // 1. Hospital Filter
+                if (!e.hospitalName) return false;
+                const name = e.hospitalName.toLowerCase();
+                const isTargetHospital = targetKeywords.some(keywords => 
+                    keywords.every(k => name.includes(k))
+                );
+                if (!isTargetHospital) return false;
+
+                // 2. Weight Filter (50 - 70kg)
+                // Assuming field is 'weight' or 'patientWeight'
+                const w = parseFloat(e.weight || e.patientWeight);
+                if (isNaN(w)) return false; // Exclude if no valid weight
+                if (w < 50 || w > 70) return false; // Strict filter
+
+                return true;
+            });
+
+            const protocols = {
+                "Head Routine": ["head", "sọ", "não", "brain"],
+                "Chest Routine": ["chest", "ngực", "phổi"], 
+                "Abdomen Routine": ["abd", "bụng"],
+                "Low Dose Lung": ["low", "thấp", "ldct"]
+            };
+
+            const results = {};
+
+            for (const [pKey, pKeywords] of Object.entries(protocols)) {
+                // 1. Filter by protocol
+                const pData = targetData.filter(e => {
+                    const prot = (e.protocol || "").toLowerCase();
+                    const isMatch = pKeywords.some(k => prot.includes(k));
+                    if (pKey === "Chest Routine" && (prot.includes("low") || prot.includes("thấp") || prot.includes("ldct"))) return false;
+                    return isMatch;
+                });
+
+                if (pData.length === 0) continue;
+
+                // Group by Hospital
+                const hospitalGroups = {};
+                pData.forEach(e => {
+                    const hName = e.hospitalName.trim(); 
+                    if (!hospitalGroups[hName]) hospitalGroups[hName] = { ctdi: [], dlp: [] };
+                    
+                    const c = parseFloat(e.ctdi);
+                    const d = parseFloat(e.dlp);
+                    if (!isNaN(c) && c > 0) hospitalGroups[hName].ctdi.push(c);
+                    if (!isNaN(d) && d > 0) hospitalGroups[hName].dlp.push(d);
+                });
+
+                // Calculate Medians per hospital
+                const hospitalMedians_CTDI = [];
+                const hospitalMedians_DLP = [];
+
+                Object.keys(hospitalGroups).forEach(hName => {
+                    const cleanCTDI = filterOutliersIQR(hospitalGroups[hName].ctdi);
+                    if (cleanCTDI.length > 0) hospitalMedians_CTDI.push(getPercentile(cleanCTDI, 50));
+
+                    const cleanDLP = filterOutliersIQR(hospitalGroups[hName].dlp);
+                    if (cleanDLP.length > 0) hospitalMedians_DLP.push(getPercentile(cleanDLP, 50));
+                });
+
+                const calcMedian = (arr) => getPercentile(arr, 50);
+                const calcP75 = (arr) => getPercentile(arr, 75);
+
+                // Helper to get Range of Medians (Inter-hospital variation)
+                const getRange = (arr) => {
+                    if (arr.length === 0) return { min: 0, max: 0 };
+                    return { min: Math.min(...arr), max: Math.max(...arr) };
+                };
+
+                results[pKey] = {
+                    count: pData.length,
+                    hospitalCount: Object.keys(hospitalGroups).length,
+                    ctdi: {
+                        p50: calculateBootstrapCI(hospitalMedians_CTDI, calcMedian),
+                        p75: calculateBootstrapCI(hospitalMedians_CTDI, calcP75),
+                        range: getRange(hospitalMedians_CTDI) // Added Range
+                    },
+                    dlp: {
+                        p50: calculateBootstrapCI(hospitalMedians_DLP, calcMedian),
+                        p75: calculateBootstrapCI(hospitalMedians_DLP, calcP75),
+                        range: getRange(hospitalMedians_DLP) // Added Range
+                    }
+                };
+            }
+
+            analysisResults = results; // Store globally for export
+            renderResults(results);
+        }
+
+        function renderResults(results) {
+            const container = document.getElementById('resultsContainer');
+            container.innerHTML = '';
+            container.classList.remove('hidden');
+
+            const order = ["Head Routine", "Chest Routine", "Abdomen Routine", "Low Dose Lung"];
+            
+            // Check if any results exist
+            let hasResults = false;
+
+            order.forEach((pKey, index) => {
+                const data = results[pKey];
+                if (!data) return;
+                hasResults = true;
+
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden";
+                
+                let headerColor = "bg-slate-700";
+                if(pKey.includes("Head")) headerColor = "bg-blue-600";
+                if(pKey.includes("Chest")) headerColor = "bg-cyan-600";
+                if(pKey.includes("Abdomen")) headerColor = "bg-amber-600";
+                if(pKey.includes("Low")) headerColor = "bg-emerald-600";
+
+                // Unique chart IDs
+                const chartIdCTDI = `chart-ctdi-${index}`;
+                const chartIdDLP = `chart-dlp-${index}`;
+
+                card.innerHTML = `
+                    <div class="${headerColor} p-4 text-white flex justify-between items-center">
+                        <h3 class="font-bold text-lg uppercase tracking-wide flex items-center gap-2">
+                            <i data-lucide="activity" class="w-5 h-5"></i> ${pKey}
+                        </h3>
+                        <div class="text-xs font-medium bg-white/20 px-3 py-1 rounded-full">
+                            ${data.hospitalCount} Viện / ${data.count} Ca
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
+                        
+                        <!-- TABLE SECTION (2/3 width on large screens) -->
+                        <div class="lg:col-span-2 p-0 overflow-x-auto">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-4 w-1/6">Chỉ số</th>
+                                        <th class="p-4 w-1/6">Thống kê</th>
+                                        <th class="p-4 w-1/6 text-center text-indigo-600">Giá trị (Est)</th>
+                                        <th class="p-4 w-1/4 text-center">95% CI (Bootstrap)</th>
+                                        <th class="p-4 w-1/6 text-right">Biên độ lỗi</th>
+                                        <th class="p-4 w-1/6 text-right">Khoảng Biến thiên<br><span class="text-[10px] normal-case">(Min-Max Medians)</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <!-- CTDI P50 -->
+                                    ${renderRow(data.ctdi.p50, "CTDIvol", "(mGy)", "Median (P50)", "text-blue-600", false, data.ctdi.range)}
+                                    <!-- CTDI P75 -->
+                                    ${renderRow(data.ctdi.p75, "", "", "75th Pctl", "text-purple-600", true)}
+                                    <!-- DLP P50 -->
+                                    ${renderRow(data.dlp.p50, "DLP", "(mGy.cm)", "Median (P50)", "text-blue-600", false, data.dlp.range, true)}
+                                    <!-- DLP P75 -->
+                                    ${renderRow(data.dlp.p75, "", "", "75th Pctl", "text-purple-600", true)}
+                                </tbody>
+                            </table>
+                             <div class="bg-slate-50 p-3 text-right text-xs text-slate-400 font-medium border-t border-slate-100">
+                                * CI: Confidence Interval (Khoảng tin cậy 95%) | Khoảng biến thiên: Chênh lệch giữa Viện thấp nhất và cao nhất.
+                            </div>
+                        </div>
+
+                        <!-- CHARTS SECTION (1/3 width) -->
+                        <div class="p-4 bg-slate-50/50 flex flex-col gap-6 justify-center">
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-500 uppercase mb-2 text-center">Phân phối Bootstrap (CTDI Median)</h4>
+                                <div class="relative h-32 w-full">
+                                    <canvas id="${chartIdCTDI}"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-500 uppercase mb-2 text-center">Phân phối Bootstrap (DLP Median)</h4>
+                                <div class="relative h-32 w-full">
+                                    <canvas id="${chartIdDLP}"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+
+                // Draw Charts after DOM insertion
+                drawDistributionChart(chartIdCTDI, data.ctdi.p50.distribution, data.ctdi.p50.est, 'rgba(37, 99, 235, 0.5)'); // Blue
+                drawDistributionChart(chartIdDLP, data.dlp.p50.distribution, data.dlp.p50.est, 'rgba(13, 148, 136, 0.5)'); // Teal
+            });
+            
+            if (!hasResults) {
+                 container.innerHTML = `<div class="p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200">Không tìm thấy dữ liệu nào thỏa mãn điều kiện cân nặng 50-70kg.</div>`;
+            }
+            
+            lucide.createIcons();
+        }
+
+        // Helper to render table rows
+        function renderRow(stats, metricName, metricUnit, statName, colorClass, isSubRow, range = null, isBorderTop = false) {
+            const moe = (stats.upper - stats.lower) / 2;
+            const rel = stats.est !== 0 ? (moe / stats.est) * 100 : 0;
+            const borderClass = isBorderTop ? "border-t-2 border-slate-100" : "";
+            const bgClass = isSubRow ? "bg-slate-50/50" : "hover:bg-slate-50";
+
+            let firstCell = "";
+            if (!isSubRow) {
+                firstCell = `<td class="p-4 font-bold text-slate-700 border-r border-slate-100" rowspan="2">${metricName}<br><span class="text-xs font-normal text-slate-400">${metricUnit}</span></td>`;
+            }
+
+            let rangeCell = `<td class="p-4 text-right text-xs text-slate-400">-</td>`;
+            if (range) {
+                rangeCell = `<td class="p-4 text-right font-mono text-xs text-slate-600">${range.min.toFixed(1)} - ${range.max.toFixed(1)}</td>`;
+            }
+
+            return `
+                <tr class="${bgClass} ${borderClass}">
+                    ${firstCell}
+                    <td class="p-4 font-bold ${colorClass}">${statName}</td>
+                    <td class="p-4 text-center font-bold text-lg">${stats.est.toFixed(2)}</td>
+                    <td class="p-4 text-center font-mono text-slate-600 text-xs sm:text-sm">[ ${stats.lower.toFixed(2)} - ${stats.upper.toFixed(2)} ]</td>
+                    <td class="p-4 text-right text-sm">±${moe.toFixed(2)} <span class="text-[10px] text-slate-400">(${rel.toFixed(1)}%)</span></td>
+                    ${rangeCell}
+                </tr>`;
+        }
+
+        // --- 4. VISUALIZATION (Chart.js) ---
+        function drawDistributionChart(canvasId, data, meanVal, color) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            
+            // Create histogram bins
+            const binCount = 30;
+            const min = Math.min(...data);
+            const max = Math.max(...data);
+            const range = max - min;
+            
+            // Handle edge case where all data is the same
+            if (range === 0) {
+                 new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: [min.toFixed(1)],
+                        datasets: [{
+                            label: 'Frequency',
+                            data: [data.length],
+                            backgroundColor: color,
+                            borderColor: color.replace('0.5', '1'),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+                });
+                return;
+            }
+
+            const binSize = range / binCount;
+            const bins = new Array(binCount).fill(0);
+            const labels = [];
+
+            data.forEach(v => {
+                let binIndex = Math.floor((v - min) / binSize);
+                if (binIndex >= binCount) binIndex = binCount - 1;
+                bins[binIndex]++;
+            });
+
+            for(let i=0; i<binCount; i++) {
+                labels.push((min + (i * binSize)).toFixed(1));
+            }
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Frequency',
+                        data: bins,
+                        backgroundColor: color,
+                        borderColor: color.replace('0.5', '1'),
+                        borderWidth: 1,
+                        barPercentage: 1,
+                        categoryPercentage: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                    scales: {
+                        x: { display: false }, // Hide x axis labels for cleanliness in small view
+                        y: { display: false }
+                    },
+                    animation: false
+                }
+            });
+        }
+
+        // --- 5. EXPORT FUNCTION ---
+        window.exportToCSV = () => {
+            if (!analysisResults) return;
+            
+            let csv = "Protocol,Metric,Statistic,Estimate,Lower_CI,Upper_CI,MoE,Min_Hospital,Max_Hospital,Weight_Filter\n";
+            
+            Object.keys(analysisResults).forEach(pKey => {
+                const d = analysisResults[pKey];
+                
+                // Helper to add lines
+                const addLine = (metric, type, obj, range) => {
+                     const moe = (obj.upper - obj.lower) / 2;
+                     const min = range ? range.min : "";
+                     const max = range ? range.max : "";
+                     csv += `"${pKey}","${metric}","${type}",${obj.est},${obj.lower},${obj.upper},${moe},${min},${max},"50-70kg"\n`;
+                };
+
+                addLine("CTDI", "Median", d.ctdi.p50, d.ctdi.range);
+                addLine("CTDI", "75th", d.ctdi.p75, null);
+                addLine("DLP", "Median", d.dlp.p50, d.dlp.range);
+                addLine("DLP", "75th", d.dlp.p75, null);
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "vn_drl_bootstrap_results_50-70kg.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        // Initialize
+        init();
+
+    </script>
+</body>
+</html>
