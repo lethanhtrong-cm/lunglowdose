@@ -1127,6 +1127,18 @@
             return 'unknown';
         };
 
+        const getManufacturerClass = (manu) => {
+            const m = (manu || '').toLowerCase();
+            if (m.includes('siemens')) return 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/40 dark:text-teal-300 dark:border-teal-800';
+            if (m.includes('ge') || m.includes('general electric')) return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800';
+            if (m.includes('philips')) return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800';
+            if (m.includes('canon') || m.includes('toshiba')) return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/40 dark:text-rose-300 dark:border-rose-800';
+            if (m.includes('neusoft')) return 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-800';
+            if (m.includes('hitachi')) return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800';
+            if (m.includes('united')) return 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200 dark:bg-fuchsia-900/40 dark:text-fuchsia-300 dark:border-fuchsia-800';
+            return 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
+        };
+
         function generateHospitalAliases(data) {
             const allHosps = [...new Set(data.map(e => e.hospitalName).filter(n => 
                 n && 
@@ -1929,12 +1941,21 @@
                     sliceBadgeClass = 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-900/40 dark:text-pink-300 dark:border-pink-800';
                 }
 
-                const sliceHtml = `
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 mt-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border shadow-sm ${sliceBadgeClass}" title="Số lát cắt / Detector">
+                const manuClass = getManufacturerClass(e.manufacturer);
+                const manuText = e.manufacturer && e.manufacturer !== '--' && e.manufacturer !== 'Chưa chọn' ? e.manufacturer : 'Unknown';
+                const manuHtml = `
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border shadow-sm ${manuClass}" title="Hãng máy">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                        ${manuText}
+                    </span>
+                `;
+
+                const sliceHtml = sliceCountVal !== 'N/A' && sliceCountVal ? `
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border shadow-sm ${sliceBadgeClass}" title="Số lát cắt / Detector">
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                         ${sliceCountVal}
                     </span>
-                `;
+                ` : '';
 
                 row.innerHTML = `
                     <td class="p-3 md:p-4 text-center"><input type="checkbox" class="custom-checkbox" onchange="toggleSel('${e.id}')" ${isSel ? 'checked' : ''}></td>
@@ -1945,8 +1966,8 @@
                     </td>
                     <td class="p-3 md:p-4 font-medium text-slate-600 dark:text-slate-300 text-[10px] md:text-[11px]">
                         <span class="block font-bold text-slate-700 dark:text-slate-200 truncate max-w-[100px] md:max-w-none">${displayHospital || '--'}</span>
-                        <span class="text-slate-400 truncate max-w-[100px] md:max-w-none block">${e.manufacturer || '--'}</span>
-                        <div class="block">
+                        <div class="flex flex-col gap-1.5 items-start mt-2">
+                            ${manuHtml}
                             ${sliceHtml}
                         </div>
                     </td>
