@@ -1915,8 +1915,26 @@
                     }
                 }
 
-                // CHANGED: Display Slice Count as string
-                const sliceText = e.sliceCount ? '• ' + e.sliceCount : '';
+                // NEW: Highlighted Slice Count Badge rendering
+                const sliceCountVal = e.sliceCount || 'N/A';
+                let sliceBadgeClass = 'bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
+
+                if (sliceCountVal.includes('16 - 32')) {
+                    sliceBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800';
+                } else if (sliceCountVal.includes('64 - 128')) {
+                    sliceBadgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800';
+                } else if (sliceCountVal.includes('256 - 512')) {
+                    sliceBadgeClass = 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-800';
+                } else if (sliceCountVal.includes('Dual Source')) {
+                    sliceBadgeClass = 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-900/40 dark:text-pink-300 dark:border-pink-800';
+                }
+
+                const sliceHtml = `
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 mt-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border shadow-sm ${sliceBadgeClass}" title="Số lát cắt / Detector">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                        ${sliceCountVal}
+                    </span>
+                `;
 
                 row.innerHTML = `
                     <td class="p-3 md:p-4 text-center"><input type="checkbox" class="custom-checkbox" onchange="toggleSel('${e.id}')" ${isSel ? 'checked' : ''}></td>
@@ -1927,7 +1945,10 @@
                     </td>
                     <td class="p-3 md:p-4 font-medium text-slate-600 dark:text-slate-300 text-[10px] md:text-[11px]">
                         <span class="block font-bold text-slate-700 dark:text-slate-200 truncate max-w-[100px] md:max-w-none">${displayHospital || '--'}</span>
-                        <span class="text-slate-400 truncate max-w-[100px] md:max-w-none block">${e.manufacturer || '--'} ${sliceText}</span>
+                        <span class="text-slate-400 truncate max-w-[100px] md:max-w-none block">${e.manufacturer || '--'}</span>
+                        <div class="block">
+                            ${sliceHtml}
+                        </div>
                     </td>
                     <td class="p-3 md:p-4 text-[10px] md:text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                         <div class="flex flex-col gap-1.5">
@@ -2034,8 +2055,6 @@
             }
         };
 
-        // Checkbox logic in renderTable handles the `checked` state.
-        
         // Check All logic
         el('checkAll').onchange = (e) => { 
             const ids = filtered.slice((currentPage-1)*rowsPerPage, currentPage*rowsPerPage).map(x=>x.id);
