@@ -631,22 +631,47 @@
                 <h3 class="text-sm md:text-base font-black uppercase tracking-tight flex items-center gap-2"><i data-lucide="layers" class="w-4 h-4"></i> <span id="bulkModalTitle">Sửa hàng loạt</span></h3>
                 <button onclick="closeBulkEditModal()" class="text-indigo-200 hover:text-white bg-indigo-500/30 p-1.5 rounded-lg transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
-            <div class="p-4 md:p-6 space-y-4">
+            <div class="p-4 md:p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                 <p class="text-xs text-slate-500 dark:text-slate-400">Bạn đang chọn <span id="bulkEditCount" class="font-bold text-indigo-600 dark:text-indigo-400">0</span> dòng. Chỉ nhập các trường muốn thay đổi.</p>
                 
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Protocol mới</label>
-                    <select id="beProt" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium focus:outline-none focus:border-indigo-500">
-                        <option value="">(Giữ nguyên)</option>
-                        <option value="Head Routine">Head Routine</option>
-                        <option value="Chest Routine">Chest Routine</option>
-                        <option value="Abdomen Routine">Abdomen Routine</option>
-                        <option value="Low Dose Lung">Low Dose Lung</option>
-                    </select>
-                </div>
-
                 <div class="grid grid-cols-2 gap-4">
-                    <div>
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tên cơ sở đơn vị</label>
+                        <select id="beHosp" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium focus:outline-none focus:border-indigo-500">
+                            <option value="">(Giữ nguyên)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Protocol mới</label>
+                        <select id="beProt" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium focus:outline-none focus:border-indigo-500">
+                            <option value="">(Giữ nguyên)</option>
+                            <option value="Head Routine">Head Routine (Sọ não)</option>
+                            <option value="Chest Routine">Chest Routine (Ngực)</option>
+                            <option value="Abdomen Routine">Abdomen Routine (Bụng)</option>
+                            <option value="Low Dose Lung">Low Dose Lung (Phổi liều thấp)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Hãng máy</label>
+                        <select id="beManu" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium focus:outline-none focus:border-indigo-500">
+                            <option value="">(Giữ nguyên)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Số lát cắt</label>
+                        <select id="beSlice" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium focus:outline-none focus:border-indigo-500">
+                            <option value="">(Giữ nguyên)</option>
+                            <option value="16 - 32 lát">16 - 32 lát</option>
+                            <option value="64 - 128 lát">64 - 128 lát</option>
+                            <option value="256 - 512 lát">256 - 512 lát</option>
+                            <option value="Máy 2 bóng (Dual Source)">Máy 2 bóng (Dual Source)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-span-1">
                         <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Giới tính</label>
                         <select id="beGender" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium focus:outline-none focus:border-indigo-500">
                             <option value="">(Giữ nguyên)</option>
@@ -654,7 +679,8 @@
                             <option value="F">Nữ</option>
                         </select>
                     </div>
-                    <div>
+                    
+                    <div class="col-span-1">
                         <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Modulation</label>
                         <select id="beMod" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium focus:outline-none focus:border-indigo-500">
                             <option value="">(Giữ nguyên)</option>
@@ -1477,6 +1503,9 @@
             el('beProt').value = "";
             el('beGender').value = "";
             el('beMod').value = "";
+            el('beHosp').value = "";
+            el('beManu').value = "";
+            el('beSlice').value = "";
             
             const modal = el('bulkEditModal');
             const content = el('bulkEditContent');
@@ -1504,10 +1533,16 @@
             const p = el('beProt').value;
             const g = el('beGender').value;
             const m = el('beMod').value;
+            const h = el('beHosp').value.trim();
+            const ma = el('beManu').value.trim();
+            const s = el('beSlice').value;
 
             if (p) updates.protocol = p;
             if (g) updates.gender = g;
             if (m) updates.doseModulation = m;
+            if (h) updates.hospitalName = h;
+            if (ma) updates.manufacturer = ma;
+            if (s) updates.sliceCount = s;
 
             if (Object.keys(updates).length === 0) {
                 closeBulkEditModal();
@@ -1586,9 +1621,25 @@
                 if (arr.includes(v)) s.value = v; else s.value = 'all';
             };
             
+            const fillBulk = (id, arr, isHosp = false) => {
+                const s = el(id);
+                if (!s) return;
+                const v = s.value;
+                s.innerHTML = '<option value="">(Giữ nguyên)</option>';
+                arr.forEach(i => {
+                    const displayName = isHosp ? (hospitalAliasMap[i] || i) : i;
+                    s.innerHTML += `<option value="${i}">${displayName}</option>`;
+                });
+                if (arr.includes(v)) s.value = v; else s.value = '';
+            };
+            
             fillHosps('fHosp', h); 
             fill('fManu', m); 
             fill('fProt', p);
+            
+            // Populate bulk edit dropdowns
+            fillBulk('beHosp', h, true);
+            fillBulk('beManu', m, false);
         }
         
         function calcStats(arr) {
