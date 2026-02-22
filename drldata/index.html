@@ -476,16 +476,8 @@
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs whitespace-nowrap md:whitespace-normal">
                             <thead class="table-header sticky top-0 z-10 shadow-md">
-                                <tr>
-                                    <th class="p-3 md:p-4 w-12 text-center"><input type="checkbox" id="checkAll" class="custom-checkbox"></th>
-                                    <th class="p-3 md:p-4 cursor-pointer hover:text-indigo-200 transition-colors">Ngày / ID</th>
-                                    <th class="p-3 md:p-4">Cơ sở / Máy</th>
-                                    <th class="p-3 md:p-4">Thông tin BN</th>
-                                    <th class="p-3 md:p-4">Protocol</th>
-                                    <th class="p-3 md:p-4">Người nhập</th>
-                                    <th class="p-3 md:p-4 text-center">CTDIvol</th>
-                                    <th class="p-3 md:p-4 text-center">DLP</th>
-                                    <th class="p-3 md:p-4 text-right">Thao tác</th>
+                                <tr id="tableHeaderRow">
+                                    <!-- Header injected via JS based on Role -->
                                 </tr>
                             </thead>
                             <tbody id="tableBody" class="divide-y divide-slate-100 dark:divide-slate-700 bg-white dark:bg-slate-800">
@@ -789,19 +781,26 @@
         const LS_KEY_DATA = 'drl_data_cache';
         const LS_KEY_PENDING = 'drl_pending_queue';
 
-        // Global variable for anonymization map
+        // NEW: Khai báo các địa chỉ email có đặc quyền CHỈ XEM (Viewer)
+        const VIEWER_EMAILS = [
+            'thanhtrong.yds@gmail.com',      // Thay bằng email thật của người xem
+            'quanly@gmail.com'    // Thay bằng email thật của người xem
+        ];
+
+        // Global variables
         let hospitalAliasMap = {};
         let entries = [];
         let filtered = [];
         let selected = new Set();
-        let selectedHospitals = new Set(); // NEW: Store multi-selected hospitals
+        let selectedHospitals = new Set(); 
         let currentPage = 1;
         let rowsPerPage = 20;
         let isTrashMode = false;
-        let isMyDataMode = false; // NEW: Toggle state for My Data
+        let isMyDataMode = false; 
         let user = null;
         let userDocData = null;
         let isAdminKey = false;
+        let isViewerRole = false; // NEW: Cờ xác định vai trò người xem
         let pendingQueue = JSON.parse(localStorage.getItem(LS_KEY_PENDING) || '[]');
 
         if (sessionStorage.getItem('vnrad_admin_key') === 'true') isAdminKey = true;
@@ -1041,18 +1040,39 @@
             const isLoggedIn = (user && !user.isAnonymous);
             const isSuperAdmin = checkIsAdmin(user);
             
+            // NEW: Kiểm tra vai trò Người xem
+            isViewerRole = isLoggedIn && user.email && VIEWER_EMAILS.includes(user.email.toLowerCase());
+            
             if (isSuperAdmin) {
                 btn.innerHTML = `<i data-lucide="shield-check" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="uppercase tracking-wide hidden xs:inline">Admin (Active)</span><span class="uppercase tracking-wide inline xs:hidden">Admin</span>`;
                 btn.className = "px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold text-[10px] md:text-xs flex items-center gap-1.5 md:gap-2 border transition-all duration-300 shadow-md shadow-red-500/30 transform active:scale-95 bg-red-600 text-white border-red-500 hover:bg-red-700 hover:shadow-red-500/50";
+                
                 el('btnExport').classList.remove('hidden'); el('btnExport').classList.add('flex');
+                if(el('btnTrash')) el('btnTrash').style.display = '';
+                if(el('btnMyData')) el('btnMyData').style.display = 'flex';
+                
+            } else if (isViewerRole) {
+                btn.innerHTML = `<i data-lucide="eye" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="uppercase tracking-wide hidden xs:inline">Người xem</span><span class="uppercase tracking-wide inline xs:hidden">View</span>`;
+                btn.className = "px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold text-[10px] md:text-xs flex items-center gap-1.5 md:gap-2 border transition-all duration-300 shadow-md shadow-teal-500/30 transform active:scale-95 bg-teal-600 text-white border-teal-500 hover:bg-teal-700 hover:shadow-teal-500/50";
+                
+                // Vô hiệu hóa xuất excel, chỉnh sửa, thùng rác cho Viewer
+                el('btnExport').classList.add('hidden'); el('btnExport').classList.remove('flex');
+                if(el('btnTrash')) el('btnTrash').style.display = 'none';
+                if(el('btnMyData')) el('btnMyData').style.display = 'none';
+                
             } else if (isLoggedIn) {
                 btn.innerHTML = `<i data-lucide="user" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="uppercase tracking-wide hidden xs:inline">Thành viên</span><span class="uppercase tracking-wide inline xs:hidden">User</span>`;
                 btn.className = "px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold text-[10px] md:text-xs flex items-center gap-1.5 md:gap-2 border transition-all duration-300 shadow-md shadow-indigo-500/30 transform active:scale-95 bg-indigo-600 text-white border-indigo-500 hover:bg-indigo-700 hover:shadow-indigo-500/50";
+                
                 el('btnExport').classList.remove('hidden'); el('btnExport').classList.add('flex');
+                if(el('btnTrash')) el('btnTrash').style.display = '';
+                if(el('btnMyData')) el('btnMyData').style.display = 'flex';
             } else {
                 btn.innerHTML = `<i data-lucide="log-in" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="uppercase tracking-wide hidden xs:inline">Đăng nhập</span><span class="uppercase tracking-wide inline xs:hidden">Login</span>`;
                 btn.className = "px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-bold text-[10px] md:text-xs flex items-center gap-1.5 md:gap-2 border transition-all duration-300 shadow-md transform active:scale-95 bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 hover:text-white dark:bg-slate-700 dark:border-slate-600 dark:hover:bg-slate-600";
+                
                 el('btnExport').classList.add('hidden'); el('btnExport').classList.remove('flex');
+                if(el('btnTrash')) el('btnTrash').style.display = '';
             }
 
             const viewDashboard = el('viewDashboard');
@@ -1158,9 +1178,11 @@
             }
 
             const isSuperAdmin = checkIsAdmin(user);
+            // NEW: Viewer role có quyền xem tên thật của tất cả các bệnh viện
+            const canSeeAll = isSuperAdmin || isViewerRole;
 
             allHosps.forEach((h, idx) => {
-                if (isSuperAdmin) {
+                if (canSeeAll) {
                     hospitalAliasMap[h] = h;
                 } else if (myHosps.has(h)) {
                     hospitalAliasMap[h] = h;
@@ -1845,16 +1867,43 @@
             const start = (currentPage - 1) * rowsPerPage;
             const pageData = filtered.slice(start, start + rowsPerPage);
             
+            // Xóa nội dung bảng hiện tại và tạo Header mới (Có ẩn Checkbox và Thao tác nếu là Viewer)
+            const headerRow = el('tableHeaderRow');
+            headerRow.innerHTML = `
+                <th class="p-3 md:p-4 w-12 text-center ${isViewerRole ? 'hidden' : ''}"><input type="checkbox" id="checkAll" class="custom-checkbox"></th>
+                <th class="p-3 md:p-4 cursor-pointer hover:text-indigo-200 transition-colors">Ngày / ID</th>
+                <th class="p-3 md:p-4">Cơ sở / Máy</th>
+                <th class="p-3 md:p-4">Thông tin BN</th>
+                <th class="p-3 md:p-4">Protocol</th>
+                <th class="p-3 md:p-4">Người nhập</th>
+                <th class="p-3 md:p-4 text-center">CTDIvol</th>
+                <th class="p-3 md:p-4 text-center">DLP</th>
+                <th class="p-3 md:p-4 text-right ${isViewerRole ? 'hidden' : ''}">Thao tác</th>
+            `;
+            // Gắn lại sự kiện cho checkAll sau khi tạo lại HTML
+            if(el('checkAll')) {
+                el('checkAll').onchange = (e) => { 
+                    const ids = filtered.slice((currentPage-1)*rowsPerPage, currentPage*rowsPerPage).map(x=>x.id);
+                    e.target.checked ? ids.forEach(i=>selected.add(i)) : ids.forEach(i=>selected.delete(i));
+                    renderTable();
+                };
+                // Kiểm tra trạng thái checkAll hiện tại
+                const currentIds = filtered.slice((currentPage-1)*rowsPerPage, currentPage*rowsPerPage).map(x=>x.id);
+                const allSelected = currentIds.length > 0 && currentIds.every(id => selected.has(id));
+                el('checkAll').checked = allSelected;
+            }
+
             const tbody = el('tableBody'); tbody.innerHTML = '';
             if(pageData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="p-8 md:p-16 text-center text-slate-400 dark:text-slate-500"><div class="flex flex-col items-center gap-2"><div class="bg-slate-50 dark:bg-slate-700 p-3 md:p-4 rounded-full"><i data-lucide="inbox" class="w-6 h-6 md:w-8 md:h-8 text-slate-300 dark:text-slate-500"></i></div><span>Không tìm thấy dữ liệu</span></div></td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${isViewerRole ? 7 : 9}" class="p-8 md:p-16 text-center text-slate-400 dark:text-slate-500"><div class="flex flex-col items-center gap-2"><div class="bg-slate-50 dark:bg-slate-700 p-3 md:p-4 rounded-full"><i data-lucide="inbox" class="w-6 h-6 md:w-8 md:h-8 text-slate-300 dark:text-slate-500"></i></div><span>Không tìm thấy dữ liệu</span></div></td></tr>`;
                 lucide.createIcons(); el('pageInfo').innerText = '0 kết quả'; el('pagination').innerHTML = ''; return;
             }
 
             pageData.forEach(e => {
                 const isSel = selected.has(e.id);
                 const isOwner = user && !user.isAnonymous && (user.uid === e.userId);
-                const canEdit = isOwner || isSuperAdmin;
+                // Người xem (Viewer) tuyệt đối KHÔNG ĐƯỢC CHỈNH SỬA
+                const canEdit = (isOwner && !isViewerRole) || isSuperAdmin;
                 const protocolClass = getProtocolClass(e.protocol);
                 const createdDate = new Date(e.createdAt);
                 const dateStr = createdDate.toLocaleDateString('vi-VN');
@@ -1869,9 +1918,10 @@
                 // --- MASKING LOGIC FOR ROW ---
                 const displayHospital = hospitalAliasMap[e.hospitalName] || e.hospitalName;
                 
-                // MASKING LOGIC FOR EMAIL (NEW)
-                const displayEmail = (isOwner || isSuperAdmin) ? (e.userEmail || 'Unknown') : 'Thành viên khác';
-                const displayInitial = (isOwner || isSuperAdmin) ? (e.userEmail || '?').charAt(0).toUpperCase() : '?';
+                // MASKING LOGIC FOR EMAIL (NEW) - Viewer can see real emails
+                const canSeeEmail = isOwner || isSuperAdmin || isViewerRole;
+                const displayEmail = canSeeEmail ? (e.userEmail || 'Unknown') : 'Thành viên khác';
+                const displayInitial = canSeeEmail ? (e.userEmail || '?').charAt(0).toUpperCase() : '?';
 
                 let actionButtons = '';
                 if (canEdit) {
@@ -1958,7 +2008,7 @@
                 ` : '';
 
                 row.innerHTML = `
-                    <td class="p-3 md:p-4 text-center"><input type="checkbox" class="custom-checkbox" onchange="toggleSel('${e.id}')" ${isSel ? 'checked' : ''}></td>
+                    <td class="p-3 md:p-4 text-center ${isViewerRole ? 'hidden' : ''}"><input type="checkbox" class="custom-checkbox" onchange="toggleSel('${e.id}')" ${isSel ? 'checked' : ''}></td>
                     <td class="p-3 md:p-4 font-bold text-slate-700 dark:text-slate-200">
                         ${dateStr}<br>
                         <span class="text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 font-medium block">${timeStr}</span>
@@ -1989,7 +2039,7 @@
                         ${modBadge ? `<div class="mt-1">${modBadge}</div>` : ''}
                     </td>
                     <td class="p-3 md:p-4 text-[10px]">
-                        <div class="flex items-center gap-1.5" title="${(isOwner || isSuperAdmin) ? e.userEmail : 'Ẩn danh'}">
+                        <div class="flex items-center gap-1.5" title="${canSeeEmail ? e.userEmail : 'Ẩn danh'}">
                             <div class="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400">
                                 ${displayInitial}
                             </div>
@@ -1998,7 +2048,7 @@
                     </td>
                     <td class="p-3 md:p-4 text-center font-bold text-slate-700 dark:text-slate-200">${e.ctdi !== undefined ? e.ctdi : '--'}</td>
                     <td class="p-3 md:p-4 text-center"><span class="${parseFloat(e.dlp) > 1000 ? 'badge-dose-high' : 'badge-dose'}">${e.dlp !== undefined ? e.dlp : '--'}</span></td>
-                    <td class="p-3 md:p-4 text-right">
+                    <td class="p-3 md:p-4 text-right ${isViewerRole ? 'hidden' : ''}">
                         <div class="flex items-center justify-end gap-1.5">
                             ${actionButtons}
                         </div>
@@ -2013,7 +2063,156 @@
             renderPagination(totalPages); updateBulkUI(); lucide.createIcons();
         };
 
-        // ... existing event listeners ...
+        window.saveEntry = async () => {
+            if((!user || user.isAnonymous) && !isAdminKey) return;
+            const id = el('eId').value;
+            // Update mode only now
+            const updateData = { 
+                protocol: el('eProt').value, 
+                ctdi: parseFloat(el('eCTDI').value), 
+                dlp: parseFloat(el('eDLP').value), 
+                sliceCount: el('eSlice').value, // CHANGED: Save as string directly
+                age: parseInt(el('eAge').value), 
+                gender: el('eGender').value, 
+                weight: parseFloat(el('eWeight').value), 
+                height: parseFloat(el('eHeight').value), 
+                doseModulation: el('eMod').value, 
+                updatedAt: new Date().toISOString()
+            };
+            
+            try { 
+                if (id) {
+                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'drl_entries', id), updateData);
+                     window.showToast("Đã cập nhật dữ liệu!");
+                     window.closeModal(); 
+                     fetchData(true);
+                } 
+            } catch(err) { 
+                if (err.code === 'resource-exhausted') {
+                    if (id) {
+                        addToQueue('update', id, updateData);
+                        window.closeModal();
+                    }
+                } else {
+                    window.showAlert("Lỗi lưu trữ", err.message, 'error'); 
+                }
+            }
+        };
+        
+        function updateMyDataBtnUI() {
+             const btn = el('btnMyData');
+             if(!btn) return;
+             if (isMyDataMode) {
+                btn.classList.remove(...myDataInactiveClasses);
+                btn.classList.add(...myDataActiveClasses);
+                btn.innerHTML = `<i data-lucide="user-check" class="w-3 h-3"></i> <span class="hidden xs:inline">Đang lọc của tôi</span>`;
+            } else {
+                btn.classList.remove(...myDataActiveClasses);
+                btn.classList.add(...myDataInactiveClasses);
+                btn.innerHTML = `<i data-lucide="user" class="w-3 h-3"></i> <span class="hidden xs:inline">Lọc ca của tôi</span>`;
+            }
+            lucide.createIcons();
+        }
+
+        // Soft Delete
+        window.delItemAction = async (id) => { 
+            try {
+                await updateDoc(doc(db,'artifacts',appId,'public', 'data', 'drl_entries',id), { isDeleted: true }); 
+                window.showToast("Đã chuyển vào thùng rác!"); 
+                fetchData(true);
+            } catch (err) {
+                 if (err.code === 'resource-exhausted') {
+                    addToQueue('soft-delete', id);
+                 }
+            }
+        };
+
+        // Restore
+        window.restoreItemAction = async (id) => {
+            try {
+                await updateDoc(doc(db,'artifacts',appId,'public', 'data', 'drl_entries',id), { isDeleted: false });
+                window.showToast("Đã khôi phục bản ghi!");
+                fetchData(true);
+            } catch (err) {
+                 if (err.code === 'resource-exhausted') {
+                    // Restore isn't critical for offline, maybe skip or implement later
+                    window.showAlert("Lỗi", "Không thể khôi phục khi offline/hết quota", "error");
+                 }
+            }
+        };
+
+        // Hard Delete
+        window.permDeleteAction = async (id) => {
+            try {
+                await deleteDoc(doc(db,'artifacts',appId,'public', 'data', 'drl_entries',id));
+                window.showToast("Đã xóa vĩnh viễn!");
+                fetchData(true);
+            } catch (err) {
+                 if (err.code === 'resource-exhausted') {
+                    addToQueue('delete', id);
+                 }
+            }
+        };
+
+        // Export Excel
+        el('btnExport').onclick = () => {
+            if(filtered.length===0) { window.showAlert("Thông báo", "Không có dữ liệu để xuất", 'info'); return; }
+            
+            try {
+                const dataToExport = filtered.map(e => {
+                    let dateStr = '';
+                    let timeStr = '';
+                    if (e.createdAt) {
+                        try {
+                            const d = new Date(e.createdAt);
+                            if (!isNaN(d.getTime())) {
+                                dateStr = d.toLocaleDateString('vi-VN');
+                                timeStr = d.toLocaleTimeString('vi-VN');
+                            }
+                        } catch (err) {}
+                    }
+
+                    // Calculate BMI if missing
+                    let bmi = '';
+                    if (e.weight && e.height) {
+                         const h_m = parseFloat(e.height) / 100;
+                         const w_kg = parseFloat(e.weight);
+                         if (h_m > 0 && w_kg > 0) {
+                             bmi = (w_kg / (h_m * h_m)).toFixed(1);
+                         }
+                    }
+
+                    return {
+                        "Ngày": dateStr, 
+                        "Giờ": timeStr, 
+                        "Bệnh viện": e.hospitalName || '', 
+                        "Hãng máy": e.manufacturer || '', 
+                        "Protocol": e.protocol || '', 
+                        "Mã BN": e.patientId || '', 
+                        "Tuổi": e.age || '', 
+                        "Giới tính": e.gender || '', 
+                        "Cân nặng (kg)": e.weight || '',
+                        "Chiều cao (cm)": e.height || '', 
+                        "BMI": bmi,
+                        "Số lát cắt": e.sliceCount || '', 
+                        "CTDIvol (mGy)": e.ctdi || '', 
+                        "DLP (mGy.cm)": e.dlp || '', 
+                        "Modulation": e.doseModulation || e.modulation || '', 
+                        "Người nhập": e.userEmail || ''
+                    };
+                });
+
+                const ws = XLSX.utils.json_to_sheet(dataToExport);
+                const wb = XLSX.utils.book_new(); 
+                XLSX.utils.book_append_sheet(wb, ws, "VN_DRL_Data");
+                XLSX.writeFile(wb, `VN_DRL_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+                window.showToast("Đã xuất file Excel thành công!");
+            } catch (error) {
+                console.error("Export Error:", error);
+                window.showAlert("Lỗi xuất file", "Có lỗi xảy ra khi tạo file Excel: " + error.message, "error");
+            }
+        };
+
         ['fHosp','fProt','fManu','fSort','fGender','fMod', 'fQuality', 'fBMI', 'fSlice', 'fWeight'].forEach(i => {
             const element = el(i);
             if (element) {
@@ -2077,92 +2276,47 @@
         };
 
         // Check All logic
-        el('checkAll').onchange = (e) => { 
-            const ids = filtered.slice((currentPage-1)*rowsPerPage, currentPage*rowsPerPage).map(x=>x.id);
-            e.target.checked ? ids.forEach(i=>selected.add(i)) : ids.forEach(i=>selected.delete(i));
-            renderTable();
-        };
+        /* el('checkAll').onchange = (e) => { ... } is now correctly handled inside renderTable */
 
         function updateBulkUI() {
             const b = el('bulkToolbar');
-            if(selected.size > 0) { b.classList.remove('hidden'); b.classList.add('flex'); el('selCount').innerText = selected.size; }
-            else { b.classList.add('hidden'); b.classList.remove('flex'); }
+            if(selected.size > 0 && !isViewerRole) { 
+                b.classList.remove('hidden'); b.classList.add('flex'); el('selCount').innerText = selected.size; 
+            } else { 
+                b.classList.add('hidden'); b.classList.remove('flex'); 
+            }
         }
 
         window.clearSelection = () => { selected.clear(); el('checkAll').checked=false; renderTable(); };
 
-        // Soft Delete
-        window.delItemAction = async (id) => { 
-            try {
-                await updateDoc(doc(db,'artifacts',appId,'public', 'data', 'drl_entries',id), { isDeleted: true }); 
-                window.showToast("Đã chuyển vào thùng rác!"); 
-                fetchData(true);
-            } catch (err) {
-                 if (err.code === 'resource-exhausted') {
-                    addToQueue('soft-delete', id);
-                 }
-            }
+        window.deleteSelected = () => {
+            const actionText = isTrashMode ? 'XÓA VĨNH VIỄN' : 'xóa';
+            window.showConfirm('Xóa hàng loạt', `CẢNH BÁO: Bạn đang ${actionText} ${selected.size} dòng dữ liệu. Hành động này không thể hoàn tác!`, async () => {
+                const batch = writeBatch(db);
+                selected.forEach(id => {
+                    const ref = doc(db,'artifacts',appId,'public', 'data', 'drl_entries',id);
+                    if (isTrashMode) {
+                        batch.delete(ref);
+                    } else {
+                        batch.update(ref, { isDeleted: true });
+                    }
+                });
+                try {
+                    await batch.commit(); 
+                    selected.clear(); 
+                    updateBulkUI(); 
+                    window.showToast("Đã xử lý dữ liệu thành công!");
+                    fetchData(true);
+                } catch(err) {
+                    if (err.code === 'resource-exhausted') {
+                        selected.forEach(id => addToQueue(isTrashMode ? 'delete' : 'soft-delete', id));
+                        selected.clear();
+                        updateBulkUI();
+                    }
+                }
+            });
         };
         
-        // Export Excel
-        el('btnExport').onclick = () => {
-            if(filtered.length===0) { window.showAlert("Thông báo", "Không có dữ liệu để xuất", 'info'); return; }
-            
-            try {
-                const dataToExport = filtered.map(e => {
-                    let dateStr = '';
-                    let timeStr = '';
-                    if (e.createdAt) {
-                        try {
-                            const d = new Date(e.createdAt);
-                            if (!isNaN(d.getTime())) {
-                                dateStr = d.toLocaleDateString('vi-VN');
-                                timeStr = d.toLocaleTimeString('vi-VN');
-                            }
-                        } catch (err) {}
-                    }
-
-                    // Calculate BMI if missing
-                    let bmi = '';
-                    if (e.weight && e.height) {
-                         const h_m = parseFloat(e.height) / 100;
-                         const w_kg = parseFloat(e.weight);
-                         if (h_m > 0 && w_kg > 0) {
-                             bmi = (w_kg / (h_m * h_m)).toFixed(1);
-                         }
-                    }
-
-                    return {
-                        "Ngày": dateStr, 
-                        "Giờ": timeStr, 
-                        "Bệnh viện": e.hospitalName || '', 
-                        "Hãng máy": e.manufacturer || '', 
-                        "Protocol": e.protocol || '', 
-                        "Mã BN": e.patientId || '', 
-                        "Tuổi": e.age || '', 
-                        "Giới tính": e.gender || '', 
-                        "Cân nặng (kg)": e.weight || '',
-                        "Chiều cao (cm)": e.height || '', 
-                        "BMI": bmi,
-                        "Số lát cắt": e.sliceCount || '', 
-                        "CTDIvol (mGy)": e.ctdi || '', 
-                        "DLP (mGy.cm)": e.dlp || '', 
-                        "Modulation": e.doseModulation || e.modulation || '', 
-                        "Người nhập": e.userEmail || ''
-                    };
-                });
-
-                const ws = XLSX.utils.json_to_sheet(dataToExport);
-                const wb = XLSX.utils.book_new(); 
-                XLSX.utils.book_append_sheet(wb, ws, "VN_DRL_Data");
-                XLSX.writeFile(wb, `VN_DRL_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
-                window.showToast("Đã xuất file Excel thành công!");
-            } catch (error) {
-                console.error("Export Error:", error);
-                window.showAlert("Lỗi xuất file", "Có lỗi xảy ra khi tạo file Excel: " + error.message, "error");
-            }
-        };
-
         lucide.createIcons();
     </script>
 </body>
