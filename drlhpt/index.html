@@ -78,7 +78,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-black text-slate-800 uppercase tracking-tight">Quản lý Bệnh viện & Thiết bị</h1>
-                    <p class="text-xs font-medium text-slate-500">Thống kê máy CT, ca chụp, năm sản xuất và năm lắp đặt</p>
+                    <p class="text-xs font-medium text-slate-500">Thống kê máy CT, ca chụp, năm sản xuất và phân loại số lát cắt</p>
                 </div>
             </div>
             <div class="flex flex-wrap gap-2">
@@ -139,7 +139,7 @@
 
             <div class="stat-card border-l-4 border-l-amber-500 shadow-sm flex-1">
                 <div class="flex justify-between items-start mb-2">
-                    <span class="text-xs font-bold text-slate-500 uppercase">Cần cập nhật năm SX</span>
+                    <span class="text-xs font-bold text-slate-500 uppercase">Cần cập nhật thông tin</span>
                     <i data-lucide="alert-circle" class="w-5 h-5 text-amber-500"></i>
                 </div>
                 <div class="text-3xl font-black text-slate-800" id="statPending">0</div>
@@ -183,13 +183,22 @@
                 <h2 class="font-bold text-sm text-slate-700 flex items-center gap-2">
                     <i data-lucide="list" class="w-4 h-4"></i> Danh sách Thiết bị & Số ca
                 </h2>
-                <div class="flex gap-2">
+                <div class="flex gap-2 flex-wrap">
                     <select id="regionFilter" class="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 font-medium text-slate-600" onchange="renderTable()">
                         <option value="all">Tất cả khu vực</option>
                         <option value="Miền Bắc">Miền Bắc</option>
                         <option value="Miền Trung">Miền Trung</option>
                         <option value="Miền Nam">Miền Nam</option>
                         <option value="Chưa phân loại">Chưa phân loại</option>
+                    </select>
+                    <!-- Bộ lọc mới cho Số lát cắt -->
+                    <select id="sliceFilter" class="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 font-medium text-slate-600" onchange="renderTable()">
+                        <option value="all">Tất cả số lát cắt</option>
+                        <option value="16 - 32 lát">16 - 32 lát</option>
+                        <option value="64 - 128 lát">64 - 128 lát</option>
+                        <option value="256 - 512 lát">256 - 512 lát</option>
+                        <option value="Máy 2 bóng (Dual Source)">Máy 2 bóng (Dual Source)</option>
+                        <option value="Khác">Khác</option>
                     </select>
                     <input type="text" id="searchInput" placeholder="Tìm tên viện, hãng..." class="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 w-64" onkeyup="renderTable()">
                 </div>
@@ -202,6 +211,7 @@
                             <th class="w-1/4 border-r border-slate-700" rowspan="2">Bệnh viện</th>
                             <th rowspan="2">Hãng máy / Thiết bị</th>
                             <th class="text-center bg-indigo-900 border-b border-indigo-700" colspan="5">Chi tiết số ca chụp</th>
+                            <th class="text-center" rowspan="2">Số lát cắt</th>
                             <th class="text-center" rowspan="2">Năm SX</th>
                             <th class="text-center" rowspan="2">Năm Lắp đặt</th>
                             <th class="text-center" rowspan="2">Trạng thái</th>
@@ -255,7 +265,18 @@
                     <input type="text" id="mManu" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm font-bold text-slate-800 focus:outline-none focus:border-indigo-500" placeholder="VD: Siemens, GE...">
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Số lát cắt</label>
+                        <select id="mSlices" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm font-medium focus:outline-none focus:border-indigo-500 bg-white">
+                            <option value="">-- Chưa rõ --</option>
+                            <option value="16 - 32 lát">16 - 32 lát</option>
+                            <option value="64 - 128 lát">64 - 128 lát</option>
+                            <option value="256 - 512 lát">256 - 512 lát</option>
+                            <option value="Máy 2 bóng (Dual Source)">Máy 2 bóng (Dual Source)</option>
+                            <option value="Khác">Khác</option>
+                        </select>
+                    </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Năm sản xuất</label>
                         <input type="number" id="mYearManuf" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm font-medium focus:outline-none focus:border-indigo-500" placeholder="YYYY">
@@ -312,6 +333,49 @@
             }
         };
 
+        // Hàm phân loại Số lát cắt
+        function categorizeSlices(value) {
+            if (value === null || value === undefined || value === '') return null;
+            const strVal = String(value).toLowerCase();
+
+            // Nếu đã là chuỗi được format chuẩn thì trả về luôn
+            if (strVal.includes('16 - 32')) return "16 - 32 lát";
+            if (strVal.includes('64 - 128')) return "64 - 128 lát";
+            if (strVal.includes('256 - 512')) return "256 - 512 lát";
+            if (strVal.includes('2 bóng') || strVal.includes('dual')) return "Máy 2 bóng (Dual Source)";
+            if (strVal === 'khác') return "Khác";
+
+            // Nếu dữ liệu dạng số nguyên (từ hệ thống tự quét hoặc dữ liệu cũ)
+            const num = parseInt(value);
+            if (!isNaN(num)) {
+                if (num >= 16 && num <= 32) return "16 - 32 lát";
+                if (num >= 64 && num <= 128) return "64 - 128 lát";
+                if (num >= 256 && num <= 512) return "256 - 512 lát";
+            }
+            
+            // Trường hợp có ghi nhận dữ liệu nhưng không khớp khoảng nào ở trên
+            return "Khác"; 
+        }
+
+        // Hàm định dạng hiển thị Số lát cắt thành các Badge màu sắc
+        function formatSliceCountBadge(sliceCategory) {
+            if (!sliceCategory || sliceCategory === '--') return '<span class="text-slate-300 font-medium">--</span>';
+
+            let bg = 'bg-slate-50', text = 'text-slate-500', border = 'border-slate-200';
+            
+            if (sliceCategory.includes('16 - 32')) { 
+                bg = 'bg-slate-100'; text = 'text-slate-600'; border = 'border-slate-200'; 
+            } else if (sliceCategory.includes('64 - 128')) { 
+                bg = 'bg-sky-100'; text = 'text-sky-700'; border = 'border-sky-200'; 
+            } else if (sliceCategory.includes('256 - 512')) { 
+                bg = 'bg-violet-100'; text = 'text-violet-700'; border = 'border-violet-200'; 
+            } else if (sliceCategory.includes('2 bóng') || sliceCategory.includes('Dual')) { 
+                bg = 'bg-amber-100'; text = 'text-amber-700'; border = 'border-amber-300'; 
+            }
+
+            return `<span class="px-2.5 py-1 text-[11px] font-black uppercase tracking-tight rounded-md border ${bg} ${text} ${border} whitespace-nowrap inline-block shadow-sm transition-all hover:scale-105">${sliceCategory}</span>`;
+        }
+
         // Hàm render Global Legend (Chú thích chung)
         function renderGlobalLegend() {
             const legendContainer = document.getElementById('globalLegend');
@@ -354,7 +418,6 @@
                 return "Bụng không cản quang";
             }
 
-            // Nguyên tắc loại trừ: Không thuộc 4 nhóm trên thì trả về null (Chỉ cộng vào Tổng ca, không vào 4 biểu đồ)
             return null; 
         }
 
@@ -401,7 +464,7 @@
         }
 
         function mergeData() {
-            const machineStats = {}; // Lưu trữ chi tiết ca chụp theo từng máy { key: { total, head, chest, abd, ldct } }
+            const machineStats = {}; 
             const protManuCounts = {};
             const protTotalCounts = {};
 
@@ -411,25 +474,26 @@
                     const m = (e.manufacturer && e.manufacturer !== "--" && e.manufacturer !== "Chưa chọn") ? e.manufacturer.trim() : "Chưa xác định";
                     const key = `${h}_|_${m}`;
                     
-                    // Khởi tạo object đếm cho máy nếu chưa có
                     if (!machineStats[key]) {
-                        machineStats[key] = { total: 0, head: 0, chest: 0, abd: 0, ldct: 0 };
+                        machineStats[key] = { total: 0, head: 0, chest: 0, abd: 0, ldct: 0, detectedSlices: null };
                     }
                     
-                    // Đếm tổng số ca cho máy
                     machineStats[key].total++;
 
-                    // Logic bóc tách Protocol bằng bộ lọc từ khóa mới
+                    // Tự động quét số lát cắt và phân loại ngay
+                    const rawSlices = e.sliceCount || e.numberOfSlices || e.slices || e.detectorRows;
+                    if (rawSlices && !machineStats[key].detectedSlices) {
+                        machineStats[key].detectedSlices = rawSlices;
+                    }
+
                     const rawProtocol = e.protocol || e.studyName || e.procedureName || e.examType || '';
                     const protocolGroup = getProtocolGroup(rawProtocol);
                     
-                    // Đếm chi tiết cho từng máy dựa vào Protocol
                     if (protocolGroup === "Sọ không cản quang") machineStats[key].head++;
                     else if (protocolGroup === "Ngực không cản quang") machineStats[key].chest++;
                     else if (protocolGroup === "Bụng không cản quang") machineStats[key].abd++;
                     else if (protocolGroup === "Phổi liều thấp") machineStats[key].ldct++;
 
-                    // Đếm cho biểu đồ tổng thể
                     if (protocolGroup) {
                         protTotalCounts[protocolGroup] = (protTotalCounts[protocolGroup] || 0) + 1;
                         if (!protManuCounts[protocolGroup]) protManuCounts[protocolGroup] = {};
@@ -438,7 +502,6 @@
                 }
             });
 
-            // Cố định 4 nhóm Protocol mục tiêu
             const targetProtocols = [
                 "Sọ không cản quang",
                 "Ngực không cản quang",
@@ -451,15 +514,18 @@
                 data: protManuCounts[p] || {}
             }));
 
-            // Xử lý danh sách máy (Dành cho Data Table)
             const finalMachines = [];
             const usedKeys = new Set();
 
             dbMachines.forEach(m => {
                 const key = `${m.hospitalName}_|_${m.manufacturer}`;
-                const stats = machineStats[key] || { total: 0, head: 0, chest: 0, abd: 0, ldct: 0 };
+                const stats = machineStats[key] || { total: 0, head: 0, chest: 0, abd: 0, ldct: 0, detectedSlices: null };
                 m.caseCount = stats.total;
                 m.protocolBreakdown = stats;
+                
+                // Chuẩn hóa số lát cắt sang định dạng hiển thị text
+                m.sliceCount = categorizeSlices(m.sliceCount || stats.detectedSlices);
+                
                 m.isAutoGenerated = false;
                 finalMachines.push(m);
                 usedKeys.add(key);
@@ -473,6 +539,7 @@
                         manufacturer: m, 
                         caseCount: stats.total, 
                         protocolBreakdown: stats,
+                        sliceCount: categorizeSlices(stats.detectedSlices), 
                         isAutoGenerated: true 
                     });
                 }
@@ -487,11 +554,9 @@
         }
 
         function updateStats() {
-            // Đếm Tổng số mẫu & Cơ sở trực tiếp từ dữ liệu gốc drlEntries (Giống trang Nhập liệu)
             let totalRawCases = 0;
             const uniqueFacilities = new Set();
             
-            // Bộ đếm cho 4 protocol
             const protocolCounts = {
                 "Sọ không cản quang": 0,
                 "Ngực không cản quang": 0,
@@ -501,13 +566,12 @@
 
             drlEntries.forEach(e => {
                 if (!e.isDeleted) {
-                    totalRawCases++; // Đếm mọi ca không bị xóa (kể cả chưa chọn viện)
+                    totalRawCases++; 
                     
                     if (e.hospitalName && e.hospitalName !== "Chưa chọn") {
                         uniqueFacilities.add(e.hospitalName.trim());
                     }
 
-                    // Phân loại đếm theo Protocol
                     const rawProtocol = e.protocol || e.studyName || e.procedureName || e.examType || '';
                     const pGroup = getProtocolGroup(rawProtocol);
                     if (pGroup && protocolCounts[pGroup] !== undefined) {
@@ -516,19 +580,16 @@
                 }
             });
 
-            // Cập nhật thẻ hiển thị Cơ sở & Thiết bị
             document.getElementById('statHospitals').innerText = uniqueFacilities.size;
             document.getElementById('statMachines').innerText = allMachines.length;
             
-            // Cập nhật thẻ hiển thị Ca chụp & Protocol
             document.getElementById('statTotalCases').innerText = totalRawCases.toLocaleString('vi-VN');
             document.getElementById('statHead').innerText = protocolCounts["Sọ không cản quang"].toLocaleString('vi-VN');
             document.getElementById('statChest').innerText = protocolCounts["Ngực không cản quang"].toLocaleString('vi-VN');
             document.getElementById('statAbd').innerText = protocolCounts["Bụng không cản quang"].toLocaleString('vi-VN');
             document.getElementById('statLdct').innerText = protocolCounts["Phổi liều thấp"].toLocaleString('vi-VN');
 
-            // Số máy cần cập nhật năm SX
-            const pending = allMachines.filter(m => !m.manufactureYear).length;
+            const pending = allMachines.filter(m => !m.manufactureYear && !m.installYear && !m.sliceCount).length;
             document.getElementById('statPending').innerText = pending;
         }
 
@@ -550,14 +611,12 @@
                 manuCountMap[manu] = (manuCountMap[manu] || 0) + 1;
             });
 
-            // Gán màu cố định cho từng hãng để dùng chung cho Chart và Table
             Array.from(allManus).sort().forEach((manu, index) => {
                 if (!globalColorMap[manu]) {
                     globalColorMap[manu] = COLOR_PALETTE[index % COLOR_PALETTE.length];
                 }
             });
 
-            // Data cho Biểu đồ Ca chụp
             const labelsCases = [];
             const dataCases = [];
             const colorsCases = [];
@@ -565,7 +624,6 @@
                 if(count > 0) { labelsCases.push(manu); dataCases.push(count); colorsCases.push(globalColorMap[manu]); }
             });
 
-            // Data cho Biểu đồ Số máy
             const labelsMachines = [];
             const dataMachines = [];
             const colorsMachines = [];
@@ -591,15 +649,11 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { family: 'Inter' } } } } }
             });
 
-            // Hiển thị thanh chú thích màu sắc
             renderGlobalLegend();
-
-            // Render các biểu đồ Protocol sau khi đã có màu sắc của Hãng
             renderProtocolCharts();
         }
 
         function renderProtocolCharts() {
-            // Xóa các instance cũ
             protocolChartInstances.forEach(inst => inst.destroy());
             protocolChartInstances = [];
 
@@ -610,7 +664,6 @@
                 const cardDiv = document.createElement('div');
                 cardDiv.className = 'glass-card p-4 flex flex-col items-center border-t-2 border-t-indigo-400 bg-white/50';
                 
-                // Title
                 cardDiv.innerHTML = `
                     <h4 class="w-full text-center text-xs font-bold text-slate-800 uppercase tracking-tight mb-3 truncate px-2" title="${item.protocol}">
                         ${item.protocol}
@@ -627,17 +680,15 @@
                 const colors = [];
 
                 if (Object.keys(item.data).length === 0) {
-                    // Hiển thị vòng xám nếu chưa có dữ liệu ca chụp nào cho protocol này
                     labels.push("Chưa có dữ liệu");
                     data.push(1);
                     colors.push("#e2e8f0");
                 } else {
-                    // Sắp xếp hãng nào chụp nhiều nhất lên đầu
                     Object.entries(item.data).sort((a, b) => b[1] - a[1]).forEach(([manu, count]) => {
                         const safeManu = manu === "Chưa xác định" ? "Khác" : manu;
                         labels.push(safeManu);
                         data.push(count);
-                        colors.push(globalColorMap[safeManu] || '#cbd5e1'); // Dùng màu map chung, nếu k có dùng màu xám
+                        colors.push(globalColorMap[safeManu] || '#cbd5e1'); 
                     });
                 }
 
@@ -651,7 +702,7 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: { 
-                            legend: { display: false }, // Ẩn legend cho gọn vì biểu đồ nhỏ
+                            legend: { display: false },
                             tooltip: { 
                                 callbacks: { 
                                     label: function(c) { 
@@ -672,21 +723,23 @@
             const tbody = document.getElementById('tableBody');
             const search = document.getElementById('searchInput').value.toLowerCase();
             const filterRegion = document.getElementById('regionFilter').value;
+            const filterSlice = document.getElementById('sliceFilter').value;
             tbody.innerHTML = '';
 
-            // 1. Lọc theo text search và region
             const filteredMachines = allMachines.filter(m => {
                 const str = `${m.hospitalName} ${m.manufacturer} ${m.manufactureYear || ''} ${m.installYear || ''}`.toLowerCase();
                 const mRegion = getRegion(m);
+                const mSliceCategory = m.sliceCount || "Chưa phân loại";
+
                 const matchSearch = !search || str.includes(search);
                 const matchRegion = filterRegion === 'all' || mRegion === filterRegion;
-                return matchSearch && matchRegion;
+                const matchSlice = filterSlice === 'all' || mSliceCategory === filterSlice;
+
+                return matchSearch && matchRegion && matchSlice;
             });
 
-            // Lưu danh sách đang hiển thị để dùng cho tính năng Xuất Excel
             window.currentFilteredMachines = filteredMachines;
 
-            // 2. Gom nhóm theo Vùng miền -> Bệnh viện
             const grouped = {};
             filteredMachines.forEach(m => {
                 const region = getRegion(m);
@@ -705,11 +758,9 @@
 
                 const hospitalCount = Object.keys(hospitalsInRegion).length;
 
-                // --- Hàng Tiêu đề Vùng Miền (Viền màu xanh) ---
-                // Cập nhật colspan từ 8 lên 12 vì bảng có thêm 4 cột
                 html += `
                     <tr class="bg-blue-600 border-b-2 border-blue-700 shadow-sm">
-                        <td colspan="12" class="p-3 font-black text-white uppercase tracking-wider text-xs">
+                        <td colspan="13" class="p-3 font-black text-white uppercase tracking-wider text-xs">
                             <div class="flex items-center gap-2 pl-2">
                                 <i data-lucide="map" class="w-4 h-4"></i> KHU VỰC ${region.toUpperCase()}
                                 <span class="ml-2 px-2.5 py-0.5 bg-blue-800 text-blue-50 rounded-full text-[10px] font-bold border border-blue-500/50 shadow-inner normal-case">
@@ -720,25 +771,22 @@
                     </tr>
                 `;
 
-                // Tính tổng số ca của mỗi bệnh viện để sắp xếp
                 const hospTotalCases = {};
                 for (const hosp in hospitalsInRegion) {
                     hospTotalCases[hosp] = hospitalsInRegion[hosp].reduce((sum, m) => sum + (m.caseCount || 0), 0);
                 }
 
-                // Sắp xếp bệnh viện theo tổng số ca giảm dần
                 const sortedHospitals = Object.keys(hospitalsInRegion).sort((a, b) => {
                     const diff = hospTotalCases[b] - hospTotalCases[a];
-                    if (diff === 0) return a.localeCompare(b); // Nếu bằng ca nhau thì xếp theo tên (A-Z)
+                    if (diff === 0) return a.localeCompare(b); 
                     return diff;
                 });
 
-                // --- Render Bệnh viện ---
                 for (const hosp of sortedHospitals) {
                     const machines = hospitalsInRegion[hosp];
 
                     machines.forEach((m, idx) => {
-                        const hasData = m.manufactureYear || m.installYear;
+                        const hasData = m.manufactureYear || m.installYear || m.sliceCount;
                         const statusHtml = hasData 
                             ? `<span class="px-2 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full">Đã cập nhật</span>`
                             : `<span class="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full border border-amber-200">Thiếu thông tin</span>`;
@@ -748,7 +796,6 @@
 
                         html += `<tr class="hover-row border-b border-slate-200 transition-colors">`;
                         
-                        // Cột STT và Bệnh viện
                         if (idx === 0) {
                             html += `
                                 <td class="p-4 text-center font-bold text-blue-600 align-middle border-r border-slate-100 border-l-4 border-l-blue-600 bg-blue-50/20" rowspan="${machines.length}">${stt++}</td>
@@ -769,8 +816,13 @@
                             <td class="p-2 text-center font-medium text-slate-500 text-xs border-r border-slate-200 ${brk.ldct ? 'bg-teal-50/40 font-bold text-teal-700' : ''}">${brk.ldct || '-'}</td>
                             <!-- Kết thúc Cột Chi tiết Ca chụp -->
 
+                            <td class="p-3 text-center align-middle">${formatSliceCountBadge(m.sliceCount)}</td>
                             <td class="p-4 text-center font-mono font-bold text-slate-500">${m.manufactureYear || '--'}</td>
-                            <td class="p-4 text-center font-mono font-bold text-slate-500">${m.installYear || '--'}</td>
+                            <td class="p-3 text-center align-middle">
+                                <span class="inline-block px-3 py-1.5 font-serif font-black tracking-widest text-rose-700 bg-rose-50 border border-rose-200 rounded-lg shadow-sm">
+                                    ${m.installYear || '--'}
+                                </span>
+                            </td>
                             <td class="p-4 text-center">${statusHtml}</td>
                             <td class="p-4 text-right">
                                 <button onclick="openModal('edit', '${mJson}')" class="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 rounded-lg text-xs font-bold transition-colors shadow-sm">
@@ -790,14 +842,12 @@
             lucide.createIcons();
         };
 
-        // Hàm xuất Excel
         window.exportToExcel = () => {
             const dataToExport = window.currentFilteredMachines;
             if (!dataToExport || dataToExport.length === 0) {
                 return alert("Không có dữ liệu nào trên bảng để xuất!");
             }
 
-            // Tính tổng số ca của từng bệnh viện để sắp xếp khi xuất
             const hospTotalCases = {};
             dataToExport.forEach(m => {
                 hospTotalCases[m.hospitalName] = (hospTotalCases[m.hospitalName] || 0) + (m.caseCount || 0);
@@ -805,7 +855,6 @@
 
             const regionOrderMap = { 'Miền Bắc': 1, 'Miền Trung': 2, 'Miền Nam': 3, 'Chưa phân loại': 4 };
 
-            // Sắp xếp dữ liệu theo Vùng Miền -> Tổng số ca bệnh viện (giảm dần) -> Tên bệnh viện
             const sortedData = [...dataToExport].sort((a, b) => {
                 const rA = getRegion(a);
                 const rB = getRegion(b);
@@ -831,18 +880,17 @@
                     "Ca Ngực": brk.chest,
                     "Ca Bụng": brk.abd,
                     "Ca LDCT": brk.ldct,
+                    "Số lát cắt": m.sliceCount || "",
                     "Năm Sản xuất": m.manufactureYear || "",
                     "Năm Lắp đặt": m.installYear || "",
-                    "Trạng thái": (m.manufactureYear || m.installYear) ? "Đã cập nhật" : "Thiếu thông tin"
+                    "Trạng thái": (m.manufactureYear || m.installYear || m.sliceCount) ? "Đã cập nhật" : "Thiếu thông tin"
                 });
             });
 
-            // Sử dụng SheetJS để tạo workbook và xuất file
             const ws = XLSX.utils.json_to_sheet(excelRows);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Danh_Sach_May_CT");
 
-            // Tạo tên file có ngày tháng
             const date = new Date();
             const dateString = `${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}`;
             const filename = `VN_DRL_ThongKeThietBi_${dateString}.xlsx`;
@@ -865,6 +913,7 @@
                 document.getElementById('mRegion').value = 'auto';
                 document.getElementById('mHosp').value = '';
                 document.getElementById('mManu').value = '';
+                document.getElementById('mSlices').value = '';
                 document.getElementById('mHosp').disabled = false;
                 document.getElementById('mManu').disabled = false;
                 document.getElementById('mYearManuf').value = '';
@@ -882,6 +931,7 @@
                 document.getElementById('mHosp').disabled = data.isAutoGenerated;
                 document.getElementById('mManu').disabled = data.isAutoGenerated;
 
+                document.getElementById('mSlices').value = categorizeSlices(data.sliceCount) || '';
                 document.getElementById('mYearManuf').value = data.manufactureYear || '';
                 document.getElementById('mYearInstall').value = data.installYear || '';
             }
@@ -906,6 +956,7 @@
             const regionVal = document.getElementById('mRegion').value;
             const hosp = document.getElementById('mHosp').value.trim();
             const manu = document.getElementById('mManu').value.trim();
+            const slicesVal = document.getElementById('mSlices').value;
             const yM = document.getElementById('mYearManuf').value;
             const yI = document.getElementById('mYearInstall').value;
 
@@ -915,6 +966,7 @@
                 hospitalName: hosp,
                 manufacturer: manu,
                 regionOverride: regionVal === 'auto' ? null : regionVal,
+                sliceCount: slicesVal ? slicesVal : null, // Lưu trực tiếp chuỗi định dạng (vd: 64 - 128 lát)
                 manufactureYear: yM ? parseInt(yM) : null,
                 installYear: yI ? parseInt(yI) : null,
                 updatedAt: new Date().toISOString()
@@ -964,7 +1016,6 @@
             }
         }
 
-        // Tạo icon cho màn hình đăng nhập lúc mới load trang
         lucide.createIcons();
     </script>
 </body>
