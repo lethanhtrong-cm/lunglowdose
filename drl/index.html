@@ -330,16 +330,29 @@
                                 <span class="error-msg text-center"></span>
                             </div>
                         </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <div>
-                                <input type="number" id="weight" placeholder="Kg" class="glass-input w-full px-2 py-3 border-blue-300 rounded-xl text-xs text-center font-bold text-blue-900 dark:text-blue-100" min="0" step="0.1" data-required="true" data-msg="Nhập Kg">
-                                <span class="error-msg text-center"></span>
+
+                        <!-- CẬP NHẬT: Nổi bật Cân Nặng và Chiều Cao -->
+                        <div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="space-y-1">
+                                    <label class="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase flex justify-center tracking-wider">Cân nặng (kg)</label>
+                                    <input type="number" id="weight" placeholder="0.0" class="w-full px-2 py-2.5 bg-emerald-50/50 dark:bg-emerald-900/20 border-2 border-emerald-200 dark:border-emerald-800 rounded-xl text-sm text-center font-black text-emerald-900 dark:text-emerald-100 focus:border-emerald-500 outline-none transition-all" min="0" step="0.1" data-required="true" data-msg="Nhập Kg">
+                                    <span class="error-msg text-center"></span>
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[9px] font-black text-sky-600 dark:text-sky-400 uppercase flex justify-center tracking-wider">Chiều cao (cm)</label>
+                                    <input type="number" id="height" placeholder="0" class="w-full px-2 py-2.5 bg-sky-50/50 dark:bg-sky-900/20 border-2 border-sky-200 dark:border-sky-800 rounded-xl text-sm text-center font-black text-sky-900 dark:text-sky-100 focus:border-sky-500 outline-none transition-all" min="0" data-required="true" data-msg="Nhập cm">
+                                    <span class="error-msg text-center"></span>
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase flex justify-center tracking-wider">Chỉ số BMI</label>
+                                    <input type="text" id="bmi" placeholder="-" readonly class="w-full px-2 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm text-center font-black text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-600 outline-none">
+                                </div>
                             </div>
-                            <div>
-                                <input type="number" id="height" placeholder="cm" class="glass-input w-full px-2 py-3 border-blue-300 rounded-xl text-xs text-center font-bold text-blue-900 dark:text-blue-100" min="0" data-required="true" data-msg="Nhập chiều cao">
-                                <span class="error-msg text-center"></span>
+                            <!-- Cảnh báo nhập nhầm -->
+                            <div id="swapWarning" class="hidden text-[10px] font-black text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-2 text-center mt-2 animate-pulse flex items-center justify-center gap-1.5">
+                                <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> CẢNH BÁO: Hình như bạn đang nhập NGƯỢC Cân nặng và Chiều cao!
                             </div>
-                            <input type="text" id="bmi" placeholder="BMI" readonly class="px-2 py-3 bg-slate-100 dark:bg-slate-700 rounded-xl text-xs text-center font-bold text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-600">
                         </div>
                         
                         <!-- Moved kVp and mAs here with Blue Border -->
@@ -948,6 +961,14 @@
                 const doseMod = document.querySelector('input[name="doseModulation"]:checked');
                 if (!doseMod) return showToast("Vui lòng chọn trạng thái Dose Modulation (Có/Không)!", 'error');
 
+                // Check Weight/Height Swap
+                const wVal = parseFloat(el('weight').value);
+                const hVal = parseFloat(el('height').value);
+                if (wVal > 0 && hVal > 0 && wVal >= hVal) {
+                    el('weight').focus();
+                    return showToast("Lỗi: Cân nặng đang lớn hơn Chiều cao! Vui lòng sửa lại.", 'error');
+                }
+
                 let h=el('hospitalSelect').value, m=el('manufacturer').value;
                 if(!h||h==='-- Chọn --') return showToast("Chưa chọn Bệnh viện!",'error');
                 if(h==='other'){h=el('customHospitalName').value.trim();if(!h)return showToast("Nhập tên BV mới!",'error');}
@@ -1050,7 +1071,30 @@
                 r.readAsArrayBuffer(e.target.files[0]);
             });
 
-            const updBMI=()=>{const w=el('weight').value,h=el('height').value/100;el('bmi').value=(w>0&&h>0)?(w/(h*h)).toFixed(1):''};
+            const updBMI=()=>{
+                const wRaw = parseFloat(el('weight').value);
+                const hRaw = parseFloat(el('height').value);
+                const h = hRaw / 100;
+                
+                // Cập nhật BMI
+                el('bmi').value = (wRaw > 0 && h > 0) ? (wRaw / (h * h)).toFixed(1) : '';
+
+                // Cảnh báo nhập nhầm
+                const warningEl = el('swapWarning');
+                const wInput = el('weight');
+                const hInput = el('height');
+                
+                if (wRaw > 0 && hRaw > 0 && wRaw >= hRaw) {
+                    warningEl.classList.remove('hidden');
+                    wInput.classList.add('!border-red-500', '!bg-red-50', 'dark:!bg-red-900/30', '!text-red-600');
+                    hInput.classList.add('!border-red-500', '!bg-red-50', 'dark:!bg-red-900/30', '!text-red-600');
+                } else {
+                    warningEl.classList.add('hidden');
+                    wInput.classList.remove('!border-red-500', '!bg-red-50', 'dark:!bg-red-900/30', '!text-red-600');
+                    hInput.classList.remove('!border-red-500', '!bg-red-50', 'dark:!bg-red-900/30', '!text-red-600');
+                }
+            };
+            
             el('weight').oninput=updBMI; el('height').oninput=updBMI;
             el('age').oninput=function(){if(this.value)el('yob').value=new Date().getFullYear()-this.value};
             el('yob').oninput=function(){if(this.value)el('age').value=new Date().getFullYear()-this.value};
