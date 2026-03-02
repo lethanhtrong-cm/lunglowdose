@@ -327,15 +327,14 @@
                             </select>
                         </div>
                         
-                         <!-- NEW Weight Filter -->
+                         <!-- CUSTOM Weight Filter -->
                         <div class="col-span-1 lg:col-span-1">
-                            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Cân nặng</label>
-                            <select id="fWeight" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:border-indigo-500">
-                                <option value="all">Tất cả</option>
-                                <option value="lt50">&lt; 50 kg</option>
-                                <option value="50to70">50 - 70 kg</option>
-                                <option value="gt70">&gt; 70 kg</option>
-                            </select>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase mb-1.5 block">Cân nặng (kg)</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="fWeightMin" placeholder="Từ" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:border-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
+                                <span class="text-slate-400 text-xs">-</span>
+                                <input type="number" id="fWeightMax" placeholder="Đến" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:border-indigo-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
+                            </div>
                         </div>
 
                         <div class="col-span-1 lg:col-span-1">
@@ -809,7 +808,7 @@
 
         // NEW: Khai báo các địa chỉ email có đặc quyền CHỈ XEM (Viewer)
         const VIEWER_EMAILS = [
-            'thanhtrong.yds@gmail.com',      // Thay bằng email thật của người xem
+            'syt@gmail.com',      // Thay bằng email thật của người xem
             'quanly@gmail.com'    // Thay bằng email thật của người xem
         ];
 
@@ -1533,8 +1532,8 @@
             const p = el('beProt').value;
             const g = el('beGender').value;
             const m = el('beMod').value;
-            const h = el('beHosp').value.trim();
-            const ma = el('beManu').value.trim();
+            const h = el('beHosp').value;
+            const ma = el('beManu').value;
             const s = el('beSlice').value;
 
             if (p) updates.protocol = p;
@@ -1620,7 +1619,7 @@
                 arr.forEach(i => s.innerHTML += `<option value="${i}">${i}</option>`); 
                 if (arr.includes(v)) s.value = v; else s.value = 'all';
             };
-            
+
             const fillBulk = (id, arr, isHosp = false) => {
                 const s = el(id);
                 if (!s) return;
@@ -1636,7 +1635,7 @@
             fillHosps('fHosp', h); 
             fill('fManu', m); 
             fill('fProt', p);
-            
+
             // Populate bulk edit dropdowns
             fillBulk('beHosp', h, true);
             fillBulk('beManu', m, false);
@@ -1783,7 +1782,8 @@
         window.clearFilters = () => {
             el('fHosp').value = 'all'; el('fProt').value = 'all'; el('fManu').value = 'all';
             el('fGender').value = 'all'; el('fMod').value = 'all'; el('fSort').value = 'date_desc'; el('fSearch').value = '';
-            el('fQuality').value = 'all'; el('fBMI').value = 'all'; el('fSlice').value = 'all'; el('fWeight').value = 'all';
+            el('fQuality').value = 'all'; el('fBMI').value = 'all'; el('fSlice').value = 'all'; 
+            el('fWeightMin').value = ''; el('fWeightMax').value = '';
             isMyDataMode = false;
             updateMyDataBtnUI();
             currentPage = 1; window.renderTable(); window.showToast("Đã xóa bộ lọc!");
@@ -1798,7 +1798,9 @@
 
             const fH = el('fHosp').value, fP = el('fProt').value, fM = el('fManu').value;
             const fG = el('fGender').value, fMod = el('fMod').value, search = el('fSearch').value.toLowerCase(), sort = el('fSort').value;
-            const fQ = el('fQuality').value, fBMI = el('fBMI').value, fSlice = el('fSlice').value, fWeight = el('fWeight').value;
+            const fQ = el('fQuality').value, fBMI = el('fBMI').value, fSlice = el('fSlice').value;
+            const fWeightMin = el('fWeightMin').value;
+            const fWeightMax = el('fWeightMax').value;
 
             // Filter Trash Mode
             filtered = entries.filter(e => isTrashMode ? e.isDeleted : !e.isDeleted);
@@ -1837,17 +1839,15 @@
                     if (fBMI === 'no' && hasBMI) return false;
                 }
 
-                if (fWeight !== 'all') {
+                if (fWeightMin !== '' || fWeightMax !== '') {
                     const w = parseFloat(e.weight);
                     if (!isNaN(w)) {
-                        // Change logic to include boundaries if necessary, though current is okay for strict < or >
-                        // lt50: < 50
-                        if (fWeight === 'lt50' && w >= 50) return false; 
-                        // 50to70: 50 <= w <= 70 (inclusive)
-                        if (fWeight === '50to70' && (w < 50 || w > 70)) return false; 
-                        // gt70: > 70
-                        if (fWeight === 'gt70' && w <= 70) return false;
+                        const min = parseFloat(fWeightMin);
+                        const max = parseFloat(fWeightMax);
+                        if (!isNaN(min) && w < min) return false;
+                        if (!isNaN(max) && w > max) return false;
                     } else {
+                        // If filter is applied but weight is missing, hide it
                         return false;
                     }
                 }
@@ -2052,7 +2052,7 @@
                 `;
 
                 const sliceHtml = sliceCountVal !== 'N/A' && sliceCountVal ? `
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border shadow-sm ${sliceBadgeClass}" title="Số lát cắt / Detector">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 mt-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border shadow-sm ${sliceBadgeClass}" title="Số lát cắt / Detector">
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                         ${sliceCountVal}
                     </span>
@@ -2264,7 +2264,7 @@
             }
         };
 
-        ['fHosp','fProt','fManu','fSort','fGender','fMod', 'fQuality', 'fBMI', 'fSlice', 'fWeight'].forEach(i => {
+        ['fHosp','fProt','fManu','fSort','fGender','fMod', 'fQuality', 'fBMI', 'fSlice'].forEach(i => {
             const element = el(i);
             if (element) {
                 element.onchange = () => { 
@@ -2275,6 +2275,14 @@
                         renderTable(); 
                     }
                 };
+            }
+        });
+        
+        ['fWeightMin', 'fWeightMax'].forEach(i => {
+            const element = el(i);
+            if (element) {
+                element.onkeyup = () => { currentPage = 1; renderTable(); };
+                element.onchange = () => { currentPage = 1; renderTable(); };
             }
         });
         
