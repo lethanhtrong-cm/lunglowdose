@@ -1,1 +1,442 @@
 
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cẩm Nang JASP: Đánh Giá Liều Bức Xạ CT</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Merriweather', 'serif'],
+                    },
+                    colors: {
+                        primary: '#0369a1', /* sky-700 */
+                        secondary: '#0ea5e9', /* sky-500 */
+                        accent: '#eab308', /* yellow-500 */
+                        dark: '#0f172a',
+                        light: '#f8fafc',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .nav-link.active {
+            color: #0369a1;
+            font-weight: 600;
+            border-left: 3px solid #0369a1;
+            background-color: #f0f9ff;
+        }
+
+        .math-block {
+            background: #f8fafc;
+            border-left: 4px solid #0ea5e9;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: monospace;
+            font-size: 1.1rem;
+            overflow-x: auto;
+        }
+        
+        /* Image Hover Effect */
+        .guide-img {
+            transition: all 0.3s ease;
+        }
+        .guide-img:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .method-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            background: white;
+            transition: border-color 0.2s;
+        }
+        .method-card:hover {
+            border-color: #0ea5e9;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans">
+
+    <!-- Top Navigation -->
+    <nav class="bg-white shadow-sm border-b border-slate-200 fixed w-full z-50 top-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fa-solid fa-laptop-medical text-primary text-2xl mr-3"></i>
+                    <span class="font-heading font-bold text-xl text-dark">CT Dose Analytics</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="https://jasp-stats.org/download/" target="_blank" class="bg-primary hover:bg-sky-800 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i class="fa-solid fa-download mr-2"></i>Tải JASP Miễn Phí
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Layout -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12 flex">
+        
+        <!-- Left Sidebar (Table of Contents) -->
+        <div class="hidden md:block w-64 flex-shrink-0">
+            <div class="sticky top-24 pr-4">
+                <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Mục lục hướng dẫn</h3>
+                <nav class="space-y-1 border-l border-slate-200" id="toc">
+                    <a href="#intro" class="nav-link block px-4 py-2 text-sm text-slate-600 hover:text-primary transition-colors active">Tổng quan</a>
+                    <a href="#step1" class="nav-link block px-4 py-2 text-sm text-slate-600 hover:text-primary transition-colors">1. Thu thập số liệu</a>
+                    <a href="#step2" class="nav-link block px-4 py-2 text-sm text-slate-600 hover:text-primary transition-colors">2. Làm sạch (Excel)</a>
+                    <div class="px-4 py-2 text-sm font-semibold text-slate-800 mt-2">3. Phân tích trên JASP</div>
+                    <a href="#step3a" class="nav-link block pl-8 pr-4 py-2 text-sm text-slate-600 hover:text-primary transition-colors">a. Tần số & Tỷ lệ</a>
+                    <a href="#step3b" class="nav-link block pl-8 pr-4 py-2 text-sm text-slate-600 hover:text-primary transition-colors">b. Kiểm định Shapiro-Wilk</a>
+                    <a href="#step3c" class="nav-link block pl-8 pr-4 py-2 text-sm text-slate-600 hover:text-primary transition-colors">c. Chỉ số thống kê (Median, IQR)</a>
+                    <a href="#step3d" class="nav-link block pl-8 pr-4 py-2 text-sm text-slate-600 hover:text-primary transition-colors">d. So sánh Quốc tế (Thái Lan)</a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Right Content Area -->
+        <div class="flex-1 max-w-4xl lg:ml-8 bg-white p-8 md:p-12 rounded-xl shadow-sm border border-slate-200">
+            
+            <!-- Intro -->
+            <section id="intro" class="mb-16 scroll-mt-24">
+                <h1 class="font-heading text-3xl md:text-4xl text-dark mb-4 text-balance leading-tight">Hướng Dẫn Tự Đánh Giá Mức Liều Bức Xạ CT Bằng Phần Mềm JASP</h1>
+                <p class="text-lg text-slate-600 mb-6 leading-relaxed text-pretty">Tài liệu này được biên soạn nhằm hướng dẫn chi tiết (Step-by-step) cho các anh em Kỹ thuật viên (KTV) Hình ảnh Y học cách tự phân tích dữ liệu liều bức xạ CT tại bệnh viện mình, từ đó so sánh với Mức tham chiếu chẩn đoán (DRL) của khu vực.</p>
+                <div class="bg-sky-50 p-5 rounded-lg border border-sky-100 flex gap-4 items-start shadow-inner">
+                    <i class="fa-solid fa-circle-info text-primary text-xl mt-1"></i>
+                    <div>
+                        <h4 class="font-semibold text-primary">Tại sao chọn JASP?</h4>
+                        <p class="text-sm text-slate-700 mt-1">JASP là phần mềm thống kê miễn phí 100%, giao diện kéo thả trực quan, không cần viết code. Rất phù hợp cho nhân viên y tế làm nghiên cứu lâm sàng.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 1 -->
+            <section id="step1" class="mb-16 scroll-mt-24 text-pretty">
+                <div class="flex items-center gap-3 mb-6 border-b border-slate-200 pb-2">
+                    <div class="bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">1</div>
+                    <h2 class="font-heading text-2xl text-dark">Thu Thập Số Liệu</h2>
+                </div>
+                <p class="mb-4">Bạn thực hiện 3 thao tác nhanh gọn sau:</p>
+                
+                <div class="bg-white border border-slate-200 rounded-lg p-6 mb-6 shadow-sm border-l-4 border-l-secondary">
+                    <ol class="list-decimal list-inside space-y-4 text-slate-700">
+                        <li class="font-medium text-lg">Truy cập website quản lý số liệu DRL tại: <a href="https://vnrad.tech/drldata/" target="_blank" class="text-primary hover:text-sky-800 hover:underline font-bold">https://vnrad.tech/drldata/</a></li>
+                        <li class="font-medium text-lg">Thiết lập bộ lọc dữ liệu: 
+                            <div class="pl-6 mt-3 text-slate-600 font-normal flex items-center gap-2 flex-wrap">
+                                <span class="bg-slate-100 px-3 py-1 rounded border border-slate-200 text-sm">Chọn tên bệnh viện</span> 
+                                <i class="fa-solid fa-arrow-right text-slate-300"></i>
+                                <span class="bg-slate-100 px-3 py-1 rounded border border-slate-200 text-sm">Chọn Protocol</span>
+                                <i class="fa-solid fa-arrow-right text-slate-300"></i>
+                                <span class="bg-sky-50 text-primary border-sky-200 px-3 py-1 rounded border font-semibold text-sm">Nhập cân nặng (50 - 70 kg)</span>
+                            </div>
+                        </li>
+                        <li class="font-medium text-lg">Bấm nút <strong class="text-dark">Tải file Excel</strong> (hoặc CSV) về máy tính.</li>
+                    </ol>
+                    <div class="mt-8 text-center">
+                        <a href="https://drive.google.com/file/d/1iAaqtPKWA8JnrC35o2cAzhfbCpX_zYFR/view?usp=sharing" target="_blank" class="inline-block group">
+                            <img src="https://drive.google.com/thumbnail?id=1iAaqtPKWA8JnrC35o2cAzhfbCpX_zYFR&sz=w1000" alt="Giao diện website vnrad.tech" class="max-w-full max-h-[450px] object-contain mx-auto rounded-lg shadow-md border border-slate-200 guide-img">
+                        </a>
+                        <p class="text-sm text-primary font-bold mt-3 italic animate-pulse"><i class="fa-solid fa-up-right-from-square mr-1"></i> Click vào để xem ảnh gốc rõ nét</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 2 -->
+            <section id="step2" class="mb-16 scroll-mt-24">
+                <div class="flex items-center gap-3 mb-6 border-b border-slate-200 pb-2">
+                    <div class="bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">2</div>
+                    <h2 class="font-heading text-2xl text-dark">Làm Sạch Dữ Liệu (Bằng Excel)</h2>
+                </div>
+                <p class="mb-4 text-pretty">Mặc dù hệ thống đã lọc sẵn, bạn vẫn nên kiểm tra lại các lỗi logic trong Excel trước khi nạp vào JASP:</p>
+                
+                <ul class="space-y-4 mb-6">
+                    <li class="flex gap-3 items-start">
+                        <i class="fa-solid fa-circle-check text-green-500 mt-1"></i>
+                        <div>
+                            <strong>Kiểm tra xác nhận cân nặng:</strong> Đảm bảo cột <code>Weight</code> không có ô trống hoặc giá trị ngoài ngưỡng 50 - 70 kg.
+                        </div>
+                    </li>
+                    <li class="flex gap-3 items-start">
+                        <i class="fa-solid fa-circle-check text-green-500 mt-1"></i>
+                        <div>
+                            <strong>Đồng nhất tên giao thức:</strong> Đổi các tên gọi không đồng nhất về 1 chuẩn (Ví dụ: <code>Head_Routine</code>).
+                        </div>
+                    </li>
+                    <li class="flex gap-3 items-start">
+                        <i class="fa-solid fa-circle-check text-green-500 mt-1"></i>
+                        <div>
+                            <strong>Loại bỏ ngoại lai:</strong> Xóa các ca liều cực thấp (ảnh topogram) hoặc liều bất thường do lỗi máy.
+                        </div>
+                    </li>
+                </ul>
+                <div class="bg-amber-50 border-l-4 border-amber-400 p-5 rounded-r-lg">
+                    <p class="text-sm text-amber-800 font-bold mb-1 uppercase tracking-tight"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Lưu ý định dạng file</p>
+                    <p class="text-sm text-amber-700">Lưu file Excel dưới định dạng <strong>CSV (Comma Delimited)</strong> để JASP đọc dữ liệu tốt nhất.</p>
+                </div>
+            </section>
+
+            <!-- Step 3 Intro -->
+            <section id="step3" class="mb-8 scroll-mt-24">
+                <div class="flex items-center gap-3 mb-6 border-b border-slate-200 pb-2">
+                    <div class="bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">3</div>
+                    <h2 class="font-heading text-2xl text-dark">Phân Tích Số Liệu Trên JASP</h2>
+                </div>
+                <p class="text-pretty">Mở JASP, chọn Menu (3 gạch ngang) <i class="fa-solid fa-arrow-right text-slate-400 mx-1"></i> <strong>Open</strong> <i class="fa-solid fa-arrow-right text-slate-400 mx-1"></i> <strong>Computer</strong> <i class="fa-solid fa-arrow-right text-slate-400 mx-1"></i> Chọn file CSV của bạn.</p>
+                <div class="mt-8 text-center">
+                    <a href="https://drive.google.com/file/d/110c5PHSv3rpjPJHWSa8OMdUTe-mF5-tB/view?usp=sharing" target="_blank" class="inline-block group">
+                        <img src="https://drive.google.com/thumbnail?id=110c5PHSv3rpjPJHWSa8OMdUTe-mF5-tB&sz=w1000" alt="Mở file CSV trên JASP" class="max-w-full max-h-[450px] object-contain mx-auto rounded-lg shadow-md border border-slate-200 guide-img">
+                    </a>
+                    <p class="text-sm text-primary font-bold mt-3 italic animate-pulse"><i class="fa-solid fa-up-right-from-square mr-1"></i> Click vào để xem ảnh gốc rõ nét</p>
+                </div>
+            </section>
+
+            <!-- Step 3a -->
+            <section id="step3a" class="mb-12 ml-4 border-l-2 border-slate-100 pl-8 scroll-mt-24">
+                <h3 class="font-heading text-xl text-primary mb-3">a. Mô tả dữ liệu (Tần số ca, Tỷ lệ Nam/Nữ)</h3>
+                <p class="mb-4 leading-relaxed text-pretty">Thống kê cơ bản để biết mẫu nghiên cứu có bao nhiêu bệnh nhân cho từng giao thức chụp.</p>
+                
+                <ol class="list-decimal list-outside space-y-3 text-slate-700 mb-6 pl-4">
+                    <li>Chọn <strong>Descriptives</strong> <i class="fa-solid fa-chart-column text-slate-400 mx-1"></i> trên thanh công cụ.</li>
+                    <li>Kéo biến <code>Gender</code> và <code>Protocol_Name</code> vào ô <strong>Variables</strong>.</li>
+                    <li>Tích chọn ô <strong>Frequency tables</strong> ở bảng điều khiển bên trái.</li>
+                </ol>
+
+                <div class="mb-8 text-center">
+                    <a href="https://drive.google.com/file/d/18XE8TsFKR33g7n0SJJgQ-Ndw-E_RatXE/view?usp=sharing" target="_blank" class="inline-block group">
+                        <img src="https://drive.google.com/thumbnail?id=18XE8TsFKR33g7n0SJJgQ-Ndw-E_RatXE&sz=w1000" alt="Giao diện JASP Frequency Tables" class="max-w-full max-h-[450px] object-contain mx-auto rounded-lg shadow-md border border-slate-200 guide-img">
+                    </a>
+                    <p class="text-sm text-primary font-bold mt-3 italic animate-pulse"><i class="fa-solid fa-up-right-from-square mr-1"></i> Click vào để xem ảnh gốc rõ nét</p>
+                </div>
+            </section>
+
+            <!-- Step 3b -->
+            <section id="step3b" class="mb-12 ml-4 border-l-2 border-slate-100 pl-8 scroll-mt-24">
+                <h3 class="font-heading text-xl text-primary mb-3">b. Đánh giá phân phối chuẩn (Shapiro-Wilk)</h3>
+                <p class="mb-4 leading-relaxed text-pretty">Kiểm tra xem dữ liệu có phân bố chuẩn không để quyết định dùng <strong>Trung vị (Median)</strong> hay <strong>Trung bình (Mean)</strong>.</p>
+                
+                <ol class="list-decimal list-outside space-y-3 text-slate-700 mb-6 pl-4">
+                    <li>Kéo <code>CTDIvol</code> và <code>DLP</code> vào ô <strong>Variables</strong>.</li>
+                    <li>Kéo <code>Protocol_Name</code> vào ô <strong>Split</strong> để phân tích riêng từng vùng.</li>
+                    <li>Trong mục <strong>Statistics</strong>, tích chọn <strong>Shapiro-Wilk test</strong>.</li>
+                </ol>
+
+                <div class="mb-8 text-center">
+                    <a href="https://drive.google.com/file/d/1dK6tFvbolej0kkrTKrEqOhq0b2NhvKun/view?usp=sharing" target="_blank" class="inline-block group">
+                        <img src="https://drive.google.com/thumbnail?id=1dK6tFvbolej0kkrTKrEqOhq0b2NhvKun&sz=w1000" alt="Kiểm định Shapiro-Wilk trên JASP" class="max-w-full max-h-[450px] object-contain mx-auto rounded-lg shadow-md border border-slate-200 guide-img">
+                    </a>
+                    <p class="text-sm text-primary font-bold mt-3 italic animate-pulse"><i class="fa-solid fa-up-right-from-square mr-1"></i> Click vào để xem ảnh gốc rõ nét</p>
+                </div>
+                
+                <div class="bg-slate-50 p-5 rounded-lg border border-slate-200 shadow-inner">
+                    <h4 class="font-bold text-dark mb-2 text-sm uppercase tracking-wider">Cách đọc kết quả P-value:</h4>
+                    <ul class="list-disc list-outside text-sm text-slate-700 space-y-2 pl-4">
+                        <li>Nếu <strong>$p < 0.05$</strong>: Dữ liệu KHÔNG phân bố chuẩn. Phải dùng <strong>Trung vị (Median)</strong>.</li>
+                        <li>Nếu <strong>$p \ge 0.05$</strong>: Dữ liệu phân bố chuẩn. Dùng Trung bình (Mean).</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Step 3c -->
+            <section id="step3c" class="mb-12 ml-4 border-l-2 border-slate-100 pl-8 scroll-mt-24">
+                <h3 class="font-heading text-xl text-primary mb-3">c. Tính toán các đại lượng cốt lõi</h3>
+                <p class="mb-4 leading-relaxed">Chọn các thông số để máy tự động xuất bảng báo cáo:</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="border border-slate-200 p-4 rounded-lg bg-slate-50 shadow-sm">
+                        <strong class="text-dark block mb-2">Độ tập trung:</strong>
+                        <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+                            <li><span class="font-bold text-primary">Median (Trung vị)</span></li>
+                            <li>Mean (Trung bình)</li>
+                        </ul>
+                    </div>
+                    <div class="border border-slate-200 p-4 rounded-lg bg-slate-50 shadow-sm">
+                        <strong class="text-dark block mb-2">Độ phân tán:</strong>
+                        <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+                            <li>Min & Max</li>
+                            <li><span class="font-bold text-primary">IQR (Tứ phân vị)</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mb-8 text-center">
+                    <a href="https://drive.google.com/file/d/1U28PD3VK0THoJ9xDmIMpERwuiWrFLyCW/view?usp=sharing" target="_blank" class="inline-block group">
+                        <img src="https://drive.google.com/thumbnail?id=1U28PD3VK0THoJ9xDmIMpERwuiWrFLyCW&sz=w1000" alt="Tính toán đại lượng cốt lõi trên JASP" class="max-w-full max-h-[450px] object-contain mx-auto rounded-lg shadow-md border border-slate-200 guide-img">
+                    </a>
+                    <p class="text-sm text-primary font-bold mt-3 italic animate-pulse"><i class="fa-solid fa-up-right-from-square mr-1"></i> Click vào để xem ảnh gốc rõ nét</p>
+                </div>
+            </section>
+
+            <!-- Step 3d -->
+            <section id="step3d" class="mb-16 ml-4 border-l-2 border-slate-100 pl-8 scroll-mt-24">
+                <h3 class="font-heading text-xl text-primary mb-6 text-pretty">d. So sánh với DRL Quốc tế (Thái Lan)</h3>
+                <p class="mb-8 leading-relaxed">Để đánh giá sự tối ưu hóa của bệnh viện, chúng ta so sánh Typical Value (Median) nội bộ với giá trị Phân vị 75 ($P_{75}$) của Thái Lan thông qua 3 cấp độ phân tích:</p>
+
+                <!-- Cách 1 -->
+                <div class="method-card">
+                    <h4 class="font-bold text-dark flex items-center gap-2 mb-4">
+                        <span class="bg-primary text-white w-6 h-6 rounded-md flex items-center justify-center text-xs">01</span>
+                        Tính phần % chênh lệch (Thực tiễn)
+                    </h4>
+                    <p class="text-sm text-slate-600 mb-4 leading-relaxed">Đây là cách nhanh nhất để báo cáo lâm sàng cho bác sĩ và quản lý khoa hình dung mức liều cao hay thấp hơn chuẩn bao nhiêu phần trăm.</p>
+                    <div class="math-block shadow-inner rounded-lg">
+                        % Chênh lệch = [ (Median_Khoa - DRL_Thai) / DRL_Thai ] × 100
+                    </div>
+                </div>
+
+                <!-- Cách 2 -->
+                <div class="method-card">
+                    <h4 class="font-bold text-dark flex items-center gap-2 mb-4">
+                        <span class="bg-primary text-white w-6 h-6 rounded-md flex items-center justify-center text-xs">02</span>
+                        One-Sample T-Test / Wilcoxon (Học thuật)
+                    </h4>
+                    <p class="text-sm text-slate-600 mb-4">Dùng để trả lời câu hỏi: <em>Sự khác biệt giữa liều của viện và Thái Lan là do ngẫu nhiên hay có ý nghĩa thống kê thực sự?</em></p>
+                    <ol class="text-xs text-slate-700 space-y-2 list-decimal pl-4 mb-6">
+                        <li>Menu <strong>T-Tests</strong> -> <strong>One-Sample T-Test</strong>.</li>
+                        <li>Kéo <code>CTDIvol</code> vào Variables.</li>
+                        <li>Chọn <strong>Wilcoxon signed-rank</strong> (vì liều thường không chuẩn).</li>
+                        <li>Tại <strong>Test value</strong>: Nhập DRL Thái Lan (Ví dụ: <span class="font-bold">55</span>).</li>
+                    </ol>
+                    <div class="mt-4 text-center">
+                        <a href="https://drive.google.com/file/d/1q7Gy1O8rmiG3dxnklQvwi2UpwdwOpAku/view?usp=sharing" target="_blank" class="inline-block group">
+                            <img src="https://drive.google.com/thumbnail?id=1q7Gy1O8rmiG3dxnklQvwi2UpwdwOpAku&sz=w1000" alt="Hướng dẫn One-Sample Wilcoxon Test trên JASP" class="max-w-full max-h-[400px] object-contain mx-auto rounded-lg shadow-md border border-slate-200 guide-img">
+                        </a>
+                        <p class="text-xs text-primary font-bold mt-2 italic animate-pulse"><i class="fa-solid fa-up-right-from-square mr-1"></i> Click vào để xem ảnh minh họa thao tác</p>
+                    </div>
+                </div>
+
+                <!-- Cách 3 (Nguyên lý) -->
+                <div class="method-card border-l-4 border-l-accent bg-amber-50/30">
+                    <h4 class="font-bold text-dark flex items-center gap-2 mb-4">
+                        <span class="bg-accent text-white w-6 h-6 rounded-md flex items-center justify-center text-xs">03</span>
+                        Nguyên lý Bootstrapping 10,000 lần (Chuyên sâu)
+                    </h4>
+                    <p class="text-sm text-slate-600 mb-4 leading-relaxed">Đây là phương pháp resampling hiện đại nhất để xác định khoảng tin cậy của Median một cách chính xác tuyệt đối mà không cần quan tâm dữ liệu chuẩn hay không.</p>
+                    <div class="bg-white border border-amber-100 rounded-lg p-5 text-sm text-slate-700 leading-relaxed shadow-sm">
+                        <p class="font-bold mb-2 text-primary uppercase text-xs">Cơ chế hoạt động:</p>
+                        <p>Kỹ thuật này dựa trên việc <strong>lấy mẫu lại có hoàn lại</strong> từ chính bộ dữ liệu gốc của viện. Thay vì chỉ tính toán một con số Median duy nhất, máy tính sẽ mô phỏng việc tạo ra <strong>10,000 mẫu nghiên cứu giả định</strong> bằng cách bốc thăm ngẫu nhiên từ dữ liệu thực tế.</p>
+                        <ul class="mt-3 space-y-2 list-disc pl-4 italic text-slate-600">
+                            <li>Giúp xác định <strong>Khoảng tin cậy (CI 95%)</strong> cực kỳ vững chắc cho con số liều tia của viện.</li>
+                            <li>Nếu giá trị DRL Thái Lan nằm ngoài khoảng CI này, ta khẳng định với độ tin cậy cực cao rằng viện đang tối ưu hóa tốt (hoặc đang dư thừa tia) so với quốc tế.</li>
+                            <li>Đây là tiêu chuẩn vàng trong các bài báo nghiên cứu khoa học đăng kỷ yếu ngành hoặc quốc tế.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50 p-5 rounded-lg border-l-4 border-primary mt-10">
+                    <p class="text-sm text-blue-900 leading-relaxed font-medium"><i class="fa-solid fa-lightbulb mr-2"></i><strong>Lời khuyên:</strong> Nếu nộp đề tài cơ sở, bạn nên trình bày ít nhất Cách 1 và Cách 2. Nếu muốn khẳng định trọng số khoa học tuyệt đối, hãy sử dụng kết quả từ nguyên lý Bootstrapping ở Cách 3.</p>
+                </div>
+            </section>
+
+            <!-- Conclusion -->
+            <section class="mt-20 pt-10 border-t border-slate-200 text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 text-green-600 rounded-full mb-6">
+                    <i class="fa-solid fa-flag-checkered text-2xl"></i>
+                </div>
+                <h2 class="font-heading text-3xl text-dark mb-4">Hoàn Thành!</h2>
+                <p class="text-slate-600 max-w-2xl mx-auto leading-relaxed">Chỉ với vài thao tác phân tích thực chứng, bạn đã có bộ số liệu vững chắc để nộp đề tài nghiên cứu cơ sở. Chúc anh em KTV thực hiện thành công!</p>
+            </section>
+        </div>
+    </div>
+
+    <!-- Lightbox Modal -->
+    <div id="image-lightbox" class="fixed inset-0 z-[100] bg-slate-900/95 hidden flex-col justify-center items-center p-4 sm:p-8 backdrop-blur-sm transition-opacity overflow-hidden" onclick="closeLightbox()">
+        <button class="absolute top-6 right-6 text-white hover:text-sky-300 text-5xl focus:outline-none z-50 drop-shadow-md" onclick="closeLightbox()">&times;</button>
+        <div class="relative w-full h-full flex justify-center items-center" onclick="closeLightbox()">
+            <img id="lightbox-img" src="" alt="Phóng to" class="max-w-full max-h-full object-contain rounded shadow-2xl cursor-zoom-in transition-transform duration-300 ease-out select-none" onclick="toggleZoom(event)">
+        </div>
+        <p class="absolute bottom-6 bg-slate-800/80 px-5 py-2.5 rounded-full text-slate-200 text-sm font-medium z-50 pointer-events-none shadow-lg">Click vào ảnh để phóng to/thu nhỏ • Click ra ngoài để đóng</p>
+    </div>
+
+    <!-- Script Logic -->
+    <script>
+        // Lightbox Functions
+        let isZoomed = false;
+
+        function openLightbox(imageSrc) {
+            const lightbox = document.getElementById('image-lightbox');
+            const lightboxImg = document.getElementById('lightbox-img');
+            lightboxImg.src = imageSrc;
+            isZoomed = false;
+            lightboxImg.style.transform = 'scale(1)';
+            lightboxImg.style.transformOrigin = 'center center';
+            lightboxImg.classList.remove('cursor-zoom-out');
+            lightboxImg.classList.add('cursor-zoom-in');
+            lightbox.classList.remove('hidden');
+            lightbox.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            const lightbox = document.getElementById('image-lightbox');
+            lightbox.classList.add('hidden');
+            lightbox.classList.remove('flex');
+            document.body.style.overflow = 'auto';
+        }
+
+        function toggleZoom(event) {
+            event.stopPropagation();
+            const img = document.getElementById('lightbox-img');
+            isZoomed = !isZoomed;
+            if (isZoomed) {
+                const rect = img.getBoundingClientRect();
+                const x = ((event.clientX - rect.left) / rect.width) * 100;
+                const y = ((event.clientY - rect.top) / rect.height) * 100;
+                img.style.transformOrigin = `${x}% ${y}%`;
+                img.style.transform = 'scale(2.2)';
+                img.classList.remove('cursor-zoom-in');
+                img.classList.add('cursor-zoom-out');
+            } else {
+                img.style.transform = 'scale(1)';
+                img.classList.remove('cursor-zoom-out');
+                img.classList.add('cursor-zoom-in');
+                setTimeout(() => { img.style.transformOrigin = 'center center'; }, 300);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const sections = document.querySelectorAll('section[id]');
+            const navLinks = document.querySelectorAll('#toc .nav-link');
+
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (scrollY >= (sectionTop - 150)) {
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active', 'font-semibold', 'border-l-4', 'border-primary', 'bg-sky-50', 'text-primary');
+                    link.classList.add('text-slate-600');
+                    if (link.getAttribute('href') === `#${current}`) {
+                        link.classList.remove('text-slate-600');
+                        link.classList.add('active', 'font-semibold', 'border-l-4', 'border-primary', 'bg-sky-50', 'text-primary');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
