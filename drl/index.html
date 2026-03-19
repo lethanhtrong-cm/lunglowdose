@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VN-DRL - Nhập liệu (Tối ưu UX)</title>
+    <title>VN-DRL - Nhập liệu (Có AI OCR)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- FIX FONT: Đã thêm ;900 vào cuối chuỗi wght để hỗ trợ font-black chuẩn xác -->
+    <!-- THÊM THƯ VIỆN NHẬN DIỆN ẢNH TESSERACT.JS -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
@@ -55,6 +57,13 @@
         .highlight-row { background-color: rgba(254, 243, 199, 0.5) !important; border-left: 4px solid #f59e0b !important; }
         .dark .highlight-row { background-color: rgba(120, 53, 15, 0.3) !important; border-left: 4px solid #f59e0b !important; }
         
+        /* OCR Highlight animation */
+        .ocr-success { animation: flashGreen 2s ease-out; }
+        @keyframes flashGreen {
+            0% { background-color: #dcfce7; border-color: #10b981; }
+            100% { background-color: transparent; border-color: #fcd34d; }
+        }
+
         @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
         .section-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: #64748b; }
@@ -180,7 +189,7 @@
                 <div class="overflow-x-auto custom-scrollbar max-h-[300px]">
                     <table class="w-full text-left text-sm border-collapse">
                         <thead class="bg-slate-50 dark:bg-slate-700 sticky top-0 z-10 text-xs font-black text-slate-500 dark:text-slate-300 uppercase tracking-wider">
-                            <tr><th class="p-3 rounded-tl-xl text-indigo-900 dark:text-indigo-200">Bệnh viện</th><th class="p-3 text-center">Sọ não</th><th class="p-3 text-center">Ngực</th><th class="p-3 text-center">Bụng</th><th class="p-3 text-center rounded-tr-xl">LDCT</th></tr>
+                            <tr><th class="p-3 rounded-tl-xl text-indigo-900 dark:text-indigo-200 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors" onclick="window.handleSort('hospitalName')">Bệnh viện</th><th class="p-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors" onclick="window.handleSort('Head')">Sọ não</th><th class="p-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors" onclick="window.handleSort('Chest')">Ngực</th><th class="p-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors" onclick="window.handleSort('Abdomen')">Bụng</th><th class="p-3 text-center rounded-tr-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors" onclick="window.handleSort('LDCT')">LDCT</th></tr>
                         </thead>
                         <tbody id="progressTableBody" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
                     </table>
@@ -331,7 +340,7 @@
                             </div>
                         </div>
 
-                        <!-- CẬP NHẬT: Nổi bật Cân Nặng và Chiều Cao -->
+                        <!-- Nổi bật Cân Nặng và Chiều Cao -->
                         <div>
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="space-y-1">
@@ -359,7 +368,13 @@
                         <div class="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
                             <div class="space-y-1">
                                 <label class="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase ml-1">kVp</label>
-                                <input type="number" id="kvp" placeholder="120" class="glass-input w-full px-3 py-2 border-blue-300 rounded-xl text-base font-bold text-blue-900 dark:text-blue-100 text-center focus:border-indigo-500 outline-none transition-all" min="50" max="160">
+                                <select id="kvp" class="glass-input w-full px-3 py-2 border-blue-300 rounded-xl text-base font-bold text-blue-900 dark:text-blue-100 text-center focus:border-indigo-500 outline-none transition-all cursor-pointer">
+                                    <option value="" disabled selected>-- Chọn --</option>
+                                    <option value="80">80</option>
+                                    <option value="100">100</option>
+                                    <option value="120">120</option>
+                                    <option value="140">140</option>
+                                </select>
                             </div>
                             <div class="space-y-1">
                                 <label class="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase ml-1">mAs</label>
@@ -369,16 +384,31 @@
                     </div>
 
                     <div class="space-y-3 dose-highlight-box p-4 rounded-2xl">
-                        <label class="section-label text-amber-700 dark:text-amber-500 flex items-center gap-2"><i data-lucide="zap" class="w-3 h-3 fill-amber-500"></i> 3. Thông số liều</label>
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="section-label text-amber-700 dark:text-amber-500 flex items-center gap-2"><i data-lucide="zap" class="w-3 h-3 fill-amber-500"></i> 3. Thông số liều</label>
+                            
+                            <!-- OCR BUTTON -->
+                            <label class="cursor-pointer bg-white dark:bg-slate-700 border border-amber-200 dark:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-1.5 shadow-sm">
+                                <i data-lucide="camera" class="w-3.5 h-3.5"></i> Quét ảnh (OCR)
+                                <input type="file" id="ocrInput" accept="image/*" class="hidden">
+                            </label>
+                        </div>
+                        
+                        <!-- OCR Progress Bar -->
+                        <div id="ocrProgress" class="hidden w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mb-2 overflow-hidden">
+                            <div id="ocrProgressBar" class="bg-amber-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <p id="ocrStatus" class="hidden text-[9px] text-amber-600 dark:text-amber-400 font-bold mb-2 text-right animate-pulse">Đang phân tích ảnh... (Lần đầu sẽ mất thêm vài giây tải AI)</p>
+
                         <div class="grid grid-cols-2 gap-3">
                             <div class="space-y-1">
                                 <label class="text-[9px] font-black text-amber-600 dark:text-amber-500 uppercase">CTDIvol (mGy)</label>
-                                <input type="number" step="0.01" id="ctdi" placeholder="0.00" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-2 border-amber-200 dark:border-amber-700 rounded-xl text-lg font-black text-amber-600 dark:text-amber-500 text-center focus:border-amber-500 outline-none" min="0" data-required="true" data-msg="Nhập CTDI">
+                                <input type="number" step="0.01" id="ctdi" placeholder="0.00" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-2 border-amber-200 dark:border-amber-700 rounded-xl text-lg font-black text-amber-600 dark:text-amber-500 text-center focus:border-amber-500 outline-none transition-colors" min="0" data-required="true" data-msg="Nhập CTDI">
                                 <span class="error-msg text-center"></span>
                             </div>
                             <div class="space-y-1">
                                 <label class="text-[9px] font-black text-amber-600 dark:text-amber-500 uppercase">DLP (mGy.cm)</label>
-                                <input type="number" step="0.1" id="dlp" placeholder="0.0" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-2 border-amber-200 dark:border-amber-700 rounded-xl text-lg font-black text-amber-600 dark:text-amber-500 text-center focus:border-amber-500 outline-none" min="0" data-required="true" data-msg="Nhập DLP">
+                                <input type="number" step="0.1" id="dlp" placeholder="0.0" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-2 border-amber-200 dark:border-amber-700 rounded-xl text-lg font-black text-amber-600 dark:text-amber-500 text-center focus:border-amber-500 outline-none transition-colors" min="0" data-required="true" data-msg="Nhập DLP">
                                 <span class="error-msg text-center"></span>
                             </div>
                         </div>
@@ -405,7 +435,7 @@
                 </div>
                 <div class="p-6 overflow-y-auto flex-1 instruction-scroll text-slate-600 dark:text-slate-300 space-y-6 text-base leading-relaxed pb-12">
                     <div class="space-y-2"><h3 class="font-black text-indigo-900 dark:text-indigo-400 uppercase text-sm tracking-wider flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 flex items-center justify-center text-[10px]">1</span> Chọn Protocol</h3><p class="text-sm">Chỉ nhập dữ liệu cho các ca chụp <b>người lớn (≥ 18 tuổi)</b> và <b>KHÔNG TIÊM THUỐC</b> cản quang (Non-contrast).</p><ul class="list-disc pl-5 space-y-1 text-sm marker:text-indigo-300"><li><b>Sọ não (Head):</b> Chụp sọ não thường quy, chấn thương.</li><li><b>Ngực (Chest):</b> Chụp lồng ngực thường quy.</li><li><b>Bụng (Abdomen):</b> Chụp ổ bụng - tiểu khung.</li><li><b>Phổi liều thấp (LDCT):</b> Tầm soát ung thư phổi.</li></ul></div>
-                    <div class="space-y-2"><h3 class="font-black text-amber-700 dark:text-amber-500 uppercase text-sm tracking-wider flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center text-[10px]">2</span> Thông số liều (Quan trọng)</h3><div class="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-xl border border-amber-100 dark:border-amber-800 text-sm"><p class="mb-2">Thông số nằm trong <b>Dose Report</b> (hoặc Patient Protocol) ở cuối ca chụp.</p><div class="grid grid-cols-2 gap-2"><div class="bg-white dark:bg-slate-700 p-2 rounded border border-amber-100 dark:border-slate-600"><span class="block font-bold text-amber-800 dark:text-amber-400">CTDIvol</span><span class="text-xs text-slate-400">Đơn vị: mGy</span><p class="text-xs mt-1 italic">Lấy giá trị của loạt cắt xoắn ốc (Helical/Spiral) chính.</p></div><div class="bg-white dark:bg-slate-700 p-2 rounded border border-amber-100 dark:border-slate-600"><span class="block font-bold text-amber-800 dark:text-amber-400">DLP</span><span class="text-xs text-slate-400">Đơn vị: mGy.cm</span><p class="text-xs mt-1 italic">Tổng DLP của toàn bộ ca chụp (Total DLP).</p></div></div></div></div>
+                    <div class="space-y-2"><h3 class="font-black text-amber-700 dark:text-amber-500 uppercase text-sm tracking-wider flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center text-[10px]">2</span> Thông số liều (Quan trọng)</h3><div class="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-xl border border-amber-100 dark:border-amber-800 text-sm"><p class="mb-2">Thông số nằm trong <b>Dose Report</b> (hoặc Patient Protocol) ở cuối ca chụp.</p><div class="grid grid-cols-2 gap-2"><div class="bg-white dark:bg-slate-700 p-2 rounded border border-amber-100 dark:border-slate-600"><span class="block font-bold text-amber-800 dark:text-amber-400">CTDIvol</span><span class="text-xs text-slate-400">Đơn vị: mGy</span><p class="text-xs mt-1 italic">Lấy giá trị của loạt cắt chính (Axial/Helical).</p></div><div class="bg-white dark:bg-slate-700 p-2 rounded border border-amber-100 dark:border-slate-600"><span class="block font-bold text-amber-800 dark:text-amber-400">DLP</span><span class="text-xs text-slate-400">Đơn vị: mGy.cm</span><p class="text-xs mt-1 italic">Lấy giá trị DLP của loạt cắt chính (Helical/Axial), <b>KHÔNG</b> lấy Total DLP.</p></div></div></div></div>
                     <div class="space-y-2"><h3 class="font-black text-emerald-700 dark:text-emerald-500 uppercase text-sm tracking-wider flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px]">3</span> Dose Modulation</h3><p class="text-sm">Kỹ thuật tự động điều chỉnh dòng (mA) theo kích thước bệnh nhân. Tên gọi khác nhau tùy hãng:</p><div class="grid grid-cols-2 gap-2 text-sm font-bold text-slate-500 dark:text-slate-400"><div class="bg-slate-50 dark:bg-slate-700 p-2 rounded">GE: SmartmA / Auto mA</div><div class="bg-slate-50 dark:bg-slate-700 p-2 rounded">Siemens: CARE Dose 4D</div><div class="bg-slate-50 dark:bg-slate-700 p-2 rounded">Philips: DOM / Z-DOM</div><div class="bg-slate-50 dark:bg-slate-700 p-2 rounded">Canon: SureExposure</div></div><p class="text-sm italic mt-1 text-slate-400">*Nếu máy có bật tính năng này, hãy chọn "Có".</p></div>
                     <div class="space-y-2"><h3 class="font-black text-blue-700 dark:text-blue-400 uppercase text-sm tracking-wider flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-[10px]">4</span> Thông tin Bệnh nhân</h3><ul class="list-disc pl-5 space-y-1 text-sm marker:text-blue-300"><li><b>Mã BN (Patient ID):</b> Dùng để đối chiếu, dữ liệu được mã hóa khi thống kê.</li><li><b>Chiều cao/Cân nặng:</b> Bắt buộc để tính BMI và đánh giá mức liều phù hợp thể trạng.</li></ul></div>
                     <div class="space-y-2"><h3 class="font-black text-rose-700 dark:text-rose-500 uppercase text-sm tracking-wider flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center text-[10px]">5</span> Các trường bắt buộc (*)</h3><ul class="list-disc pl-5 space-y-1 text-sm marker:text-rose-300"><li><b>Cơ sở & Thiết bị:</b> Bệnh viện, Hãng máy, Số lát cắt, Tùy biến liều (mA Modulation).</li><li><b>Bệnh nhân & Kỹ thuật:</b> Protocol, Ngày chụp, Tuổi, Giới tính, Cân nặng, Chiều cao.</li><li><b>Thông số liều:</b> CTDIvol, DLP.</li></ul></div>
@@ -860,6 +890,148 @@
             
             setInterval(() => { if(latestUserRegistryData.length > 0) renderUserMonitor(latestUserRegistryData); }, 30000);
 
+            // --- AI OCR LOGIC THÔNG MINH (SMART HEURISTICS) ---
+            const ocrInput = el('ocrInput');
+            const ocrProgress = el('ocrProgress');
+            const ocrProgressBar = el('ocrProgressBar');
+            const ocrStatus = el('ocrStatus');
+
+            if(ocrInput) {
+                on('ocrInput', 'change', async (e) => {
+                    const file = e.target.files[0];
+                    if(!file) return;
+
+                    ocrProgress.classList.remove('hidden');
+                    ocrStatus.classList.remove('hidden');
+                    
+                    // Fake Progress để tránh lỗi DataCloneError trên một số trình duyệt
+                    ocrProgressBar.style.width = '100%';
+                    ocrProgressBar.classList.add('animate-pulse');
+                    el('submitBtn').disabled = true;
+
+                    try {
+                        // Khởi tạo Tesseract an toàn (không gửi function logger vào Worker)
+                        const worker = await Tesseract.createWorker('eng');
+                        
+                        // PSM 6: Chế độ tối ưu để đọc văn bản dạng Bảng (Table/Uniform block)
+                        await worker.setParameters({
+                            tessedit_pageseg_mode: '6',
+                        });
+
+                        const { data: { text } } = await worker.recognize(file);
+                        await worker.terminate();
+
+                        // Tiền xử lý văn bản: Đổi phẩy thành chấm, tách thành các dòng, xóa dòng trống
+                        const lines = text.toUpperCase().replace(/,/g, '.').split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+                        let ctdiVal = null;
+                        let dlpVal = null;
+                        let maxCtdi = 0;
+
+                        // BƯỚC 1: TÌM HÀNG TIÊU ĐỀ (HÀNG 1)
+                        let headerIndex = -1;
+                        for (let i = 0; i < lines.length; i++) {
+                            if (lines[i].includes('CTDI') || lines[i].includes('DLP')) {
+                                headerIndex = i;
+                                break; // Xác định được Hàng 1
+                            }
+                        }
+
+                        // BƯỚC 2: GIÓNG XUỐNG HÀNG 2 VÀ HÀNG 3 (Bỏ qua phần Total ở dưới cùng)
+                        if (headerIndex !== -1) {
+                            // Chỉ lấy 3 dòng tiếp theo (Hàng 2 là Scout, Hàng 3 là Phase chụp chính)
+                            const limit = Math.min(headerIndex + 4, lines.length);
+                            
+                            for (let i = headerIndex + 1; i < limit; i++) {
+                                const line = lines[i];
+                                
+                                // Nếu gặp dòng Total/Sum thì dừng gióng
+                                if (line.includes('TOTAL') || line.includes('ACCUMULATED') || line.includes('SUM')) {
+                                    break;
+                                }
+
+                                // BƯỚC 3: TRÍCH XUẤT SỐ LIỆU TRÊN CÙNG CỘT
+                                // Tìm tất cả các con số trong hàng
+                                let nums = line.match(/\d+\.\d+|\d+/g);
+                                if (!nums || nums.length < 2) continue;
+
+                                // Lọc bỏ các con số gây nhiễu (kích thước phantom 16, 32)
+                                nums = nums.map(n => parseFloat(n)).filter(n => n !== 16 && n !== 32);
+
+                                if (nums.length >= 2) {
+                                    // CTDI và DLP luôn là 2 cột ở ngoài cùng bên phải của bảng
+                                    let lineDlp = nums[nums.length - 1];
+                                    let lineCtdi = nums[nums.length - 2];
+
+                                    // Kiểm tra logic: CTDI thường nhỏ hơn DLP và không quá lớn (ví dụ < 200)
+                                    if (lineCtdi <= lineDlp && lineCtdi > 0 && lineCtdi < 200) {
+                                        // BƯỚC 4: CHỌN PHASE CHỤP (Loại bỏ Scout)
+                                        // Scout luôn có CTDI cực thấp, ta lấy hàng có CTDI cao nhất làm kết quả
+                                        if (lineCtdi > maxCtdi) {
+                                            maxCtdi = lineCtdi;
+                                            ctdiVal = lineCtdi;
+                                            dlpVal = lineDlp;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Fallback: Nếu không đọc được theo cấu trúc bảng, thử tìm regex cơ bản
+                        if (!ctdiVal || !dlpVal) {
+                            for (let line of lines) {
+                                if (line.includes('TOTAL') || line.includes('ACCUMULATED') || line.includes('EXAM')) continue;
+                                const cMatch = line.match(/CTDI.*?(?:VOL)?.*?(\d+\.\d+|\d+)/);
+                                const dMatch = line.match(/DLP.*?(\d+\.\d+|\d+)/);
+                                
+                                if (cMatch) {
+                                    let cVal = parseFloat(cMatch[1]);
+                                    if (cVal > maxCtdi && cVal !== 16 && cVal !== 32 && cVal < 200) {
+                                        maxCtdi = cVal;
+                                        ctdiVal = cVal;
+                                        if (dMatch) dlpVal = parseFloat(dMatch[1]);
+                                    }
+                                }
+                            }
+                        }
+
+                        // Hiển thị kết quả lên giao diện
+                        if(ctdiVal) {
+                            const cInput = el('ctdi');
+                            cInput.value = ctdiVal;
+                            cInput.classList.add('ocr-success');
+                            setTimeout(() => cInput.classList.remove('ocr-success'), 2000);
+                        }
+                        if(dlpVal) {
+                            const dInput = el('dlp');
+                            dInput.value = dlpVal;
+                            dInput.classList.add('ocr-success');
+                            setTimeout(() => dInput.classList.remove('ocr-success'), 2000);
+                        }
+
+                        // Báo trạng thái
+                        if(ctdiVal || dlpVal) {
+                            showToast("Trích xuất xong! Vui lòng kiểm tra lại độ chính xác của số liệu.");
+                            document.querySelectorAll('.input-error').forEach(i => i.classList.remove('input-error'));
+                            document.querySelectorAll('.error-msg').forEach(s => s.textContent = '');
+                        } else {
+                            showToast("AI không tìm thấy số liệu rõ ràng. Vui lòng nhập bằng tay.", "error");
+                        }
+
+                    } catch (err) {
+                        console.error("OCR Error:", err);
+                        showToast("Lỗi khi đọc ảnh. Vui lòng thử lại.", "error");
+                    } finally {
+                        ocrProgress.classList.add('hidden');
+                        ocrStatus.classList.add('hidden');
+                        ocrProgressBar.classList.remove('animate-pulse');
+                        ocrProgressBar.style.width = '0%';
+                        el('submitBtn').disabled = false;
+                        e.target.value = ''; 
+                    }
+                });
+            }
+
             onAuthStateChanged(auth, async(u) => {
                 user = u; if(!u) await signInAnonymously(auth);
                 const isReal = u && !u.isAnonymous;
@@ -909,7 +1081,9 @@
             on('manufacturer','change',(e)=>localStorage.setItem('drl_saved_manufacturer',e.target.value));
             on('protocol','change',(e)=>localStorage.setItem('drl_saved_protocol',e.target.value));
             on('scanDate','change',(e)=>localStorage.setItem('drl_saved_scanDate',e.target.value));
-            ['protocol','scanDate'].forEach(id=>{const v=localStorage.getItem('drl_saved_'+id);if(v)el(id).value=v});
+            on('kvp','change',(e)=>localStorage.setItem('drl_saved_kvp',e.target.value));
+            
+            ['protocol','scanDate','kvp'].forEach(id=>{const v=localStorage.getItem('drl_saved_'+id);if(v)el(id).value=v});
             if(!el('scanDate').value) el('scanDate').valueAsDate=new Date();
 
             // Autocomplete
@@ -1006,9 +1180,10 @@
                     
                     // Batch Mode Logic
                     const isBatch = el('batchMode').checked;
-                    const fieldsToClear = ['patientId','age','yob','weight','height','bmi','ctdi','dlp','kvp','mas'];
+                    // Đã LOẠI BỎ 'kvp' khỏi danh sách làm trắng (fieldsToClear) để nó luôn giữ nguyên sau khi lưu
+                    const fieldsToClear = ['patientId','age','yob','weight','height','bmi','ctdi','dlp','mas'];
                     
-                    // Nếu KHÔNG phải chế độ nhập liên tục, reset cả radio button
+                    // Nếu KHÔNG phải chế độ nhập liên tục, reset cả radio button và protocol
                     if(!isBatch) {
                         fieldsToClear.push('protocol', 'sliceCount'); 
                         document.querySelectorAll('input[name="doseModulation"]').forEach(r => r.checked = false);
